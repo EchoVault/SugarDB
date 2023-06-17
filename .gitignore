@@ -1,1 +1,4 @@
 bin
+*key
+*crt
+*csr

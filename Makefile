@@ -1,7 +1,15 @@
-build:
-	go build -o bin/main main.go
+build-server:
+	go build -o bin/server server/main.go
 
-run:
-	./bin/main
+build-client:
+	go build -o bin/client client/main.go
 
-all: build run
+run-server:
+	./bin/server
+
+run-client:
+	./bin/client
+
+server: build-server run-server
+
+client: build-client run-client
