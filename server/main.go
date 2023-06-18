@@ -1,24 +1,97 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"path"
 
 	"gopkg.in/yaml.v3"
 )
 
+type Listener interface {
+	Accept() (net.Conn, error)
+}
+
 type Config struct {
 	TLS  bool   `json:"tls" yaml:"tls"`
 	Key  string `json:"key" yaml:"key"`
 	Cert string `json:"cert" yaml:"cert"`
 	HTTP bool   `json:"http" yaml:"http"`
+	Port uint16 `json:"port" yaml:"port"`
 }
 
 type Server struct {
 	config Config
+}
+
+func (server *Server) StartTCP() {
+	conf := server.config
+	var listener net.Listener
+
+	if conf.TLS && !conf.HTTP {
+		// TLS
+		fmt.Println("TCP/TLS mode enabled...")
+		cer, err := tls.LoadX509KeyPair(conf.Cert, conf.Key)
+		if err != nil {
+			panic(err)
+		}
+
+		if l, err := tls.Listen("tcp", fmt.Sprintf("%s:%d", "localhost", conf.Port), &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		}); err != nil {
+			panic(err)
+		} else {
+			listener = l
+		}
+	}
+
+	if !conf.TLS && !conf.HTTP {
+		// TCP
+		fmt.Println("Starting server in TCP mode...")
+		if l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", "localhost", conf.Port)); err != nil {
+			panic(err)
+		} else {
+			listener = l
+		}
+	}
+
+	// Listen to connection
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			fmt.Println("Could not establish connection")
+			continue
+		}
+		// Read loop for connection
+		fmt.Println(conn)
+	}
+}
+
+func (server *Server) StartHTTP() {
+	conf := server.config
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Hello from memstore!"))
+	})
+
+	var err error
+
+	if conf.TLS {
+		fmt.Println("Starting server in HTTPS mode...")
+		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", "localhost", conf.Port), conf.Cert, conf.Key, nil)
+	} else {
+		fmt.Println("Starting server in HTTP mode...")
+		err = http.ListenAndServe(fmt.Sprintf("%s:%d", "localhost", conf.Port), nil)
+	}
+
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (server *Server) Start() {
@@ -29,27 +102,11 @@ func (server *Server) Start() {
 		return
 	}
 
-	if !conf.TLS && conf.HTTP {
-		// HTTP
-		fmt.Println("HTTP mode enabled...")
+	if conf.HTTP {
+		server.StartHTTP()
+	} else {
+		server.StartTCP()
 	}
-
-	if conf.TLS && conf.HTTP {
-		// HTTPS
-		fmt.Println("HTTPS mode enabled...")
-	}
-
-	if conf.TLS && !conf.HTTP {
-		// TLS
-		fmt.Println("TCP/TLS mode enabled...")
-	}
-
-	if !conf.TLS && !conf.HTTP {
-		// TCP
-		fmt.Println("TCP mode enabled...")
-	}
-
-	// Listen to connection
 }
 
 func main() {
@@ -57,6 +114,7 @@ func main() {
 	key := flag.String("key", "", "The private key file path.")
 	cert := flag.String("cert", "", "The signed certificate file path.")
 	http := flag.Bool("http", false, "Use HTTP protocol instead of raw TCP. Default is false")
+	port := flag.Int("port", 7480, "Port to use. Default is 7480")
 	config := flag.String(
 		"config",
 		"",
@@ -83,7 +141,6 @@ func main() {
 			if ext == ".yaml" || ext == ".yml" {
 				yaml.NewDecoder(f).Decode(&conf)
 			}
-
 		}
 
 	} else {
@@ -92,6 +149,7 @@ func main() {
 			Key:  *key,
 			Cert: *cert,
 			HTTP: *http,
+			Port: uint16(*port),
 		}
 	}
 
