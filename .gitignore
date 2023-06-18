@@ -2,3 +2,5 @@ bin
 *key
 *crt
 *csr
+config.json
+config.y*ml

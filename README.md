@@ -1,5 +1,6 @@
 # Features
 
+[] Config file support
 [] TCP support w/ TLS
 [] HTTP support w/ TLS
 [] String support
