@@ -33,7 +33,7 @@ func (server *Server) StartTCP() {
 	conf := server.config
 	var listener net.Listener
 
-	if conf.TLS && !conf.HTTP {
+	if conf.TLS {
 		// TLS
 		fmt.Println("TCP/TLS mode enabled...")
 		cer, err := tls.LoadX509KeyPair(conf.Cert, conf.Key)
@@ -50,7 +50,7 @@ func (server *Server) StartTCP() {
 		}
 	}
 
-	if !conf.TLS && !conf.HTTP {
+	if !conf.TLS {
 		// TCP
 		fmt.Println("Starting server in TCP mode...")
 		if l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", "localhost", conf.Port)); err != nil {
@@ -67,8 +67,9 @@ func (server *Server) StartTCP() {
 			fmt.Println("Could not establish connection")
 			continue
 		}
+
 		// Read loop for connection
-		fmt.Println(conn)
+		conn.Write([]byte("Hello, Client!\n"))
 	}
 }
 

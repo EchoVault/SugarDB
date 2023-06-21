@@ -1,8 +1,8 @@
 # Features
 
-[] Config file support
-[] TCP support w/ TLS
-[] HTTP support w/ TLS
+[x] Config file support
+[x] TCP support w/ TLS
+[x] HTTP support w/ TLS
 [] String support
 [] List support
 [] Set support
@@ -17,3 +17,5 @@
 [] Geospatial support
 [] Bitmap support
 [] Bitfield support
+
+[] Add support for multiple root CAs on client side

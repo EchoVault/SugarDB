@@ -1,6 +1,4 @@
 bin
-*key
-*crt
-*csr
+openssl
 config.json
 config.y*ml
