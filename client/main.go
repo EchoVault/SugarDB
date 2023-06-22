@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/kelvinmwinuka/memstore/serialization"
 	"gopkg.in/yaml.v3"
 )
 
@@ -108,4 +110,33 @@ func main() {
 	}
 
 	defer conn.Close()
+
+	done := make(chan struct{})
+	// connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+	stdioRW := bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
+
+	go func() {
+		for {
+			stdioRW.Write([]byte("\n> "))
+			stdioRW.Flush()
+
+			if in, err := stdioRW.ReadBytes(byte('\n')); err != nil {
+				stdioRW.Write([]byte(fmt.Sprintf("ERROR: %s\n", err)))
+				stdioRW.Flush()
+			} else {
+				in := bytes.TrimSpace(in)
+
+				// Check for exit command
+				if bytes.Equal(bytes.ToLower(in), []byte("exit")) {
+					break
+				}
+
+				stdioRW.Write(serialization.Encode(in))
+				stdioRW.Flush()
+			}
+		}
+		done <- struct{}{}
+	}()
+
+	<-done
 }
