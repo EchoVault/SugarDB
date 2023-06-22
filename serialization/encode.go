@@ -66,15 +66,15 @@ func Encode(b []byte) []byte {
 	}
 
 	if len(tokens) == 1 && bytes.Equal(bytes.ToLower(tokens[0]), []byte("ping")) {
-		return []byte(fmt.Sprintf("+%s\r\n", string(bytes.ToUpper(tokens[0]))))
+		return []byte(fmt.Sprintf("+%s\\r\\n", string(bytes.ToUpper(tokens[0]))))
 	}
 
 	if len(tokens) > 1 && bytes.Equal(bytes.ToLower(tokens[0]), []byte("ping")) {
-		enc := []byte(fmt.Sprintf("*%d\r\n$%d\r\n%s\r\n",
+		enc := []byte(fmt.Sprintf("*%d\\r\\n$%d\\r\\n%s\\r\\n",
 			len(tokens), len(tokens[0]), string(bytes.ToUpper(tokens[0]))))
 		for i := 1; i < len(tokens); i++ {
 			token := tokens[i]
-			enc = append(enc, []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(token), token))...)
+			enc = append(enc, []byte(fmt.Sprintf("$%d\\r\\n%s\\r\\n", len(token), token))...)
 		}
 		return enc
 	}

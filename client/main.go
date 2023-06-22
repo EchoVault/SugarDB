@@ -112,7 +112,8 @@ func main() {
 	defer conn.Close()
 
 	done := make(chan struct{})
-	// connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+
+	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 	stdioRW := bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
 
 	go func() {
@@ -131,8 +132,9 @@ func main() {
 					break
 				}
 
-				stdioRW.Write(serialization.Encode(in))
-				stdioRW.Flush()
+				enc := serialization.Encode(in)
+				connRW.Write([]byte(fmt.Sprintf("\"%s\"\n", string(enc))))
+				connRW.Flush()
 			}
 		}
 		done <- struct{}{}

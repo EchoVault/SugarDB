@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
@@ -27,6 +28,22 @@ type Config struct {
 
 type Server struct {
 	config Config
+}
+
+func (server *Server) hanndleConnection(conn net.Conn) {
+	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+	sw := bufio.NewWriter(os.Stdout)
+
+	for {
+		l, _, err := rw.ReadLine()
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		sw.Write(l)
+		sw.Flush()
+	}
 }
 
 func (server *Server) StartTCP() {
@@ -69,7 +86,7 @@ func (server *Server) StartTCP() {
 		}
 
 		// Read loop for connection
-		conn.Write([]byte("Hello, Client!\n"))
+		go server.hanndleConnection(conn)
 	}
 }
 
