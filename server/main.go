@@ -2,15 +2,18 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
 	"path"
 
+	"github.com/kelvinmwinuka/memstore/serialization"
 	"gopkg.in/yaml.v3"
 )
 
@@ -32,18 +35,32 @@ type Server struct {
 
 func (server *Server) hanndleConnection(conn net.Conn) {
 	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
-	sw := bufio.NewWriter(os.Stdout)
+	// sw := bufio.NewWriter(os.Stdout)
+
+	var line [][]byte
 
 	for {
-		l, _, err := rw.ReadLine()
+		b, _, err := rw.ReadLine()
 
-		if err != nil {
+		if err != nil && err == io.EOF {
 			fmt.Println(err)
+			break
 		}
 
-		sw.Write(l)
-		sw.Flush()
+		line = append(line, b)
+
+		if bytes.Equal(b, []byte("")) {
+			// End of RESP message
+			// sw.Write(bytes.Join(line, []byte("\\r\\n")))
+			// sw.Flush()
+
+			serialization.Decode(string(bytes.Join(line, []byte("\r\n"))))
+
+			line = [][]byte{}
+		}
 	}
+
+	conn.Close()
 }
 
 func (server *Server) StartTCP() {
@@ -84,7 +101,6 @@ func (server *Server) StartTCP() {
 			fmt.Println("Could not establish connection")
 			continue
 		}
-
 		// Read loop for connection
 		go server.hanndleConnection(conn)
 	}

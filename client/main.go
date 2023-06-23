@@ -112,6 +112,7 @@ func main() {
 	defer conn.Close()
 
 	done := make(chan struct{})
+	connClosed := make(chan struct{})
 
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 	stdioRW := bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
@@ -127,18 +128,42 @@ func main() {
 			} else {
 				in := bytes.TrimSpace(in)
 
-				// Check for exit command
-				if bytes.Equal(bytes.ToLower(in), []byte("exit")) {
+				// Check for quit command
+				if bytes.Equal(bytes.ToLower(in), []byte("quit")) {
 					break
 				}
 
-				enc := serialization.Encode(in)
-				connRW.Write([]byte(fmt.Sprintf("\"%s\"\n", string(enc))))
-				connRW.Flush()
+				if err := serialization.Encode(connRW, string(in)); err != nil {
+					stdioRW.Write([]byte(err.Error()))
+					stdioRW.Flush()
+				} else {
+					connRW.Write([]byte("\n"))
+					connRW.Flush()
+				}
 			}
 		}
 		done <- struct{}{}
 	}()
 
-	<-done
+	go func() {
+		for {
+			l, _, err := connRW.ReadLine()
+
+			if err != nil && err == io.EOF {
+				break
+			}
+
+			stdioRW.Write(l)
+			stdioRW.Write([]byte("\n"))
+			stdioRW.Flush()
+		}
+		connClosed <- struct{}{}
+	}()
+
+	select {
+	case <-done:
+		fmt.Println("Exited")
+	case <-connClosed:
+		fmt.Println("Connection closed")
+	}
 }

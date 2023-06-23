@@ -1,83 +1,159 @@
 package serialization
 
 import (
-	"bytes"
+	"encoding/csv"
 	"errors"
 	"fmt"
-	"log"
+	"io"
+	"math"
+	"strconv"
+	"strings"
+
+	"github.com/kelvinmwinuka/memstore/utils"
+	"github.com/tidwall/resp"
 )
 
-func tokenize(b []byte) ([][]byte, error) {
-	qOpen := false
-	transformed := []byte("")
+const (
+	wrong_args_error = "wrong number of arguments for %s command"
+	wrong_type_error = "wrong data type for %s command"
+)
 
-	for _, c := range b {
-
-		if c != ' ' && c != '"' {
-			transformed = append(transformed, c)
-			continue
-		}
-
-		if c == '"' {
-			qOpen = !qOpen
-
-			if qOpen && !bytes.HasSuffix(transformed, []byte(" ")) {
-				transformed = append(transformed, ' ')
-			}
-
-			transformed = append(transformed, c)
-			continue
-		}
-
-		if c == ' ' && qOpen {
-			transformed = append(transformed, []byte("*-*")...)
-			continue
-		}
-
-		if c == ' ' && !qOpen {
-			transformed = append(transformed, c)
-			continue
-		}
-	}
-
-	if qOpen {
-		return nil, errors.New("open quote in command")
-	}
-
-	tokens := bytes.Split(transformed, []byte(" "))
-
-	for i := 0; i < len(tokens); i++ {
-		tokens[i] = bytes.Trim(tokens[i], "\"")
-		tokens[i] = bytes.ReplaceAll(tokens[i], []byte("*-*"), []byte(" "))
-	}
-
-	return tokens, nil
+func tokenize(comm string) ([]string, error) {
+	r := csv.NewReader(strings.NewReader(comm))
+	r.Comma = ' '
+	return r.Read()
 }
 
-func Encode(b []byte) []byte {
-	tokens, err := tokenize(b)
+func encodePingPong(wr *resp.Writer, tokens []string) error {
+	switch len(tokens) {
+	default:
+		return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
+	case 1:
+		wr.WriteSimpleString(strings.ToUpper(tokens[0]))
+		return nil
+	case 2:
+		wr.WriteArray([]resp.Value{
+			resp.StringValue(strings.ToUpper(tokens[0])),
+			resp.StringValue(tokens[1]),
+		})
+		return nil
+	}
+}
+
+func encodeSet(wr *resp.Writer, tokens []string) error {
+	switch len(tokens) {
+	default:
+		return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
+	case 3:
+		arr := []resp.Value{
+			resp.StringValue(strings.ToUpper(tokens[0])),
+			resp.StringValue(tokens[1]),
+		}
+
+		if n, err := strconv.ParseFloat(tokens[2], 32); err != nil {
+			arr = append(arr, resp.StringValue(tokens[2]))
+		} else if math.Mod(n, 1.0) == 0 {
+			arr = append(arr, resp.IntegerValue(int(n)))
+		} else {
+			arr = append(arr, resp.FloatValue(n))
+		}
+
+		wr.WriteArray(arr)
+		return nil
+	}
+}
+
+func encodeGet(wr *resp.Writer, tokens []string) error {
+	switch len(tokens) {
+	default:
+		return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
+	case 2:
+		wr.WriteArray([]resp.Value{
+			resp.StringValue(strings.ToUpper(tokens[0])),
+			resp.StringValue(tokens[1]),
+		})
+		return nil
+	}
+}
+
+func encodeMGet(wr *resp.Writer, tokens []string) error {
+	switch len(tokens) {
+	default:
+		arr := []resp.Value{resp.StringValue(strings.ToUpper(tokens[0]))}
+		for _, token := range tokens[1:] {
+			arr = append(arr, resp.StringValue(token))
+		}
+		wr.WriteArray(arr)
+		return nil
+	case 1:
+		return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
+	}
+}
+
+func encodeIncr(wr *resp.Writer, tokens []string) error {
+	switch len(tokens) {
+
+	default:
+		return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
+
+	case 2:
+		if utils.Contains[string]([]string{"incrby", "incrbyfloat"}, strings.ToLower(tokens[0])) {
+			return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
+		}
+		wr.WriteArray([]resp.Value{
+			resp.StringValue(strings.ToUpper(tokens[0])),
+			resp.StringValue(tokens[1]),
+		})
+		return nil
+
+	case 3:
+		if strings.ToLower(tokens[0]) == "incr" {
+			return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
+		}
+
+		arr := []resp.Value{
+			resp.StringValue(strings.ToUpper(tokens[0])),
+			resp.StringValue(tokens[1]),
+		}
+
+		if n, err := strconv.ParseFloat(tokens[2], 32); err != nil {
+			return fmt.Errorf(wrong_type_error, strings.ToUpper(tokens[0]))
+		} else if !utils.IsInteger(n) || strings.ToLower(tokens[0]) == "incrbyfloat" {
+			arr = append(arr, resp.FloatValue(n))
+		} else {
+			arr = append(arr, resp.IntegerValue(int(n)))
+		}
+
+		wr.WriteArray(arr)
+		return nil
+	}
+}
+
+func Encode(buf io.ReadWriter, comm string) error {
+	var err error = nil
+
+	tokens, err := tokenize(comm)
 
 	if err != nil {
-		log.Fatal(err)
+		return errors.New("could not parse command")
 	}
 
-	if len(tokens) <= 0 {
-		return b
+	wr := resp.NewWriter(buf)
+
+	switch string(strings.ToLower(tokens[0])) {
+	case "ping", "pong":
+		err = encodePingPong(wr, tokens)
+	case "set", "setnx":
+		err = encodeSet(wr, tokens)
+	case "get":
+		err = encodeGet(wr, tokens)
+	case "mget":
+		err = encodeMGet(wr, tokens)
+	case "incr", "incrby", "incrbyfloat":
+		err = encodeIncr(wr, tokens)
+	default:
+		err = errors.New("failed to parse command")
 	}
 
-	if len(tokens) == 1 && bytes.Equal(bytes.ToLower(tokens[0]), []byte("ping")) {
-		return []byte(fmt.Sprintf("+%s\\r\\n", string(bytes.ToUpper(tokens[0]))))
-	}
-
-	if len(tokens) > 1 && bytes.Equal(bytes.ToLower(tokens[0]), []byte("ping")) {
-		enc := []byte(fmt.Sprintf("*%d\\r\\n$%d\\r\\n%s\\r\\n",
-			len(tokens), len(tokens[0]), string(bytes.ToUpper(tokens[0]))))
-		for i := 1; i < len(tokens); i++ {
-			token := tokens[i]
-			enc = append(enc, []byte(fmt.Sprintf("$%d\\r\\n%s\\r\\n", len(token), token))...)
-		}
-		return enc
-	}
-
-	return b
+	return err
 }

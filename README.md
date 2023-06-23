@@ -3,6 +3,7 @@
 [x] Config file support
 [x] TCP support w/ TLS
 [x] HTTP support w/ TLS
+[] Ping/Pong
 [] String support
 [] List support
 [] Set support
