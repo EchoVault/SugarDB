@@ -12,14 +12,12 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/kelvinmwinuka/memstore/serialization"
+	"github.com/tidwall/resp"
 	"gopkg.in/yaml.v3"
 )
-
-type Listener interface {
-	Accept() (net.Conn, error)
-}
 
 type Config struct {
 	TLS  bool   `json:"tls" yaml:"tls"`
@@ -29,18 +27,24 @@ type Config struct {
 	Port uint16 `json:"port" yaml:"port"`
 }
 
+type Data struct {
+	mu   sync.Mutex
+	data map[string]interface{}
+}
+
 type Server struct {
 	config Config
+	data   Data
 }
 
 func (server *Server) hanndleConnection(conn net.Conn) {
-	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
-	// sw := bufio.NewWriter(os.Stdout)
+	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+	respWriter := resp.NewWriter(connRW)
 
 	var line [][]byte
 
 	for {
-		b, _, err := rw.ReadLine()
+		b, _, err := connRW.ReadLine()
 
 		if err != nil && err == io.EOF {
 			fmt.Println(err)
@@ -54,7 +58,24 @@ func (server *Server) hanndleConnection(conn net.Conn) {
 			// sw.Write(bytes.Join(line, []byte("\\r\\n")))
 			// sw.Flush()
 
-			serialization.Decode(string(bytes.Join(line, []byte("\r\n"))))
+			if cmd, err := serialization.Decode(string(bytes.Join(line, []byte("\r\n")))); err != nil {
+				fmt.Println(err)
+				// Return error to client
+				continue
+			} else {
+				// Return encoded message to client
+
+				if len(cmd) == 1 && cmd[0] == "PING" {
+					serialization.EncodeSimpleString(respWriter, "PONG")
+					connRW.Flush()
+				}
+
+				if len(cmd) == 2 && cmd[0] == "PING" {
+					fmt.Println(cmd)
+					serialization.EncodeSimpleString(respWriter, cmd[1])
+					connRW.Flush()
+				}
+			}
 
 			line = [][]byte{}
 		}

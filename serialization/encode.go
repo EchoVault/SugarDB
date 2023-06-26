@@ -24,6 +24,10 @@ func tokenize(comm string) ([]string, error) {
 	return r.Read()
 }
 
+func EncodeSimpleString(wr *resp.Writer, token string) error {
+	return wr.WriteSimpleString(token)
+}
+
 func encodePingPong(wr *resp.Writer, tokens []string) error {
 	switch len(tokens) {
 	default:
