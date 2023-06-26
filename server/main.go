@@ -12,10 +12,10 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"sync"
 
 	"github.com/kelvinmwinuka/memstore/serialization"
-	"github.com/tidwall/resp"
 	"gopkg.in/yaml.v3"
 )
 
@@ -39,7 +39,6 @@ type Server struct {
 
 func (server *Server) hanndleConnection(conn net.Conn) {
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
-	respWriter := resp.NewWriter(connRW)
 
 	var line [][]byte
 
@@ -59,21 +58,31 @@ func (server *Server) hanndleConnection(conn net.Conn) {
 			// sw.Flush()
 
 			if cmd, err := serialization.Decode(string(bytes.Join(line, []byte("\r\n")))); err != nil {
-				fmt.Println(err)
 				// Return error to client
+				serialization.Encode(connRW, fmt.Sprintf("Error %s", err.Error()))
 				continue
 			} else {
 				// Return encoded message to client
 
-				if len(cmd) == 1 && cmd[0] == "PING" {
-					serialization.EncodeSimpleString(respWriter, "PONG")
-					connRW.Flush()
-				}
-
-				if len(cmd) == 2 && cmd[0] == "PING" {
-					fmt.Println(cmd)
-					serialization.EncodeSimpleString(respWriter, cmd[1])
-					connRW.Flush()
+				switch strings.ToLower(cmd[0]) {
+				default:
+					fmt.Println("The command is unknown")
+				case "ping":
+					if len(cmd) == 1 {
+						serialization.Encode(connRW, "SimpleString PONG")
+						connRW.Flush()
+					}
+					if len(cmd) == 2 {
+						fmt.Println(cmd)
+						serialization.Encode(connRW, fmt.Sprintf("SimpleString \"%s\"", cmd[1]))
+						connRW.Flush()
+					}
+				case "set":
+					fmt.Println("Set the value")
+				case "get":
+					fmt.Println("Get the value")
+				case "mget":
+					fmt.Println("Get the multiple values requested")
 				}
 			}
 

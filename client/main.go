@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/kelvinmwinuka/memstore/serialization"
 	"gopkg.in/yaml.v3"
@@ -23,6 +24,8 @@ type Config struct {
 	Cert string `json:"cert" yaml:"cert"`
 	Port uint16 `json:"port" yaml:"port"`
 }
+
+var mu sync.Mutex
 
 func main() {
 	TLS := flag.Bool("tls", false, "Start the server in TLS mode. Default is false")
@@ -119,7 +122,7 @@ func main() {
 
 	go func() {
 		for {
-			stdioRW.Write([]byte("\n> "))
+			stdioRW.Write([]byte("> "))
 			stdioRW.Flush()
 
 			if in, err := stdioRW.ReadBytes(byte('\n')); err != nil {
@@ -134,7 +137,7 @@ func main() {
 				}
 
 				if err := serialization.Encode(connRW, string(in)); err != nil {
-					stdioRW.Write([]byte(err.Error()))
+					stdioRW.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
 					stdioRW.Flush()
 				} else {
 					connRW.Write([]byte("\n"))
@@ -149,13 +152,14 @@ func main() {
 		for {
 			l, _, err := connRW.ReadLine()
 
-			if err != nil && err == io.EOF {
+			if err != nil || err == io.EOF {
 				break
 			}
 
-			stdioRW.Write(l)
-			stdioRW.Write([]byte("\n"))
-			stdioRW.Flush()
+			if len(l) > 0 {
+				stdioRW.WriteString(fmt.Sprintf("%s\n> ", string(l)))
+				stdioRW.Flush()
+			}
 		}
 		connClosed <- struct{}{}
 	}()

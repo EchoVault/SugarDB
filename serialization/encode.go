@@ -24,8 +24,20 @@ func tokenize(comm string) ([]string, error) {
 	return r.Read()
 }
 
-func EncodeSimpleString(wr *resp.Writer, token string) error {
-	return wr.WriteSimpleString(token)
+func encodeError(wr *resp.Writer, tokens []string) {
+	wr.WriteError(errors.New(tokens[1]))
+}
+
+func encodeSimpleString(wr *resp.Writer, tokens []string) error {
+	fmt.Println(tokens, len(tokens))
+	switch len(tokens) {
+	default:
+		return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
+	case 2:
+		fmt.Println(tokens[0], tokens[1])
+		wr.WriteSimpleString(tokens[1])
+		return nil
+	}
 }
 
 func encodePingPong(wr *resp.Writer, tokens []string) error {
@@ -145,6 +157,8 @@ func Encode(buf io.ReadWriter, comm string) error {
 	wr := resp.NewWriter(buf)
 
 	switch string(strings.ToLower(tokens[0])) {
+	default:
+		err = errors.New("unknown command")
 	case "ping", "pong":
 		err = encodePingPong(wr, tokens)
 	case "set", "setnx":
@@ -155,7 +169,10 @@ func Encode(buf io.ReadWriter, comm string) error {
 		err = encodeMGet(wr, tokens)
 	case "incr", "incrby", "incrbyfloat":
 		err = encodeIncr(wr, tokens)
-	default:
+	case "simplestring":
+		err = encodeSimpleString(wr, tokens)
+	case "Error":
+		encodeError(wr, tokens)
 		err = errors.New("failed to parse command")
 	}
 
