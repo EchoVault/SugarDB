@@ -12,7 +12,6 @@ import (
 	"net"
 	"os"
 	"path"
-	"sync"
 
 	"github.com/kelvinmwinuka/memstore/serialization"
 	"gopkg.in/yaml.v3"
@@ -24,8 +23,6 @@ type Config struct {
 	Cert string `json:"cert" yaml:"cert"`
 	Port uint16 `json:"port" yaml:"port"`
 }
-
-var mu sync.Mutex
 
 func main() {
 	TLS := flag.Bool("tls", false, "Start the server in TLS mode. Default is false")
