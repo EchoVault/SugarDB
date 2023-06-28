@@ -112,14 +112,13 @@ func main() {
 	defer conn.Close()
 
 	done := make(chan struct{})
-	connClosed := make(chan struct{})
 
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 	stdioRW := bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
 
 	go func() {
 		for {
-			stdioRW.Write([]byte("> "))
+			stdioRW.Write([]byte("\n> "))
 			stdioRW.Flush()
 
 			if in, err := stdioRW.ReadBytes(byte('\n')); err != nil {
@@ -137,34 +136,30 @@ func main() {
 					stdioRW.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
 					stdioRW.Flush()
 				} else {
+					// Write encoded command to the connection
 					connRW.Write([]byte("\n"))
 					connRW.Flush()
+
+					// Read response from server
+					if l, _, err := connRW.ReadLine(); err != nil {
+						if err == io.EOF {
+							// Break loop when we detect an EOF (Connection closed)
+							stdioRW.Write([]byte("Connection closed"))
+							stdioRW.Flush()
+							break
+						} else {
+							stdioRW.Write([]byte(err.Error()))
+							stdioRW.Flush()
+						}
+					} else {
+						stdioRW.Write(l)
+						stdioRW.Flush()
+					}
 				}
 			}
 		}
 		done <- struct{}{}
 	}()
 
-	go func() {
-		for {
-			l, _, err := connRW.ReadLine()
-
-			if err != nil || err == io.EOF {
-				break
-			}
-
-			if len(l) > 0 {
-				stdioRW.WriteString(fmt.Sprintf("%s\n> ", string(l)))
-				stdioRW.Flush()
-			}
-		}
-		connClosed <- struct{}{}
-	}()
-
-	select {
-	case <-done:
-		fmt.Println("Exited")
-	case <-connClosed:
-		fmt.Println("Connection closed")
-	}
+	<-done
 }
