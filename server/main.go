@@ -7,7 +7,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/kelvinmwinuka/memstore/serialization"
@@ -45,32 +44,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 			serialization.Encode(connRW, fmt.Sprintf("Error %s", err.Error()))
 			continue
 		} else {
-			// Return encoded message to client
-
-			switch strings.ToLower(cmd[0]) {
-			default:
-				fmt.Println("The command is unknown")
-			case "ping":
-				if len(cmd) == 1 {
-					serialization.Encode(connRW, "SimpleString PONG")
-					connRW.Write([]byte("\n"))
-					connRW.Flush()
-				}
-				if len(cmd) == 2 {
-					serialization.Encode(connRW, fmt.Sprintf("SimpleString \"%s\"", cmd[1]))
-					connRW.Write([]byte("\n"))
-					connRW.Flush()
-				}
-			case "set":
-				fmt.Println("Set the value")
-			case "get":
-				fmt.Println("Get the value")
-			case "mget":
-				fmt.Println("Get the multiple values requested")
-				serialization.Encode(connRW, "Array THIS IS THE ARRAY")
-				connRW.Write([]byte("\n"))
-				connRW.Flush()
-			}
+			processCommand(cmd, connRW, server)
 		}
 	}
 
@@ -143,6 +117,8 @@ func (server *Server) StartHTTP() {
 }
 
 func (server *Server) Start() {
+	server.data.data = make(map[string]interface{})
+
 	conf := server.config
 
 	if conf.TLS && (len(conf.Key) <= 0 || len(conf.Cert) <= 0) {

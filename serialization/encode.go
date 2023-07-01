@@ -38,6 +38,27 @@ func encodeSimpleString(wr *resp.Writer, tokens []string) error {
 	}
 }
 
+func encodeInteger(wr *resp.Writer, tokens []string) error {
+	switch len(tokens) {
+	default:
+		return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
+	case 2:
+		num, err := strconv.ParseFloat(tokens[1], 32)
+
+		if err != nil {
+			return err
+		}
+
+		if !utils.IsInteger(num) {
+			return fmt.Errorf("value %f is not a valid integer", num)
+		}
+
+		wr.WriteInteger(int(num))
+
+		return nil
+	}
+}
+
 func encodeArray(wr *resp.Writer, tokens []string) error {
 	switch l := len(tokens); {
 	default:
@@ -186,6 +207,8 @@ func Encode(buf io.ReadWriter, comm string) error {
 		err = encodeIncr(wr, tokens)
 	case "simplestring":
 		err = encodeSimpleString(wr, tokens)
+	case "integer":
+		err = encodeInteger(wr, tokens)
 	case "array":
 		err = encodeArray(wr, tokens)
 	case "Error":

@@ -2,8 +2,8 @@ package serialization
 
 import (
 	"bytes"
-	"fmt"
 
+	"github.com/kelvinmwinuka/memstore/utils"
 	"github.com/tidwall/resp"
 )
 
@@ -17,7 +17,7 @@ func Decode(raw string) ([]string, error) {
 		return nil, err
 	}
 
-	if v.Type().String() == "SimpleString" {
+	if utils.Contains[string]([]string{"SimpleString", "Integer"}, v.Type().String()) {
 		return []string{v.String()}, nil
 	}
 
@@ -27,6 +27,5 @@ func Decode(raw string) ([]string, error) {
 		}
 	}
 
-	fmt.Println(res)
 	return res, nil
 }
