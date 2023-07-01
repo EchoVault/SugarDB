@@ -29,13 +29,29 @@ func encodeError(wr *resp.Writer, tokens []string) {
 }
 
 func encodeSimpleString(wr *resp.Writer, tokens []string) error {
-	fmt.Println(tokens, len(tokens))
 	switch len(tokens) {
 	default:
 		return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
 	case 2:
 		fmt.Println(tokens[0], tokens[1])
 		wr.WriteSimpleString(tokens[1])
+		return nil
+	}
+}
+
+func encodeArray(wr *resp.Writer, tokens []string) error {
+	switch l := len(tokens); {
+	default:
+		return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
+	case l > 0:
+		arr := []resp.Value{}
+
+		for _, token := range tokens[1:] {
+			arr = append(arr, resp.AnyValue(token))
+		}
+
+		wr.WriteArray(arr)
+
 		return nil
 	}
 }
@@ -171,6 +187,8 @@ func Encode(buf io.ReadWriter, comm string) error {
 		err = encodeIncr(wr, tokens)
 	case "simplestring":
 		err = encodeSimpleString(wr, tokens)
+	case "array":
+		err = encodeArray(wr, tokens)
 	case "Error":
 		encodeError(wr, tokens)
 		err = errors.New("failed to parse command")

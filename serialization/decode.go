@@ -9,14 +9,13 @@ import (
 
 func Decode(raw string) ([]string, error) {
 	rd := resp.NewReader(bytes.NewBufferString(raw))
+	res := []string{}
 
 	v, _, err := rd.ReadValue()
 
 	if err != nil {
 		return nil, err
 	}
-
-	res := []string{}
 
 	if v.Type().String() == "SimpleString" {
 		return []string{v.String()}, nil

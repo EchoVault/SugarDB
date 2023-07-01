@@ -14,6 +14,7 @@ import (
 	"path"
 
 	"github.com/kelvinmwinuka/memstore/serialization"
+	"github.com/kelvinmwinuka/memstore/utils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -122,8 +123,7 @@ func main() {
 			stdioRW.Flush()
 
 			if in, err := stdioRW.ReadBytes(byte('\n')); err != nil {
-				stdioRW.Write([]byte(fmt.Sprintf("ERROR: %s\n", err)))
-				stdioRW.Flush()
+				fmt.Println(err)
 			} else {
 				in := bytes.TrimSpace(in)
 
@@ -133,28 +133,30 @@ func main() {
 				}
 
 				if err := serialization.Encode(connRW, string(in)); err != nil {
-					stdioRW.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
-					stdioRW.Flush()
+					fmt.Println(err)
 				} else {
 					// Write encoded command to the connection
 					connRW.Write([]byte("\n"))
 					connRW.Flush()
 
 					// Read response from server
-					if l, _, err := connRW.ReadLine(); err != nil {
-						if err == io.EOF {
-							// Break loop when we detect an EOF (Connection closed)
-							stdioRW.Write([]byte("Connection closed"))
-							stdioRW.Flush()
-							break
-						} else {
-							stdioRW.Write([]byte(err.Error()))
-							stdioRW.Flush()
-						}
-					} else {
-						stdioRW.Write(l)
-						stdioRW.Flush()
+					message, err := utils.ReadMessage(connRW)
+
+					if err != nil && err == io.EOF {
+						fmt.Println(err)
+						break
+					} else if err != nil {
+						fmt.Println(err)
 					}
+
+					decoded, err := serialization.Decode(message)
+
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+
+					fmt.Println(decoded)
 				}
 			}
 		}

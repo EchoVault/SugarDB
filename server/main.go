@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
@@ -16,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/kelvinmwinuka/memstore/serialization"
+	"github.com/kelvinmwinuka/memstore/utils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -37,56 +37,54 @@ type Server struct {
 	data   Data
 }
 
-func (server *Server) hanndleConnection(conn net.Conn) {
+func (server *Server) handleConnection(conn net.Conn) {
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 
-	var line [][]byte
-
 	for {
-		b, _, err := connRW.ReadLine()
+		message, err := utils.ReadMessage(connRW)
 
 		if err != nil && err == io.EOF {
 			fmt.Println(err)
 			break
 		}
 
-		line = append(line, b)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 
-		if bytes.Equal(b, []byte("")) {
-			// End of RESP message
-			// sw.Write(bytes.Join(line, []byte("\\r\\n")))
-			// sw.Flush()
+		if cmd, err := serialization.Decode(message); err != nil {
+			// Return error to client
+			serialization.Encode(connRW, fmt.Sprintf("Error %s", err.Error()))
+			fmt.Println("Server: ", err)
+			continue
+		} else {
+			// Return encoded message to client
 
-			if cmd, err := serialization.Decode(string(bytes.Join(line, []byte("\r\n")))); err != nil {
-				// Return error to client
-				serialization.Encode(connRW, fmt.Sprintf("Error %s", err.Error()))
-				continue
-			} else {
-				// Return encoded message to client
-
-				switch strings.ToLower(cmd[0]) {
-				default:
-					fmt.Println("The command is unknown")
-				case "ping":
-					if len(cmd) == 1 {
-						serialization.Encode(connRW, "SimpleString PONG")
-						connRW.Flush()
-					}
-					if len(cmd) == 2 {
-						fmt.Println(cmd)
-						serialization.Encode(connRW, fmt.Sprintf("SimpleString \"%s\"", cmd[1]))
-						connRW.Flush()
-					}
-				case "set":
-					fmt.Println("Set the value")
-				case "get":
-					fmt.Println("Get the value")
-				case "mget":
-					fmt.Println("Get the multiple values requested")
+			switch strings.ToLower(cmd[0]) {
+			default:
+				fmt.Println("The command is unknown")
+			case "ping":
+				if len(cmd) == 1 {
+					serialization.Encode(connRW, "SimpleString PONG")
+					connRW.Write([]byte("\n"))
+					connRW.Flush()
 				}
+				if len(cmd) == 2 {
+					serialization.Encode(connRW, fmt.Sprintf("SimpleString \"%s\"", cmd[1]))
+					connRW.Write([]byte("\n"))
+					connRW.Flush()
+				}
+			case "set":
+				fmt.Println("Set the value")
+			case "get":
+				fmt.Println("Get the value")
+			case "mget":
+				fmt.Println("Get the multiple values requested")
+				serialization.Encode(connRW, "Array THIS IS THE ARRAY")
+				connRW.Write([]byte("\n"))
+				connRW.Flush()
 			}
-
-			line = [][]byte{}
 		}
 	}
 
@@ -132,7 +130,7 @@ func (server *Server) StartTCP() {
 			continue
 		}
 		// Read loop for connection
-		go server.hanndleConnection(conn)
+		go server.handleConnection(conn)
 	}
 }
 
