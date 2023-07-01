@@ -43,7 +43,6 @@ func (server *Server) handleConnection(conn net.Conn) {
 		if cmd, err := serialization.Decode(message); err != nil {
 			// Return error to client
 			serialization.Encode(connRW, fmt.Sprintf("Error %s", err.Error()))
-			fmt.Println("Server: ", err)
 			continue
 		} else {
 			// Return encoded message to client

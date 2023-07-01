@@ -33,7 +33,6 @@ func encodeSimpleString(wr *resp.Writer, tokens []string) error {
 	default:
 		return fmt.Errorf(wrong_args_error, strings.ToUpper(tokens[0]))
 	case 2:
-		fmt.Println(tokens[0], tokens[1])
 		wr.WriteSimpleString(tokens[1])
 		return nil
 	}
