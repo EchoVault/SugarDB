@@ -4,7 +4,9 @@
 - [x] TCP support w/ TLS
 - [x] HTTP support w/ TLS
 - [x] Ping/Pong
-- [ ] String support
+- [x] String support
+- [x] Integer support
+- [x] Float support
 - [ ] List support
 - [ ] Set support
 - [ ] Sorted set support
