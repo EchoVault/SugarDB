@@ -5,68 +5,17 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"net"
 	"os"
-	"path"
 
 	"github.com/kelvinmwinuka/memstore/serialization"
 	"github.com/kelvinmwinuka/memstore/utils"
-	"gopkg.in/yaml.v3"
 )
 
-type Config struct {
-	TLS  bool   `json:"tls" yaml:"tls"`
-	Key  string `json:"key" yaml:"key"`
-	Cert string `json:"cert" yaml:"cert"`
-	Port uint16 `json:"port" yaml:"port"`
-}
-
 func main() {
-	TLS := flag.Bool("tls", false, "Start the server in TLS mode. Default is false")
-	Key := flag.String("key", "", "The private key file path.")
-	Cert := flag.String("cert", "", "The signed certificate file path.")
-	Port := flag.Int("port", 7480, "Port to use. Default is 7480")
-
-	config := flag.String(
-		"config",
-		"",
-		`File path to a JSON or YAML config file.The values in this config file will override the flag values.`,
-	)
-
-	flag.Parse()
-
-	var conf Config
-
-	if len(*config) > 0 {
-		// Load config from config file
-		if f, err := os.Open(*config); err != nil {
-			panic(err)
-		} else {
-			defer f.Close()
-
-			ext := path.Ext(f.Name())
-
-			if ext == ".json" {
-				json.NewDecoder(f).Decode(&conf)
-			}
-
-			if ext == ".yaml" || ext == ".yml" {
-				yaml.NewDecoder(f).Decode(&conf)
-			}
-		}
-
-	} else {
-		conf = Config{
-			TLS:  *TLS,
-			Key:  *Key,
-			Cert: *Cert,
-			Port: uint16(*Port),
-		}
-	}
+	conf := utils.GetConfig()
 
 	var conn net.Conn
 	var err error
