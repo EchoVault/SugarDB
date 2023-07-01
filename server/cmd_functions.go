@@ -60,6 +60,8 @@ func processGet(cmd []string, connRW *bufio.ReadWriter, server *Server) {
 	switch server.data.data[cmd[1]].(type) {
 	default:
 		fmt.Println("Error. The requested object's type cannot be returned with the GET command")
+	case nil:
+		serialization.Encode(connRW, "SimpleString nil")
 	case string:
 		serialization.Encode(connRW, fmt.Sprintf("SimpleString \"%s\"", server.data.data[cmd[1]]))
 	case float64:
@@ -80,6 +82,8 @@ func processMGet(cmd []string, connRW *bufio.ReadWriter, server *Server) {
 
 	for _, key := range cmd[1:] {
 		switch server.data.data[key].(type) {
+		case nil:
+			vals = append(vals, "nil")
 		case string:
 			vals = append(vals, fmt.Sprintf("%s", server.data.data[key]))
 		case float64:
