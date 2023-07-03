@@ -14,11 +14,12 @@ import (
 )
 
 type Config struct {
-	TLS  bool   `json:"tls" yaml:"tls"`
-	Key  string `json:"key" yaml:"key"`
-	Cert string `json:"cert" yaml:"cert"`
-	Port uint16 `json:"port" yaml:"port"`
-	HTTP bool   `json:"http" yaml:"http"`
+	TLS     bool   `json:"tls" yaml:"tls"`
+	Key     string `json:"key" yaml:"key"`
+	Cert    string `json:"cert" yaml:"cert"`
+	Port    uint16 `json:"port" yaml:"port"`
+	HTTP    bool   `json:"http" yaml:"http"`
+	Plugins string `json:"plugins" yaml:"plugins"`
 }
 
 func GetConfig() Config {
@@ -27,6 +28,7 @@ func GetConfig() Config {
 	cert := flag.String("cert", "", "The signed certificate file path.")
 	http := flag.Bool("http", false, "Use HTTP protocol instead of raw TCP. Default is false")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
+	plugins := flag.String("plugins", ".", "The path to the plugins folder.")
 	config := flag.String(
 		"config",
 		"",
@@ -57,11 +59,12 @@ func GetConfig() Config {
 
 	} else {
 		conf = Config{
-			TLS:  *tls,
-			Key:  *key,
-			Cert: *cert,
-			HTTP: *http,
-			Port: uint16(*port),
+			TLS:     *tls,
+			Key:     *key,
+			Cert:    *cert,
+			HTTP:    *http,
+			Port:    uint16(*port),
+			Plugins: *plugins,
 		}
 	}
 
