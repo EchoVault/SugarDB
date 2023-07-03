@@ -17,7 +17,7 @@ func Decode(raw string) ([]string, error) {
 		return nil, err
 	}
 
-	if utils.Contains[string]([]string{"SimpleString", "Integer"}, v.Type().String()) {
+	if utils.Contains[string]([]string{"SimpleString", "Integer", "Error"}, v.Type().String()) {
 		return []string{v.String()}, nil
 	}
 

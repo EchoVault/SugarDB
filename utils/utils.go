@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"sync"
 
 	"gopkg.in/yaml.v3"
 )
@@ -80,6 +81,17 @@ func Contains[T comparable](arr []T, elem T) bool {
 	return false
 }
 
+func ContainsMutual[T comparable](arr1 []T, arr2 []T) (bool, T) {
+	for _, a := range arr1 {
+		for _, b := range arr2 {
+			if a == b {
+				return true, a
+			}
+		}
+	}
+	return false, arr1[0]
+}
+
 func IsInteger(n float64) bool {
 	return math.Mod(n, 1.0) == 0
 }
@@ -103,4 +115,21 @@ func ReadMessage(r *bufio.ReadWriter) (message string, err error) {
 	}
 
 	return fmt.Sprintf("%s\r\n", string(bytes.Join(line, []byte("\r\n")))), nil
+}
+
+type Plugin interface {
+	Name() string
+	Commands() []string
+	Description() string
+	HandleCommand(
+		cmd []string,
+		GetData *func(key string) interface{},
+		SetData *func(key string, value interface{}),
+		conn *bufio.Writer,
+	)
+}
+
+type Data struct {
+	mu   sync.Mutex
+	data map[string]interface{}
 }

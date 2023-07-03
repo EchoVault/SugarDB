@@ -1,6 +1,5 @@
 build-plugins:
-	go build -buildmode=plugin -o bin/plugins/commands/command_get.so plugins/commands/get/get.go
-	go build -buildmode=plugin -o bin/plugins/commands/command_set.so plugins/commands/set/set.go
+	go build -buildmode=plugin -o bin/plugins/commands/command_setget.so plugins/commands/setget/setget.go
 
 build-server:
 	go build -o bin/server ./*.go

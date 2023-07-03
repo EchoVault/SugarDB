@@ -5,10 +5,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"path"
 	"plugin"
 	"strings"
@@ -20,9 +20,9 @@ import (
 
 type Plugin interface {
 	Name() string
-	Command() string
+	Commands() []string
 	Description() string
-	HandleCommand(tokens []string, server interface{}) error
+	HandleCommand(cmd []string, server interface{}, conn *bufio.Writer)
 }
 
 type Data struct {
@@ -34,6 +34,18 @@ type Server struct {
 	config  utils.Config
 	data    Data
 	plugins []Plugin
+}
+
+func (server *Server) GetData(key string) interface{} {
+	server.data.mu.Lock()
+	defer server.data.mu.Unlock()
+	return server.data.data[key]
+}
+
+func (server *Server) SetData(key string, value interface{}) {
+	server.data.mu.Lock()
+	defer server.data.mu.Unlock()
+	server.data.data[key] = value
 }
 
 func (server *Server) handleConnection(conn net.Conn) {
@@ -57,7 +69,14 @@ func (server *Server) handleConnection(conn net.Conn) {
 			serialization.Encode(connRW, fmt.Sprintf("Error %s", err.Error()))
 			continue
 		} else {
-			processCommand(cmd, connRW, server)
+			// Look for plugin that handles this command and trigger it
+			for _, plugin := range server.plugins {
+				fmt.Println(server)
+				if utils.Contains[string](plugin.Commands(), strings.ToLower(cmd[0])) {
+					plugin.HandleCommand(cmd, server, connRW.Writer)
+				}
+			}
+
 		}
 	}
 
@@ -133,7 +152,7 @@ func (server *Server) LoadPlugins() {
 	conf := server.config
 
 	// Load plugins
-	pluginDirs, err := ioutil.ReadDir(conf.Plugins)
+	pluginDirs, err := os.ReadDir(conf.Plugins)
 
 	if err != nil {
 		log.Fatal(err)
@@ -143,7 +162,7 @@ func (server *Server) LoadPlugins() {
 		if file.IsDir() {
 			switch file.Name() {
 			case "commands":
-				files, err := ioutil.ReadDir(path.Join(conf.Plugins, "commands"))
+				files, err := os.ReadDir(path.Join(conf.Plugins, "commands"))
 
 				if err != nil {
 					log.Fatal(err)
@@ -173,8 +192,9 @@ func (server *Server) LoadPlugins() {
 
 					// Check if a plugin that handles the same command already exists
 					for _, loadedPlugin := range server.plugins {
-						if loadedPlugin.Command() == plugin.Command() {
-							fmt.Printf("plugin that handles %s command already exists. Please handle a different command.", plugin.Command())
+						containsMutual, elem := utils.ContainsMutual[string](loadedPlugin.Commands(), plugin.Commands())
+						if containsMutual {
+							fmt.Printf("plugin that handles %s command already exists. Please handle a different command.\n", elem)
 						}
 					}
 
@@ -188,6 +208,7 @@ func (server *Server) LoadPlugins() {
 func (server *Server) Start() {
 	server.data.data = make(map[string]interface{})
 
+	server.config = utils.GetConfig()
 	conf := server.config
 
 	server.LoadPlugins()
@@ -205,10 +226,6 @@ func (server *Server) Start() {
 }
 
 func main() {
-	server := Server{
-		config:  utils.GetConfig(),
-		plugins: []Plugin{},
-	}
-
+	server := Server{}
 	server.Start()
 }
