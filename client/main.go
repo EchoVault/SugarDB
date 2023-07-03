@@ -81,32 +81,36 @@ func main() {
 					break
 				}
 
-				if err := serialization.Encode(connRW, string(in)); err != nil {
+				// Serialize command and send to connection
+				encoded, err := serialization.Encode(string(in))
+
+				if err != nil {
 					fmt.Println(err)
-				} else {
-					// Write encoded command to the connection
-					connRW.Write([]byte("\n"))
-					connRW.Flush()
-
-					// Read response from server
-					message, err := utils.ReadMessage(connRW)
-
-					if err != nil && err == io.EOF {
-						fmt.Println(err)
-						break
-					} else if err != nil {
-						fmt.Println(err)
-					}
-
-					decoded, err := serialization.Decode(message)
-
-					if err != nil {
-						fmt.Println(err)
-						continue
-					}
-
-					fmt.Println(decoded)
+					continue
 				}
+
+				connRW.Write([]byte(encoded))
+				connRW.Flush()
+
+				// Read response from server
+				message, err := utils.ReadMessage(connRW)
+
+				if err != nil && err == io.EOF {
+					fmt.Println(err)
+					break
+				} else if err != nil {
+					fmt.Println(err)
+				}
+
+				decoded, err := serialization.Decode(message)
+
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+
+				fmt.Println(decoded)
+
 			}
 		}
 		done <- struct{}{}

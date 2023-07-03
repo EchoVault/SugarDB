@@ -55,7 +55,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 		message, err := utils.ReadMessage(connRW)
 
 		if err != nil && err == io.EOF {
-			fmt.Println(err)
+			// Connection closed
 			break
 		}
 
@@ -66,17 +66,24 @@ func (server *Server) handleConnection(conn net.Conn) {
 
 		if cmd, err := serialization.Decode(message); err != nil {
 			// Return error to client
-			serialization.Encode(connRW, fmt.Sprintf("Error %s", err.Error()))
+			connRW.Write([]byte(fmt.Sprintf("-Error %s\r\n\n", err.Error())))
+			connRW.Flush()
 			continue
 		} else {
 			// Look for plugin that handles this command and trigger it
+			handled := false
+
 			for _, plugin := range server.plugins {
-				fmt.Println(server)
 				if utils.Contains[string](plugin.Commands(), strings.ToLower(cmd[0])) {
 					plugin.HandleCommand(cmd, server, connRW.Writer)
+					handled = true
 				}
 			}
 
+			if !handled {
+				connRW.Write([]byte(fmt.Sprintf("-Error %s command not supported\r\n\n", strings.ToUpper(cmd[0]))))
+				connRW.Flush()
+			}
 		}
 	}
 
