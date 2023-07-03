@@ -1,4 +1,5 @@
 build-plugins:
+	go build -buildmode=plugin -o bin/plugins/commands/command_ping.so plugins/commands/ping/ping.go
 	go build -buildmode=plugin -o bin/plugins/commands/command_setget.so plugins/commands/setget/setget.go
 
 build-server:
