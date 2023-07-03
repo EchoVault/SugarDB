@@ -5,13 +5,25 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
+	"path"
+	"plugin"
+	"strings"
 	"sync"
 
 	"github.com/kelvinmwinuka/memstore/serialization"
 	"github.com/kelvinmwinuka/memstore/utils"
 )
+
+type Plugin interface {
+	Name() string
+	Command() string
+	Description() string
+	HandleCommand(tokens []string, server interface{}) error
+}
 
 type Data struct {
 	mu   sync.Mutex
@@ -19,8 +31,9 @@ type Data struct {
 }
 
 type Server struct {
-	config utils.Config
-	data   Data
+	config  utils.Config
+	data    Data
+	plugins []Plugin
 }
 
 func (server *Server) handleConnection(conn net.Conn) {
@@ -116,10 +129,68 @@ func (server *Server) StartHTTP() {
 	}
 }
 
+func (server *Server) LoadPlugins() {
+	conf := server.config
+
+	// Load plugins
+	pluginDirs, err := ioutil.ReadDir(conf.Plugins)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range pluginDirs {
+		if file.IsDir() {
+			switch file.Name() {
+			case "commands":
+				files, err := ioutil.ReadDir(path.Join(conf.Plugins, "commands"))
+
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				for _, file := range files {
+					if !strings.HasSuffix(file.Name(), ".so") {
+						// Skip files that are not .so
+						continue
+					}
+					p, err := plugin.Open(path.Join(conf.Plugins, "commands", file.Name()))
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					pluginSymbol, err := p.Lookup("Plugin")
+					if err != nil {
+						fmt.Printf("unexpected plugin symbol in plugin %s\n", file.Name())
+						continue
+					}
+
+					plugin, ok := pluginSymbol.(Plugin)
+					if !ok {
+						fmt.Printf("invalid plugin signature in plugin %s \n", file.Name())
+						continue
+					}
+
+					// Check if a plugin that handles the same command already exists
+					for _, loadedPlugin := range server.plugins {
+						if loadedPlugin.Command() == plugin.Command() {
+							fmt.Printf("plugin that handles %s command already exists. Please handle a different command.", plugin.Command())
+						}
+					}
+
+					server.plugins = append(server.plugins, plugin)
+				}
+			}
+		}
+	}
+}
+
 func (server *Server) Start() {
 	server.data.data = make(map[string]interface{})
 
 	conf := server.config
+
+	server.LoadPlugins()
 
 	if conf.TLS && (len(conf.Key) <= 0 || len(conf.Cert) <= 0) {
 		fmt.Println("Must provide key and certificate file paths for TLS mode.")
@@ -134,10 +205,9 @@ func (server *Server) Start() {
 }
 
 func main() {
-	conf := utils.GetConfig()
-
 	server := Server{
-		config: conf,
+		config:  utils.GetConfig(),
+		plugins: []Plugin{},
 	}
 
 	server.Start()
