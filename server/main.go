@@ -36,15 +36,19 @@ type Server struct {
 	plugins []Plugin
 }
 
-func (server *Server) GetData(key string) interface{} {
+func (server *Server) Lock() {
 	server.data.mu.Lock()
-	defer server.data.mu.Unlock()
+}
+
+func (Server *Server) Unlock() {
+	Server.data.mu.Unlock()
+}
+
+func (server *Server) GetData(key string) interface{} {
 	return server.data.data[key]
 }
 
 func (server *Server) SetData(key string, value interface{}) {
-	server.data.mu.Lock()
-	defer server.data.mu.Unlock()
 	server.data.data[key] = value
 }
 

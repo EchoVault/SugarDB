@@ -2,9 +2,20 @@ package main
 
 import (
 	"bufio"
+	"fmt"
+	"math"
+	"strings"
+
+	"github.com/kelvinmwinuka/memstore/utils"
+)
+
+const (
+	OK = "+OK\r\n\n"
 )
 
 type Server interface {
+	Lock()
+	Unlock()
 	GetData(key string) interface{}
 	SetData(key string, value interface{})
 }
@@ -30,6 +41,182 @@ func (p *plugin) Description() string {
 }
 
 func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Writer) {
+	switch strings.ToLower(cmd[0]) {
+	case "lrange":
+		handleLRange(cmd, server.(Server), conn)
+	case "lpush":
+		handleLPush(cmd, server.(Server), conn)
+	case "rpush":
+		handleRPush(cmd, server.(Server), conn)
+	}
+}
+
+func handleLRange(cmd []string, server Server, conn *bufio.Writer) {
+	if len(cmd) != 4 {
+		conn.Write([]byte("-Error wrong number of arguments for LRANGE command\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	start, startOk := utils.AdaptType(cmd[2]).(int)
+	end, endOk := utils.AdaptType(cmd[3]).(int)
+
+	if !startOk || !endOk {
+		conn.Write([]byte("-Error both start and end indices must be integers\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.Lock()
+
+	list, ok := server.GetData(cmd[1]).([]interface{})
+
+	server.Unlock()
+
+	if !ok {
+		conn.Write([]byte("-Error type cannot be returned with LRANGE command\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	// Make sure start is within range
+	if !(start >= 0 && start < len(list)) {
+		conn.Write([]byte("-Error start index not within list range\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	// Make sure end is within range, or is -1 otherwise
+	if !((end >= 0 && end < len(list)) || end == -1) {
+		conn.Write([]byte("-Error end index must be within list range or -1\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	// If end is -1, read list from start to the end of the list
+	if end == -1 {
+		conn.Write([]byte("*" + fmt.Sprint(len(list)-start) + "\r\n"))
+		for i := start; i < len(list); i++ {
+			str := fmt.Sprintf("%v", list[i])
+			conn.Write([]byte("$" + fmt.Sprint(len(str)) + "\r\n" + str + "\r\n"))
+		}
+		conn.Write([]byte("\n"))
+		conn.Flush()
+		return
+	}
+
+	// Make sure start and end are not equal to each other
+	if start == end {
+		conn.Write([]byte("-Error start and end indices cannot be equal equal\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	// If end is not -1:
+	//	1) If end is larger than start, return slice from start -> end
+	//	2) If end is smaller than start, return slice from end -> start
+	conn.Write([]byte("*" + fmt.Sprint(int(math.Abs(float64(start-end)))+1) + "\r\n"))
+
+	i := start
+	j := end + 1
+	if start > end {
+		j = end - 1
+	}
+
+	for i != j {
+		str := fmt.Sprintf("%v", list[i])
+		conn.Write([]byte("$" + fmt.Sprint(len(str)) + "\r\n" + str + "\r\n"))
+		if start < end {
+			i++
+		} else {
+			i--
+		}
+
+	}
+	conn.Write([]byte("\n"))
+	conn.Flush()
+}
+
+func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
+	if len(cmd) < 3 {
+		conn.Write([]byte("-Error wrong number of arguments for LPUSH command\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.Lock()
+
+	newElems := []interface{}{}
+
+	for _, elem := range cmd[2:] {
+		newElems = append(newElems, utils.AdaptType(elem))
+	}
+
+	currentList := server.GetData(cmd[1])
+
+	if currentList == nil {
+		server.SetData(cmd[1], newElems)
+		server.Unlock()
+		conn.Write([]byte(OK))
+		conn.Flush()
+		return
+	}
+
+	l, ok := currentList.([]interface{})
+
+	if !ok {
+		server.Unlock()
+		conn.Write([]byte("-Error LPUSH command on non-list item\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.SetData(cmd[1], append(newElems, l...))
+	server.Unlock()
+
+	conn.Write([]byte(OK))
+	conn.Flush()
+}
+
+func handleRPush(cmd []string, server Server, conn *bufio.Writer) {
+	if len(cmd) < 3 {
+		conn.Write([]byte("-Error wrong number of arguments for LPUSH command\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.Lock()
+
+	newElems := []interface{}{}
+
+	for _, elem := range cmd[2:] {
+		newElems = append(newElems, utils.AdaptType(elem))
+	}
+
+	currentList := server.GetData(cmd[1])
+
+	if currentList == nil {
+		server.SetData(cmd[1], newElems)
+		server.Unlock()
+		conn.Write([]byte(OK))
+		conn.Flush()
+		return
+	}
+
+	l, ok := currentList.([]interface{})
+
+	if !ok {
+		server.Unlock()
+		conn.Write([]byte("-Error RPUSH command on non-list item\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.SetData(cmd[1], append(l, newElems...))
+	server.Unlock()
+
+	conn.Write([]byte(OK))
+	conn.Flush()
 }
 
 func init() {

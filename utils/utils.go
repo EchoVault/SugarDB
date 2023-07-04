@@ -9,7 +9,7 @@ import (
 	"math"
 	"os"
 	"path"
-	"sync"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -96,6 +96,21 @@ func IsInteger(n float64) bool {
 	return math.Mod(n, 1.0) == 0
 }
 
+func AdaptType(s string) interface{} {
+	// Adapt the type of the parameter to string, float64 or int
+	n, err := strconv.ParseFloat(s, 32)
+
+	if err != nil {
+		return s
+	}
+
+	if IsInteger(n) {
+		return int(n)
+	}
+
+	return n
+}
+
 func ReadMessage(r *bufio.ReadWriter) (message string, err error) {
 	var line [][]byte
 
@@ -115,21 +130,4 @@ func ReadMessage(r *bufio.ReadWriter) (message string, err error) {
 	}
 
 	return fmt.Sprintf("%s\r\n", string(bytes.Join(line, []byte("\r\n")))), nil
-}
-
-type Plugin interface {
-	Name() string
-	Commands() []string
-	Description() string
-	HandleCommand(
-		cmd []string,
-		GetData *func(key string) interface{},
-		SetData *func(key string, value interface{}),
-		conn *bufio.Writer,
-	)
-}
-
-type Data struct {
-	mu   sync.Mutex
-	data map[string]interface{}
 }

@@ -10,6 +10,8 @@ import (
 )
 
 type Server interface {
+	Lock()
+	Unlock()
 	GetData(key string) interface{}
 	SetData(key string, value interface{})
 }
@@ -53,11 +55,13 @@ func handleGet(cmd []string, s Server, conn *bufio.Writer) {
 		return
 	}
 
+	s.Lock()
 	value := s.GetData(cmd[1])
+	s.Unlock()
 
 	switch value.(type) {
 	default:
-		fmt.Println("Error. The requested object's type cannot be returned with the GET command")
+		conn.Write([]byte("-Error type cannot be returned with the GET command\r\n\n"))
 	case nil:
 		conn.Write([]byte("+nil\r\n\n"))
 	case string:
@@ -74,6 +78,8 @@ func handleGet(cmd []string, s Server, conn *bufio.Writer) {
 func handleMGet(cmd []string, s Server, conn *bufio.Writer) {
 	vals := []string{}
 
+	s.Lock()
+
 	for _, key := range cmd[1:] {
 		switch s.GetData(key).(type) {
 		case nil:
@@ -86,6 +92,8 @@ func handleMGet(cmd []string, s Server, conn *bufio.Writer) {
 			vals = append(vals, fmt.Sprintf("%d", s.GetData(key)))
 		}
 	}
+
+	s.Unlock()
 
 	conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(vals))))
 
@@ -103,10 +111,14 @@ func handleSet(cmd []string, s Server, conn *bufio.Writer) {
 		conn.Write([]byte("-Error wrong number of args for SET command\r\n\n"))
 		conn.Flush()
 	case x > 3:
+		s.Lock()
 		s.SetData(cmd[1], strings.Join(cmd[2:], " "))
+		s.Unlock()
 		conn.Write([]byte("+OK\r\n"))
 	case x == 3:
 		val, err := strconv.ParseFloat(cmd[2], 32)
+
+		s.Lock()
 
 		if err != nil {
 			s.SetData(cmd[1], cmd[2])
@@ -115,6 +127,8 @@ func handleSet(cmd []string, s Server, conn *bufio.Writer) {
 		} else {
 			s.SetData(cmd[1], int(val))
 		}
+
+		s.Unlock()
 
 		conn.Write([]byte("+OK\r\n\n"))
 		conn.Flush()
