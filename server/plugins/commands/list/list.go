@@ -44,6 +44,9 @@ func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Wri
 	c := strings.ToLower(cmd[0])
 
 	switch {
+	case c == "llen":
+		handleLLen(cmd, server.(Server), conn)
+
 	case c == "lrange":
 		handleLRange(cmd, server.(Server), conn)
 
@@ -56,6 +59,29 @@ func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Wri
 	case utils.Contains[string]([]string{"lpop", "rpop"}, c):
 		handlePop(cmd, server.(Server), conn)
 	}
+}
+
+func handleLLen(cmd []string, server Server, conn *bufio.Writer) {
+	if len(cmd) != 2 {
+		conn.Write([]byte("-Error wrong number of args for LLEN command\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.Lock()
+
+	list, ok := server.GetData(cmd[1]).([]interface{})
+
+	if !ok {
+		server.Unlock()
+		conn.Write([]byte("-Error LLEN command on non-list item\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.Unlock()
+	conn.Write([]byte(fmt.Sprintf(":%d\r\n\n", len(list))))
+	conn.Flush()
 }
 
 func handleLRange(cmd []string, server Server, conn *bufio.Writer) {
@@ -253,13 +279,6 @@ func handlePop(cmd []string, server Server, conn *bufio.Writer) {
 	if !ok {
 		server.Unlock()
 		conn.Write([]byte(fmt.Sprintf("-Error %s command on non-list item\r\n\n", strings.ToUpper(cmd[0]))))
-		conn.Flush()
-		return
-	}
-
-	if list == nil {
-		server.Unlock()
-		conn.Write([]byte("-Error no list at key\r\n\n"))
 		conn.Flush()
 		return
 	}
