@@ -41,12 +41,14 @@ func (p *plugin) Description() string {
 }
 
 func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Writer) {
-	switch strings.ToLower(cmd[0]) {
-	case "lrange":
+	c := strings.ToLower(cmd[0])
+
+	switch {
+	case c == "lrange":
 		handleLRange(cmd, server.(Server), conn)
-	case "lpush":
+	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
 		handleLPush(cmd, server.(Server), conn)
-	case "rpush":
+	case utils.Contains[string]([]string{"rpush", "rpushx"}, c):
 		handleRPush(cmd, server.(Server), conn)
 	}
 }
@@ -139,7 +141,7 @@ func handleLRange(cmd []string, server Server, conn *bufio.Writer) {
 
 func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
 	if len(cmd) < 3 {
-		conn.Write([]byte("-Error wrong number of arguments for LPUSH command\r\n\n"))
+		conn.Write([]byte(fmt.Sprintf("-Error wrong number of arguments for %s command\r\n\n", strings.ToUpper(cmd[0]))))
 		conn.Flush()
 		return
 	}
@@ -155,9 +157,16 @@ func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
 	currentList := server.GetData(cmd[1])
 
 	if currentList == nil {
-		server.SetData(cmd[1], newElems)
+
+		switch strings.ToLower(cmd[0]) {
+		default:
+			server.SetData(cmd[1], newElems)
+			conn.Write([]byte(OK))
+		case "lpushx":
+			conn.Write([]byte("-Error no list at key\r\n\n"))
+		}
+
 		server.Unlock()
-		conn.Write([]byte(OK))
 		conn.Flush()
 		return
 	}
@@ -180,7 +189,7 @@ func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
 
 func handleRPush(cmd []string, server Server, conn *bufio.Writer) {
 	if len(cmd) < 3 {
-		conn.Write([]byte("-Error wrong number of arguments for LPUSH command\r\n\n"))
+		conn.Write([]byte(fmt.Sprintf("-Error wrong number of arguments for %s command\r\n\n", strings.ToUpper(cmd[0]))))
 		conn.Flush()
 		return
 	}
@@ -196,9 +205,15 @@ func handleRPush(cmd []string, server Server, conn *bufio.Writer) {
 	currentList := server.GetData(cmd[1])
 
 	if currentList == nil {
-		server.SetData(cmd[1], newElems)
+		switch strings.ToLower(cmd[0]) {
+		default:
+			server.SetData(cmd[1], newElems)
+			conn.Write([]byte(OK))
+		case "rpushx":
+			conn.Write([]byte("-Error no list at key\r\n\n"))
+		}
+
 		server.Unlock()
-		conn.Write([]byte(OK))
 		conn.Flush()
 		return
 	}
