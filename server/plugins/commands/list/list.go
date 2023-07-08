@@ -46,10 +46,15 @@ func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Wri
 	switch {
 	case c == "lrange":
 		handleLRange(cmd, server.(Server), conn)
+
 	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
 		handleLPush(cmd, server.(Server), conn)
+
 	case utils.Contains[string]([]string{"rpush", "rpushx"}, c):
 		handleRPush(cmd, server.(Server), conn)
+
+	case utils.Contains[string]([]string{"lpop", "rpop"}, c):
+		handlePop(cmd, server.(Server), conn)
 	}
 }
 
@@ -234,6 +239,44 @@ func handleRPush(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
+func handlePop(cmd []string, server Server, conn *bufio.Writer) {
+	if len(cmd) != 2 {
+		conn.Write([]byte(fmt.Sprintf("-Error wrong number of args for %s command\r\n\n", strings.ToUpper(cmd[0]))))
+		conn.Flush()
+		return
+	}
+
+	server.Lock()
+
+	list, ok := server.GetData(cmd[1]).([]interface{})
+
+	if !ok {
+		server.Unlock()
+		conn.Write([]byte(fmt.Sprintf("-Error %s command on non-list item\r\n\n", strings.ToUpper(cmd[0]))))
+		conn.Flush()
+		return
+	}
+
+	if list == nil {
+		server.Unlock()
+		conn.Write([]byte("-Error no list at key\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	switch strings.ToLower(cmd[0]) {
+	default:
+		server.SetData(cmd[1], list[1:])
+		conn.Write([]byte(fmt.Sprintf("+%v\r\n\n", list[0])))
+	case "rpop":
+		server.SetData(cmd[1], list[:len(list)-1])
+		conn.Write([]byte(fmt.Sprintf("+%v\r\n\n", list[len(list)-1])))
+	}
+
+	server.Unlock()
+	conn.Flush()
+}
+
 func init() {
 	Plugin.name = "ListCommand"
 	Plugin.commands = []string{
@@ -244,7 +287,7 @@ func init() {
 		"lrange",    // (LRANGE key start end) Return a range of elements between the given indices.
 		"lmove",     // (LMOVE key1 key2 LEFT/RIGHT LEFT/RIGHT) Move element from one list to the other specifying left/right for both lists.
 		"lrem",      // (LREM key count value) Remove elements from list.
-		"lset",      // (LSET key index value) Sets teh value of an element in a list by its index.
+		"lset",      // (LSET key index value) Sets the value of an element in a list by its index.
 		"ltrim",     // (LTRIM key start end) Trims a list to the specified range.
 		"lincr",     // (LINCR key index) Increment the list element at the given index by 1.
 		"lincrby",   // (LINCRBY key index value) Increment the list element at the given index by the given value.
