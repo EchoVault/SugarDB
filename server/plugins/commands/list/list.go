@@ -47,6 +47,9 @@ func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Wri
 	case c == "llen":
 		handleLLen(cmd, server.(Server), conn)
 
+	case c == "lindex":
+		handleLIndex(cmd, server.(Server), conn)
+
 	case c == "lrange":
 		handleLRange(cmd, server.(Server), conn)
 
@@ -81,6 +84,44 @@ func handleLLen(cmd []string, server Server, conn *bufio.Writer) {
 
 	server.Unlock()
 	conn.Write([]byte(fmt.Sprintf(":%d\r\n\n", len(list))))
+	conn.Flush()
+}
+
+func handleLIndex(cmd []string, server Server, conn *bufio.Writer) {
+	if len(cmd) != 3 {
+		conn.Write([]byte("-Error wrong number of args for LINDEX command\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	index, ok := utils.AdaptType(cmd[2]).(int)
+
+	if !ok {
+		conn.Write([]byte("-Error index must be an integer\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.Lock()
+
+	list, ok := server.GetData(cmd[1]).([]interface{})
+
+	if !ok {
+		server.Unlock()
+		conn.Write([]byte("-Error LINDEX command on non-list item\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	if !(index >= 0 && index < len(list)) {
+		server.Unlock()
+		conn.Write([]byte("-Error index must be within list range\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.Unlock()
+	conn.Write([]byte(fmt.Sprintf("+%s\r\n\n", list[index])))
 	conn.Flush()
 }
 
