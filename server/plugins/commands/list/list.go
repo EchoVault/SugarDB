@@ -56,6 +56,9 @@ func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Wri
 	case c == "lset":
 		handleLSet(cmd, server.(Server), conn)
 
+	case c == "ltrim":
+		handleLTrim(cmd, server.(Server), conn)
+
 	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
 		handleLPush(cmd, server.(Server), conn)
 
@@ -254,6 +257,10 @@ func handleLSet(cmd []string, server Server, conn *bufio.Writer) {
 
 	conn.Write([]byte(OK))
 	conn.Flush()
+}
+
+func handleLTrim(cmd []string, server Server, conn *bufio.Writer) {
+
 }
 
 func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
