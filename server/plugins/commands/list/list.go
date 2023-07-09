@@ -53,6 +53,9 @@ func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Wri
 	case c == "lrange":
 		handleLRange(cmd, server.(Server), conn)
 
+	case c == "lset":
+		handleLSet(cmd, server.(Server), conn)
+
 	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
 		handleLPush(cmd, server.(Server), conn)
 
@@ -211,6 +214,48 @@ func handleLRange(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
+func handleLSet(cmd []string, server Server, conn *bufio.Writer) {
+	if len(cmd) != 4 {
+		conn.Write([]byte("-Error wrong number of arguments for LSET command\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.Lock()
+
+	list, ok := server.GetData(cmd[1]).([]interface{})
+
+	if !ok {
+		server.Unlock()
+		conn.Write([]byte("-Error LSET command on non-list item\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	index, ok := utils.AdaptType(cmd[2]).(int)
+
+	if !ok {
+		server.Unlock()
+		conn.Write([]byte("-Error index must be an integer\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	if !(index >= 0 && index < len(list)) {
+		server.Unlock()
+		conn.Write([]byte("-Error index must be within range\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	list[index] = utils.AdaptType(cmd[3])
+	server.SetData(cmd[1], list)
+	server.Unlock()
+
+	conn.Write([]byte(OK))
+	conn.Flush()
+}
+
 func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
 	if len(cmd) < 3 {
 		conn.Write([]byte(fmt.Sprintf("-Error wrong number of arguments for %s command\r\n\n", strings.ToUpper(cmd[0]))))
@@ -340,22 +385,21 @@ func handlePop(cmd []string, server Server, conn *bufio.Writer) {
 func init() {
 	Plugin.name = "ListCommand"
 	Plugin.commands = []string{
-		"lpush",     // (LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.
-		"lpushx",    // (LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.
-		"lpop",      // (LPOP key) Removes and returns the first element of a list.
-		"llen",      // (LLEN key) Return the length of a list.
-		"lrange",    // (LRANGE key start end) Return a range of elements between the given indices.
-		"lmove",     // (LMOVE key1 key2 LEFT/RIGHT LEFT/RIGHT) Move element from one list to the other specifying left/right for both lists.
-		"lrem",      // (LREM key count value) Remove elements from list.
-		"lset",      // (LSET key index value) Sets the value of an element in a list by its index.
-		"ltrim",     // (LTRIM key start end) Trims a list to the specified range.
-		"lincr",     // (LINCR key index) Increment the list element at the given index by 1.
-		"lincrby",   // (LINCRBY key index value) Increment the list element at the given index by the given value.
-		"lindex",    // (LINDEX key index) Gets list element by index.
+		"lpush",  // (LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.
+		"lpushx", // (LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.
+		"lpop",   // (LPOP key) Removes and returns the first element of a list.
+		"llen",   // (LLEN key) Return the length of a list.
+		"lrange", // (LRANGE key start end) Return a range of elements between the given indices.
+		"lindex", // (LINDEX key index) Gets list element by index.
+		"lset",   // (LSET key index value) Sets the value of an element in a list by its index.
+		"ltrim",  // (LTRIM key start end) Trims a list to the specified range.
+		"lrem",   // (LREM key count value) Remove elements from list.
+		"lmove",  // (LMOVE key1 key2 LEFT/RIGHT LEFT/RIGHT) Move element from one list to the other specifying left/right for both lists.
+
 		"rpop",      // (RPOP key) Removes and gets the last element in a list.
-		"rpoplpush", // (RPOPLPUSH key1 key2) Removes last element of one list, prepends it to another list and returns it.
 		"rpush",     // (RPUSH key value [value2]) Appends one or multiple elements to the end of a list.
 		"rpushx",    // (RPUSHX key value) Appends an element to the end of a list, only if the list exists.
+		"rpoplpush", // (RPOPLPUSH key1 key2) Removes last element of one list, prepends it to another list and returns it.
 	}
 	Plugin.description = "Handle List commands"
 }

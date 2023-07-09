@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"math"
 	"os"
 	"path"
+	"reflect"
 	"strconv"
 
 	"gopkg.in/yaml.v3"
@@ -109,6 +111,25 @@ func AdaptType(s string) interface{} {
 	}
 
 	return n
+}
+
+func IncrBy(num interface{}, by interface{}) (interface{}, error) {
+	if !Contains[string]([]string{"int", "float64"}, reflect.TypeOf(num).String()) {
+		return nil, errors.New("can only increment number")
+	}
+	if !Contains[string]([]string{"int", "float64"}, reflect.TypeOf(by).String()) {
+		return nil, errors.New("can only increment by number")
+	}
+
+	n, _ := num.(float64)
+	b, _ := by.(float64)
+	res := n + b
+
+	if IsInteger(res) {
+		return int(res), nil
+	}
+
+	return res, nil
 }
 
 func ReadMessage(r *bufio.ReadWriter) (message string, err error) {
