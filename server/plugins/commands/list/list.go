@@ -260,7 +260,57 @@ func handleLSet(cmd []string, server Server, conn *bufio.Writer) {
 }
 
 func handleLTrim(cmd []string, server Server, conn *bufio.Writer) {
+	if len(cmd) != 4 {
+		conn.Write([]byte("-Error wrong number of args for command LTRIM \r\n\n"))
+		conn.Flush()
+		return
+	}
 
+	start, startOk := utils.AdaptType(cmd[2]).(int)
+	end, endOk := utils.AdaptType(cmd[3]).(int)
+
+	if !startOk || !endOk {
+		conn.Write([]byte("-Error start and end indices must be integers\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	if end < start && end != -1 {
+		conn.Write([]byte("-Error end index must be greater than start index or -1\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.Lock()
+
+	list, ok := server.GetData(cmd[1]).([]interface{})
+
+	if !ok {
+		server.Unlock()
+		conn.Write([]byte("-Error LTRIM command on non-list item\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	if !(start >= 0 && start < len(list)) {
+		server.Unlock()
+		conn.Write([]byte("-Error start index must be within list boundary\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	if end == -1 || end > len(list) {
+		server.SetData(cmd[1], list[start:])
+		server.Unlock()
+		conn.Write([]byte(OK))
+		conn.Flush()
+		return
+	}
+
+	server.SetData(cmd[1], list[start:end])
+	server.Unlock()
+	conn.Write([]byte(OK))
+	conn.Flush()
 }
 
 func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
