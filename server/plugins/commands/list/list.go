@@ -59,6 +59,9 @@ func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Wri
 	case c == "ltrim":
 		handleLTrim(cmd, server.(Server), conn)
 
+	case c == "lrem":
+		handleLRem(cmd, server.(Server), conn)
+
 	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
 		handleLPush(cmd, server.(Server), conn)
 
@@ -311,6 +314,10 @@ func handleLTrim(cmd []string, server Server, conn *bufio.Writer) {
 	server.Unlock()
 	conn.Write([]byte(OK))
 	conn.Flush()
+}
+
+func handleLRem(cmd []string, server Server, conn *bufio.Writer) {
+	// Remove element from list
 }
 
 func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
