@@ -317,7 +317,70 @@ func handleLTrim(cmd []string, server Server, conn *bufio.Writer) {
 }
 
 func handleLRem(cmd []string, server Server, conn *bufio.Writer) {
-	// Remove element from list
+	if len(cmd) != 4 {
+		conn.Write([]byte("-Error wrong number of arguments for LREM command\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	value := cmd[3]
+	count, ok := utils.AdaptType(cmd[2]).(int)
+
+	if !ok {
+		conn.Write([]byte("-Error count must be an integer\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	absoluteCount := math.Abs(float64(count))
+
+	server.Lock()
+
+	list, ok := server.GetData(cmd[1]).([]interface{})
+
+	if !ok {
+		server.Unlock()
+		conn.Write([]byte("-Error LREM command on non-list item\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	switch {
+	default:
+		// Count is zero, keep list the same
+	case count > 0:
+		// Start from the head
+		for i := 0; i < len(list); i++ {
+			if absoluteCount == 0 {
+				break
+			}
+			if fmt.Sprintf("%v", list[i]) == value {
+				list[i] = nil
+				absoluteCount -= 1
+			}
+		}
+	case count < 0:
+		// Start from the tail
+		for i := len(list) - 1; i >= 0; i-- {
+			if absoluteCount == 0 {
+				break
+			}
+			if fmt.Sprintf("%v", list[i]) == value {
+				list[i] = nil
+				absoluteCount -= 1
+			}
+		}
+	}
+
+	list = utils.Filter[interface{}](list, func(elem interface{}) bool {
+		return elem != nil
+	})
+
+	server.SetData(cmd[1], list)
+
+	server.Unlock()
+	conn.Write([]byte(OK))
+	conn.Flush()
 }
 
 func handleLPush(cmd []string, server Server, conn *bufio.Writer) {

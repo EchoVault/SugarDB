@@ -132,6 +132,15 @@ func IncrBy(num interface{}, by interface{}) (interface{}, error) {
 	return res, nil
 }
 
+func Filter[T comparable](arr []T, test func(elem T) bool) (res []T) {
+	for _, e := range arr {
+		if test(e) {
+			res = append(res, e)
+		}
+	}
+	return
+}
+
 func ReadMessage(r *bufio.ReadWriter) (message string, err error) {
 	var line [][]byte
 
