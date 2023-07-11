@@ -62,6 +62,9 @@ func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Wri
 	case c == "lrem":
 		handleLRem(cmd, server.(Server), conn)
 
+	case c == "lmove":
+		handleLMove(cmd, server.(Server), conn)
+
 	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
 		handleLPush(cmd, server.(Server), conn)
 
@@ -383,6 +386,56 @@ func handleLRem(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
+func handleLMove(cmd []string, server Server, conn *bufio.Writer) {
+	if len(cmd) != 5 {
+		conn.Write([]byte("-Error wrong number of arguments for LMOVE command\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	whereFrom := strings.ToLower(cmd[3])
+	whereTo := strings.ToLower(cmd[4])
+
+	if !utils.Contains[string]([]string{"left", "right"}, whereFrom) || !utils.Contains[string]([]string{"left", "right"}, whereTo) {
+		conn.Write([]byte("-Error wherefrom and whereto arguments must be either LEFT or RIGHT\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	server.Lock()
+
+	source, sourceOk := server.GetData(cmd[1]).([]interface{})
+	destination, destinationOk := server.GetData(cmd[2]).([]interface{})
+
+	if !sourceOk || !destinationOk {
+		server.Unlock()
+		conn.Write([]byte("-Error source and destination must both be lists\r\n\n"))
+		conn.Flush()
+		return
+	}
+
+	switch whereFrom {
+	case "left":
+		server.SetData(cmd[1], append([]interface{}{}, source[1:]...))
+		if whereTo == "left" {
+			server.SetData(cmd[2], append(source[0:1], destination...))
+		} else if whereTo == "right" {
+			server.SetData(cmd[2], append(destination, source[0]))
+		}
+	case "right":
+		server.SetData(cmd[1], append([]interface{}{}, source[:len(source)-1]...))
+		if whereTo == "left" {
+			server.SetData(cmd[2], append(source[len(source)-1:], destination...))
+		} else if whereTo == "right" {
+			server.SetData(cmd[2], append(destination, source[len(source)-1]))
+		}
+	}
+
+	server.Unlock()
+	conn.Write([]byte(OK))
+	conn.Flush()
+}
+
 func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
 	if len(cmd) < 3 {
 		conn.Write([]byte(fmt.Sprintf("-Error wrong number of arguments for %s command\r\n\n", strings.ToUpper(cmd[0]))))
@@ -521,12 +574,10 @@ func init() {
 		"lset",   // (LSET key index value) Sets the value of an element in a list by its index.
 		"ltrim",  // (LTRIM key start end) Trims a list to the specified range.
 		"lrem",   // (LREM key count value) Remove elements from list.
-		"lmove",  // (LMOVE key1 key2 LEFT/RIGHT LEFT/RIGHT) Move element from one list to the other specifying left/right for both lists.
-
-		"rpop",      // (RPOP key) Removes and gets the last element in a list.
-		"rpush",     // (RPUSH key value [value2]) Appends one or multiple elements to the end of a list.
-		"rpushx",    // (RPUSHX key value) Appends an element to the end of a list, only if the list exists.
-		"rpoplpush", // (RPOPLPUSH key1 key2) Removes last element of one list, prepends it to another list and returns it.
+		"lmove",  // (LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT> Move element from one list to the other specifying left/right for both lists.
+		"rpop",   // (RPOP key) Removes and gets the last element in a list.
+		"rpush",  // (RPUSH key value [value2]) Appends one or multiple elements to the end of a list.
+		"rpushx", // (RPUSHX key value) Appends an element to the end of a list, only if the list exists.
 	}
 	Plugin.description = "Handle List commands"
 }
