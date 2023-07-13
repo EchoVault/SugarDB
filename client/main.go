@@ -10,7 +10,6 @@ import (
 	"net"
 	"os"
 
-	"github.com/kelvinmwinuka/memstore/serialization"
 	"github.com/kelvinmwinuka/memstore/utils"
 )
 
@@ -82,7 +81,7 @@ func main() {
 				}
 
 				// Serialize command and send to connection
-				encoded, err := serialization.Encode(string(in))
+				encoded, err := utils.Encode(string(in))
 
 				if err != nil {
 					fmt.Println(err)
@@ -102,7 +101,7 @@ func main() {
 					fmt.Println(err)
 				}
 
-				decoded, err := serialization.Decode(message)
+				decoded, err := utils.Decode(message)
 
 				if err != nil {
 					fmt.Println(err)

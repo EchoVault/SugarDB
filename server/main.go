@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kelvinmwinuka/memstore/serialization"
 	"github.com/kelvinmwinuka/memstore/utils"
 )
 
@@ -68,7 +67,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 			continue
 		}
 
-		if cmd, err := serialization.Decode(message); err != nil {
+		if cmd, err := utils.Decode(message); err != nil {
 			// Return error to client
 			connRW.Write([]byte(fmt.Sprintf("-Error %s\r\n\n", err.Error())))
 			connRW.Flush()
