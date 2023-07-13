@@ -39,8 +39,8 @@ func (server *Server) Lock() {
 	server.data.mu.Lock()
 }
 
-func (Server *Server) Unlock() {
-	Server.data.mu.Unlock()
+func (server *Server) Unlock() {
+	server.data.mu.Unlock()
 }
 
 func (server *Server) GetData(key string) interface{} {
