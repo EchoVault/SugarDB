@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/kelvinmwinuka/memstore/utils"
@@ -67,15 +66,22 @@ func handleGet(cmd []string, s Server, conn *bufio.Writer) {
 	case string:
 		conn.Write([]byte(fmt.Sprintf("+%s\r\n\n", value)))
 	case float64:
-		conn.Write([]byte(fmt.Sprintf("+%f\r\n\n", value)))
+		s := strings.TrimRight(fmt.Sprintf("%f", value), "0")
+		conn.Write([]byte(fmt.Sprintf("+%s\r\n\n", s)))
 	case int:
-		conn.Write([]byte(fmt.Sprintf("+%d\r\n\n", value)))
+		conn.Write([]byte(fmt.Sprintf(":%d\r\n\n", value)))
 	}
 
 	conn.Flush()
 }
 
 func handleMGet(cmd []string, s Server, conn *bufio.Writer) {
+	if len(cmd) < 2 {
+		conn.Write([]byte("-Error wrong number of args for MGET command\r\n\n"))
+		conn.Flush()
+		return
+	}
+
 	vals := []string{}
 
 	s.Lock()
@@ -87,7 +93,7 @@ func handleMGet(cmd []string, s Server, conn *bufio.Writer) {
 		case string:
 			vals = append(vals, fmt.Sprintf("%s", s.GetData(key)))
 		case float64:
-			vals = append(vals, fmt.Sprintf("%f", s.GetData(key)))
+			vals = append(vals, strings.TrimRight(fmt.Sprintf("%f", s.GetData(key)), "0"))
 		case int:
 			vals = append(vals, fmt.Sprintf("%d", s.GetData(key)))
 		}
@@ -110,26 +116,10 @@ func handleSet(cmd []string, s Server, conn *bufio.Writer) {
 	default:
 		conn.Write([]byte("-Error wrong number of args for SET command\r\n\n"))
 		conn.Flush()
-	case x > 3:
-		s.Lock()
-		s.SetData(cmd[1], strings.Join(cmd[2:], " "))
-		s.Unlock()
-		conn.Write([]byte("+OK\r\n"))
 	case x == 3:
-		val, err := strconv.ParseFloat(cmd[2], 32)
-
 		s.Lock()
-
-		if err != nil {
-			s.SetData(cmd[1], cmd[2])
-		} else if !utils.IsInteger(val) {
-			s.SetData(cmd[1], val)
-		} else {
-			s.SetData(cmd[1], int(val))
-		}
-
+		s.SetData(cmd[1], utils.AdaptType(cmd[2]))
 		s.Unlock()
-
 		conn.Write([]byte("+OK\r\n\n"))
 		conn.Flush()
 	}

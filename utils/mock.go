@@ -26,26 +26,26 @@ func (cw *CustomWriter) Write(p []byte) (int, error) {
 }
 
 type MockData struct {
-	mu   sync.Mutex
-	data map[string]interface{}
+	Mu   sync.Mutex
+	Data map[string]interface{}
 }
 
 type MockServer struct {
-	data MockData
+	Data MockData
 }
 
 func (server *MockServer) Lock() {
-	server.data.mu.Lock()
+	server.Data.Mu.Lock()
 }
 
 func (server *MockServer) Unlock() {
-	server.data.mu.Unlock()
+	server.Data.Mu.Unlock()
 }
 
 func (server *MockServer) GetData(key string) interface{} {
-	return server.data.data[key]
+	return server.Data.Data[key]
 }
 
 func (server *MockServer) SetData(key string, value interface{}) {
-	server.data.data[key] = value
+	server.Data.Data[key] = value
 }
