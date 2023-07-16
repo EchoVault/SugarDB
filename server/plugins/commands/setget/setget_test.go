@@ -37,7 +37,7 @@ func TestHandleCommand(t *testing.T) {
 
 		// GET test cases
 		{[]string{"get", "key1"}, "+value1\r\n\n"},
-		{[]string{"get", "key2"}, ":30\r\n\n"},
+		{[]string{"get", "key2"}, "+30\r\n\n"},
 		{[]string{"get", "key3"}, "+3.142\r\n\n"},
 		{[]string{"get", "key4"}, "+nil\r\n\n"},
 		{[]string{"get"}, "-Error wrong number of args for GET command\r\n\n"},

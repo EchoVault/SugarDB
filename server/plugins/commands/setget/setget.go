@@ -60,18 +60,10 @@ func handleGet(cmd []string, s Server, conn *bufio.Writer) {
 
 	switch value.(type) {
 	default:
-		conn.Write([]byte("-Error type cannot be returned with the GET command\r\n\n"))
+		conn.Write([]byte(fmt.Sprintf("+%v\r\n\n", value)))
 	case nil:
 		conn.Write([]byte("+nil\r\n\n"))
-	case string:
-		conn.Write([]byte(fmt.Sprintf("+%s\r\n\n", value)))
-	case float64:
-		s := strings.TrimRight(fmt.Sprintf("%f", value), "0")
-		conn.Write([]byte(fmt.Sprintf("+%s\r\n\n", s)))
-	case int:
-		conn.Write([]byte(fmt.Sprintf(":%d\r\n\n", value)))
 	}
-
 	conn.Flush()
 }
 
@@ -88,14 +80,10 @@ func handleMGet(cmd []string, s Server, conn *bufio.Writer) {
 
 	for _, key := range cmd[1:] {
 		switch s.GetData(key).(type) {
+		default:
+			vals = append(vals, fmt.Sprintf("%v", s.GetData(key)))
 		case nil:
 			vals = append(vals, "nil")
-		case string:
-			vals = append(vals, fmt.Sprintf("%s", s.GetData(key)))
-		case float64:
-			vals = append(vals, strings.TrimRight(fmt.Sprintf("%f", s.GetData(key)), "0"))
-		case int:
-			vals = append(vals, fmt.Sprintf("%d", s.GetData(key)))
 		}
 	}
 

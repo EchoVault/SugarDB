@@ -9,10 +9,10 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"math/big"
 	"os"
 	"path"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/tidwall/resp"
@@ -103,14 +103,15 @@ func IsInteger(n float64) bool {
 
 func AdaptType(s string) interface{} {
 	// Adapt the type of the parameter to string, float64 or int
-	n, err := strconv.ParseFloat(s, 32)
+	n, _, err := big.ParseFloat(s, 10, 256, big.RoundingMode(big.Exact))
 
 	if err != nil {
 		return s
 	}
 
-	if IsInteger(n) {
-		return int(n)
+	if n.IsInt() {
+		i, _ := n.Int64()
+		return i
 	}
 
 	return n
