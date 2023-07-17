@@ -236,6 +236,16 @@ func (server *Server) Start() {
 }
 
 func main() {
-	server := Server{}
+	server := &Server{}
+
+	// raftConfig := &raft.Config{}
+
+	// raft.FSM
+	// raft.LogStore
+	// raft.SnapshotStore
+	// raft.Transport
+
+	// // raftServer, err := raft.NewRaft(raftConfig)
+
 	server.Start()
 }
