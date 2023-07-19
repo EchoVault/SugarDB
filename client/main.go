@@ -22,7 +22,7 @@ func main() {
 	if !conf.TLS {
 		fmt.Println("Starting client in TCP mode...")
 
-		conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", "localhost", conf.Port))
+		conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", conf.Addr, conf.Port))
 		if err != nil {
 			panic(err)
 		}
@@ -49,7 +49,7 @@ func main() {
 			panic("Failed to parse certificate")
 		}
 
-		conn, err = tls.Dial("tcp", fmt.Sprintf("%s:%d", "localhost", conf.Port), &tls.Config{
+		conn, err = tls.Dial("tcp", fmt.Sprintf("%s:%d", conf.Addr, conf.Port), &tls.Config{
 			RootCAs: rootCAs,
 		})
 

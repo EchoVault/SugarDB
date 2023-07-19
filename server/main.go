@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -13,7 +14,10 @@ import (
 	"plugin"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/raft"
 	"github.com/kelvinmwinuka/memstore/utils"
 )
 
@@ -33,6 +37,8 @@ type Server struct {
 	config  utils.Config
 	data    Data
 	plugins []Plugin
+	raft    *raft.Raft
+	logger  hclog.Logger
 }
 
 func (server *Server) Lock() {
@@ -99,13 +105,13 @@ func (server *Server) StartTCP() {
 
 	if conf.TLS {
 		// TLS
-		fmt.Println("TCP/TLS mode enabled...")
+		fmt.Printf("Starting server in TLS server at Address %s, Port %d...\n", conf.Addr, conf.Port)
 		cer, err := tls.LoadX509KeyPair(conf.Cert, conf.Key)
 		if err != nil {
 			panic(err)
 		}
 
-		if l, err := tls.Listen("tcp", fmt.Sprintf("%s:%d", "localhost", conf.Port), &tls.Config{
+		if l, err := tls.Listen("tcp", fmt.Sprintf("%s:%d", conf.Addr, conf.Port), &tls.Config{
 			Certificates: []tls.Certificate{cer},
 		}); err != nil {
 			panic(err)
@@ -116,8 +122,8 @@ func (server *Server) StartTCP() {
 
 	if !conf.TLS {
 		// TCP
-		fmt.Println("Starting server in TCP mode...")
-		if l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", "localhost", conf.Port)); err != nil {
+		fmt.Printf("Starting server in TCP server at Address %s, Port %d...\n", conf.Addr, conf.Port)
+		if l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", conf.Addr, conf.Port)); err != nil {
 			panic(err)
 		} else {
 			listener = l
@@ -146,11 +152,11 @@ func (server *Server) StartHTTP() {
 	var err error
 
 	if conf.TLS {
-		fmt.Println("Starting server in HTTPS mode...")
-		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", "localhost", conf.Port), conf.Cert, conf.Key, nil)
+		fmt.Printf("Starting server in HTTPS server at Address %s, Port %d...\n", conf.Addr, conf.Port)
+		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", conf.Addr, conf.Port), conf.Cert, conf.Key, nil)
 	} else {
-		fmt.Println("Starting server in HTTP mode...")
-		err = http.ListenAndServe(fmt.Sprintf("%s:%d", "localhost", conf.Port), nil)
+		fmt.Printf("Starting server in HTTP server at Address %s, Port %d...\n", conf.Addr, conf.Port)
+		err = http.ListenAndServe(fmt.Sprintf("%s:%d", conf.Addr, conf.Port), nil)
 	}
 
 	if err != nil {
@@ -215,8 +221,65 @@ func (server *Server) LoadPlugins() {
 	}
 }
 
+// Implement raft.FSM interface
+func (server *Server) Apply(log *raft.Log) interface{} {
+	return nil
+}
+
+func (server *Server) Snapshot() (raft.FSMSnapshot, error) {
+	return nil, nil
+}
+
+func (server *Server) Restore(snapshot io.ReadCloser) error {
+	return nil
+}
+
+// Implement raft.LogStore interface
+func (server *Server) FirstIndex() (uint64, error) {
+	return 0, nil
+}
+
+func (server *Server) LastIndex() (uint64, error) {
+	return 0, nil
+}
+
+func (server *Server) GetLog(index uint64, log *raft.Log) error {
+	return nil
+}
+
+func (server *Server) StoreLog(log *raft.Log) error {
+	return nil
+}
+
+func (server *Server) StoreLogs(logs []*raft.Log) error {
+	return nil
+}
+
+func (server *Server) DeleteRange(min, max uint64) error {
+	return nil
+}
+
+// Implement raft.StableStore interface
+func (server *Server) Set(key []byte, value []byte) error {
+	return nil
+}
+
+func (server *Server) Get(key []byte) ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (server *Server) SetUint64(key []byte, val uint64) error {
+	return nil
+}
+
+func (server *Server) GetUint64(key []byte) (uint64, error) {
+	return 0, nil
+}
+
 func (server *Server) Start() {
 	server.data.data = make(map[string]interface{})
+
+	server.logger = hclog.Default()
 
 	server.config = utils.GetConfig()
 	conf := server.config
@@ -228,6 +291,52 @@ func (server *Server) Start() {
 		return
 	}
 
+	if addr, err := getServerAddresses(); err != nil {
+		log.Fatal(err)
+	} else {
+		conf.Addr = addr
+		server.config.Addr = addr
+	}
+
+	raftConfig := raft.DefaultConfig()
+	raftConfig.LocalID = raft.ServerID(conf.ServerID)
+
+	raftSnapshotStore := raft.NewInmemSnapshotStore()
+
+	raftAddr := fmt.Sprintf("%s:%d", conf.Addr, conf.ClusterPort)
+	raftAdvertiseAddr, err := net.ResolveTCPAddr("tcp", raftAddr)
+	if err != nil {
+		log.Fatal("Could not resolve advertise address.")
+	}
+
+	raftTransport, err := raft.NewTCPTransportWithLogger(
+		raftAddr,
+		raftAdvertiseAddr,
+		1,
+		500*time.Millisecond,
+		server.logger,
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Start raft server
+	raftServer, err := raft.NewRaft(
+		raftConfig,
+		raft.FSM(server),
+		raft.LogStore(server),
+		raft.StableStore(server),
+		raft.SnapshotStore(raftSnapshotStore),
+		raft.Transport(raftTransport),
+	)
+
+	if err != nil {
+		log.Fatalf("Could not start cluster node with error; %s", err)
+	}
+
+	server.raft = raftServer
+
 	if conf.HTTP {
 		server.StartHTTP()
 	} else {
@@ -235,17 +344,25 @@ func (server *Server) Start() {
 	}
 }
 
+func getServerAddresses() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, address := range addrs {
+		// check the address type and if it is not a loopback the display it
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String(), nil
+			}
+		}
+	}
+
+	return "", errors.New("could not get IP Addresses.")
+}
+
 func main() {
+
 	server := &Server{}
-
-	// raftConfig := &raft.Config{}
-
-	// raft.FSM
-	// raft.LogStore
-	// raft.SnapshotStore
-	// raft.Transport
-
-	// // raftServer, err := raft.NewRaft(raftConfig)
-
 	server.Start()
 }
