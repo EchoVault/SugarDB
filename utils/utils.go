@@ -54,10 +54,10 @@ func GetConfig() Config {
 	plugins := flag.String("plugins", ".", "The path to the plugins folder.")
 	clusterPort := flag.Int("clusterPort", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	serverId := flag.String("serverId", "1", "Server ID in raft cluster. Leave empty for client.")
-	joinAddr := flag.String("joinAddr", "", "Address of cluster member in a cluster to join. If left empty, a new cluster will be created with current server as first member.")
+	joinAddr := flag.String("joinAddr", "", "Address of cluster member in a cluster to you want to join.")
 
 	// Client Only
-	addr := flag.String("addr", "127.0.0.1", "On client, this is the address of a server node. Leave blank on server.")
+	addr := flag.String("addr", "127.0.0.1", "On client, this is the address of a server node to connect to.")
 
 	flag.Parse()
 

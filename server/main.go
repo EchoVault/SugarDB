@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/kelvinmwinuka/memstore/utils"
 )
@@ -34,11 +34,11 @@ type Data struct {
 }
 
 type Server struct {
-	config  utils.Config
-	data    Data
-	plugins []Plugin
-	raft    *raft.Raft
-	logger  hclog.Logger
+	config     utils.Config
+	data       Data
+	plugins    []Plugin
+	raft       *raft.Raft
+	memberList *memberlist.Memberlist
 }
 
 func (server *Server) Lock() {
@@ -234,31 +234,6 @@ func (server *Server) Restore(snapshot io.ReadCloser) error {
 	return nil
 }
 
-// Implement raft.LogStore interface
-func (server *Server) FirstIndex() (uint64, error) {
-	return 0, nil
-}
-
-func (server *Server) LastIndex() (uint64, error) {
-	return 0, nil
-}
-
-func (server *Server) GetLog(index uint64, log *raft.Log) error {
-	return nil
-}
-
-func (server *Server) StoreLog(log *raft.Log) error {
-	return nil
-}
-
-func (server *Server) StoreLogs(logs []*raft.Log) error {
-	return nil
-}
-
-func (server *Server) DeleteRange(min, max uint64) error {
-	return nil
-}
-
 // Implement raft.StableStore interface
 func (server *Server) Set(key []byte, value []byte) error {
 	return nil
@@ -278,8 +253,6 @@ func (server *Server) GetUint64(key []byte) (uint64, error) {
 
 func (server *Server) Start() {
 	server.data.data = make(map[string]interface{})
-
-	server.logger = hclog.Default()
 
 	server.config = utils.GetConfig()
 	conf := server.config
@@ -339,16 +312,27 @@ func (server *Server) Start() {
 
 	server.raft = raftServer
 
-	if err := server.raft.BootstrapCluster(raft.Configuration{
-		Servers: []raft.Server{
-			{
-				Suffrage: raft.Voter,
-				ID:       raft.ServerID(conf.ServerID),
-				Address:  raft.ServerAddress(raftAddr),
+	if conf.JoinAddr == "" {
+		// Start memberlist cluster
+		memberList, err := memberlist.Create(memberlist.DefaultLocalConfig())
+		if err != nil {
+			log.Fatal("Could not start memberlist cluster.")
+		}
+
+		server.memberList = memberList
+
+		// Bootstrap raft cluster
+		if err := server.raft.BootstrapCluster(raft.Configuration{
+			Servers: []raft.Server{
+				{
+					Suffrage: raft.Voter,
+					ID:       raft.ServerID(conf.ServerID),
+					Address:  raft.ServerAddress(raftAddr),
+				},
 			},
-		},
-	}).Error(); err != nil {
-		log.Fatal(err)
+		}).Error(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	if conf.HTTP {
@@ -376,7 +360,6 @@ func getServerAddresses() (string, error) {
 }
 
 func main() {
-
 	server := &Server{}
 	server.Start()
 }
