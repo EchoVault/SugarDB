@@ -105,7 +105,7 @@ func (server *Server) StartTCP() {
 
 	if conf.TLS {
 		// TLS
-		fmt.Printf("Starting server in TLS server at Address %s, Port %d...\n", conf.Addr, conf.Port)
+		fmt.Printf("Starting TLS server at Address %s, Port %d...\n", conf.Addr, conf.Port)
 		cer, err := tls.LoadX509KeyPair(conf.Cert, conf.Key)
 		if err != nil {
 			panic(err)
@@ -122,7 +122,7 @@ func (server *Server) StartTCP() {
 
 	if !conf.TLS {
 		// TCP
-		fmt.Printf("Starting server in TCP server at Address %s, Port %d...\n", conf.Addr, conf.Port)
+		fmt.Printf("Starting TCP server at Address %s, Port %d...\n", conf.Addr, conf.Port)
 		if l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", conf.Addr, conf.Port)); err != nil {
 			panic(err)
 		} else {
@@ -152,10 +152,10 @@ func (server *Server) StartHTTP() {
 	var err error
 
 	if conf.TLS {
-		fmt.Printf("Starting server in HTTPS server at Address %s, Port %d...\n", conf.Addr, conf.Port)
+		fmt.Printf("Starting HTTPS server at Address %s, Port %d...\n", conf.Addr, conf.Port)
 		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", conf.Addr, conf.Port), conf.Cert, conf.Key, nil)
 	} else {
-		fmt.Printf("Starting server in HTTP server at Address %s, Port %d...\n", conf.Addr, conf.Port)
+		fmt.Printf("Starting HTTP server at Address %s, Port %d...\n", conf.Addr, conf.Port)
 		err = http.ListenAndServe(fmt.Sprintf("%s:%d", conf.Addr, conf.Port), nil)
 	}
 
@@ -298,9 +298,17 @@ func (server *Server) Start() {
 		server.config.Addr = addr
 	}
 
+	if l, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.ClusterPort)); err != nil {
+		log.Fatal(err)
+	} else {
+		fmt.Println(l.Addr())
+	}
+
 	raftConfig := raft.DefaultConfig()
 	raftConfig.LocalID = raft.ServerID(conf.ServerID)
 
+	raftLogStore := raft.NewInmemStore()
+	raftStableStore := raft.NewInmemStore()
 	raftSnapshotStore := raft.NewInmemSnapshotStore()
 
 	raftAddr := fmt.Sprintf("%s:%d", conf.Addr, conf.ClusterPort)
@@ -309,12 +317,12 @@ func (server *Server) Start() {
 		log.Fatal("Could not resolve advertise address.")
 	}
 
-	raftTransport, err := raft.NewTCPTransportWithLogger(
+	raftTransport, err := raft.NewTCPTransport(
 		raftAddr,
 		raftAdvertiseAddr,
-		1,
+		10,
 		500*time.Millisecond,
-		server.logger,
+		os.Stdout,
 	)
 
 	if err != nil {
@@ -324,18 +332,30 @@ func (server *Server) Start() {
 	// Start raft server
 	raftServer, err := raft.NewRaft(
 		raftConfig,
-		raft.FSM(server),
-		raft.LogStore(server),
-		raft.StableStore(server),
-		raft.SnapshotStore(raftSnapshotStore),
-		raft.Transport(raftTransport),
+		&raft.MockFSM{},
+		raftLogStore,
+		raftStableStore,
+		raftSnapshotStore,
+		raftTransport,
 	)
 
 	if err != nil {
-		log.Fatalf("Could not start cluster node with error; %s", err)
+		log.Fatalf("Could not start node with error; %s", err)
 	}
 
 	server.raft = raftServer
+
+	if err := server.raft.BootstrapCluster(raft.Configuration{
+		Servers: []raft.Server{
+			{
+				Suffrage: raft.Voter,
+				ID:       raft.ServerID(conf.ServerID),
+				Address:  raft.ServerAddress(raftAddr),
+			},
+		},
+	}).Error(); err != nil {
+		log.Fatal(err)
+	}
 
 	if conf.HTTP {
 		server.StartHTTP()
@@ -358,7 +378,7 @@ func getServerAddresses() (string, error) {
 		}
 	}
 
-	return "", errors.New("could not get IP Addresses.")
+	return "", errors.New("could not get IP Addresses")
 }
 
 func main() {

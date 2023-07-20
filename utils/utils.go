@@ -20,15 +20,21 @@ import (
 )
 
 type Config struct {
-	TLS         bool   `json:"tls" yaml:"tls"`
-	Key         string `json:"key" yaml:"key"`
-	Cert        string `json:"cert" yaml:"cert"`
-	Addr        string `json:"addr" yaml:"addr"`
-	Port        uint16 `json:"port" yaml:"port"`
-	ClusterPort uint16 `json:"clusterPort" yaml:"clusterPort"`
-	ServerID    string `json:"serverId" yaml:"serverId"`
+	// Shared
+	TLS  bool   `json:"tls" yaml:"tls"`
+	Key  string `json:"key" yaml:"key"`
+	Cert string `json:"cert" yaml:"cert"`
+	Port uint16 `json:"port" yaml:"port"`
+
+	// Server Only
 	HTTP        bool   `json:"http" yaml:"http"`
 	Plugins     string `json:"plugins" yaml:"plugins"`
+	ClusterPort uint16 `json:"clusterPort" yaml:"clusterPort"`
+	ServerID    string `json:"serverId" yaml:"serverId"`
+	JoinAddr    string `json:"joinAddr" yaml:"joinAddr"`
+
+	// Client Only
+	Addr string `json:"addr" yaml:"addr"`
 }
 
 func GetConfig() Config {
@@ -48,6 +54,7 @@ func GetConfig() Config {
 	plugins := flag.String("plugins", ".", "The path to the plugins folder.")
 	clusterPort := flag.Int("clusterPort", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	serverId := flag.String("serverId", "1", "Server ID in raft cluster. Leave empty for client.")
+	joinAddr := flag.String("joinAddr", "", "Address of cluster member in a cluster to join. If left empty, a new cluster will be created with current server as first member.")
 
 	// Client Only
 	addr := flag.String("addr", "127.0.0.1", "On client, this is the address of a server node. Leave blank on server.")
@@ -85,6 +92,7 @@ func GetConfig() Config {
 			ClusterPort: uint16(*clusterPort),
 			ServerID:    *serverId,
 			Plugins:     *plugins,
+			JoinAddr:    *joinAddr,
 		}
 	}
 
