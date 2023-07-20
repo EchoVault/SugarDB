@@ -298,12 +298,6 @@ func (server *Server) Start() {
 		server.config.Addr = addr
 	}
 
-	if l, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.ClusterPort)); err != nil {
-		log.Fatal(err)
-	} else {
-		fmt.Println(l.Addr())
-	}
-
 	raftConfig := raft.DefaultConfig()
 	raftConfig.LocalID = raft.ServerID(conf.ServerID)
 
