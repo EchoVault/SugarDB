@@ -14,7 +14,6 @@ import (
 	"plugin"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -238,62 +237,6 @@ func (server *Server) Start() {
 	} else {
 		conf.Addr = addr
 		server.config.Addr = addr
-	}
-
-	raftConfig := raft.DefaultConfig()
-	raftConfig.LocalID = raft.ServerID(conf.ServerID)
-
-	raftLogStore := raft.NewInmemStore()
-	raftStableStore := raft.NewInmemStore()
-	raftSnapshotStore := raft.NewInmemSnapshotStore()
-
-	raftAddr := fmt.Sprintf("%s:%d", conf.Addr, conf.ClusterPort)
-	raftAdvertiseAddr, err := net.ResolveTCPAddr("tcp", raftAddr)
-	if err != nil {
-		log.Fatal("Could not resolve advertise address.")
-	}
-
-	raftTransport, err := raft.NewTCPTransport(
-		raftAddr,
-		raftAdvertiseAddr,
-		10,
-		500*time.Millisecond,
-		os.Stdout,
-	)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Start raft server
-	raftServer, err := raft.NewRaft(
-		raftConfig,
-		&raft.MockFSM{},
-		raftLogStore,
-		raftStableStore,
-		raftSnapshotStore,
-		raftTransport,
-	)
-
-	if err != nil {
-		log.Fatalf("Could not start node with error; %s", err)
-	}
-
-	server.raft = raftServer
-
-	if conf.JoinAddr == "" {
-		// Bootstrap raft cluster
-		if err := server.raft.BootstrapCluster(raft.Configuration{
-			Servers: []raft.Server{
-				{
-					Suffrage: raft.Voter,
-					ID:       raft.ServerID(conf.ServerID),
-					Address:  raft.ServerAddress(raftAddr),
-				},
-			},
-		}).Error(); err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	if conf.HTTP {
