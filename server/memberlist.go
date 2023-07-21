@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/memberlist"
@@ -8,12 +9,33 @@ import (
 
 func (server *Server) MemberListInit() {
 	// Triggered before RaftInit
-	memberList, err := memberlist.Create(memberlist.DefaultLocalConfig())
+	cfg := memberlist.DefaultLocalConfig()
+	cfg.BindAddr = server.config.BindAddr
+	cfg.BindPort = int(server.config.MemberListBindPort)
+
+	list, err := memberlist.Create(cfg)
+	server.memberList = list
+
 	if err != nil {
-		log.Fatal("Could not start memberlist cluster.")
+		log.Fatal(err)
 	}
 
-	server.memberList = memberList
+	if server.config.JoinAddr != "" {
+		n, err := server.memberList.Join([]string{server.config.JoinAddr})
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Printf("Joined cluster. Contacted %d nodes.\n", n)
+	}
+
+	// go func() {
+	// 	for {
+	// 		fmt.Println(server.memberList.NumMembers())
+	// 		time.Sleep(2 * time.Second)
+	// 	}
+	// }()
 }
 
 func (server *Server) ShutdownMemberList() {

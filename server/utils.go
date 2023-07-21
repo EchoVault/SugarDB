@@ -1,4 +1,4 @@
-package utils
+package main
 
 import (
 	"bufio"
@@ -13,6 +13,17 @@ import (
 
 	"github.com/tidwall/resp"
 )
+
+const (
+	OK = "+OK\r\n\n"
+)
+
+type Command interface {
+	Name() string
+	Commands() []string
+	Description() string
+	HandleCommand(cmd []string, server *Server, conn *bufio.Writer)
+}
 
 func Contains[T comparable](arr []T, elem T) bool {
 	for _, v := range arr {

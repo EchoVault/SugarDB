@@ -23,7 +23,7 @@ func (server *Server) RaftInit() {
 	raftStableStore := raft.NewInmemStore()
 	raftSnapshotStore := raft.NewInmemSnapshotStore()
 
-	raftAddr := fmt.Sprintf("%s:%d", conf.Addr, conf.ClusterPort)
+	raftAddr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.RaftBindPort)
 	raftAdvertiseAddr, err := net.ResolveTCPAddr("tcp", raftAddr)
 	if err != nil {
 		log.Fatal("Could not resolve advertise address.")

@@ -9,8 +9,6 @@ import (
 	"io"
 	"net"
 	"os"
-
-	"github.com/kelvinmwinuka/memstore/utils"
 )
 
 func main() {
@@ -81,7 +79,7 @@ func main() {
 				}
 
 				// Serialize command and send to connection
-				encoded, err := utils.Encode(string(in))
+				encoded, err := Encode(string(in))
 
 				if err != nil {
 					fmt.Println(err)
@@ -92,7 +90,7 @@ func main() {
 				connRW.Flush()
 
 				// Read response from server
-				message, err := utils.ReadMessage(connRW)
+				message, err := ReadMessage(connRW)
 
 				if err != nil && err == io.EOF {
 					fmt.Println(err)
@@ -101,7 +99,7 @@ func main() {
 					fmt.Println(err)
 				}
 
-				decoded, err := utils.Decode(message)
+				decoded, err := Decode(message)
 
 				if err != nil {
 					fmt.Println(err)

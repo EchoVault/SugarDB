@@ -1,0 +1,18 @@
+version: '3.8'
+
+networks:
+  testnet:
+    driver: bridge
+
+services: 
+  node1:
+    container_name: node1
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    ports:
+      - "7480:7480"
+      - "7946:7946"
+      - "8000:8000"
+    networks:
+      - testnet

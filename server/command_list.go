@@ -5,78 +5,63 @@ import (
 	"fmt"
 	"math"
 	"strings"
-
-	"github.com/kelvinmwinuka/memstore/utils"
 )
 
-const (
-	OK = "+OK\r\n\n"
-)
-
-type Server interface {
-	Lock()
-	Unlock()
-	GetData(key string) interface{}
-	SetData(key string, value interface{})
-}
-
-type plugin struct {
+type ListCommand struct {
 	name        string
 	commands    []string
 	description string
 }
 
-var Plugin plugin
-
-func (p *plugin) Name() string {
+func (p *ListCommand) Name() string {
 	return p.name
 }
 
-func (p *plugin) Commands() []string {
+func (p *ListCommand) Commands() []string {
 	return p.commands
 }
 
-func (p *plugin) Description() string {
+func (p *ListCommand) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Writer) {
+func (p *ListCommand) HandleCommand(cmd []string, server *Server, conn *bufio.Writer) {
 	c := strings.ToLower(cmd[0])
 
 	switch {
 	case c == "llen":
-		handleLLen(cmd, server.(Server), conn)
+		handleLLen(cmd, server, conn)
 
 	case c == "lindex":
-		handleLIndex(cmd, server.(Server), conn)
+		handleLIndex(cmd, server, conn)
 
 	case c == "lrange":
-		handleLRange(cmd, server.(Server), conn)
+		handleLRange(cmd, server, conn)
 
 	case c == "lset":
-		handleLSet(cmd, server.(Server), conn)
+		handleLSet(cmd, server, conn)
 
 	case c == "ltrim":
-		handleLTrim(cmd, server.(Server), conn)
+		handleLTrim(cmd, server, conn)
 
 	case c == "lrem":
-		handleLRem(cmd, server.(Server), conn)
+		handleLRem(cmd, server, conn)
 
 	case c == "lmove":
-		handleLMove(cmd, server.(Server), conn)
+		handleLMove(cmd, server, conn)
 
-	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
-		handleLPush(cmd, server.(Server), conn)
+	case Contains[string]([]string{"lpush", "lpushx"}, c):
+		handleLPush(cmd, server, conn)
 
-	case utils.Contains[string]([]string{"rpush", "rpushx"}, c):
-		handleRPush(cmd, server.(Server), conn)
+	case Contains[string]([]string{"rpush", "rpushx"}, c):
+		handleRPush(cmd, server, conn)
 
-	case utils.Contains[string]([]string{"lpop", "rpop"}, c):
-		handlePop(cmd, server.(Server), conn)
+	case Contains[string]([]string{"lpop", "rpop"}, c):
+		handlePop(cmd, server, conn)
 	}
 }
 
-func handleLLen(cmd []string, server Server, conn *bufio.Writer) {
+func handleLLen(cmd []string, server *Server, conn *bufio.Writer) {
 	if len(cmd) != 2 {
 		conn.Write([]byte("-Error wrong number of args for LLEN command\r\n\n"))
 		conn.Flush()
@@ -99,14 +84,14 @@ func handleLLen(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handleLIndex(cmd []string, server Server, conn *bufio.Writer) {
+func handleLIndex(cmd []string, server *Server, conn *bufio.Writer) {
 	if len(cmd) != 3 {
 		conn.Write([]byte("-Error wrong number of args for LINDEX command\r\n\n"))
 		conn.Flush()
 		return
 	}
 
-	index, ok := utils.AdaptType(cmd[2]).(int)
+	index, ok := AdaptType(cmd[2]).(int)
 
 	if !ok {
 		conn.Write([]byte("-Error index must be an integer\r\n\n"))
@@ -137,15 +122,15 @@ func handleLIndex(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handleLRange(cmd []string, server Server, conn *bufio.Writer) {
+func handleLRange(cmd []string, server *Server, conn *bufio.Writer) {
 	if len(cmd) != 4 {
 		conn.Write([]byte("-Error wrong number of arguments for LRANGE command\r\n\n"))
 		conn.Flush()
 		return
 	}
 
-	start, startOk := utils.AdaptType(cmd[2]).(int)
-	end, endOk := utils.AdaptType(cmd[3]).(int)
+	start, startOk := AdaptType(cmd[2]).(int)
+	end, endOk := AdaptType(cmd[3]).(int)
 
 	if !startOk || !endOk {
 		conn.Write([]byte("-Error both start and end indices must be integers\r\n\n"))
@@ -223,7 +208,7 @@ func handleLRange(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handleLSet(cmd []string, server Server, conn *bufio.Writer) {
+func handleLSet(cmd []string, server *Server, conn *bufio.Writer) {
 	if len(cmd) != 4 {
 		conn.Write([]byte("-Error wrong number of arguments for LSET command\r\n\n"))
 		conn.Flush()
@@ -241,7 +226,7 @@ func handleLSet(cmd []string, server Server, conn *bufio.Writer) {
 		return
 	}
 
-	index, ok := utils.AdaptType(cmd[2]).(int)
+	index, ok := AdaptType(cmd[2]).(int)
 
 	if !ok {
 		server.Unlock()
@@ -257,7 +242,7 @@ func handleLSet(cmd []string, server Server, conn *bufio.Writer) {
 		return
 	}
 
-	list[index] = utils.AdaptType(cmd[3])
+	list[index] = AdaptType(cmd[3])
 	server.SetData(cmd[1], list)
 	server.Unlock()
 
@@ -265,15 +250,15 @@ func handleLSet(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handleLTrim(cmd []string, server Server, conn *bufio.Writer) {
+func handleLTrim(cmd []string, server *Server, conn *bufio.Writer) {
 	if len(cmd) != 4 {
 		conn.Write([]byte("-Error wrong number of args for command LTRIM \r\n\n"))
 		conn.Flush()
 		return
 	}
 
-	start, startOk := utils.AdaptType(cmd[2]).(int)
-	end, endOk := utils.AdaptType(cmd[3]).(int)
+	start, startOk := AdaptType(cmd[2]).(int)
+	end, endOk := AdaptType(cmd[3]).(int)
 
 	if !startOk || !endOk {
 		conn.Write([]byte("-Error start and end indices must be integers\r\n\n"))
@@ -319,7 +304,7 @@ func handleLTrim(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handleLRem(cmd []string, server Server, conn *bufio.Writer) {
+func handleLRem(cmd []string, server *Server, conn *bufio.Writer) {
 	if len(cmd) != 4 {
 		conn.Write([]byte("-Error wrong number of arguments for LREM command\r\n\n"))
 		conn.Flush()
@@ -327,7 +312,7 @@ func handleLRem(cmd []string, server Server, conn *bufio.Writer) {
 	}
 
 	value := cmd[3]
-	count, ok := utils.AdaptType(cmd[2]).(int)
+	count, ok := AdaptType(cmd[2]).(int)
 
 	if !ok {
 		conn.Write([]byte("-Error count must be an integer\r\n\n"))
@@ -375,7 +360,7 @@ func handleLRem(cmd []string, server Server, conn *bufio.Writer) {
 		}
 	}
 
-	list = utils.Filter[interface{}](list, func(elem interface{}) bool {
+	list = Filter[interface{}](list, func(elem interface{}) bool {
 		return elem != nil
 	})
 
@@ -386,7 +371,7 @@ func handleLRem(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handleLMove(cmd []string, server Server, conn *bufio.Writer) {
+func handleLMove(cmd []string, server *Server, conn *bufio.Writer) {
 	if len(cmd) != 5 {
 		conn.Write([]byte("-Error wrong number of arguments for LMOVE command\r\n\n"))
 		conn.Flush()
@@ -396,7 +381,7 @@ func handleLMove(cmd []string, server Server, conn *bufio.Writer) {
 	whereFrom := strings.ToLower(cmd[3])
 	whereTo := strings.ToLower(cmd[4])
 
-	if !utils.Contains[string]([]string{"left", "right"}, whereFrom) || !utils.Contains[string]([]string{"left", "right"}, whereTo) {
+	if !Contains[string]([]string{"left", "right"}, whereFrom) || !Contains[string]([]string{"left", "right"}, whereTo) {
 		conn.Write([]byte("-Error wherefrom and whereto arguments must be either LEFT or RIGHT\r\n\n"))
 		conn.Flush()
 		return
@@ -436,7 +421,7 @@ func handleLMove(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
+func handleLPush(cmd []string, server *Server, conn *bufio.Writer) {
 	if len(cmd) < 3 {
 		conn.Write([]byte(fmt.Sprintf("-Error wrong number of arguments for %s command\r\n\n", strings.ToUpper(cmd[0]))))
 		conn.Flush()
@@ -448,7 +433,7 @@ func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
 	newElems := []interface{}{}
 
 	for _, elem := range cmd[2:] {
-		newElems = append(newElems, utils.AdaptType(elem))
+		newElems = append(newElems, AdaptType(elem))
 	}
 
 	currentList := server.GetData(cmd[1])
@@ -484,7 +469,7 @@ func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handleRPush(cmd []string, server Server, conn *bufio.Writer) {
+func handleRPush(cmd []string, server *Server, conn *bufio.Writer) {
 	if len(cmd) < 3 {
 		conn.Write([]byte(fmt.Sprintf("-Error wrong number of arguments for %s command\r\n\n", strings.ToUpper(cmd[0]))))
 		conn.Flush()
@@ -496,7 +481,7 @@ func handleRPush(cmd []string, server Server, conn *bufio.Writer) {
 	newElems := []interface{}{}
 
 	for _, elem := range cmd[2:] {
-		newElems = append(newElems, utils.AdaptType(elem))
+		newElems = append(newElems, AdaptType(elem))
 	}
 
 	currentList := server.GetData(cmd[1])
@@ -531,7 +516,7 @@ func handleRPush(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handlePop(cmd []string, server Server, conn *bufio.Writer) {
+func handlePop(cmd []string, server *Server, conn *bufio.Writer) {
 	if len(cmd) != 2 {
 		conn.Write([]byte(fmt.Sprintf("-Error wrong number of args for %s command\r\n\n", strings.ToUpper(cmd[0]))))
 		conn.Flush()
@@ -562,22 +547,24 @@ func handlePop(cmd []string, server Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func init() {
-	Plugin.name = "ListCommand"
-	Plugin.commands = []string{
-		"lpush",  // (LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.
-		"lpushx", // (LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.
-		"lpop",   // (LPOP key) Removes and returns the first element of a list.
-		"llen",   // (LLEN key) Return the length of a list.
-		"lrange", // (LRANGE key start end) Return a range of elements between the given indices.
-		"lindex", // (LINDEX key index) Gets list element by index.
-		"lset",   // (LSET key index value) Sets the value of an element in a list by its index.
-		"ltrim",  // (LTRIM key start end) Trims a list to the specified range.
-		"lrem",   // (LREM key count value) Remove elements from list.
-		"lmove",  // (LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT> Move element from one list to the other specifying left/right for both lists.
-		"rpop",   // (RPOP key) Removes and gets the last element in a list.
-		"rpush",  // (RPUSH key value [value2]) Appends one or multiple elements to the end of a list.
-		"rpushx", // (RPUSHX key value) Appends an element to the end of a list, only if the list exists.
+func NewListCommand() *ListCommand {
+	return &ListCommand{
+		name: "ListCommand",
+		commands: []string{
+			"lpush",  // (LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.
+			"lpushx", // (LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.
+			"lpop",   // (LPOP key) Removes and returns the first element of a list.
+			"llen",   // (LLEN key) Return the length of a list.
+			"lrange", // (LRANGE key start end) Return a range of elements between the given indices.
+			"lindex", // (LINDEX key index) Gets list element by index.
+			"lset",   // (LSET key index value) Sets the value of an element in a list by its index.
+			"ltrim",  // (LTRIM key start end) Trims a list to the specified range.
+			"lrem",   // (LREM key count value) Remove elements from list.
+			"lmove",  // (LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT> Move element from one list to the other specifying left/right for both lists.
+			"rpop",   // (RPOP key) Removes and gets the last element in a list.
+			"rpush",  // (RPUSH key value [value2]) Appends one or multiple elements to the end of a list.
+			"rpushx", // (RPUSHX key value) Appends an element to the end of a list, only if the list exists.
+		},
+		description: "Handle List commands",
 	}
-	Plugin.description = "Handle List commands"
 }

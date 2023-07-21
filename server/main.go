@@ -3,29 +3,16 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
-	"os"
-	"path"
-	"plugin"
 	"strings"
 	"sync"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-	"github.com/kelvinmwinuka/memstore/utils"
 )
-
-type Plugin interface {
-	Name() string
-	Commands() []string
-	Description() string
-	HandleCommand(cmd []string, server interface{}, conn *bufio.Writer)
-}
 
 type Data struct {
 	mu   sync.Mutex
@@ -35,7 +22,7 @@ type Data struct {
 type Server struct {
 	config     Config
 	data       Data
-	plugins    []Plugin
+	commands   []Command
 	raft       *raft.Raft
 	memberList *memberlist.Memberlist
 }
@@ -60,7 +47,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 
 	for {
-		message, err := utils.ReadMessage(connRW)
+		message, err := ReadMessage(connRW)
 
 		if err != nil && err == io.EOF {
 			// Connection closed
@@ -72,7 +59,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 			continue
 		}
 
-		if cmd, err := utils.Decode(message); err != nil {
+		if cmd, err := Decode(message); err != nil {
 			// Return error to client
 			connRW.Write([]byte(fmt.Sprintf("-Error %s\r\n\n", err.Error())))
 			connRW.Flush()
@@ -81,9 +68,9 @@ func (server *Server) handleConnection(conn net.Conn) {
 			// Look for plugin that handles this command and trigger it
 			handled := false
 
-			for _, plugin := range server.plugins {
-				if utils.Contains[string](plugin.Commands(), strings.ToLower(cmd[0])) {
-					plugin.HandleCommand(cmd, server, connRW.Writer)
+			for _, c := range server.commands {
+				if Contains[string](c.Commands(), strings.ToLower(cmd[0])) {
+					c.HandleCommand(cmd, server, connRW.Writer)
 					handled = true
 				}
 			}
@@ -104,13 +91,13 @@ func (server *Server) StartTCP() {
 
 	if conf.TLS {
 		// TLS
-		fmt.Printf("Starting TLS server at Address %s, Port %d...\n", conf.Addr, conf.Port)
+		fmt.Printf("Starting TLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		cer, err := tls.LoadX509KeyPair(conf.Cert, conf.Key)
 		if err != nil {
 			panic(err)
 		}
 
-		if l, err := tls.Listen("tcp", fmt.Sprintf("%s:%d", conf.Addr, conf.Port), &tls.Config{
+		if l, err := tls.Listen("tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port), &tls.Config{
 			Certificates: []tls.Certificate{cer},
 		}); err != nil {
 			panic(err)
@@ -121,8 +108,8 @@ func (server *Server) StartTCP() {
 
 	if !conf.TLS {
 		// TCP
-		fmt.Printf("Starting TCP server at Address %s, Port %d...\n", conf.Addr, conf.Port)
-		if l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", conf.Addr, conf.Port)); err != nil {
+		fmt.Printf("Starting TCP server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		if l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port)); err != nil {
 			panic(err)
 		} else {
 			listener = l
@@ -151,72 +138,15 @@ func (server *Server) StartHTTP() {
 	var err error
 
 	if conf.TLS {
-		fmt.Printf("Starting HTTPS server at Address %s, Port %d...\n", conf.Addr, conf.Port)
-		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", conf.Addr, conf.Port), conf.Cert, conf.Key, nil)
+		fmt.Printf("Starting HTTPS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port), conf.Cert, conf.Key, nil)
 	} else {
-		fmt.Printf("Starting HTTP server at Address %s, Port %d...\n", conf.Addr, conf.Port)
-		err = http.ListenAndServe(fmt.Sprintf("%s:%d", conf.Addr, conf.Port), nil)
+		fmt.Printf("Starting HTTP server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		err = http.ListenAndServe(fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port), nil)
 	}
 
 	if err != nil {
 		panic(err)
-	}
-}
-
-func (server *Server) LoadPlugins() {
-	conf := server.config
-
-	// Load plugins
-	pluginDirs, err := os.ReadDir(conf.Plugins)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, file := range pluginDirs {
-		if file.IsDir() {
-			switch file.Name() {
-			case "commands":
-				files, err := os.ReadDir(path.Join(conf.Plugins, "commands"))
-
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				for _, file := range files {
-					if !strings.HasSuffix(file.Name(), ".so") {
-						// Skip files that are not .so
-						continue
-					}
-					p, err := plugin.Open(path.Join(conf.Plugins, "commands", file.Name()))
-					if err != nil {
-						log.Fatal(err)
-					}
-
-					pluginSymbol, err := p.Lookup("Plugin")
-					if err != nil {
-						fmt.Printf("unexpected plugin symbol in plugin %s\n", file.Name())
-						continue
-					}
-
-					plugin, ok := pluginSymbol.(Plugin)
-					if !ok {
-						fmt.Printf("invalid plugin signature in plugin %s \n", file.Name())
-						continue
-					}
-
-					// Check if a plugin that handles the same command already exists
-					for _, loadedPlugin := range server.plugins {
-						containsMutual, elem := utils.ContainsMutual[string](loadedPlugin.Commands(), plugin.Commands())
-						if containsMutual {
-							fmt.Printf("plugin that handles %s command already exists. Please handle a different command.\n", elem)
-						}
-					}
-
-					server.plugins = append(server.plugins, plugin)
-				}
-			}
-		}
 	}
 }
 
@@ -225,19 +155,12 @@ func (server *Server) Start() {
 
 	conf := server.config
 
-	server.LoadPlugins()
-
 	if conf.TLS && (len(conf.Key) <= 0 || len(conf.Cert) <= 0) {
 		fmt.Println("Must provide key and certificate file paths for TLS mode.")
 		return
 	}
 
-	if addr, err := getServerAddresses(); err != nil {
-		log.Fatal(err)
-	} else {
-		conf.Addr = addr
-		server.config.Addr = addr
-	}
+	server.MemberListInit()
 
 	if conf.HTTP {
 		server.StartHTTP()
@@ -246,28 +169,18 @@ func (server *Server) Start() {
 	}
 }
 
-func getServerAddresses() (string, error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, address := range addrs {
-		// check the address type and if it is not a loopback the display it
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String(), nil
-			}
-		}
-	}
-
-	return "", errors.New("could not get IP Addresses")
-}
-
 func main() {
 	config := GetConfig()
 
+	fmt.Println(config)
+
 	server := &Server{
 		config: config,
+		commands: []Command{
+			NewPingCommand(),
+			NewSetGetCommand(),
+			NewListCommand(),
+		},
 	}
 	server.Start()
 }
