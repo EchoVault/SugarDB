@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	conf := utils.GetConfig()
+	conf := GetConfig()
 
 	var conn net.Conn
 	var err error

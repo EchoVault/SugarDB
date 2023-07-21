@@ -34,7 +34,7 @@ type Data struct {
 }
 
 type Server struct {
-	config     utils.Config
+	config     Config
 	data       Data
 	plugins    []Plugin
 	raft       *raft.Raft
@@ -221,40 +221,9 @@ func (server *Server) LoadPlugins() {
 	}
 }
 
-// Implement raft.FSM interface
-func (server *Server) Apply(log *raft.Log) interface{} {
-	return nil
-}
-
-func (server *Server) Snapshot() (raft.FSMSnapshot, error) {
-	return nil, nil
-}
-
-func (server *Server) Restore(snapshot io.ReadCloser) error {
-	return nil
-}
-
-// Implement raft.StableStore interface
-func (server *Server) Set(key []byte, value []byte) error {
-	return nil
-}
-
-func (server *Server) Get(key []byte) ([]byte, error) {
-	return []byte{}, nil
-}
-
-func (server *Server) SetUint64(key []byte, val uint64) error {
-	return nil
-}
-
-func (server *Server) GetUint64(key []byte) (uint64, error) {
-	return 0, nil
-}
-
 func (server *Server) Start() {
 	server.data.data = make(map[string]interface{})
 
-	server.config = utils.GetConfig()
 	conf := server.config
 
 	server.LoadPlugins()
@@ -313,14 +282,6 @@ func (server *Server) Start() {
 	server.raft = raftServer
 
 	if conf.JoinAddr == "" {
-		// Start memberlist cluster
-		memberList, err := memberlist.Create(memberlist.DefaultLocalConfig())
-		if err != nil {
-			log.Fatal("Could not start memberlist cluster.")
-		}
-
-		server.memberList = memberList
-
 		// Bootstrap raft cluster
 		if err := server.raft.BootstrapCluster(raft.Configuration{
 			Servers: []raft.Server{
@@ -360,6 +321,10 @@ func getServerAddresses() (string, error) {
 }
 
 func main() {
-	server := &Server{}
+	config := GetConfig()
+
+	server := &Server{
+		config: config,
+	}
 	server.Start()
 }
