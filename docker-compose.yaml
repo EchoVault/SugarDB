@@ -10,6 +10,11 @@ services:
     build:
       context: .
       dockerfile: ./server/Dockerfile
+    environment:
+      - BINDADDR=0.0.0.0
+      - PORT=7480
+      - RAFTPORT=8000
+      - MLPORT=7946
     ports:
       - "7480:7480"
       - "7946:7946"
