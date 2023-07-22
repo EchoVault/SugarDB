@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/memberlist"
 )
@@ -30,12 +31,12 @@ func (server *Server) MemberListInit() {
 		fmt.Printf("Joined cluster. Contacted %d nodes.\n", n)
 	}
 
-	// go func() {
-	// 	for {
-	// 		fmt.Println(server.memberList.NumMembers())
-	// 		time.Sleep(2 * time.Second)
-	// 	}
-	// }()
+	go func() {
+		for {
+			fmt.Println(server.memberList.NumMembers())
+			time.Sleep(2 * time.Second)
+		}
+	}()
 }
 
 func (server *Server) ShutdownMemberList() {

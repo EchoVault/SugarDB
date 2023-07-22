@@ -29,7 +29,6 @@ func GetConfig() Config {
 	cert := flag.String("cert", "", "The signed certificate file path.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
 	http := flag.Bool("http", false, "Use HTTP protocol instead of raw TCP. Default is false")
-	plugins := flag.String("plugins", ".", "The path to the plugins folder.")
 	serverId := flag.String("serverId", "1", "Server ID in raft cluster. Leave empty for client.")
 	joinAddr := flag.String("joinAddr", "", "Address of cluster member in a cluster to you want to join.")
 	bindAddr := flag.String("bindAddr", "127.0.0.1", "Address to bind the server to.")
@@ -50,7 +49,6 @@ func GetConfig() Config {
 		HTTP:               *http,
 		Port:               uint16(*port),
 		ServerID:           *serverId,
-		Plugins:            *plugins,
 		JoinAddr:           *joinAddr,
 		BindAddr:           *bindAddr,
 		RaftBindPort:       uint16(*raftBindPort),

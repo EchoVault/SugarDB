@@ -11,4 +11,10 @@ CMD "./bin/server" \
   "--bindAddr" "${BINDADDR}" \
   "--port" "${PORT}" \
   "--mlPort" "${MLPORT}" \
-  "--raftPort" "${RAFTPORT}"
+  "--raftPort" "${RAFTPORT}" \
+  "--serverId" "${SERVERID}" \
+  "--joinAddr" "${JOINADDR}" \
+  "--key" "${KEY}" \
+  "--cert" "${CERT}" \
+  "--http" "${HTTP}" \
+  "--tls" "${TLS}"
