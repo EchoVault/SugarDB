@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/hashicorp/memberlist"
 )
@@ -30,17 +29,11 @@ func (server *Server) MemberListInit() {
 
 		fmt.Printf("Joined cluster. Contacted %d nodes.\n", n)
 	}
-
-	go func() {
-		for {
-			fmt.Println(server.memberList.NumMembers())
-			time.Sleep(2 * time.Second)
-		}
-	}()
 }
 
-func (server *Server) ShutdownMemberList() {
+func (server *Server) MemberListShutdown() {
 	// Triggered after RaftShutdown
 	// Gracefully leave memberlist cluster
 	// Broadcast message to remove current node from raft cluster
+	fmt.Println("Shutting down memberlist.")
 }

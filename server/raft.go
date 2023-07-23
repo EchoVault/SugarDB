@@ -73,12 +73,6 @@ func (server *Server) RaftInit() {
 	}
 }
 
-func (server *Server) RaftShutdown() {
-	// Triggered before MemberListShutdown
-	// Leadership transfer if current node is the leader
-	// Shutdown of the raft server
-}
-
 // Implement raft.FSM interface
 func (server *Server) Apply(log *raft.Log) interface{} {
 	return nil
@@ -112,4 +106,11 @@ func (server *Server) SetUint64(key []byte, val uint64) error {
 // Implements raft.StableStore interface
 func (server *Server) GetUint64(key []byte) (uint64, error) {
 	return 0, nil
+}
+
+func (server *Server) RaftShutdown() {
+	// Triggered before MemberListShutdown
+	// Leadership transfer if current node is the leader
+	// Shutdown of the raft server
+	fmt.Println("Shutting down raft.")
 }

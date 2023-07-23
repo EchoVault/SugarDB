@@ -7,8 +7,11 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -25,6 +28,7 @@ type Server struct {
 	commands   []Command
 	raft       *raft.Raft
 	memberList *memberlist.Memberlist
+	cancelCh   *chan (os.Signal)
 }
 
 func (server *Server) Lock() {
@@ -161,6 +165,7 @@ func (server *Server) Start() {
 	}
 
 	server.MemberListInit()
+	server.RaftInit()
 
 	if conf.HTTP {
 		server.StartHTTP()
@@ -169,16 +174,31 @@ func (server *Server) Start() {
 	}
 }
 
+func (server *Server) ShutDown() {
+	fmt.Println("Shutting down...")
+	server.RaftShutdown()
+	server.MemberListShutdown()
+}
+
 func main() {
 	config := GetConfig()
 
+	cancelCh := make(chan (os.Signal), 1)
+	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM)
+
 	server := &Server{
-		config: config,
+		cancelCh: &cancelCh,
+		config:   config,
 		commands: []Command{
 			NewPingCommand(),
 			NewSetGetCommand(),
 			NewListCommand(),
 		},
 	}
-	server.Start()
+
+	go server.Start()
+
+	<-cancelCh
+
+	server.ShutDown()
 }
