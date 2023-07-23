@@ -172,8 +172,6 @@ func (server *Server) Start() {
 func main() {
 	config := GetConfig()
 
-	fmt.Println(config)
-
 	server := &Server{
 		config: config,
 		commands: []Command{
