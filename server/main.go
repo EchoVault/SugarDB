@@ -23,13 +23,17 @@ type Data struct {
 }
 
 type Server struct {
-	config         Config
-	data           Data
-	commands       []Command
-	raft           *raft.Raft
+	config   Config
+	data     Data
+	commands []Command
+
+	raft *raft.Raft
+
 	memberList     *memberlist.Memberlist
 	broadcastQueue *memberlist.TransmitLimitedQueue
-	cancelCh       *chan (os.Signal)
+	numOfNodes     int
+
+	cancelCh *chan (os.Signal)
 }
 
 func (server *Server) Lock() {
@@ -190,6 +194,10 @@ func main() {
 	server := &Server{
 		cancelCh: &cancelCh,
 		config:   config,
+
+		broadcastQueue: new(memberlist.TransmitLimitedQueue),
+		numOfNodes:     0,
+
 		commands: []Command{
 			NewPingCommand(),
 			NewSetGetCommand(),

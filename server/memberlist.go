@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/memberlist"
-	retry "github.com/sethvargo/go-retry"
+	"github.com/sethvargo/go-retry"
 )
 
 type BroadcastMessage struct {
@@ -51,7 +51,13 @@ func (server *Server) MemberListInit() {
 	cfg := memberlist.DefaultLocalConfig()
 	cfg.BindAddr = server.config.BindAddr
 	cfg.BindPort = int(server.config.MemberListBindPort)
+	cfg.Events = server
 	cfg.Delegate = server
+
+	server.broadcastQueue.RetransmitMult = 1
+	server.broadcastQueue.NumNodes = func() int {
+		return server.numOfNodes
+	}
 
 	list, err := memberlist.Create(cfg)
 	server.memberList = list
@@ -63,21 +69,32 @@ func (server *Server) MemberListInit() {
 	if server.config.JoinAddr != "" {
 		ctx := context.Background()
 
-		backoffPolicy := RetryBackoff(retry.NewFibonacci(1*time.Second), 0, 0, 0, 0)
+		backoffPolicy := RetryBackoff(retry.NewFibonacci(1*time.Second), 5, 200*time.Millisecond, 0, 0)
 
 		err := retry.Do(ctx, backoffPolicy, func(ctx context.Context) error {
-			fmt.Printf("%s trying to joing the cluster...\n", server.config.ServerID)
-			return retry.RetryableError(fmt.Errorf("there's a retryable error"))
+			_, err := list.Join([]string{server.config.JoinAddr})
+			if err != nil {
+				return retry.RetryableError(err)
+			}
+			return nil
 		})
 
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		// Broadcast message to join raft cluster
+		msg := BroadcastMessage{
+			Action:     "RaftJoin",
+			ServerID:   server.config.ServerID,
+			ServerAddr: "Please let me join the raft cluster",
+		}
+		server.broadcastQueue.QueueBroadcast(&msg)
 	}
 }
 
 func (server *Server) NodeMeta(limit int) []byte {
-	return []byte{}
+	return []byte("")
 }
 
 func (server *Server) NotifyMsg(msg []byte) {
@@ -90,10 +107,22 @@ func (server *Server) GetBroadcasts(overhead, limit int) [][]byte {
 
 func (server *Server) LocalState(join bool) []byte {
 	// No-Op
-	return []byte{}
+	return []byte("")
 }
 
 func (server *Server) MergeRemoteState(buf []byte, join bool) {
+	// No-Op
+}
+
+func (server *Server) NotifyJoin(node *memberlist.Node) {
+	server.numOfNodes += 1
+}
+
+func (server *Server) NotifyLeave(node *memberlist.Node) {
+	server.numOfNodes -= 1
+}
+
+func (server *Server) NotifyUpdate(node *memberlist.Node) {
 	// No-Op
 }
 
