@@ -15,6 +15,7 @@ func (server *Server) RaftInit() {
 	// Triggered after MemberList init
 
 	conf := server.config
+	fmt.Println(conf)
 
 	raftConfig := raft.DefaultConfig()
 	raftConfig.LocalID = raft.ServerID(conf.ServerID)
@@ -24,9 +25,10 @@ func (server *Server) RaftInit() {
 	raftSnapshotStore := raft.NewInmemSnapshotStore()
 
 	raftAddr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.RaftBindPort)
+
 	raftAdvertiseAddr, err := net.ResolveTCPAddr("tcp", raftAddr)
 	if err != nil {
-		log.Fatal("Could not resolve advertise address.")
+		log.Fatal(err)
 	}
 
 	raftTransport, err := raft.NewTCPTransport(

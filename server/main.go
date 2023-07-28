@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -103,13 +104,13 @@ func (server *Server) StartTCP() {
 		fmt.Printf("Starting TLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		cer, err := tls.LoadX509KeyPair(conf.Cert, conf.Key)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		if l, err := tls.Listen("tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port), &tls.Config{
 			Certificates: []tls.Certificate{cer},
 		}); err != nil {
-			panic(err)
+			log.Fatal(err)
 		} else {
 			listener = l
 		}
@@ -119,7 +120,7 @@ func (server *Server) StartTCP() {
 		// TCP
 		fmt.Printf("Starting TCP server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		if l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port)); err != nil {
-			panic(err)
+			log.Fatal(err)
 		} else {
 			listener = l
 		}
@@ -170,7 +171,7 @@ func (server *Server) Start() {
 	}
 
 	server.MemberListInit()
-	// server.RaftInit()
+	server.RaftInit()
 
 	if conf.HTTP {
 		server.StartHTTP()
@@ -187,6 +188,15 @@ func (server *Server) ShutDown() {
 
 func main() {
 	config := GetConfig()
+
+	// Default BindAddr if it's not set
+	if config.BindAddr == "" {
+		if addr, err := GetIPAddress(); err != nil {
+			log.Fatal(err)
+		} else {
+			config.BindAddr = addr
+		}
+	}
 
 	cancelCh := make(chan (os.Signal), 1)
 	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM)

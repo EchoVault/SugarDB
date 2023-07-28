@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"net"
 	"reflect"
 	"strings"
 	"time"
@@ -187,4 +188,18 @@ func RetryBackoff(b retry.Backoff, maxRetries uint64, jitter, cappedDuration, ma
 	}
 
 	return backoff
+}
+
+func GetIPAddress() (string, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+
+	if err != nil {
+		return "", err
+	}
+
+	defer conn.Close()
+
+	localAddr := strings.Split(conn.LocalAddr().String(), ":")[0]
+
+	return localAddr, nil
 }

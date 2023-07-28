@@ -31,7 +31,7 @@ func GetConfig() Config {
 	http := flag.Bool("http", false, "Use HTTP protocol instead of raw TCP. Default is false")
 	serverId := flag.String("serverId", "1", "Server ID in raft cluster. Leave empty for client.")
 	joinAddr := flag.String("joinAddr", "", "Address of cluster member in a cluster to you want to join.")
-	bindAddr := flag.String("bindAddr", "127.0.0.1", "Address to bind the server to.")
+	bindAddr := flag.String("bindAddr", "", "Address to bind the server to.")
 	raftBindPort := flag.Int("raftPort", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	mlBindPort := flag.Int("mlPort", 7946, "Port to use for memberlist communication.")
 	config := flag.String(
