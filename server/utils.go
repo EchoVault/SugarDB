@@ -10,7 +10,9 @@ import (
 	"math/big"
 	"reflect"
 	"strings"
+	"time"
 
+	"github.com/sethvargo/go-retry"
 	"github.com/tidwall/resp"
 )
 
@@ -163,4 +165,26 @@ func ReadMessage(r *bufio.ReadWriter) (message string, err error) {
 	}
 
 	return fmt.Sprintf("%s\r\n", string(bytes.Join(line, []byte("\r\n")))), nil
+}
+
+func RetryBackoff(b retry.Backoff, maxRetries uint64, jitter, cappedDuration, maxDuration time.Duration) retry.Backoff {
+	backoff := b
+
+	if maxRetries > 0 {
+		backoff = retry.WithMaxRetries(maxRetries, backoff)
+	}
+
+	if jitter > 0 {
+		backoff = retry.WithJitter(jitter, backoff)
+	}
+
+	if cappedDuration > 0 {
+		backoff = retry.WithCappedDuration(cappedDuration, backoff)
+	}
+
+	if maxDuration > 0 {
+		backoff = retry.WithMaxDuration(maxDuration, backoff)
+	}
+
+	return backoff
 }

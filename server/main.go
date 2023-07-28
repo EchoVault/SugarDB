@@ -23,12 +23,13 @@ type Data struct {
 }
 
 type Server struct {
-	config     Config
-	data       Data
-	commands   []Command
-	raft       *raft.Raft
-	memberList *memberlist.Memberlist
-	cancelCh   *chan (os.Signal)
+	config         Config
+	data           Data
+	commands       []Command
+	raft           *raft.Raft
+	memberList     *memberlist.Memberlist
+	broadcastQueue *memberlist.TransmitLimitedQueue
+	cancelCh       *chan (os.Signal)
 }
 
 func (server *Server) Lock() {
@@ -165,7 +166,7 @@ func (server *Server) Start() {
 	}
 
 	server.MemberListInit()
-	server.RaftInit()
+	// server.RaftInit()
 
 	if conf.HTTP {
 		server.StartHTTP()
