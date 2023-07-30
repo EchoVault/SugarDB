@@ -128,8 +128,6 @@ func (server *Server) NotifyMsg(msgBytes []byte) {
 	}
 
 	switch msg.Action {
-	default:
-		fmt.Printf("No handler for action %s", msg.Action)
 	case "RaftJoin":
 		if err := server.addVoter(raft.ServerID(msg.ServerID), raft.ServerAddress(msg.ServerAddr), 0, 0); err != nil {
 			fmt.Println(err)
