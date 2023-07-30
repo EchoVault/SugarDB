@@ -52,7 +52,6 @@ func (broadcastMessage *BroadcastMessage) Finished() {
 }
 
 func (server *Server) MemberListInit() {
-	// Triggered before RaftInit
 	cfg := memberlist.DefaultLocalConfig()
 	cfg.BindAddr = server.config.BindAddr
 	cfg.BindPort = int(server.config.MemberListBindPort)

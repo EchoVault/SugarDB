@@ -171,8 +171,8 @@ func (server *Server) Start() {
 		return
 	}
 
-	server.MemberListInit()
 	server.RaftInit()
+	server.MemberListInit()
 
 	if conf.HTTP {
 		server.StartHTTP()
@@ -182,7 +182,6 @@ func (server *Server) Start() {
 }
 
 func (server *Server) ShutDown() {
-	fmt.Println("Shutting down...")
 	server.RaftShutdown()
 	server.MemberListShutdown()
 }
