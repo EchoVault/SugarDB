@@ -12,11 +12,16 @@ import (
 	"github.com/sethvargo/go-retry"
 )
 
+type NodeMeta struct {
+	ServerID       raft.ServerID      `json:"ServerID"`
+	MemberlistAddr string             `json:"MemberlistAddr"`
+	RaftAddr       raft.ServerAddress `json:"RaftAddr"`
+}
+
 type BroadcastMessage struct {
-	Action     string             `json:"Action"`
-	ServerID   raft.ServerID      `json:"ServerID"`
-	ServerAddr raft.ServerAddress `json:"ServerAddr"`
-	Content    string             `json:"Content"`
+	NodeMeta
+	Action  string `json:"Action"`
+	Content string `json:"Content"`
 }
 
 // Implements Broadcast interface
@@ -96,15 +101,16 @@ func (server *Server) broadcastRaftAddress() {
 	for {
 		select {
 		case <-ticker.C:
-			fmt.Println("[JOIN_BROADCAST]: Trying to joing server if id ", server.config.ServerID)
 			msg := BroadcastMessage{
-				Action:     "RaftJoin",
-				ServerID:   raft.ServerID(server.config.ServerID),
-				ServerAddr: raft.ServerAddress(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.RaftBindPort)),
+				Action: "RaftJoin",
+				NodeMeta: NodeMeta{
+					ServerID: raft.ServerID(server.config.ServerID),
+					RaftAddr: raft.ServerAddress(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.RaftBindPort)),
+				},
 			}
 			server.broadcastQueue.QueueBroadcast(&msg)
 		case msg := <-*server.raftJoinSuccessCh:
-			if msg.ServerID == raft.ServerID(server.config.ServerID) {
+			if msg.NodeMeta.ServerID == raft.ServerID(server.config.ServerID) {
 				fmt.Printf("Server %s succesfully joined raft cluster.\n", msg.ServerID)
 				return
 			}
@@ -114,7 +120,19 @@ func (server *Server) broadcastRaftAddress() {
 
 // Implements Delegate interface
 func (server *Server) NodeMeta(limit int) []byte {
-	return []byte("")
+	meta := NodeMeta{
+		ServerID:       raft.ServerID(server.config.ServerID),
+		RaftAddr:       raft.ServerAddress(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.RaftBindPort)),
+		MemberlistAddr: fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.MemberListBindPort),
+	}
+
+	b, err := json.Marshal(&meta)
+
+	if err != nil {
+		return []byte("")
+	}
+
+	return b
 }
 
 // Implements Delegate interface
@@ -128,7 +146,11 @@ func (server *Server) NotifyMsg(msgBytes []byte) {
 
 	switch msg.Action {
 	case "RaftJoin":
-		if err := server.addVoter(raft.ServerID(msg.ServerID), raft.ServerAddress(msg.ServerAddr), 0, 0); err != nil {
+		if err := server.addVoter(
+			raft.ServerID(msg.NodeMeta.ServerID),
+			raft.ServerAddress(msg.NodeMeta.RaftAddr),
+			0, 0,
+		); err != nil {
 			fmt.Println(err)
 		}
 	case "RaftJoinSuccess":

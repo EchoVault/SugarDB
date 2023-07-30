@@ -128,9 +128,11 @@ func (server *Server) addVoter(
 		// or if voter node has already been added,
 		// broadcast this success message
 		msg := BroadcastMessage{
-			Action:     "RaftJoinSuccess",
-			ServerID:   id,
-			ServerAddr: address,
+			Action: "RaftJoinSuccess",
+			NodeMeta: NodeMeta{
+				ServerID: id,
+				RaftAddr: address,
+			},
 		}
 
 		for _, s := range raftConfig.Configuration().Servers {
