@@ -110,6 +110,10 @@ func (server *Server) GetUint64(key []byte) (uint64, error) {
 	return 0, nil
 }
 
+func (server *Server) isRaftLeader() bool {
+	return server.raft.State() == raft.Leader
+}
+
 func (server *Server) RaftShutdown() {
 	// Triggered before MemberListShutdown
 	// Leadership transfer if current node is the leader

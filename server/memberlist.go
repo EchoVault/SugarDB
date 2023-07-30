@@ -15,8 +15,10 @@ type BroadcastMessage struct {
 	Action     string `json:"Action"`
 	ServerID   string `json:"ServerID"`
 	ServerAddr string `json:"ServerAddr"`
+	Content    string `json:"Content"`
 }
 
+// Implements Broadcast interface
 func (broadcastMessage *BroadcastMessage) Invalidates(other memberlist.Broadcast) bool {
 	mb, ok := other.(*BroadcastMessage)
 
@@ -31,6 +33,7 @@ func (broadcastMessage *BroadcastMessage) Invalidates(other memberlist.Broadcast
 	return false
 }
 
+// Implements Broadcast interface
 func (broadcastMessage *BroadcastMessage) Message() []byte {
 	msg, err := json.Marshal(broadcastMessage)
 
@@ -42,6 +45,7 @@ func (broadcastMessage *BroadcastMessage) Message() []byte {
 	return msg
 }
 
+// Implements Broadcast interface
 func (broadcastMessage *BroadcastMessage) Finished() {
 	// No-Op
 }
@@ -83,45 +87,83 @@ func (server *Server) MemberListInit() {
 			log.Fatal(err)
 		}
 
-		// Broadcast message to join raft cluster
-		msg := BroadcastMessage{
-			Action:     "RaftJoin",
-			ServerID:   server.config.ServerID,
-			ServerAddr: "Please let me join the raft cluster",
-		}
-		server.broadcastQueue.QueueBroadcast(&msg)
+		go server.broadcastRaftAddress()
 	}
 }
 
+func (server *Server) broadcastRaftAddress() {
+	ticker := time.NewTicker(5 * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			msg := BroadcastMessage{
+				Action:     "RaftJoin",
+				ServerID:   server.config.ServerID,
+				ServerAddr: fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.RaftBindPort),
+			}
+			server.broadcastQueue.QueueBroadcast(&msg)
+		case <-*server.raftJoinCh:
+			fmt.Println("Succesfully joined raft cluster.")
+			return
+		}
+	}
+}
+
+// Implements Delegate interface
 func (server *Server) NodeMeta(limit int) []byte {
 	return []byte("")
 }
 
-func (server *Server) NotifyMsg(msg []byte) {
-	fmt.Println(string(msg))
+// Implements Delegate interface
+func (server *Server) NotifyMsg(msgBytes []byte) {
+	var msg BroadcastMessage
+
+	if err := json.Unmarshal(msgBytes, &msg); err != nil {
+		fmt.Print(err)
+		return
+	}
+
+	switch msg.Action {
+	default:
+		fmt.Printf("No handler for action %s", msg.Action)
+	case "RaftJoin":
+		if server.isRaftLeader() {
+			fmt.Println("Asking to join the raft.")
+		}
+	case "MutateData":
+		// Mutate the value at a given key
+	case "FetchData":
+		// Fetch the value at a fiven key
+	}
 }
 
+// Implements Delegate interface
 func (server *Server) GetBroadcasts(overhead, limit int) [][]byte {
 	return server.broadcastQueue.GetBroadcasts(overhead, limit)
 }
 
+// Implements Delegate interface
 func (server *Server) LocalState(join bool) []byte {
 	// No-Op
 	return []byte("")
 }
 
+// Implements Delegate interface
 func (server *Server) MergeRemoteState(buf []byte, join bool) {
 	// No-Op
 }
 
+// Implements EventDelegate interface
 func (server *Server) NotifyJoin(node *memberlist.Node) {
 	server.numOfNodes += 1
 }
 
+// Implements EventDelegate interface
 func (server *Server) NotifyLeave(node *memberlist.Node) {
 	server.numOfNodes -= 1
 }
 
+// Implements EventDelegate interface
 func (server *Server) NotifyUpdate(node *memberlist.Node) {
 	// No-Op
 }
