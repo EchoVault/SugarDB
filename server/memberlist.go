@@ -8,14 +8,15 @@ import (
 	"time"
 
 	"github.com/hashicorp/memberlist"
+	"github.com/hashicorp/raft"
 	"github.com/sethvargo/go-retry"
 )
 
 type BroadcastMessage struct {
-	Action     string `json:"Action"`
-	ServerID   string `json:"ServerID"`
-	ServerAddr string `json:"ServerAddr"`
-	Content    string `json:"Content"`
+	Action     string             `json:"Action"`
+	ServerID   raft.ServerID      `json:"ServerID"`
+	ServerAddr raft.ServerAddress `json:"ServerAddr"`
+	Content    string             `json:"Content"`
 }
 
 // Implements Broadcast interface
@@ -96,15 +97,18 @@ func (server *Server) broadcastRaftAddress() {
 	for {
 		select {
 		case <-ticker.C:
+			fmt.Println("[JOIN_BROADCAST]: Trying to joing server if id ", server.config.ServerID)
 			msg := BroadcastMessage{
 				Action:     "RaftJoin",
-				ServerID:   server.config.ServerID,
-				ServerAddr: fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.RaftBindPort),
+				ServerID:   raft.ServerID(server.config.ServerID),
+				ServerAddr: raft.ServerAddress(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.RaftBindPort)),
 			}
 			server.broadcastQueue.QueueBroadcast(&msg)
-		case <-*server.raftJoinCh:
-			fmt.Println("Succesfully joined raft cluster.")
-			return
+		case msg := <-*server.raftJoinSuccessCh:
+			if msg.ServerID == raft.ServerID(server.config.ServerID) {
+				fmt.Printf("Server %s succesfully joined raft cluster.\n", msg.ServerID)
+				return
+			}
 		}
 	}
 }
@@ -127,9 +131,11 @@ func (server *Server) NotifyMsg(msgBytes []byte) {
 	default:
 		fmt.Printf("No handler for action %s", msg.Action)
 	case "RaftJoin":
-		if server.isRaftLeader() {
-			fmt.Println("Asking to join the raft.")
+		if err := server.addVoter(raft.ServerID(msg.ServerID), raft.ServerAddress(msg.ServerAddr), 0, 0); err != nil {
+			fmt.Println(err)
 		}
+	case "RaftJoinSuccess":
+		*server.raftJoinSuccessCh <- msg
 	case "MutateData":
 		// Mutate the value at a given key
 	case "FetchData":

@@ -34,8 +34,8 @@ type Server struct {
 	broadcastQueue *memberlist.TransmitLimitedQueue
 	numOfNodes     int
 
-	cancelCh   *chan (os.Signal)
-	raftJoinCh *chan (struct{})
+	cancelCh          *chan (os.Signal)
+	raftJoinSuccessCh *chan (BroadcastMessage)
 }
 
 func (server *Server) Lock() {
@@ -202,7 +202,7 @@ func main() {
 	cancelCh := make(chan (os.Signal), 1)
 	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM)
 
-	raftJoinCh := make(chan struct{})
+	raftJoinSuccessCh := make(chan BroadcastMessage)
 
 	server := &Server{
 		config: config,
@@ -216,8 +216,8 @@ func main() {
 			NewListCommand(),
 		},
 
-		cancelCh:   &cancelCh,
-		raftJoinCh: &raftJoinCh,
+		cancelCh:          &cancelCh,
+		raftJoinSuccessCh: &raftJoinSuccessCh,
 	}
 
 	go server.Start()
