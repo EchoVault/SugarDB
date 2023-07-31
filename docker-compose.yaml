@@ -63,3 +63,43 @@ services:
       - "8002:8000"
     networks:
       - testnet
+
+  node4:
+    container_name: node4
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    environment:
+      - PORT=7480
+      - RAFTPORT=8000
+      - MLPORT=7946
+      - KEY=""
+      - CERT=""
+      - SERVERID=4
+      - JOINADDR=node1:7946
+    ports:
+      - "7483:7480"
+      - "7949:7946"
+      - "8003:8000"
+    networks:
+      - testnet
+
+  node5:
+    container_name: node5
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    environment:
+      - PORT=7480
+      - RAFTPORT=8000
+      - MLPORT=7946
+      - KEY=""
+      - CERT=""
+      - SERVERID=5
+      - JOINADDR=node1:7946
+    ports:
+      - "7484:7480"
+      - "7950:7946"
+      - "8004:8000"
+    networks:
+      - testnet

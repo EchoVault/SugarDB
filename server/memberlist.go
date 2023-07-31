@@ -186,6 +186,21 @@ func (server *Server) NotifyJoin(node *memberlist.Node) {
 // Implements EventDelegate interface
 func (server *Server) NotifyLeave(node *memberlist.Node) {
 	server.numOfNodes -= 1
+
+	var meta NodeMeta
+
+	err := json.Unmarshal(node.Meta, &meta)
+
+	if err != nil {
+		fmt.Println("Could not get leaving node's metadata.")
+		return
+	}
+
+	err = server.removeServer(meta)
+
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // Implements EventDelegate interface
@@ -194,8 +209,18 @@ func (server *Server) NotifyUpdate(node *memberlist.Node) {
 }
 
 func (server *Server) MemberListShutdown() {
-	// Triggered after RaftShutdown
 	// Gracefully leave memberlist cluster
-	// Broadcast message to remove current node from raft cluster
-	fmt.Println("Shutting down memberlist.")
+	err := server.memberList.Leave(500 * time.Millisecond)
+
+	if err != nil {
+		log.Fatal("Could not gracefully leave memberlist cluster")
+	}
+
+	err = server.memberList.Shutdown()
+
+	if err != nil {
+		log.Fatal("Could not gracefully shutdown memberlist background maintanance")
+	}
+
+	fmt.Println("Successfully shutdown memberlist")
 }

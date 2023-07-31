@@ -71,6 +71,13 @@ func (server *Server) RaftInit() {
 			log.Fatal(err)
 		}
 	}
+
+	go func() {
+		for {
+			fmt.Println("[IS_LEADER]: ", server.isRaftLeader())
+			time.Sleep(5 * time.Second)
+		}
+	}()
 }
 
 // Implement raft.FSM interface
@@ -118,44 +125,63 @@ func (server *Server) addVoter(
 	prevIndex uint64,
 	timeout time.Duration,
 ) error {
-	if server.isRaftLeader() {
-		raftConfig := server.raft.GetConfiguration()
-		if err := raftConfig.Error(); err != nil {
-			return errors.New("could not retrieve raft config")
-		}
-
-		// After successfully adding the voter node
-		// or if voter node has already been added,
-		// broadcast this success message
-		msg := BroadcastMessage{
-			Action: "RaftJoinSuccess",
-			NodeMeta: NodeMeta{
-				ServerID: id,
-				RaftAddr: address,
-			},
-		}
-
-		for _, s := range raftConfig.Configuration().Servers {
-			// Check if a server already exists with the current attribtues
-			if s.ID == id && s.Address == address {
-				server.broadcastQueue.QueueBroadcast(&msg)
-				return fmt.Errorf("server with id %s and address %s already exists", id, address)
-			}
-		}
-
-		err := server.raft.AddVoter(id, address, prevIndex, timeout).Error()
-		if err != nil {
-			return err
-		}
-
-		server.broadcastQueue.QueueBroadcast(&msg)
+	if !server.isRaftLeader() {
+		return errors.New("not leader, cannot add voter")
 	}
+	raftConfig := server.raft.GetConfiguration()
+	if err := raftConfig.Error(); err != nil {
+		return errors.New("could not retrieve raft config")
+	}
+
+	// After successfully adding the voter node
+	// or if voter node has already been added,
+	// broadcast this success message
+	msg := BroadcastMessage{
+		Action: "RaftJoinSuccess",
+		NodeMeta: NodeMeta{
+			ServerID: id,
+			RaftAddr: address,
+		},
+	}
+
+	for _, s := range raftConfig.Configuration().Servers {
+		// Check if a server already exists with the current attribtues
+		if s.ID == id && s.Address == address {
+			server.broadcastQueue.QueueBroadcast(&msg)
+			return fmt.Errorf("server with id %s and address %s already exists", id, address)
+		}
+	}
+
+	err := server.raft.AddVoter(id, address, prevIndex, timeout).Error()
+	if err != nil {
+		return err
+	}
+
+	server.broadcastQueue.QueueBroadcast(&msg)
+	return nil
+}
+
+func (server *Server) removeServer(meta NodeMeta) error {
+	if !server.isRaftLeader() {
+		return errors.New("not leader, could not remove server")
+	}
+
+	if err := server.raft.RemoveServer(meta.ServerID, 0, 0).Error(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (server *Server) RaftShutdown() {
-	// Triggered before MemberListShutdown
 	// Leadership transfer if current node is the leader
-	// Shutdown of the raft server
-	fmt.Println("Shutting down raft.")
+	if server.isRaftLeader() {
+		err := server.raft.LeadershipTransfer().Error()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("Leadership transfer successful.")
+	}
 }
