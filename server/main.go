@@ -199,7 +199,7 @@ func main() {
 	}
 
 	cancelCh := make(chan (os.Signal), 1)
-	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
 	raftJoinSuccessCh := make(chan BroadcastMessage)
 
