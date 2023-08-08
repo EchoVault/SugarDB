@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	utils "github.com/kelvinmwinuka/memstore/server/utils"
 	"github.com/sethvargo/go-retry"
 )
 
@@ -78,7 +79,7 @@ func (server *Server) MemberListInit() {
 	if server.config.JoinAddr != "" {
 		ctx := context.Background()
 
-		backoffPolicy := RetryBackoff(retry.NewFibonacci(1*time.Second), 5, 200*time.Millisecond, 0, 0)
+		backoffPolicy := utils.RetryBackoff(retry.NewFibonacci(1*time.Second), 5, 200*time.Millisecond, 0, 0)
 
 		err := retry.Do(ctx, backoffPolicy, func(ctx context.Context) error {
 			_, err := list.Join([]string{server.config.JoinAddr})

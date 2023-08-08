@@ -10,13 +10,23 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
+	"plugin"
 	"strings"
 	"sync"
 	"syscall"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	utils "github.com/kelvinmwinuka/memstore/server/utils"
 )
+
+type Plugin interface {
+	Name() string
+	Commands() []string
+	Description() string
+	HandleCommand(cmd []string, server interface{}, conn *bufio.Writer)
+}
 
 type Data struct {
 	mu   sync.Mutex
@@ -24,9 +34,9 @@ type Data struct {
 }
 
 type Server struct {
-	config   Config
-	data     Data
-	commands []Command
+	config  Config
+	data    Data
+	plugins []Plugin
 
 	raft *raft.Raft
 
@@ -58,7 +68,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 
 	for {
-		message, err := ReadMessage(connRW)
+		message, err := utils.ReadMessage(connRW)
 
 		if err != nil && err == io.EOF {
 			// Connection closed
@@ -70,7 +80,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 			continue
 		}
 
-		if cmd, err := Decode(message); err != nil {
+		if cmd, err := utils.Decode(message); err != nil {
 			// Return error to client
 			connRW.Write([]byte(fmt.Sprintf("-Error %s\r\n\n", err.Error())))
 			connRW.Flush()
@@ -79,9 +89,9 @@ func (server *Server) handleConnection(conn net.Conn) {
 			// Look for plugin that handles this command and trigger it
 			handled := false
 
-			for _, c := range server.commands {
-				if Contains[string](c.Commands(), strings.ToLower(cmd[0])) {
-					c.HandleCommand(cmd, server, connRW.Writer)
+			for _, plugin := range server.plugins {
+				if utils.Contains[string](plugin.Commands(), strings.ToLower(cmd[0])) {
+					plugin.HandleCommand(cmd, server, connRW.Writer)
 					handled = true
 				}
 			}
@@ -161,10 +171,69 @@ func (server *Server) StartHTTP() {
 	}
 }
 
+func (server *Server) LoadPlugins() {
+	conf := server.config
+
+	// Load plugins
+	pluginDirs, err := os.ReadDir(conf.Plugins)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range pluginDirs {
+		if file.IsDir() {
+			switch file.Name() {
+			case "commands":
+				files, err := os.ReadDir(path.Join(conf.Plugins, "commands"))
+
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				for _, file := range files {
+					if !strings.HasSuffix(file.Name(), ".so") {
+						// Skip files that are not .so
+						continue
+					}
+					p, err := plugin.Open(path.Join(conf.Plugins, "commands", file.Name()))
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					pluginSymbol, err := p.Lookup("Plugin")
+					if err != nil {
+						fmt.Printf("unexpected plugin symbol in plugin %s\n", file.Name())
+						continue
+					}
+
+					plugin, ok := pluginSymbol.(Plugin)
+					if !ok {
+						fmt.Printf("invalid plugin signature in plugin %s \n", file.Name())
+						continue
+					}
+
+					// Check if a plugin that handles the same command already exists
+					for _, loadedPlugin := range server.plugins {
+						containsMutual, elem := utils.ContainsMutual[string](loadedPlugin.Commands(), plugin.Commands())
+						if containsMutual {
+							fmt.Printf("plugin that handles %s command already exists. Please handle a different command.\n", elem)
+						}
+					}
+
+					server.plugins = append(server.plugins, plugin)
+				}
+			}
+		}
+	}
+}
+
 func (server *Server) Start() {
 	server.data.data = make(map[string]interface{})
 
 	conf := server.config
+
+	server.LoadPlugins()
 
 	if conf.TLS && (len(conf.Key) <= 0 || len(conf.Cert) <= 0) {
 		fmt.Println("Must provide key and certificate file paths for TLS mode.")
@@ -191,7 +260,7 @@ func main() {
 
 	// Default BindAddr if it's not set
 	if config.BindAddr == "" {
-		if addr, err := GetIPAddress(); err != nil {
+		if addr, err := utils.GetIPAddress(); err != nil {
 			log.Fatal(err)
 		} else {
 			config.BindAddr = addr
@@ -208,12 +277,6 @@ func main() {
 
 		broadcastQueue: new(memberlist.TransmitLimitedQueue),
 		numOfNodes:     0,
-
-		commands: []Command{
-			NewPingCommand(),
-			NewSetGetCommand(),
-			NewListCommand(),
-		},
 
 		cancelCh:          &cancelCh,
 		raftJoinSuccessCh: &raftJoinSuccessCh,

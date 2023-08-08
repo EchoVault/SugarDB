@@ -1,41 +1,52 @@
-package main
+package setget
 
 import (
 	"bufio"
 	"fmt"
 	"strings"
+
+	utils "github.com/kelvinmwinuka/memstore/server/utils"
 )
 
-type SetGetCommand struct {
+type Server interface {
+	Lock()
+	Unlock()
+	GetData(key string) interface{}
+	SetData(key string, value interface{})
+}
+
+type plugin struct {
 	name        string
 	commands    []string
 	description string
 }
 
-func (p *SetGetCommand) Name() string {
+var Plugin plugin
+
+func (p *plugin) Name() string {
 	return p.name
 }
 
-func (p *SetGetCommand) Commands() []string {
+func (p *plugin) Commands() []string {
 	return p.commands
 }
 
-func (p *SetGetCommand) Description() string {
+func (p *plugin) Description() string {
 	return p.description
 }
 
-func (p *SetGetCommand) HandleCommand(cmd []string, server *Server, conn *bufio.Writer) {
+func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Writer) {
 	switch strings.ToLower(cmd[0]) {
 	case "get":
-		handleGet(cmd, server, conn)
+		handleGet(cmd, server.(Server), conn)
 	case "set":
-		handleSet(cmd, server, conn)
+		handleSet(cmd, server.(Server), conn)
 	case "mget":
-		handleMGet(cmd, server, conn)
+		handleMGet(cmd, server.(Server), conn)
 	}
 }
 
-func handleGet(cmd []string, s *Server, conn *bufio.Writer) {
+func handleGet(cmd []string, s Server, conn *bufio.Writer) {
 
 	if len(cmd) != 2 {
 		conn.Write([]byte("-Error wrong number of args for GET command\r\n\n"))
@@ -56,7 +67,7 @@ func handleGet(cmd []string, s *Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handleMGet(cmd []string, s *Server, conn *bufio.Writer) {
+func handleMGet(cmd []string, s Server, conn *bufio.Writer) {
 	if len(cmd) < 2 {
 		conn.Write([]byte("-Error wrong number of args for MGET command\r\n\n"))
 		conn.Flush()
@@ -88,24 +99,22 @@ func handleMGet(cmd []string, s *Server, conn *bufio.Writer) {
 	conn.Flush()
 }
 
-func handleSet(cmd []string, s *Server, conn *bufio.Writer) {
+func handleSet(cmd []string, s Server, conn *bufio.Writer) {
 	switch x := len(cmd); {
 	default:
 		conn.Write([]byte("-Error wrong number of args for SET command\r\n\n"))
 		conn.Flush()
 	case x == 3:
 		s.Lock()
-		s.SetData(cmd[1], AdaptType(cmd[2]))
+		s.SetData(cmd[1], utils.AdaptType(cmd[2]))
 		s.Unlock()
 		conn.Write([]byte("+OK\r\n\n"))
 		conn.Flush()
 	}
 }
 
-func NewSetGetCommand() *SetGetCommand {
-	return &SetGetCommand{
-		name:        "GetCommand",
-		commands:    []string{"set", "get", "mget"},
-		description: "Handle basic SET, GET and MGET commands",
-	}
+func init() {
+	Plugin.name = "GetCommand"
+	Plugin.commands = []string{"set", "get", "mget"}
+	Plugin.description = "Handle basic SET, GET and MGET commands"
 }
