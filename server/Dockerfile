@@ -6,7 +6,7 @@ RUN mkdir -p /etc/ssl/certs/memstore
 
 COPY ./server/bin/linux/plugins /usr/local/lib/memstore
 COPY ./server/bin/linux/server /opt/memstore/bin
-COPY ./openssl/linux/server /etc/ssl/certs/memstore
+COPY ./openssl/server /etc/ssl/certs/memstore
 
 WORKDIR /opt/memstore/bin
 
@@ -22,3 +22,4 @@ CMD "./server" \
   "--http" "${HTTP}" \
   "--tls" "${TLS}" \
   "--inMemory" "${INMEMORY}" \
+  "--pluginDir" "${PLUGINDIR}" \
