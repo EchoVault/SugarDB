@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
 	"strings"
 
-	utils "github.com/kelvinmwinuka/memstore/server/utils"
+	"github.com/kelvinmwinuka/memstore/server/utils"
 )
 
 type Server interface {
@@ -35,23 +35,22 @@ func (p *plugin) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Writer) {
+func (p *plugin) HandleCommand(cmd []string, server interface{}) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
+	default:
+		return nil, errors.New("command unknown")
 	case "get":
-		handleGet(cmd, server.(Server), conn)
+		return handleGet(cmd, server.(Server))
 	case "set":
-		handleSet(cmd, server.(Server), conn)
+		return handleSet(cmd, server.(Server))
 	case "mget":
-		handleMGet(cmd, server.(Server), conn)
+		return handleMGet(cmd, server.(Server))
 	}
 }
 
-func handleGet(cmd []string, s Server, conn *bufio.Writer) {
-
+func handleGet(cmd []string, s Server) ([]byte, error) {
 	if len(cmd) != 2 {
-		conn.Write([]byte("-Error wrong number of args for GET command\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("wrong number of args for GET command")
 	}
 
 	s.Lock()
@@ -60,18 +59,15 @@ func handleGet(cmd []string, s Server, conn *bufio.Writer) {
 
 	switch value.(type) {
 	default:
-		conn.Write([]byte(fmt.Sprintf("+%v\r\n\n", value)))
+		return []byte(fmt.Sprintf("+%v\r\n\n", value)), nil
 	case nil:
-		conn.Write([]byte("+nil\r\n\n"))
+		return []byte("+nil\r\n\n"), nil
 	}
-	conn.Flush()
 }
 
-func handleMGet(cmd []string, s Server, conn *bufio.Writer) {
+func handleMGet(cmd []string, s Server) ([]byte, error) {
 	if len(cmd) < 2 {
-		conn.Write([]byte("-Error wrong number of args for MGET command\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("wrong number of args for MGET command")
 	}
 
 	vals := []string{}
@@ -89,27 +85,26 @@ func handleMGet(cmd []string, s Server, conn *bufio.Writer) {
 
 	s.Unlock()
 
-	conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(vals))))
+	var bytes []byte = []byte(fmt.Sprintf("*%d\r\n", len(vals)))
 
 	for _, val := range vals {
-		conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(val), val)))
+		bytes = append(bytes, []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(val), val))...)
 	}
 
-	conn.Write([]byte("\n"))
-	conn.Flush()
+	bytes = append(bytes, []byte("\n")...)
+
+	return bytes, nil
 }
 
-func handleSet(cmd []string, s Server, conn *bufio.Writer) {
+func handleSet(cmd []string, s Server) ([]byte, error) {
 	switch x := len(cmd); {
 	default:
-		conn.Write([]byte("-Error wrong number of args for SET command\r\n\n"))
-		conn.Flush()
+		return nil, errors.New("wrong number of args for SET command")
 	case x == 3:
 		s.Lock()
 		s.SetData(cmd[1], utils.AdaptType(cmd[2]))
 		s.Unlock()
-		conn.Write([]byte("+OK\r\n\n"))
-		conn.Flush()
+		return []byte("+OK\r\n\n"), nil
 	}
 }
 

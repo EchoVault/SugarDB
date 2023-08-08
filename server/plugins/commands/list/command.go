@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
 
-	utils "github.com/kelvinmwinuka/memstore/server/utils"
+	"github.com/kelvinmwinuka/memstore/server/utils"
 )
 
 const (
@@ -40,47 +40,47 @@ func (p *plugin) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Writer) {
+func (p *plugin) HandleCommand(cmd []string, server interface{}) ([]byte, error) {
 	c := strings.ToLower(cmd[0])
 
 	switch {
+	default:
+		return nil, errors.New("command unknown")
 	case c == "llen":
-		handleLLen(cmd, server.(Server), conn)
+		return handleLLen(cmd, server.(Server))
 
 	case c == "lindex":
-		handleLIndex(cmd, server.(Server), conn)
+		return handleLIndex(cmd, server.(Server))
 
 	case c == "lrange":
-		handleLRange(cmd, server.(Server), conn)
+		return handleLRange(cmd, server.(Server))
 
 	case c == "lset":
-		handleLSet(cmd, server.(Server), conn)
+		return handleLSet(cmd, server.(Server))
 
 	case c == "ltrim":
-		handleLTrim(cmd, server.(Server), conn)
+		return handleLTrim(cmd, server.(Server))
 
 	case c == "lrem":
-		handleLRem(cmd, server.(Server), conn)
+		return handleLRem(cmd, server.(Server))
 
 	case c == "lmove":
-		handleLMove(cmd, server.(Server), conn)
+		return handleLMove(cmd, server.(Server))
 
 	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
-		handleLPush(cmd, server.(Server), conn)
+		return handleLPush(cmd, server.(Server))
 
 	case utils.Contains[string]([]string{"rpush", "rpushx"}, c):
-		handleRPush(cmd, server.(Server), conn)
+		return handleRPush(cmd, server.(Server))
 
 	case utils.Contains[string]([]string{"lpop", "rpop"}, c):
-		handlePop(cmd, server.(Server), conn)
+		return handlePop(cmd, server.(Server))
 	}
 }
 
-func handleLLen(cmd []string, server Server, conn *bufio.Writer) {
+func handleLLen(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 2 {
-		conn.Write([]byte("-Error wrong number of args for LLEN command\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("wrong number of args for LLEN command")
 	}
 
 	server.Lock()
@@ -89,29 +89,21 @@ func handleLLen(cmd []string, server Server, conn *bufio.Writer) {
 
 	if !ok {
 		server.Unlock()
-		conn.Write([]byte("-Error LLEN command on non-list item\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("LLEN command on non-list item")
 	}
 
-	server.Unlock()
-	conn.Write([]byte(fmt.Sprintf(":%d\r\n\n", len(list))))
-	conn.Flush()
+	return []byte(fmt.Sprintf(":%d\r\n\n", len(list))), nil
 }
 
-func handleLIndex(cmd []string, server Server, conn *bufio.Writer) {
+func handleLIndex(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 3 {
-		conn.Write([]byte("-Error wrong number of args for LINDEX command\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("wrong number of args for LINDEX command")
 	}
 
 	index, ok := utils.AdaptType(cmd[2]).(int)
 
 	if !ok {
-		conn.Write([]byte("-Error index must be an integer\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("index must be an integer")
 	}
 
 	server.Lock()
@@ -120,37 +112,28 @@ func handleLIndex(cmd []string, server Server, conn *bufio.Writer) {
 
 	if !ok {
 		server.Unlock()
-		conn.Write([]byte("-Error LINDEX command on non-list item\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("LINDEX command on non-list item")
 	}
 
 	if !(index >= 0 && index < len(list)) {
 		server.Unlock()
-		conn.Write([]byte("-Error index must be within list range\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("index must be within list range")
 	}
 
 	server.Unlock()
-	conn.Write([]byte(fmt.Sprintf("+%s\r\n\n", list[index])))
-	conn.Flush()
+	return []byte(fmt.Sprintf("+%s\r\n\n", list[index])), nil
 }
 
-func handleLRange(cmd []string, server Server, conn *bufio.Writer) {
+func handleLRange(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 4 {
-		conn.Write([]byte("-Error wrong number of arguments for LRANGE command\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("wrong number of arguments for LRANGE command")
 	}
 
 	start, startOk := utils.AdaptType(cmd[2]).(int)
 	end, endOk := utils.AdaptType(cmd[3]).(int)
 
 	if !startOk || !endOk {
-		conn.Write([]byte("-Error both start and end indices must be integers\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("both start and end indices must be integers")
 	}
 
 	server.Lock()
@@ -160,48 +143,41 @@ func handleLRange(cmd []string, server Server, conn *bufio.Writer) {
 	server.Unlock()
 
 	if !ok {
-		conn.Write([]byte("-Error type cannot be returned with LRANGE command\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("type cannot be returned with LRANGE command")
 	}
 
 	// Make sure start is within range
 	if !(start >= 0 && start < len(list)) {
-		conn.Write([]byte("-Error start index not within list range\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("start index not within list range")
 	}
 
 	// Make sure end is within range, or is -1 otherwise
 	if !((end >= 0 && end < len(list)) || end == -1) {
-		conn.Write([]byte("-Error end index must be within list range or -1\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("end index must be within list range or -1")
 	}
+
+	var bytes []byte
 
 	// If end is -1, read list from start to the end of the list
 	if end == -1 {
-		conn.Write([]byte("*" + fmt.Sprint(len(list)-start) + "\r\n"))
+		bytes = []byte("*" + fmt.Sprint(len(list)-start) + "\r\n")
 		for i := start; i < len(list); i++ {
 			str := fmt.Sprintf("%v", list[i])
-			conn.Write([]byte("$" + fmt.Sprint(len(str)) + "\r\n" + str + "\r\n"))
+			bytes = append(bytes, []byte("$"+fmt.Sprint(len(str))+"\r\n"+str+"\r\n")...)
 		}
-		conn.Write([]byte("\n"))
-		conn.Flush()
-		return
+		bytes = append(bytes, []byte("\n")...)
+		return bytes, nil
 	}
 
 	// Make sure start and end are not equal to each other
 	if start == end {
-		conn.Write([]byte("-Error start and end indices cannot be equal equal\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("start and end indices cannot be equal")
 	}
 
 	// If end is not -1:
 	//	1) If end is larger than start, return slice from start -> end
 	//	2) If end is smaller than start, return slice from end -> start
-	conn.Write([]byte("*" + fmt.Sprint(int(math.Abs(float64(start-end)))+1) + "\r\n"))
+	bytes = []byte("*" + fmt.Sprint(int(math.Abs(float64(start-end)))+1) + "\r\n")
 
 	i := start
 	j := end + 1
@@ -211,7 +187,7 @@ func handleLRange(cmd []string, server Server, conn *bufio.Writer) {
 
 	for i != j {
 		str := fmt.Sprintf("%v", list[i])
-		conn.Write([]byte("$" + fmt.Sprint(len(str)) + "\r\n" + str + "\r\n"))
+		bytes = append(bytes, []byte("$"+fmt.Sprint(len(str))+"\r\n"+str+"\r\n")...)
 		if start < end {
 			i++
 		} else {
@@ -219,15 +195,15 @@ func handleLRange(cmd []string, server Server, conn *bufio.Writer) {
 		}
 
 	}
-	conn.Write([]byte("\n"))
-	conn.Flush()
+
+	bytes = append(bytes, []byte("\n")...)
+
+	return bytes, nil
 }
 
-func handleLSet(cmd []string, server Server, conn *bufio.Writer) {
+func handleLSet(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 4 {
-		conn.Write([]byte("-Error wrong number of arguments for LSET command\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("wrong number of arguments for LSET command")
 	}
 
 	server.Lock()
@@ -236,55 +212,42 @@ func handleLSet(cmd []string, server Server, conn *bufio.Writer) {
 
 	if !ok {
 		server.Unlock()
-		conn.Write([]byte("-Error LSET command on non-list item\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("LSET command on non-list item")
 	}
 
 	index, ok := utils.AdaptType(cmd[2]).(int)
 
 	if !ok {
 		server.Unlock()
-		conn.Write([]byte("-Error index must be an integer\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("index must be an integer")
 	}
 
 	if !(index >= 0 && index < len(list)) {
 		server.Unlock()
-		conn.Write([]byte("-Error index must be within range\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("index must be within range")
 	}
 
 	list[index] = utils.AdaptType(cmd[3])
 	server.SetData(cmd[1], list)
 	server.Unlock()
 
-	conn.Write([]byte(OK))
-	conn.Flush()
+	return []byte(OK), nil
 }
 
-func handleLTrim(cmd []string, server Server, conn *bufio.Writer) {
+func handleLTrim(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 4 {
-		conn.Write([]byte("-Error wrong number of args for command LTRIM \r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("wrong number of args for command LTRIM")
 	}
 
 	start, startOk := utils.AdaptType(cmd[2]).(int)
 	end, endOk := utils.AdaptType(cmd[3]).(int)
 
 	if !startOk || !endOk {
-		conn.Write([]byte("-Error start and end indices must be integers\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("start and end indices must be integers")
 	}
 
 	if end < start && end != -1 {
-		conn.Write([]byte("-Error end index must be greater than start index or -1\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("end index must be greater than start index or -1")
 	}
 
 	server.Lock()
@@ -293,46 +256,36 @@ func handleLTrim(cmd []string, server Server, conn *bufio.Writer) {
 
 	if !ok {
 		server.Unlock()
-		conn.Write([]byte("-Error LTRIM command on non-list item\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("LTRIM command on non-list item")
 	}
 
 	if !(start >= 0 && start < len(list)) {
 		server.Unlock()
-		conn.Write([]byte("-Error start index must be within list boundary\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("start index must be within list boundary")
 	}
 
 	if end == -1 || end > len(list) {
 		server.SetData(cmd[1], list[start:])
 		server.Unlock()
-		conn.Write([]byte(OK))
-		conn.Flush()
-		return
+		return []byte(OK), nil
 	}
 
 	server.SetData(cmd[1], list[start:end])
 	server.Unlock()
-	conn.Write([]byte(OK))
-	conn.Flush()
+
+	return []byte(OK), nil
 }
 
-func handleLRem(cmd []string, server Server, conn *bufio.Writer) {
+func handleLRem(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 4 {
-		conn.Write([]byte("-Error wrong number of arguments for LREM command\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("wrong number of arguments for LREM command")
 	}
 
 	value := cmd[3]
 	count, ok := utils.AdaptType(cmd[2]).(int)
 
 	if !ok {
-		conn.Write([]byte("-Error count must be an integer\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("count must be an integer")
 	}
 
 	absoluteCount := math.Abs(float64(count))
@@ -343,9 +296,7 @@ func handleLRem(cmd []string, server Server, conn *bufio.Writer) {
 
 	if !ok {
 		server.Unlock()
-		conn.Write([]byte("-Error LREM command on non-list item\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("LREM command on non-list item")
 	}
 
 	switch {
@@ -380,26 +331,21 @@ func handleLRem(cmd []string, server Server, conn *bufio.Writer) {
 	})
 
 	server.SetData(cmd[1], list)
-
 	server.Unlock()
-	conn.Write([]byte(OK))
-	conn.Flush()
+
+	return []byte(OK), nil
 }
 
-func handleLMove(cmd []string, server Server, conn *bufio.Writer) {
+func handleLMove(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 5 {
-		conn.Write([]byte("-Error wrong number of arguments for LMOVE command\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("wrong number of arguments for LMOVE command")
 	}
 
 	whereFrom := strings.ToLower(cmd[3])
 	whereTo := strings.ToLower(cmd[4])
 
 	if !utils.Contains[string]([]string{"left", "right"}, whereFrom) || !utils.Contains[string]([]string{"left", "right"}, whereTo) {
-		conn.Write([]byte("-Error wherefrom and whereto arguments must be either LEFT or RIGHT\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("wherefrom and whereto arguments must be either LEFT or RIGHT")
 	}
 
 	server.Lock()
@@ -409,9 +355,7 @@ func handleLMove(cmd []string, server Server, conn *bufio.Writer) {
 
 	if !sourceOk || !destinationOk {
 		server.Unlock()
-		conn.Write([]byte("-Error source and destination must both be lists\r\n\n"))
-		return
-		conn.Flush()
+		return nil, errors.New("source and destination must both be lists")
 	}
 
 	switch whereFrom {
@@ -432,15 +376,12 @@ func handleLMove(cmd []string, server Server, conn *bufio.Writer) {
 	}
 
 	server.Unlock()
-	conn.Write([]byte(OK))
-	conn.Flush()
+	return []byte(OK), nil
 }
 
-func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
+func handleLPush(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) < 3 {
-		conn.Write([]byte(fmt.Sprintf("-Error wrong number of arguments for %s command\r\n\n", strings.ToUpper(cmd[0]))))
-		conn.Flush()
-		return
+		return nil, fmt.Errorf("wrong number of arguments for %s command", strings.ToUpper(cmd[0]))
 	}
 
 	server.Lock()
@@ -454,41 +395,33 @@ func handleLPush(cmd []string, server Server, conn *bufio.Writer) {
 	currentList := server.GetData(cmd[1])
 
 	if currentList == nil {
-
 		switch strings.ToLower(cmd[0]) {
 		default:
 			server.SetData(cmd[1], newElems)
-			conn.Write([]byte(OK))
+			server.Unlock()
+			return []byte(OK), nil
 		case "lpushx":
-			conn.Write([]byte("-Error no list at key\r\n\n"))
+			server.Unlock()
+			return nil, errors.New("no list at key")
 		}
-
-		server.Unlock()
-		conn.Flush()
-		return
 	}
 
 	l, ok := currentList.([]interface{})
 
 	if !ok {
 		server.Unlock()
-		conn.Write([]byte("-Error LPUSH command on non-list item\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("LPUSH command on non-list item")
 	}
 
 	server.SetData(cmd[1], append(newElems, l...))
 	server.Unlock()
 
-	conn.Write([]byte(OK))
-	conn.Flush()
+	return []byte(OK), nil
 }
 
-func handleRPush(cmd []string, server Server, conn *bufio.Writer) {
+func handleRPush(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) < 3 {
-		conn.Write([]byte(fmt.Sprintf("-Error wrong number of arguments for %s command\r\n\n", strings.ToUpper(cmd[0]))))
-		conn.Flush()
-		return
+		return nil, fmt.Errorf("wrong number of arguments for %s command", strings.ToUpper(cmd[0]))
 	}
 
 	server.Lock()
@@ -505,37 +438,30 @@ func handleRPush(cmd []string, server Server, conn *bufio.Writer) {
 		switch strings.ToLower(cmd[0]) {
 		default:
 			server.SetData(cmd[1], newElems)
-			conn.Write([]byte(OK))
+			server.Unlock()
+			return []byte(OK), nil
 		case "rpushx":
-			conn.Write([]byte("-Error no list at key\r\n\n"))
+			server.Unlock()
+			return nil, errors.New("no list at key")
 		}
-
-		server.Unlock()
-		conn.Flush()
-		return
 	}
 
 	l, ok := currentList.([]interface{})
 
 	if !ok {
 		server.Unlock()
-		conn.Write([]byte("-Error RPUSH command on non-list item\r\n\n"))
-		conn.Flush()
-		return
+		return nil, errors.New("RPUSH command on non-list item")
 	}
 
 	server.SetData(cmd[1], append(l, newElems...))
 	server.Unlock()
 
-	conn.Write([]byte(OK))
-	conn.Flush()
+	return []byte(OK), nil
 }
 
-func handlePop(cmd []string, server Server, conn *bufio.Writer) {
+func handlePop(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 2 {
-		conn.Write([]byte(fmt.Sprintf("-Error wrong number of args for %s command\r\n\n", strings.ToUpper(cmd[0]))))
-		conn.Flush()
-		return
+		return nil, fmt.Errorf("wrong number of args for %s command", strings.ToUpper(cmd[0]))
 	}
 
 	server.Lock()
@@ -543,23 +469,20 @@ func handlePop(cmd []string, server Server, conn *bufio.Writer) {
 	list, ok := server.GetData(cmd[1]).([]interface{})
 
 	if !ok {
-		server.Unlock()
-		conn.Write([]byte(fmt.Sprintf("-Error %s command on non-list item\r\n\n", strings.ToUpper(cmd[0]))))
-		conn.Flush()
-		return
+		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
 	}
 
 	switch strings.ToLower(cmd[0]) {
 	default:
 		server.SetData(cmd[1], list[1:])
-		conn.Write([]byte(fmt.Sprintf("+%v\r\n\n", list[0])))
+		server.Unlock()
+		return []byte(fmt.Sprintf("+%v\r\n\n", list[0])), nil
 	case "rpop":
 		server.SetData(cmd[1], list[:len(list)-1])
-		conn.Write([]byte(fmt.Sprintf("+%v\r\n\n", list[len(list)-1])))
+		server.Unlock()
+		return []byte(fmt.Sprintf("+%v\r\n\n", list[len(list)-1])), nil
 	}
 
-	server.Unlock()
-	conn.Flush()
 }
 
 func init() {

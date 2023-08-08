@@ -18,14 +18,14 @@ import (
 
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-	utils "github.com/kelvinmwinuka/memstore/server/utils"
+	"github.com/kelvinmwinuka/memstore/server/utils"
 )
 
 type Plugin interface {
 	Name() string
 	Commands() []string
 	Description() string
-	HandleCommand(cmd []string, server interface{}, conn *bufio.Writer)
+	HandleCommand(cmd []string, server interface{}) ([]byte, error)
 }
 
 type Data struct {
@@ -91,7 +91,16 @@ func (server *Server) handleConnection(conn net.Conn) {
 
 			for _, plugin := range server.plugins {
 				if utils.Contains[string](plugin.Commands(), strings.ToLower(cmd[0])) {
-					plugin.HandleCommand(cmd, server, connRW.Writer)
+					res, err := plugin.HandleCommand(cmd, server)
+
+					if err != nil {
+						connRW.Write([]byte(fmt.Sprintf("-Error %s\r\n\n", err.Error())))
+					} else {
+						connRW.Write(res)
+					}
+
+					connRW.Flush()
+
 					handled = true
 				}
 			}

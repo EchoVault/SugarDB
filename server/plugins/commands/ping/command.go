@@ -1,6 +1,6 @@
 package main
 
-import "bufio"
+import "errors"
 
 const (
 	OK = "+OK\r\n\n"
@@ -33,17 +33,14 @@ func (p *plugin) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommand(cmd []string, server interface{}, conn *bufio.Writer) {
+func (p *plugin) HandleCommand(cmd []string, server interface{}) ([]byte, error) {
 	switch len(cmd) {
 	default:
-		conn.Write([]byte("-Error wrong number of arguments for PING command\r\n\n"))
-		conn.Flush()
+		return nil, errors.New("wrong number of arguments for PING command")
 	case 1:
-		conn.Write([]byte("+PONG\r\n\n"))
-		conn.Flush()
+		return []byte("+PONG\r\n\n"), nil
 	case 2:
-		conn.Write([]byte("+" + cmd[1] + "\r\n\n"))
-		conn.Flush()
+		return []byte("+" + cmd[1] + "\r\n\n"), nil
 	}
 }
 
