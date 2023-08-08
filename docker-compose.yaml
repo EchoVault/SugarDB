@@ -17,6 +17,7 @@ services:
       - KEY=""
       - CERT=""
       - SERVERID=1
+      - INMEMORY=true
     ports:
       - "7480:7480"
       - "7946:7946"

@@ -17,4 +17,5 @@ CMD "./bin/server" \
   "--key" "${KEY}" \
   "--cert" "${CERT}" \
   "--http" "${HTTP}" \
-  "--tls" "${TLS}"
+  "--tls" "${TLS}" \
+  "--inMemory" "${INMEMORY}" \

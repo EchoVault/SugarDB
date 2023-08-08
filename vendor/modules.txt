@@ -1,6 +1,9 @@
 # github.com/armon/go-metrics v0.4.1
 ## explicit; go 1.12
 github.com/armon/go-metrics
+# github.com/boltdb/bolt v1.3.1
+## explicit
+github.com/boltdb/bolt
 # github.com/fatih/color v1.13.0
 ## explicit; go 1.13
 github.com/fatih/color
@@ -34,6 +37,9 @@ github.com/hashicorp/memberlist
 # github.com/hashicorp/raft v1.5.0
 ## explicit; go 1.16
 github.com/hashicorp/raft
+# github.com/hashicorp/raft-boltdb v0.0.0-20230125174641-2a8082862702
+## explicit; go 1.16
+github.com/hashicorp/raft-boltdb
 # github.com/mattn/go-colorable v0.1.12
 ## explicit; go 1.13
 github.com/mattn/go-colorable

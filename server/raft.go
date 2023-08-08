@@ -7,9 +7,11 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/raft"
+	raftboltdb "github.com/hashicorp/raft-boltdb"
 )
 
 func (server *Server) RaftInit() {
@@ -18,20 +20,43 @@ func (server *Server) RaftInit() {
 	raftConfig := raft.DefaultConfig()
 	raftConfig.LocalID = raft.ServerID(conf.ServerID)
 
-	raftLogStore := raft.NewInmemStore()
-	raftStableStore := raft.NewInmemStore()
-	raftSnapshotStore := raft.NewInmemSnapshotStore()
+	var logStore raft.LogStore
+	var stableStore raft.StableStore
+	var snapshotStore raft.SnapshotStore
 
-	raftAddr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.RaftBindPort)
+	if conf.InMemory {
+		logStore = raft.NewInmemStore()
+		stableStore = raft.NewInmemStore()
+		snapshotStore = raft.NewInmemSnapshotStore()
+	} else {
+		boltdb, err := raftboltdb.NewBoltStore(filepath.Join(conf.DataDir, "raft.db"))
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	raftAdvertiseAddr, err := net.ResolveTCPAddr("tcp", raftAddr)
+		logStore, err = raft.NewLogCache(512, boltdb)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		stableStore = raft.StableStore(boltdb)
+
+		snapshotStore, err = raft.NewFileSnapshotStore(conf.DataDir, 2, os.Stdout)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	addr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.RaftBindPort)
+
+	advertiseAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	raftTransport, err := raft.NewTCPTransport(
-		raftAddr,
-		raftAdvertiseAddr,
+		addr,
+		advertiseAddr,
 		10,
 		500*time.Millisecond,
 		os.Stdout,
@@ -45,9 +70,9 @@ func (server *Server) RaftInit() {
 	raftServer, err := raft.NewRaft(
 		raftConfig,
 		&raft.MockFSM{},
-		raftLogStore,
-		raftStableStore,
-		raftSnapshotStore,
+		logStore,
+		stableStore,
+		snapshotStore,
 		raftTransport,
 	)
 
@@ -64,7 +89,7 @@ func (server *Server) RaftInit() {
 				{
 					Suffrage: raft.Voter,
 					ID:       raft.ServerID(conf.ServerID),
-					Address:  raft.ServerAddress(raftAddr),
+					Address:  raft.ServerAddress(addr),
 				},
 			},
 		}).Error(); err != nil {
@@ -72,12 +97,6 @@ func (server *Server) RaftInit() {
 		}
 	}
 
-	go func() {
-		for {
-			fmt.Println("[IS_LEADER]: ", server.isRaftLeader())
-			time.Sleep(5 * time.Second)
-		}
-	}()
 }
 
 // Implement raft.FSM interface
@@ -85,34 +104,14 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 	return nil
 }
 
-// Implement raft.FSM interface
+// Implements raft.FSM interface
 func (server *Server) Snapshot() (raft.FSMSnapshot, error) {
 	return nil, nil
 }
 
-// Implement raft.FSM interface
+// Implements raft.FSM interface
 func (server *Server) Restore(snapshot io.ReadCloser) error {
 	return nil
-}
-
-// Implements raft.StableStore interface
-func (server *Server) Set(key []byte, value []byte) error {
-	return nil
-}
-
-// Implements raft.StableStore interface
-func (server *Server) Get(key []byte) ([]byte, error) {
-	return []byte{}, nil
-}
-
-// Implements raft.StableStore interface
-func (server *Server) SetUint64(key []byte, val uint64) error {
-	return nil
-}
-
-// Implements raft.StableStore interface
-func (server *Server) GetUint64(key []byte) (uint64, error) {
-	return 0, nil
 }
 
 func (server *Server) isRaftLeader() bool {

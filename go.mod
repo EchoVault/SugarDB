@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/hashicorp/memberlist v0.5.0
 	github.com/hashicorp/raft v1.5.0
+	github.com/hashicorp/raft-boltdb v0.0.0-20230125174641-2a8082862702
 	github.com/sethvargo/go-retry v0.2.4
 	github.com/tidwall/resp v0.1.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -12,6 +13,7 @@ require (
 
 require (
 	github.com/armon/go-metrics v0.4.1 // indirect
+	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
