@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ type Config struct {
 	Cert               string `json:"cert" yaml:"cert"`
 	Port               uint16 `json:"port" yaml:"port"`
 	HTTP               bool   `json:"http" yaml:"http"`
-	Plugins            string `json:"plugins" yaml:"plugins"`
+	PluginDir          string `json:"plugins" yaml:"plugins"`
 	ServerID           string `json:"serverId" yaml:"serverId"`
 	JoinAddr           string `json:"joinAddr" yaml:"joinAddr"`
 	BindAddr           string `json:"bindAddr" yaml:"bindAddr"`
@@ -31,6 +31,7 @@ func GetConfig() Config {
 	cert := flag.String("cert", "", "The signed certificate file path.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
 	http := flag.Bool("http", false, "Use HTTP protocol instead of raw TCP. Default is false")
+	pluginDir := flag.String("pluginDir", path.Join("", "usr", "local", "lib", "memstore"), "Directory where plugins are located.")
 	serverId := flag.String("serverId", "1", "Server ID in raft cluster. Leave empty for client.")
 	joinAddr := flag.String("joinAddr", "", "Address of cluster member in a cluster to you want to join.")
 	bindAddr := flag.String("bindAddr", "", "Address to bind the server to.")
@@ -51,6 +52,7 @@ func GetConfig() Config {
 		Key:                *key,
 		Cert:               *cert,
 		HTTP:               *http,
+		PluginDir:          *pluginDir,
 		Port:               uint16(*port),
 		ServerID:           *serverId,
 		JoinAddr:           *joinAddr,

@@ -34,7 +34,7 @@ type Data struct {
 }
 
 type Server struct {
-	config  Config
+	config  utils.Config
 	data    Data
 	plugins []Plugin
 
@@ -184,7 +184,7 @@ func (server *Server) LoadPlugins() {
 	conf := server.config
 
 	// Load plugins
-	pluginDirs, err := os.ReadDir(conf.Plugins)
+	pluginDirs, err := os.ReadDir(conf.PluginDir)
 
 	if err != nil {
 		log.Fatal(err)
@@ -194,7 +194,7 @@ func (server *Server) LoadPlugins() {
 		if file.IsDir() {
 			switch file.Name() {
 			case "commands":
-				files, err := os.ReadDir(path.Join(conf.Plugins, "commands"))
+				files, err := os.ReadDir(path.Join(conf.PluginDir, "commands"))
 
 				if err != nil {
 					log.Fatal(err)
@@ -205,7 +205,7 @@ func (server *Server) LoadPlugins() {
 						// Skip files that are not .so
 						continue
 					}
-					p, err := plugin.Open(path.Join(conf.Plugins, "commands", file.Name()))
+					p, err := plugin.Open(path.Join(conf.PluginDir, "commands", file.Name()))
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -265,7 +265,7 @@ func (server *Server) ShutDown() {
 }
 
 func main() {
-	config := GetConfig()
+	config := utils.GetConfig()
 
 	// Default BindAddr if it's not set
 	if config.BindAddr == "" {

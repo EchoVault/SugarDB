@@ -1,13 +1,16 @@
-FROM golang:1.20.0
+FROM alpine:3.14
 
-WORKDIR /app/memstore
+RUN mkdir -p /usr/local/lib/memstore
+RUN mkdir -p /opt/memstore/bin
+RUN mkdir -p /etc/ssl/certs/memstore
 
-COPY ["./server", "./vendor", "./go.mod", "./go.sum", "./"]
-COPY ["./openssl/server", "./ssl"]
+COPY ./server/bin/plugins /usr/local/lib/memstore
+COPY ./server/bin/server /opt/memstore/bin
+COPY ./openssl/server /etc/ssl/certs/memstore
 
-RUN go build -o bin/server ./*.go
+WORKDIR /opt/memstore/bin
 
-CMD "./bin/server" \ 
+CMD "./server" \ 
   "--bindAddr" "${BINDADDR}" \
   "--port" "${PORT}" \
   "--mlPort" "${MLPORT}" \
