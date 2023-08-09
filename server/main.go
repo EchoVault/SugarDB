@@ -183,11 +183,11 @@ func (server *Server) StartHTTP() {
 func (server *Server) LoadPlugins() {
 	conf := server.config
 
-	// Load plugins
+	// Load plugins /usr/local/lib/memstore
 	pluginDirs, err := os.ReadDir(conf.PluginDir)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err, pluginDirs)
 	}
 
 	for _, file := range pluginDirs {

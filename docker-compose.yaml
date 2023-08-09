@@ -17,7 +17,8 @@ services:
       - KEY=""
       - CERT=""
       - SERVERID=1
-      - INMEMORY=true
+      - PLUGINDIR=/usr/local/lib/memstore
+      - INMEMORY=-inMemory
     ports:
       - "7480:7480"
       - "7946:7946"
@@ -38,6 +39,7 @@ services:
       - CERT=""
       - SERVERID=2
       - JOINADDR=node1:7946
+      - PLUGINDIR=/usr/local/lib/memstore
     ports:
       - "7481:7480"
       - "7947:7946"
@@ -58,6 +60,7 @@ services:
       - CERT=""
       - SERVERID=3
       - JOINADDR=node1:7946
+      - PLUGINDIR=/usr/local/lib/memstore
     ports:
       - "7482:7480"
       - "7948:7946"
@@ -78,6 +81,7 @@ services:
       - CERT=""
       - SERVERID=4
       - JOINADDR=node1:7946
+      - PLUGINDIR=/usr/local/lib/memstore
     ports:
       - "7483:7480"
       - "7949:7946"
@@ -98,6 +102,7 @@ services:
       - CERT=""
       - SERVERID=5
       - JOINADDR=node1:7946
+      - PLUGINDIR=/usr/local/lib/memstore
     ports:
       - "7484:7480"
       - "7950:7946"

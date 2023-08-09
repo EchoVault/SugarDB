@@ -1,11 +1,11 @@
-FROM alpine:3.14
+FROM --platform=linux/amd64 alpine:3.14
 
 RUN mkdir -p /usr/local/lib/memstore
 RUN mkdir -p /opt/memstore/bin
 RUN mkdir -p /etc/ssl/certs/memstore
 
-COPY ./server/bin/linux/plugins /usr/local/lib/memstore
-COPY ./server/bin/linux/server /opt/memstore/bin
+COPY ./server/bin/plugins /usr/local/lib/memstore
+COPY ./server/bin/server /opt/memstore/bin
 COPY ./openssl/server /etc/ssl/certs/memstore
 
 WORKDIR /opt/memstore/bin
@@ -19,7 +19,7 @@ CMD "./server" \
   "--joinAddr" "${JOINADDR}" \
   "--key" "${KEY}" \
   "--cert" "${CERT}" \
-  "--http" "${HTTP}" \
-  "--tls" "${TLS}" \
-  "--inMemory" "${INMEMORY}" \
   "--pluginDir" "${PLUGINDIR}" \
+  "${HTTP}" \
+  "${TLS}" \
+  "${INMEMORY}" \
