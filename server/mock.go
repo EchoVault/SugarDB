@@ -1,29 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"io"
 	"sync"
 )
-
-type CustomWriter struct {
-	Buf bytes.Buffer
-}
-
-func (cw *CustomWriter) Write(p []byte) (int, error) {
-	count := 0
-
-	for _, b := range p {
-		cw.Buf.WriteByte(b)
-		count += 1
-	}
-
-	if count != len(p) {
-		return count, io.ErrShortWrite
-	}
-
-	return count, nil
-}
 
 type MockData struct {
 	Mu   sync.Mutex
