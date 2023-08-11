@@ -19,7 +19,7 @@ services:
       - SERVERID=1
       - PLUGINDIR=/usr/local/lib/memstore
       - INMEMORY=true
-      - TLS=true
+      - TLS=false
       - HTTP=false
     ports:
       - "7480:7480"
@@ -43,7 +43,7 @@ services:
       - JOINADDR=node1:7946
       - PLUGINDIR=/usr/local/lib/memstore
       - INMEMORY=true
-      - TLS=true
+      - TLS=false
       - HTTP=false
     ports:
       - "7481:7480"
@@ -67,7 +67,7 @@ services:
       - JOINADDR=node1:7946
       - PLUGINDIR=/usr/local/lib/memstore
       - INMEMORY=true
-      - TLS=true
+      - TLS=false
       - HTTP=false
     ports:
       - "7482:7480"
@@ -76,50 +76,50 @@ services:
     networks:
       - testnet
 
-  node4:
-    container_name: node4
-    build:
-      context: .
-      dockerfile: ./server/Dockerfile
-    environment:
-      - PORT=7480
-      - RAFTPORT=8000
-      - MLPORT=7946
-      - KEY=/etc/ssl/certs/memstore/server.key
-      - CERT=/etc/ssl/certs/memstore/server.crt
-      - SERVERID=4
-      - JOINADDR=node1:7946
-      - PLUGINDIR=/usr/local/lib/memstore
-      - INMEMORY=true
-      - TLS=true
-      - HTTP=false
-    ports:
-      - "7483:7480"
-      - "7949:7946"
-      - "8003:8000"
-    networks:
-      - testnet
+  # node4:
+  #   container_name: node4
+  #   build:
+  #     context: .
+  #     dockerfile: ./server/Dockerfile
+  #   environment:
+  #     - PORT=7480
+  #     - RAFTPORT=8000
+  #     - MLPORT=7946
+  #     - KEY=/etc/ssl/certs/memstore/server.key
+  #     - CERT=/etc/ssl/certs/memstore/server.crt
+  #     - SERVERID=4
+  #     - JOINADDR=node1:7946
+  #     - PLUGINDIR=/usr/local/lib/memstore
+  #     - INMEMORY=true
+  #     - TLS=false
+  #     - HTTP=false
+  #   ports:
+  #     - "7483:7480"
+  #     - "7949:7946"
+  #     - "8003:8000"
+  #   networks:
+  #     - testnet
 
-  node5:
-    container_name: node5
-    build:
-      context: .
-      dockerfile: ./server/Dockerfile
-    environment:
-      - PORT=7480
-      - RAFTPORT=8000
-      - MLPORT=7946
-      - KEY=/etc/ssl/certs/memstore/server.key
-      - CERT=/etc/ssl/certs/memstore/server.crt
-      - SERVERID=5
-      - JOINADDR=node1:7946
-      - PLUGINDIR=/usr/local/lib/memstore
-      - INMEMORY=true
-      - TLS=true
-      - HTTP=false
-    ports:
-      - "7484:7480"
-      - "7950:7946"
-      - "8004:8000"
-    networks:
-      - testnet
+  # node5:
+  #   container_name: node5
+  #   build:
+  #     context: .
+  #     dockerfile: ./server/Dockerfile
+  #   environment:
+  #     - PORT=7480
+  #     - RAFTPORT=8000
+  #     - MLPORT=7946
+  #     - KEY=/etc/ssl/certs/memstore/server.key
+  #     - CERT=/etc/ssl/certs/memstore/server.crt
+  #     - SERVERID=5
+  #     - JOINADDR=node1:7946
+  #     - PLUGINDIR=/usr/local/lib/memstore
+  #     - INMEMORY=true
+  #     - TLS=false
+  #     - HTTP=false
+  #   ports:
+  #     - "7484:7480"
+  #     - "7950:7946"
+  #     - "8004:8000"
+  #   networks:
+  #     - testnet

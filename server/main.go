@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -15,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -86,27 +88,43 @@ func (server *Server) handleConnection(conn net.Conn) {
 			connRW.Flush()
 			continue
 		} else {
-			// Look for plugin that handles this command and trigger it
-			handled := false
+			applyRequest := utils.ApplyRequest{CMD: cmd}
+			b, err := json.Marshal(applyRequest)
 
-			for _, plugin := range server.plugins {
-				if utils.Contains[string](plugin.Commands(), strings.ToLower(cmd[0])) {
-					res, err := plugin.HandleCommand(cmd, server)
-
-					if err != nil {
-						connRW.Write([]byte(fmt.Sprintf("-Error %s\r\n\n", err.Error())))
-					} else {
-						connRW.Write(res)
-					}
-
-					connRW.Flush()
-
-					handled = true
-				}
+			if err != nil {
+				connRW.Write([]byte("-Error could not parse request\r\n\n"))
+				connRW.Flush()
+				continue
 			}
 
-			if !handled {
-				connRW.Write([]byte(fmt.Sprintf("-Error %s command not supported\r\n\n", strings.ToUpper(cmd[0]))))
+			if server.isRaftLeader() {
+				applyFuture := server.raft.Apply(b, 500*time.Millisecond)
+
+				if err := applyFuture.Error(); err != nil {
+					connRW.WriteString(fmt.Sprintf("-Error %s\r\n\n", err.Error()))
+					connRW.Flush()
+					continue
+				}
+
+				r, ok := applyFuture.Response().(utils.ApplyResponse)
+
+				if !ok {
+					connRW.WriteString(fmt.Sprintf("-Error unprocessable entity %v\r\n\n", r))
+					connRW.Flush()
+					continue
+				}
+
+				if r.Error != nil {
+					connRW.WriteString(fmt.Sprintf("-Error %s\r\n\n", r.Error.Error()))
+					connRW.Flush()
+					continue
+				}
+
+				connRW.Write(r.Response)
+				connRW.Flush()
+			} else {
+				// Not Raft leader, forward message to leader and wait for a response
+				connRW.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\n"))
 				connRW.Flush()
 			}
 		}

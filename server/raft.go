@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -8,10 +9,12 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
+	"github.com/kelvinmwinuka/memstore/server/utils"
 )
 
 func (server *Server) RaftInit() {
@@ -69,7 +72,7 @@ func (server *Server) RaftInit() {
 	// Start raft server
 	raftServer, err := raft.NewRaft(
 		raftConfig,
-		&raft.MockFSM{},
+		raft.FSM(server),
 		logStore,
 		stableStore,
 		snapshotStore,
@@ -101,16 +104,56 @@ func (server *Server) RaftInit() {
 
 // Implement raft.FSM interface
 func (server *Server) Apply(log *raft.Log) interface{} {
+	switch log.Type {
+	case raft.LogCommand:
+		var request utils.ApplyRequest
+
+		err := json.Unmarshal(log.Data, &request)
+		if err != nil {
+			return utils.ApplyResponse{
+				Error:    err,
+				Response: nil,
+			}
+		}
+
+		// Look for plugin that handles this command and trigger it
+		for _, plugin := range server.plugins {
+			if utils.Contains[string](plugin.Commands(), strings.ToLower(request.CMD[0])) {
+				res, err := plugin.HandleCommand(request.CMD, server)
+
+				if err != nil {
+					return utils.ApplyResponse{
+						Error:    err,
+						Response: nil,
+					}
+				}
+
+				return utils.ApplyResponse{
+					Error:    nil,
+					Response: res,
+				}
+			}
+		}
+
+		return utils.ApplyResponse{
+			Error:    fmt.Errorf("%s command not supported", strings.ToUpper(request.CMD[0])),
+			Response: nil,
+		}
+	}
+
+	os.Stderr.Write([]byte("not raft log command\n"))
 	return nil
 }
 
 // Implements raft.FSM interface
 func (server *Server) Snapshot() (raft.FSMSnapshot, error) {
+	fmt.Println("SNAPSHOT METHOD CALLED")
 	return nil, nil
 }
 
 // Implements raft.FSM interface
 func (server *Server) Restore(snapshot io.ReadCloser) error {
+	fmt.Println("RESTORE METHOD CALLED")
 	return nil
 }
 
