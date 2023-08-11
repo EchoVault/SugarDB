@@ -14,11 +14,13 @@ services:
       - PORT=7480
       - RAFTPORT=8000
       - MLPORT=7946
-      - KEY=""
-      - CERT=""
+      - KEY=/etc/ssl/certs/memstore/server.key
+      - CERT=/etc/ssl/certs/memstore/server.crt
       - SERVERID=1
       - PLUGINDIR=/usr/local/lib/memstore
-      - INMEMORY=-inMemory
+      - INMEMORY=true
+      - TLS=true
+      - HTTP=false
     ports:
       - "7480:7480"
       - "7946:7946"
@@ -35,11 +37,14 @@ services:
       - PORT=7480
       - RAFTPORT=8000
       - MLPORT=7946
-      - KEY=""
-      - CERT=""
+      - KEY=/etc/ssl/certs/memstore/server.key
+      - CERT=/etc/ssl/certs/memstore/server.crt
       - SERVERID=2
       - JOINADDR=node1:7946
       - PLUGINDIR=/usr/local/lib/memstore
+      - INMEMORY=true
+      - TLS=true
+      - HTTP=false
     ports:
       - "7481:7480"
       - "7947:7946"
@@ -56,11 +61,14 @@ services:
       - PORT=7480
       - RAFTPORT=8000
       - MLPORT=7946
-      - KEY=""
-      - CERT=""
+      - KEY=/etc/ssl/certs/memstore/server.key
+      - CERT=/etc/ssl/certs/memstore/server.crt
       - SERVERID=3
       - JOINADDR=node1:7946
       - PLUGINDIR=/usr/local/lib/memstore
+      - INMEMORY=true
+      - TLS=true
+      - HTTP=false
     ports:
       - "7482:7480"
       - "7948:7946"
@@ -77,11 +85,14 @@ services:
       - PORT=7480
       - RAFTPORT=8000
       - MLPORT=7946
-      - KEY=""
-      - CERT=""
+      - KEY=/etc/ssl/certs/memstore/server.key
+      - CERT=/etc/ssl/certs/memstore/server.crt
       - SERVERID=4
       - JOINADDR=node1:7946
       - PLUGINDIR=/usr/local/lib/memstore
+      - INMEMORY=true
+      - TLS=true
+      - HTTP=false
     ports:
       - "7483:7480"
       - "7949:7946"
@@ -98,11 +109,14 @@ services:
       - PORT=7480
       - RAFTPORT=8000
       - MLPORT=7946
-      - KEY=""
-      - CERT=""
+      - KEY=/etc/ssl/certs/memstore/server.key
+      - CERT=/etc/ssl/certs/memstore/server.crt
       - SERVERID=5
       - JOINADDR=node1:7946
       - PLUGINDIR=/usr/local/lib/memstore
+      - INMEMORY=true
+      - TLS=true
+      - HTTP=false
     ports:
       - "7484:7480"
       - "7950:7946"

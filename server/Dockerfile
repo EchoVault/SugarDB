@@ -20,6 +20,7 @@ CMD "./server" \
   "--key" "${KEY}" \
   "--cert" "${CERT}" \
   "--pluginDir" "${PLUGINDIR}" \
-  "${HTTP}" \
-  "${TLS}" \
-  "${INMEMORY}" \
+  "--dataDir" "${DATADIR}" \
+  "--http=${HTTP}" \
+  "--tls=${TLS}" \
+  "--inMemory=${INMEMORY}" \
