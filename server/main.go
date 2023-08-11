@@ -242,7 +242,7 @@ func (server *Server) Start() {
 
 	conf := server.config
 
-	// server.LoadPlugins()
+	server.LoadPlugins()
 
 	if conf.TLS && (len(conf.Key) <= 0 || len(conf.Cert) <= 0) {
 		fmt.Println("Must provide key and certificate file paths for TLS mode.")
