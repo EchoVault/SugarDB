@@ -161,6 +161,19 @@ func (server *Server) isRaftLeader() bool {
 	return server.raft.State() == raft.Leader
 }
 
+func (server *Server) isRaftFollower() bool {
+	return server.raft.State() == raft.Follower
+}
+
+func (server *Server) hasJoinedCluster() bool {
+	isFollower := server.isRaftFollower()
+
+	leaderAddr, leaderID := server.raft.LeaderWithID()
+	hasLeader := leaderAddr != "" && leaderID != ""
+
+	return isFollower && hasLeader
+}
+
 func (server *Server) addVoter(
 	id raft.ServerID,
 	address raft.ServerAddress,
@@ -175,21 +188,9 @@ func (server *Server) addVoter(
 		return errors.New("could not retrieve raft config")
 	}
 
-	// After successfully adding the voter node
-	// or if voter node has already been added,
-	// broadcast this success message
-	msg := BroadcastMessage{
-		Action: "RaftJoinSuccess",
-		NodeMeta: NodeMeta{
-			ServerID: id,
-			RaftAddr: address,
-		},
-	}
-
 	for _, s := range raftConfig.Configuration().Servers {
 		// Check if a server already exists with the current attribtues
 		if s.ID == id && s.Address == address {
-			server.broadcastQueue.QueueBroadcast(&msg)
 			return fmt.Errorf("server with id %s and address %s already exists", id, address)
 		}
 	}
@@ -199,7 +200,6 @@ func (server *Server) addVoter(
 		return err
 	}
 
-	server.broadcastQueue.QueueBroadcast(&msg)
 	return nil
 }
 

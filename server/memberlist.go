@@ -99,23 +99,21 @@ func (server *Server) MemberListInit() {
 
 func (server *Server) broadcastRaftAddress() {
 	ticker := time.NewTicker(5 * time.Second)
+
 	for {
-		select {
-		case <-ticker.C:
-			msg := BroadcastMessage{
-				Action: "RaftJoin",
-				NodeMeta: NodeMeta{
-					ServerID: raft.ServerID(server.config.ServerID),
-					RaftAddr: raft.ServerAddress(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.RaftBindPort)),
-				},
-			}
-			server.broadcastQueue.QueueBroadcast(&msg)
-		case msg := <-*server.raftJoinSuccessCh:
-			if msg.NodeMeta.ServerID == raft.ServerID(server.config.ServerID) {
-				fmt.Printf("Server %s succesfully joined raft cluster.\n", msg.ServerID)
-				return
-			}
+		msg := BroadcastMessage{
+			Action: "RaftJoin",
+			NodeMeta: NodeMeta{
+				ServerID: raft.ServerID(server.config.ServerID),
+				RaftAddr: raft.ServerAddress(fmt.Sprintf("%s:%d", server.config.BindAddr, server.config.RaftBindPort)),
+			},
 		}
+
+		if !server.hasJoinedCluster() {
+			server.broadcastQueue.QueueBroadcast(&msg)
+		}
+
+		<-ticker.C
 	}
 }
 
@@ -154,8 +152,6 @@ func (server *Server) NotifyMsg(msgBytes []byte) {
 		); err != nil {
 			fmt.Println(err)
 		}
-	case "RaftJoinSuccess":
-		*server.raftJoinSuccessCh <- msg
 	case "MutateData":
 		// Mutate the value at a given key
 	case "FetchData":
