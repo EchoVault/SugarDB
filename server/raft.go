@@ -8,13 +8,13 @@ import (
 	"log"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
-	"github.com/kelvinmwinuka/memstore/server/snapshot"
 	"github.com/kelvinmwinuka/memstore/server/utils"
 )
 
@@ -33,7 +33,7 @@ func (server *Server) RaftInit() {
 		stableStore = raft.NewInmemStore()
 		snapshotStore = raft.NewInmemSnapshotStore()
 	} else {
-		boltdb, err := raftboltdb.NewBoltStore(filepath.Join(conf.DataDir, "raft.db"))
+		boltdb, err := raftboltdb.NewBoltStore(filepath.Join(conf.DataDir, "logs.db"))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -45,7 +45,10 @@ func (server *Server) RaftInit() {
 
 		stableStore = raft.StableStore(boltdb)
 
-		snapshotStore = &snapshot.SQLiteSnapshotStore{}
+		snapshotStore, err = raft.NewFileSnapshotStore(path.Join(conf.DataDir, "snapshots"), 2, os.Stdout)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	addr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.RaftBindPort)
