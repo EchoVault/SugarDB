@@ -7,17 +7,17 @@
 - [x] String support
 - [x] Integer support
 - [x] Float support
-- [ ] List support
+- [x] List support
 - [ ] Set support
 - [ ] Sorted set support
 - [ ] Hash support
 - [ ] Stream support
 - [ ] Pub/Sub support
-- [ ] RediSearch support
-- [ ] RedisJSON support
-- [ ] RedisGraph support
+- [ ] Search support
+- [ ] JSON support
+- [ ] Graph support
 - [ ] Geospatial support
 - [ ] Bitmap support
 - [ ] Bitfield support
 - [ ] Support for multiple root CAs on client side
-- [ ] Clustering support
+- [ ] Replication Cluster support
