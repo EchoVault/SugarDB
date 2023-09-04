@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
+	"github.com/kelvinmwinuka/memstore/server/snapshot"
 	"github.com/kelvinmwinuka/memstore/server/utils"
 )
 
@@ -44,10 +45,7 @@ func (server *Server) RaftInit() {
 
 		stableStore = raft.StableStore(boltdb)
 
-		snapshotStore, err = raft.NewFileSnapshotStore(conf.DataDir, 2, os.Stdout)
-		if err != nil {
-			log.Fatal(err)
-		}
+		snapshotStore = &snapshot.SQLiteSnapshotStore{}
 	}
 
 	addr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.RaftBindPort)
