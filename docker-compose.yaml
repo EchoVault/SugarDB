@@ -18,13 +18,16 @@ services:
       - CERT=/etc/ssl/certs/memstore/server.crt
       - SERVERID=1
       - PLUGINDIR=/usr/local/lib/memstore
-      - INMEMORY=true
+      - DATADIR=/var/lib/memstore
+      - INMEMORY=false
       - TLS=false
       - HTTP=false
     ports:
       - "7480:7480"
       - "7946:7946"
       - "8000:8000"
+    volumes:
+      - ./volumes/node1:/var/lib/memstore
     networks:
       - testnet
 
@@ -42,13 +45,16 @@ services:
       - SERVERID=2
       - JOINADDR=node1:7946
       - PLUGINDIR=/usr/local/lib/memstore
-      - INMEMORY=true
+      - DATADIR=/var/lib/memstore
+      - INMEMORY=false
       - TLS=false
       - HTTP=false
     ports:
       - "7481:7480"
       - "7947:7946"
       - "8001:8000"
+    volumes:
+      - ./volumes/node2:/var/lib/memstore
     networks:
       - testnet
 
@@ -66,13 +72,16 @@ services:
       - SERVERID=3
       - JOINADDR=node1:7946
       - PLUGINDIR=/usr/local/lib/memstore
-      - INMEMORY=true
+      - DATADIR=/var/lib/memstore
+      - INMEMORY=false
       - TLS=false
       - HTTP=false
     ports:
       - "7482:7480"
       - "7948:7946"
       - "8002:8000"
+    volumes:
+      - ./volumes/node3:/var/lib/memstore
     networks:
       - testnet
 
@@ -90,13 +99,16 @@ services:
       - SERVERID=4
       - JOINADDR=node1:7946
       - PLUGINDIR=/usr/local/lib/memstore
-      - INMEMORY=true
+      - DATADIR=/var/lib/memstore
+      - INMEMORY=false
       - TLS=false
       - HTTP=false
     ports:
       - "7483:7480"
       - "7949:7946"
       - "8003:8000"
+    volumes:
+      - ./volumes/node4:/var/lib/memstore
     networks:
       - testnet
 
@@ -114,12 +126,15 @@ services:
       - SERVERID=5
       - JOINADDR=node1:7946
       - PLUGINDIR=/usr/local/lib/memstore
-      - INMEMORY=true
+      - DATADIR=/var/lib/memstore
+      - INMEMORY=false
       - TLS=false
       - HTTP=false
     ports:
       - "7484:7480"
       - "7950:7946"
       - "8004:8000"
+    volumes:
+      - ./volumes/node5:/var/lib/memstore
     networks:
       - testnet

@@ -2,3 +2,4 @@ bin
 openssl
 config*.json
 config*.y*ml
+volumes

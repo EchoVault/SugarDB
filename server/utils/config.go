@@ -38,7 +38,7 @@ func GetConfig() Config {
 	raftBindPort := flag.Int("raftPort", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	mlBindPort := flag.Int("mlPort", 7946, "Port to use for memberlist communication.")
 	inMemory := flag.Bool("inMemory", false, "Wether to use memory or persisten storage for raft logs and snapshots.")
-	dataDir := flag.String("dataDir", "", "Directory to store raft snapshots and logs.")
+	dataDir := flag.String("dataDir", "/var/lib/memstore", "Directory to store raft snapshots and logs.")
 	config := flag.String(
 		"config",
 		"",
