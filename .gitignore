@@ -2,4 +2,6 @@ bin
 openssl
 config*.json
 config*.y*ml
+docker-compose.y*ml
+Dockerfile
 volumes

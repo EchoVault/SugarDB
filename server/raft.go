@@ -23,6 +23,8 @@ func (server *Server) RaftInit() {
 
 	raftConfig := raft.DefaultConfig()
 	raftConfig.LocalID = raft.ServerID(conf.ServerID)
+	raftConfig.SnapshotInterval = 5 * time.Second
+	raftConfig.SnapshotThreshold = 3
 
 	var logStore raft.LogStore
 	var stableStore raft.StableStore
@@ -149,7 +151,7 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 // Implements raft.FSM interface
 func (server *Server) Snapshot() (raft.FSMSnapshot, error) {
 	fmt.Println("SNAPSHOT METHOD CALLED")
-	return nil, nil
+	return server, nil
 }
 
 // Implements raft.FSM interface
@@ -157,6 +159,16 @@ func (server *Server) Restore(snapshot io.ReadCloser) error {
 	fmt.Println("RESTORE METHOD CALLED")
 	return nil
 }
+
+// Implements FSMSnapshot interface
+func (server *Server) Persist(sink raft.SnapshotSink) error {
+	fmt.Println(sink)
+	fmt.Println("Persisting state to disk...")
+	return nil
+}
+
+// Implements FSMSnapshot interface
+func (server *Server) Release() {}
 
 func (server *Server) isRaftLeader() bool {
 	return server.raft.State() == raft.Leader
