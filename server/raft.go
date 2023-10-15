@@ -150,7 +150,6 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 
 // Implements raft.FSM interface
 func (server *Server) Snapshot() (raft.FSMSnapshot, error) {
-	fmt.Println("SNAPSHOT METHOD CALLED")
 	return server, nil
 }
 
@@ -162,8 +161,21 @@ func (server *Server) Restore(snapshot io.ReadCloser) error {
 
 // Implements FSMSnapshot interface
 func (server *Server) Persist(sink raft.SnapshotSink) error {
-	fmt.Println(sink)
-	fmt.Println("Persisting state to disk...")
+	server.Lock()
+	defer server.Unlock()
+
+	o, err := json.Marshal(server.data.data)
+
+	if err != nil {
+		sink.Cancel()
+		return err
+	}
+
+	if _, err = sink.Write(o); err != nil {
+		sink.Cancel()
+		return err
+	}
+
 	return nil
 }
 
