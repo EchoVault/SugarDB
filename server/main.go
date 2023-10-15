@@ -122,7 +122,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 				connRW.Write(r.Response)
 				connRW.Flush()
 			} else {
-				// Not Raft leader, forward message to leader and wait for a response
+				// TODO: Forward message to leader and wait for a response
 				connRW.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\n"))
 				connRW.Flush()
 			}
