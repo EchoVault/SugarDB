@@ -109,10 +109,11 @@ func (server *Server) broadcastRaftAddress() {
 			},
 		}
 
-		// TODO: If the server has joined the raft cluster, break the loop
-		if !server.hasJoinedCluster() {
-			server.broadcastQueue.QueueBroadcast(&msg)
+		if server.hasJoinedCluster() {
+			return
 		}
+
+		server.broadcastQueue.QueueBroadcast(&msg)
 
 		<-ticker.C
 	}
