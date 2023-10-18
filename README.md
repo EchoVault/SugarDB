@@ -20,4 +20,4 @@
 - [ ] Bitmap support
 - [ ] Bitfield support
 - [ ] Support for multiple root CAs on client side
-- [ ] Replication Cluster support
+- [x] Replication Cluster support
