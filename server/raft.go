@@ -23,8 +23,7 @@ func (server *Server) RaftInit() {
 
 	raftConfig := raft.DefaultConfig()
 	raftConfig.LocalID = raft.ServerID(conf.ServerID)
-	raftConfig.SnapshotInterval = 5 * time.Second
-	raftConfig.SnapshotThreshold = 3
+	raftConfig.SnapshotThreshold = 5
 
 	var logStore raft.LogStore
 	var stableStore raft.StableStore
@@ -155,7 +154,23 @@ func (server *Server) Snapshot() (raft.FSMSnapshot, error) {
 
 // Implements raft.FSM interface
 func (server *Server) Restore(snapshot io.ReadCloser) error {
-	fmt.Println("RESTORE METHOD CALLED")
+	server.Lock()
+	defer server.Unlock()
+
+	b, err := io.ReadAll(snapshot)
+
+	if err != nil {
+		return err
+	}
+
+	data := make(map[string]interface{})
+
+	if err := json.Unmarshal(b, &data); err != nil {
+		return err
+	}
+
+	server.data.data = data
+
 	return nil
 }
 
