@@ -12,7 +12,6 @@
 - [ ] Sorted set support
 - [ ] Hash support
 - [ ] Stream support
-- [ ] Pub/Sub support
 - [ ] Search support
 - [ ] JSON support
 - [ ] Graph support
@@ -21,3 +20,6 @@
 - [ ] Bitfield support
 - [ ] Support for multiple root CAs on client side
 - [x] Replication Cluster support
+- [ ] Pub/Sub support
+- [ ] Append-Only File & reload from AOF
+- [ ] Periodic snapshots & reload state from snapshot
