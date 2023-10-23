@@ -46,6 +46,8 @@ type Server struct {
 	broadcastQueue *memberlist.TransmitLimitedQueue
 	numOfNodes     int
 
+	pubSub *PubSub
+
 	cancelCh *chan (os.Signal)
 }
 
@@ -87,6 +89,45 @@ func (server *Server) handleConnection(conn net.Conn) {
 			connRW.Flush()
 			continue
 		} else {
+			// Handle subscribe command
+			if strings.EqualFold(cmd[0], "subscribe") {
+				switch len(cmd) {
+				case 1:
+					server.pubSub.Subscribe(&conn, nil, nil)
+				case 2:
+					server.pubSub.Subscribe(&conn, cmd[1], nil)
+				case 3:
+					server.pubSub.Subscribe(&conn, cmd[1], cmd[2])
+				default:
+					connRW.Write([]byte("-Error wrong number of arguments\r\n\n"))
+					connRW.Flush()
+					continue
+				}
+
+				connRW.Write([]byte(":1\r\n\n"))
+				connRW.Flush()
+				continue
+			}
+
+			// Handle unsubscribe command
+			// if strings.EqualFold(cmd[0], "unsubscribe") {
+			// 	switch len(cmd) {
+			// 	case 1:
+			// 		server.pubSub.Unsubscribe(&conn, nil)
+			// 	case 2:
+			// 		server.pubSub.Unsubscribe(&conn, cmd[1])
+			// 	default:
+			// 		connRW.Write([]byte("-Error wrong number of arguments\r\n\n"))
+			// 		connRW.Flush()
+			// 		continue
+			// 	}
+
+			// 	connRW.Write([]byte(":1\r\n\n"))
+			// 	connRW.Flush()
+			// 	continue
+			// }
+
+			// Handle other commands that need to be synced across the cluster
 			applyRequest := utils.ApplyRequest{CMD: cmd}
 			b, err := json.Marshal(applyRequest)
 
@@ -301,6 +342,8 @@ func main() {
 
 		broadcastQueue: new(memberlist.TransmitLimitedQueue),
 		numOfNodes:     0,
+
+		pubSub: NewPubSub(),
 
 		cancelCh: &cancelCh,
 	}

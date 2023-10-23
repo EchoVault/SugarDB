@@ -13,7 +13,7 @@ import (
 // subscriber will receive the next message.
 type ConsumerGroup struct {
 	name        string
-	subscribers []*net.TCPConn
+	subscribers []*net.Conn
 	messageChan *chan interface{}
 }
 
@@ -22,24 +22,28 @@ func NewConsumerGroup(name string) *ConsumerGroup {
 
 	return &ConsumerGroup{
 		name:        name,
-		subscribers: []*net.TCPConn{},
+		subscribers: []*net.Conn{},
 		messageChan: &messageChan,
 	}
 }
 
 func (cg *ConsumerGroup) Start() {
-	for {
-		message := <-*cg.messageChan
-		fmt.Println("MESSAGE FROM CONSUMER GROUP: ", message)
+	go func() {
+		for {
+			message := <-*cg.messageChan
+			fmt.Println("MESSAGE FROM CONSUMER GROUP: ", message)
+		}
+	}()
+}
+
+func (cg *ConsumerGroup) Subscribe(conn *net.Conn) {
+	if !utils.Contains[*net.Conn](cg.subscribers, conn) {
+		cg.subscribers = append(cg.subscribers, conn)
 	}
 }
 
-func (cg *ConsumerGroup) Subscribe(conn *net.TCPConn) {
-	cg.subscribers = append(cg.subscribers, conn)
-}
-
-func (cg *ConsumerGroup) Unsubscribe(conn *net.TCPConn) {
-	cg.subscribers = utils.Filter[*net.TCPConn](cg.subscribers, func(c *net.TCPConn) bool {
+func (cg *ConsumerGroup) Unsubscribe(conn *net.Conn) {
+	cg.subscribers = utils.Filter[*net.Conn](cg.subscribers, func(c *net.Conn) bool {
 		return c != conn
 	})
 }
@@ -53,7 +57,7 @@ func (cg *ConsumerGroup) Publish(message interface{}) {
 // Only one subscriber of a channel's consumer group will receive a message posted to the channel.
 type Channel struct {
 	name           string
-	subscribers    []*net.TCPConn
+	subscribers    []*net.Conn
 	consumerGroups []*ConsumerGroup
 	messageChan    *chan interface{}
 }
@@ -63,21 +67,23 @@ func NewChannel(name string) *Channel {
 
 	return &Channel{
 		name:           name,
-		subscribers:    []*net.TCPConn{},
+		subscribers:    []*net.Conn{},
 		consumerGroups: []*ConsumerGroup{},
 		messageChan:    &messageChan,
 	}
 }
 
 func (ch *Channel) Start() {
-	for {
-		message := <-*ch.messageChan
-		fmt.Println("MESSAGE FROM CHANNEL: ", message)
-	}
+	go func() {
+		for {
+			message := <-*ch.messageChan
+			fmt.Println("MESSAGE FROM CHANNEL: ", message)
+		}
+	}()
 }
 
-func (ch *Channel) Subscribe(conn *net.TCPConn, consumerGroupName interface{}) {
-	if consumerGroupName == nil {
+func (ch *Channel) Subscribe(conn *net.Conn, consumerGroupName interface{}) {
+	if consumerGroupName == nil && !utils.Contains[*net.Conn](ch.subscribers, conn) {
 		ch.subscribers = append(ch.subscribers, conn)
 		return
 	}
@@ -90,6 +96,7 @@ func (ch *Channel) Subscribe(conn *net.TCPConn, consumerGroupName interface{}) {
 		newGroup := NewConsumerGroup(consumerGroupName.(string))
 		newGroup.Start()
 		newGroup.Subscribe(conn)
+		ch.consumerGroups = append(ch.consumerGroups, newGroup)
 		return
 	}
 
@@ -98,8 +105,8 @@ func (ch *Channel) Subscribe(conn *net.TCPConn, consumerGroupName interface{}) {
 	}
 }
 
-func (ch *Channel) Unsubscribe(conn *net.TCPConn) {
-	ch.subscribers = utils.Filter[*net.TCPConn](ch.subscribers, func(c *net.TCPConn) bool {
+func (ch *Channel) Unsubscribe(conn *net.Conn) {
+	ch.subscribers = utils.Filter[*net.Conn](ch.subscribers, func(c *net.Conn) bool {
 		return c != conn
 	})
 
@@ -117,11 +124,18 @@ type PubSub struct {
 	channels []*Channel
 }
 
-func (ps *PubSub) Subscribe(conn *net.TCPConn, channelName interface{}, consumerGroup interface{}) {
+func NewPubSub() *PubSub {
+	return &PubSub{
+		channels: []*Channel{},
+	}
+}
+
+func (ps *PubSub) Subscribe(conn *net.Conn, channelName interface{}, consumerGroup interface{}) {
 	// If no channel name is given, subscribe to all channels
 	// Check if channel with given name exists
 	// If it does, subscribe the connection to the channel
 	// If it does not, create the channel and subscribe to it
+
 	if channelName == nil {
 		for _, channel := range ps.channels {
 			channel.Subscribe(conn, nil)
@@ -146,7 +160,7 @@ func (ps *PubSub) Subscribe(conn *net.TCPConn, channelName interface{}, consumer
 	}
 }
 
-func (ps *PubSub) Unsubscribe(conn *net.TCPConn, channelName interface{}) {
+func (ps *PubSub) Unsubscribe(conn *net.Conn, channelName interface{}) {
 	if channelName == nil {
 		for _, channel := range ps.channels {
 			channel.Unsubscribe(conn)
