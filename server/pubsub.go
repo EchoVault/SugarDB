@@ -2,7 +2,6 @@ package main
 
 import (
 	"net"
-	"sync"
 )
 
 // Consumer group allows multiple subscribers to share the consumption load of a channel.
@@ -49,7 +48,6 @@ func (ch *Channel) Publish(message interface{}) error {
 
 // Pub/Sub container
 type PubSub struct {
-	mut      sync.Mutex
 	channels []*Channel
 }
 
