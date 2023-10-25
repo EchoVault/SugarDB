@@ -57,16 +57,16 @@ func (l *LinkedList[T]) Add(value T) {
 }
 
 func (l *LinkedList[T]) Remove(value T) {
+	n := l.head
+
+	if n == nil || (n.next == nil && n.value != value) {
+		return
+	} else if n.next == nil && n.value == value {
+		l.head = nil
+		return
+	}
+
 	if !l.circular {
-		n := l.head
-
-		if n == nil || (n.next == nil && n.value != value) {
-			return
-		} else if n.next == nil && n.value == value {
-			l.head = nil
-			return
-		}
-
 		for {
 			if n == l.head {
 				return
@@ -81,10 +81,42 @@ func (l *LinkedList[T]) Remove(value T) {
 			n = n.next
 		}
 	}
+
+	// Linked list is circular
+	n = n.next
+	for {
+		if n == l.head {
+			return
+		}
+		if n.next.value == value {
+			n.next = n.next.next
+			if n.next == l.head {
+				l.tail = n
+			}
+		}
+		n = n.next
+	}
+
 }
 
-func (l *LinkedList[T]) Contains(value T) {
+func (l *LinkedList[T]) Contains(value T) bool {
 	// Check if a node with given value is contained within the linked list
+	n := l.head
+
+	if n == nil || (n.next == nil && n.value != value) {
+		return false
+	}
+
+	n = n.next
+	for {
+		if n == nil || n == l.head {
+			return false
+		}
+		if n.value == value {
+			return true
+		}
+		n = n.next
+	}
 }
 
 func (l *LinkedList[T]) Iter() *chan *Node[T] {
