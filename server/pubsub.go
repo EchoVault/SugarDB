@@ -21,7 +21,9 @@ type ConsumerGroup struct {
 
 func NewConsumerGroup(name string) *ConsumerGroup {
 	messageChan := make(chan interface{})
-	subscribers := utils.NewLinkedList[*net.Conn](true)
+	subscribers := utils.NewLinkedList[*net.Conn](&utils.LinkedListOptions{
+		Cicular: true,
+	})
 	subIterator := subscribers.Iter()
 
 	return &ConsumerGroup{

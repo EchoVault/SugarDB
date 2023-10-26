@@ -18,17 +18,21 @@ func (n *Node[T]) GetValue() T {
 	return n.value
 }
 
+type LinkedListOptions struct {
+	Cicular bool
+}
+
 type LinkedList[T comparable] struct {
 	head     *Node[T]
 	tail     *Node[T]
 	circular bool
 }
 
-func NewLinkedList[T comparable](circular bool) *LinkedList[T] {
+func NewLinkedList[T comparable](options *LinkedListOptions) *LinkedList[T] {
 	return &LinkedList[T]{
 		head:     nil,
 		tail:     nil,
-		circular: circular,
+		circular: options.Cicular,
 	}
 }
 
