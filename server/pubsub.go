@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/kelvinmwinuka/memstore/server/utils"
 )
@@ -14,16 +15,19 @@ import (
 type ConsumerGroup struct {
 	name        string
 	subscribers *utils.LinkedList[*net.Conn]
+	subIterator *chan *utils.Node[*net.Conn]
 	messageChan *chan interface{}
 }
 
 func NewConsumerGroup(name string) *ConsumerGroup {
 	messageChan := make(chan interface{})
 	subscribers := utils.NewLinkedList[*net.Conn](true)
+	subIterator := subscribers.Iter()
 
 	return &ConsumerGroup{
 		name:        name,
 		subscribers: subscribers,
+		subIterator: subIterator,
 		messageChan: &messageChan,
 	}
 }
@@ -33,6 +37,15 @@ func (cg *ConsumerGroup) Start() {
 		for {
 			message := <-*cg.messageChan
 			fmt.Println("MESSAGE FROM CONSUMER GROUP: ", message)
+		}
+	}()
+
+	// TODO: For debug only
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		for {
+			cg.subscribers.Print()
+			<-ticker.C
 		}
 	}()
 }

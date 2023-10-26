@@ -126,6 +126,10 @@ func (l *LinkedList[T]) Remove(value T) {
 }
 
 func (l *LinkedList[T]) Contains(value T) bool {
+	if l.head == nil {
+		return false
+	}
+
 	if l.head.value == value {
 		return true
 	}
