@@ -32,11 +32,17 @@ func NewConsumerGroup(name string) *ConsumerGroup {
 	}
 }
 
+func (cg *ConsumerGroup) SendMessage(message interface{}) {
+	next := <-*cg.subIterator
+	conn := next.GetValue()
+	fmt.Println("NEXT CONNECTION: ", conn)
+}
+
 func (cg *ConsumerGroup) Start() {
 	go func() {
 		for {
 			message := <-*cg.messageChan
-			fmt.Println("MESSAGE FROM CONSUMER GROUP: ", message)
+			cg.SendMessage(message)
 		}
 	}()
 
@@ -105,15 +111,17 @@ func (ch *Channel) Subscribe(conn *net.Conn, consumerGroupName interface{}) {
 	})
 
 	if len(groups) == 0 {
-		newGroup := NewConsumerGroup(consumerGroupName.(string))
-		newGroup.Start()
-		newGroup.Subscribe(conn)
-		ch.consumerGroups = append(ch.consumerGroups, newGroup)
+		go func() {
+			newGroup := NewConsumerGroup(consumerGroupName.(string))
+			newGroup.Start()
+			newGroup.Subscribe(conn)
+			ch.consumerGroups = append(ch.consumerGroups, newGroup)
+		}()
 		return
 	}
 
 	for _, group := range groups {
-		group.Subscribe(conn)
+		go group.Subscribe(conn)
 	}
 }
 
@@ -123,11 +131,14 @@ func (ch *Channel) Unsubscribe(conn *net.Conn) {
 	})
 
 	for _, group := range ch.consumerGroups {
-		group.Unsubscribe(conn)
+		go group.Unsubscribe(conn)
 	}
 }
 
 func (ch *Channel) Publish(message interface{}) {
+	for _, group := range ch.consumerGroups {
+		go group.Publish(message)
+	}
 	*ch.messageChan <- message
 }
 
@@ -150,7 +161,7 @@ func (ps *PubSub) Subscribe(conn *net.Conn, channelName interface{}, consumerGro
 
 	if channelName == nil {
 		for _, channel := range ps.channels {
-			channel.Subscribe(conn, nil)
+			go channel.Subscribe(conn, nil)
 		}
 		return
 	}
@@ -160,22 +171,24 @@ func (ps *PubSub) Subscribe(conn *net.Conn, channelName interface{}, consumerGro
 	})
 
 	if len(channels) <= 0 {
-		newChan := NewChannel(channelName.(string))
-		newChan.Start()
-		newChan.Subscribe(conn, consumerGroup)
-		ps.channels = append(ps.channels, newChan)
+		go func() {
+			newChan := NewChannel(channelName.(string))
+			newChan.Start()
+			newChan.Subscribe(conn, consumerGroup)
+			ps.channels = append(ps.channels, newChan)
+		}()
 		return
 	}
 
 	for _, channel := range channels {
-		channel.Subscribe(conn, consumerGroup)
+		go channel.Subscribe(conn, consumerGroup)
 	}
 }
 
 func (ps *PubSub) Unsubscribe(conn *net.Conn, channelName interface{}) {
 	if channelName == nil {
 		for _, channel := range ps.channels {
-			channel.Unsubscribe(conn)
+			go channel.Unsubscribe(conn)
 		}
 		return
 	}
@@ -185,15 +198,16 @@ func (ps *PubSub) Unsubscribe(conn *net.Conn, channelName interface{}) {
 	})
 
 	for _, channel := range channels {
-		channel.Unsubscribe(conn)
+		go channel.Unsubscribe(conn)
 	}
 }
 
 func (ps *PubSub) Publish(message interface{}, channelName interface{}) {
 	if channelName == nil {
 		for _, channel := range ps.channels {
-			channel.Publish(message)
+			go channel.Publish(message)
 		}
+		return
 	}
 
 	channels := utils.Filter[*Channel](ps.channels, func(c *Channel) bool {
@@ -201,6 +215,6 @@ func (ps *PubSub) Publish(message interface{}, channelName interface{}) {
 	})
 
 	for _, channel := range channels {
-		channel.Publish(message)
+		go channel.Publish(message)
 	}
 }

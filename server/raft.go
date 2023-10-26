@@ -118,21 +118,39 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 			}
 		}
 
-		// Look for plugin that handles this command and trigger it
-		for _, plugin := range server.plugins {
-			if utils.Contains[string](plugin.Commands(), strings.ToLower(request.CMD[0])) {
-				res, err := plugin.HandleCommand(request.CMD, server)
-
-				if err != nil {
-					return utils.ApplyResponse{
-						Error:    err,
-						Response: nil,
-					}
-				}
-
+		switch strings.ToLower(request.CMD[0]) {
+		case "publish":
+			if len(request.CMD) == 3 {
+				server.pubSub.Publish(request.CMD[2], request.CMD[1])
+			} else if len(request.CMD) == 2 {
+				server.pubSub.Publish(request.CMD[2], nil)
+			} else {
 				return utils.ApplyResponse{
-					Error:    nil,
-					Response: res,
+					Error:    errors.New("wrong number of args"),
+					Response: nil,
+				}
+			}
+			return utils.ApplyResponse{
+				Error:    nil,
+				Response: []byte(":1\r\n\n"),
+			}
+		default:
+			// Look for plugin that handles this command and trigger it
+			for _, plugin := range server.plugins {
+				if utils.Contains[string](plugin.Commands(), strings.ToLower(request.CMD[0])) {
+					res, err := plugin.HandleCommand(request.CMD, server)
+
+					if err != nil {
+						return utils.ApplyResponse{
+							Error:    err,
+							Response: nil,
+						}
+					}
+
+					return utils.ApplyResponse{
+						Error:    nil,
+						Response: res,
+					}
 				}
 			}
 		}

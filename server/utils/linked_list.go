@@ -14,6 +14,10 @@ func NewNode[T comparable](value T, next *Node[T]) *Node[T] {
 	}
 }
 
+func (n *Node[T]) GetValue() T {
+	return n.value
+}
+
 type LinkedList[T comparable] struct {
 	head     *Node[T]
 	tail     *Node[T]
@@ -130,6 +134,10 @@ func (l *LinkedList[T]) Contains(value T) bool {
 		return false
 	}
 
+	if l.head == nil {
+		return false
+	}
+
 	if l.head.value == value {
 		return true
 	}
@@ -157,11 +165,14 @@ func (l *LinkedList[T]) Iter() *chan *Node[T] {
 	go func() {
 		n := l.head
 		for {
-			c <- n
-			n = n.next
 			if n == nil {
 				break
 			}
+			c <- n
+			if n == l.head && n.next == nil && l.circular {
+				continue
+			}
+			n = n.next
 		}
 		close(c)
 	}()
