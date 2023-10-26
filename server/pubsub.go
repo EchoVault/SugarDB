@@ -13,16 +13,17 @@ import (
 // subscriber will receive the next message.
 type ConsumerGroup struct {
 	name        string
-	subscribers []*net.Conn
+	subscribers *utils.LinkedList[*net.Conn]
 	messageChan *chan interface{}
 }
 
 func NewConsumerGroup(name string) *ConsumerGroup {
 	messageChan := make(chan interface{})
+	subscribers := utils.NewLinkedList[*net.Conn](true)
 
 	return &ConsumerGroup{
 		name:        name,
-		subscribers: []*net.Conn{},
+		subscribers: subscribers,
 		messageChan: &messageChan,
 	}
 }
@@ -37,15 +38,13 @@ func (cg *ConsumerGroup) Start() {
 }
 
 func (cg *ConsumerGroup) Subscribe(conn *net.Conn) {
-	if !utils.Contains[*net.Conn](cg.subscribers, conn) {
-		cg.subscribers = append(cg.subscribers, conn)
+	if !cg.subscribers.Contains(conn) {
+		cg.subscribers.Add(conn)
 	}
 }
 
 func (cg *ConsumerGroup) Unsubscribe(conn *net.Conn) {
-	cg.subscribers = utils.Filter[*net.Conn](cg.subscribers, func(c *net.Conn) bool {
-		return c != conn
-	})
+	cg.subscribers.Remove(conn)
 }
 
 func (cg *ConsumerGroup) Publish(message interface{}) {

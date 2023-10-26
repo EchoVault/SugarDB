@@ -59,6 +59,10 @@ func (l *LinkedList[T]) Add(value T) {
 }
 
 func (l *LinkedList[T]) Remove(value T) {
+	if !l.Contains(value) {
+		return
+	}
+
 	n := l.head
 
 	if n == nil || (n.next == nil && n.value != value) {
