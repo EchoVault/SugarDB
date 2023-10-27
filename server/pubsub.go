@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/kelvinmwinuka/memstore/server/utils"
@@ -37,7 +40,13 @@ func NewConsumerGroup(name string) *ConsumerGroup {
 func (cg *ConsumerGroup) SendMessage(message interface{}) {
 	next := <-*cg.subIterator
 	conn := next.GetValue()
-	fmt.Println("NEXT CONNECTION: ", conn)
+
+	rw := bufio.NewReadWriter(bufio.NewReader(*conn), bufio.NewWriter(*conn))
+	rw.WriteString(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message.(string)), message.(string)))
+	rw.Flush()
+
+	// Wait for an ACK
+	// If no ACK is received within a time limit, remove this connection from subscribers and retry
 }
 
 func (cg *ConsumerGroup) Start() {
@@ -48,7 +57,7 @@ func (cg *ConsumerGroup) Start() {
 		}
 	}()
 
-	// TODO: For debug only
+	// NOTE: For debug only, must delete
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		for {
@@ -76,20 +85,22 @@ func (cg *ConsumerGroup) Publish(message interface{}) {
 // All direct subscribers to the channel will receive any message published to the channel.
 // Only one subscriber of a channel's consumer group will receive a message posted to the channel.
 type Channel struct {
-	name           string
-	subscribers    []*net.Conn
-	consumerGroups []*ConsumerGroup
-	messageChan    *chan interface{}
+	name             string
+	subscribersRWMut sync.RWMutex
+	subscribers      []*net.Conn
+	consumerGroups   []*ConsumerGroup
+	messageChan      *chan interface{}
 }
 
 func NewChannel(name string) *Channel {
 	messageChan := make(chan interface{})
 
 	return &Channel{
-		name:           name,
-		subscribers:    []*net.Conn{},
-		consumerGroups: []*ConsumerGroup{},
-		messageChan:    &messageChan,
+		name:             name,
+		subscribersRWMut: sync.RWMutex{},
+		subscribers:      []*net.Conn{},
+		consumerGroups:   []*ConsumerGroup{},
+		messageChan:      &messageChan,
 	}
 }
 
@@ -97,13 +108,39 @@ func (ch *Channel) Start() {
 	go func() {
 		for {
 			message := <-*ch.messageChan
-			fmt.Println("MESSAGE FROM CHANNEL: ", message)
+
+			ch.subscribersRWMut.RLock()
+
+			for _, conn := range ch.subscribers {
+				go func(conn *net.Conn) {
+					rw := bufio.NewReadWriter(bufio.NewReader(*conn), bufio.NewWriter(*conn))
+					rw.WriteString(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message.(string)), message.(string)))
+					rw.Flush()
+
+					(*conn).SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+					defer func() {
+						(*conn).SetReadDeadline(time.Time{})
+					}()
+
+					if msg, err := utils.ReadMessage(rw); err != nil {
+						ch.Unsubscribe(conn)
+					} else {
+						if strings.TrimSpace(msg) != "+ACK" {
+							ch.Unsubscribe(conn)
+						}
+					}
+				}(conn)
+			}
+
+			ch.subscribersRWMut.RUnlock()
 		}
 	}()
 }
 
 func (ch *Channel) Subscribe(conn *net.Conn, consumerGroupName interface{}) {
 	if consumerGroupName == nil && !utils.Contains[*net.Conn](ch.subscribers, conn) {
+		ch.subscribersRWMut.Lock()
+		defer ch.subscribersRWMut.Unlock()
 		ch.subscribers = append(ch.subscribers, conn)
 		return
 	}
@@ -128,6 +165,9 @@ func (ch *Channel) Subscribe(conn *net.Conn, consumerGroupName interface{}) {
 }
 
 func (ch *Channel) Unsubscribe(conn *net.Conn) {
+	ch.subscribersRWMut.Lock()
+	defer ch.subscribersRWMut.Unlock()
+
 	ch.subscribers = utils.Filter[*net.Conn](ch.subscribers, func(c *net.Conn) bool {
 		return c != conn
 	})

@@ -123,7 +123,7 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 			if len(request.CMD) == 3 {
 				server.pubSub.Publish(request.CMD[2], request.CMD[1])
 			} else if len(request.CMD) == 2 {
-				server.pubSub.Publish(request.CMD[2], nil)
+				server.pubSub.Publish(request.CMD[1], nil)
 			} else {
 				return utils.ApplyResponse{
 					Error:    errors.New("wrong number of args"),

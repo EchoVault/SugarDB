@@ -120,7 +120,7 @@ func Decode(raw string) ([]string, error) {
 		return nil, err
 	}
 
-	if Contains[string]([]string{"SimpleString", "Integer", "Error"}, v.Type().String()) {
+	if Contains[string]([]string{"SimpleString", "BulkString", "Integer", "Error"}, v.Type().String()) {
 		return []string{v.String()}, nil
 	}
 

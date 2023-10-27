@@ -104,28 +104,28 @@ func (server *Server) handleConnection(conn net.Conn) {
 					continue
 				}
 
-				connRW.Write([]byte(":1\r\n\n"))
+				connRW.Write([]byte("+SUBSCRIBED\r\n\n"))
 				connRW.Flush()
 				continue
 			}
 
 			// Handle unsubscribe command
-			// if strings.EqualFold(cmd[0], "unsubscribe") {
-			// 	switch len(cmd) {
-			// 	case 1:
-			// 		server.pubSub.Unsubscribe(&conn, nil)
-			// 	case 2:
-			// 		server.pubSub.Unsubscribe(&conn, cmd[1])
-			// 	default:
-			// 		connRW.Write([]byte("-Error wrong number of arguments\r\n\n"))
-			// 		connRW.Flush()
-			// 		continue
-			// 	}
+			if strings.EqualFold(cmd[0], "unsubscribe") {
+				switch len(cmd) {
+				case 1:
+					server.pubSub.Unsubscribe(&conn, nil)
+				case 2:
+					server.pubSub.Unsubscribe(&conn, cmd[1])
+				default:
+					connRW.Write([]byte("-Error wrong number of arguments\r\n\n"))
+					connRW.Flush()
+					continue
+				}
 
-			// 	connRW.Write([]byte(":1\r\n\n"))
-			// 	connRW.Flush()
-			// 	continue
-			// }
+				connRW.Write([]byte(":1\r\n\n"))
+				connRW.Flush()
+				continue
+			}
 
 			// Handle other commands that need to be synced across the cluster
 			applyRequest := utils.ApplyRequest{CMD: cmd}

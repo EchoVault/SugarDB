@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -108,6 +109,34 @@ func main() {
 
 				fmt.Println(decoded)
 
+				if strings.ToLower(decoded[0]) == "subscribed" {
+					// If we're subscribed to a channel, listen for messages from the channel
+					func() {
+						for {
+							var message string
+
+							if msg, err := ReadMessage(connRW); err != nil {
+								if err == io.EOF {
+									return
+								}
+								fmt.Println(err)
+								continue
+							} else {
+								message = msg
+							}
+
+							if decoded, err := Decode(message); err != nil {
+								fmt.Println(err)
+								continue
+							} else {
+								connRW.Write([]byte("+ACK\r\n\n"))
+								connRW.Flush()
+
+								fmt.Println(decoded)
+							}
+						}
+					}()
+				}
 			}
 		}
 		done <- struct{}{}
