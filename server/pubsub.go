@@ -17,23 +17,29 @@ import (
 // Once a message is consumed, the subscriber will be moved to the back of the queue and the next
 // subscriber will receive the next message.
 type ConsumerGroup struct {
-	name        string
-	subscribers *ring.Ring
-	messageChan *chan string
+	name             string
+	subscribersRWMut sync.RWMutex
+	subscribers      *ring.Ring
+	messageChan      *chan string
 }
 
 func NewConsumerGroup(name string) *ConsumerGroup {
 	messageChan := make(chan string)
 
 	return &ConsumerGroup{
-		name:        name,
-		subscribers: nil,
-		messageChan: &messageChan,
+		name:             name,
+		subscribersRWMut: sync.RWMutex{},
+		subscribers:      nil,
+		messageChan:      &messageChan,
 	}
 }
 
 func (cg *ConsumerGroup) SendMessage(message string) {
+	cg.subscribersRWMut.RLock()
+
 	conn := cg.subscribers.Value.(*net.Conn)
+
+	cg.subscribersRWMut.RUnlock()
 
 	rw := bufio.NewReadWriter(bufio.NewReader(*conn), bufio.NewWriter(*conn))
 	rw.WriteString(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message), message))
@@ -70,18 +76,12 @@ func (cg *ConsumerGroup) Start() {
 			}
 		}
 	}()
-
-	// NOTE: For debug only, must delete
-	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		for {
-			fmt.Println("RING: ", cg.subscribers)
-			<-ticker.C
-		}
-	}()
 }
 
 func (cg *ConsumerGroup) Subscribe(conn *net.Conn) {
+	cg.subscribersRWMut.Lock()
+	defer cg.subscribersRWMut.Unlock()
+
 	r := ring.New(1)
 	for i := 0; i < r.Len(); i++ {
 		r.Value = conn
@@ -97,6 +97,9 @@ func (cg *ConsumerGroup) Subscribe(conn *net.Conn) {
 }
 
 func (cg *ConsumerGroup) Unsubscribe(conn *net.Conn) {
+	cg.subscribersRWMut.Lock()
+	defer cg.subscribersRWMut.Unlock()
+
 	curr := cg.subscribers.Value
 
 	for i := 0; i < cg.subscribers.Len(); i++ {
