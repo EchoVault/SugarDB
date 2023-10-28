@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"container/ring"
 	"fmt"
 	"net"
 	"strings"
@@ -17,43 +18,56 @@ import (
 // subscriber will receive the next message.
 type ConsumerGroup struct {
 	name        string
-	subscribers *utils.LinkedList[*net.Conn]
-	subIterator *chan *utils.Node[*net.Conn]
-	messageChan *chan interface{}
+	subscribers *ring.Ring
+	messageChan *chan string
 }
 
 func NewConsumerGroup(name string) *ConsumerGroup {
-	messageChan := make(chan interface{})
-	subscribers := utils.NewLinkedList[*net.Conn](&utils.LinkedListOptions{
-		Ring: true,
-	})
-	subIterator := subscribers.Iter()
+	messageChan := make(chan string)
 
 	return &ConsumerGroup{
 		name:        name,
-		subscribers: subscribers,
-		subIterator: subIterator,
+		subscribers: nil,
 		messageChan: &messageChan,
 	}
 }
 
-func (cg *ConsumerGroup) SendMessage(message interface{}) {
-	next := <-*cg.subIterator
-	conn := next.GetValue()
+func (cg *ConsumerGroup) SendMessage(message string) {
+	conn := cg.subscribers.Value.(*net.Conn)
 
 	rw := bufio.NewReadWriter(bufio.NewReader(*conn), bufio.NewWriter(*conn))
-	rw.WriteString(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message.(string)), message.(string)))
+	rw.WriteString(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message), message))
 	rw.Flush()
 
 	// Wait for an ACK
 	// If no ACK is received within a time limit, remove this connection from subscribers and retry
+	(*conn).SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+	if msg, err := utils.ReadMessage(rw); err != nil {
+		// Remove the connection from subscribers list
+		cg.Unsubscribe(conn)
+		// Reset the deadline
+		(*conn).SetReadDeadline(time.Time{})
+		// Retry sending the message
+		cg.SendMessage(message)
+	} else {
+		if strings.TrimSpace(msg) != "+ACK" {
+			cg.Unsubscribe(conn)
+			(*conn).SetReadDeadline(time.Time{})
+			cg.SendMessage(message)
+		}
+	}
+
+	(*conn).SetDeadline(time.Time{})
+	cg.subscribers = cg.subscribers.Next()
 }
 
 func (cg *ConsumerGroup) Start() {
 	go func() {
 		for {
 			message := <-*cg.messageChan
-			cg.SendMessage(message)
+			if cg.subscribers != nil {
+				cg.SendMessage(message)
+			}
 		}
 	}()
 
@@ -61,23 +75,49 @@ func (cg *ConsumerGroup) Start() {
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		for {
-			cg.subscribers.Print()
+			fmt.Println("RING: ", cg.subscribers)
 			<-ticker.C
 		}
 	}()
 }
 
 func (cg *ConsumerGroup) Subscribe(conn *net.Conn) {
-	if !cg.subscribers.Contains(conn) {
-		cg.subscribers.Add(conn)
+	r := ring.New(1)
+	for i := 0; i < r.Len(); i++ {
+		r.Value = conn
+		r = r.Next()
 	}
+
+	if cg.subscribers == nil {
+		cg.subscribers = r
+		return
+	}
+
+	cg.subscribers = cg.subscribers.Link(r)
 }
 
 func (cg *ConsumerGroup) Unsubscribe(conn *net.Conn) {
-	cg.subscribers.Remove(conn)
+	curr := cg.subscribers.Value
+
+	for i := 0; i < cg.subscribers.Len(); i++ {
+		if cg.subscribers.Value == conn {
+			cg.subscribers = cg.subscribers.Prev()
+			cg.subscribers.Unlink(1)
+			break
+		}
+		cg.subscribers = cg.subscribers.Next()
+	}
+
+	// Restore the pointer back to the previous location
+	for i := 0; i < cg.subscribers.Len(); i++ {
+		if cg.subscribers.Value == curr {
+			return
+		}
+		cg.subscribers = cg.subscribers.Next()
+	}
 }
 
-func (cg *ConsumerGroup) Publish(message interface{}) {
+func (cg *ConsumerGroup) Publish(message string) {
 	*cg.messageChan <- message
 }
 
@@ -89,11 +129,11 @@ type Channel struct {
 	subscribersRWMut sync.RWMutex
 	subscribers      []*net.Conn
 	consumerGroups   []*ConsumerGroup
-	messageChan      *chan interface{}
+	messageChan      *chan string
 }
 
 func NewChannel(name string) *Channel {
-	messageChan := make(chan interface{})
+	messageChan := make(chan string)
 
 	return &Channel{
 		name:             name,
@@ -114,7 +154,7 @@ func (ch *Channel) Start() {
 			for _, conn := range ch.subscribers {
 				go func(conn *net.Conn) {
 					rw := bufio.NewReadWriter(bufio.NewReader(*conn), bufio.NewWriter(*conn))
-					rw.WriteString(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message.(string)), message.(string)))
+					rw.WriteString(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message), message))
 					rw.Flush()
 
 					(*conn).SetReadDeadline(time.Now().Add(200 * time.Millisecond))
@@ -177,7 +217,7 @@ func (ch *Channel) Unsubscribe(conn *net.Conn) {
 	}
 }
 
-func (ch *Channel) Publish(message interface{}) {
+func (ch *Channel) Publish(message string) {
 	for _, group := range ch.consumerGroups {
 		go group.Publish(message)
 	}
@@ -244,7 +284,7 @@ func (ps *PubSub) Unsubscribe(conn *net.Conn, channelName interface{}) {
 	}
 }
 
-func (ps *PubSub) Publish(message interface{}, channelName interface{}) {
+func (ps *PubSub) Publish(message string, channelName interface{}) {
 	if channelName == nil {
 		for _, channel := range ps.channels {
 			go channel.Publish(message)
