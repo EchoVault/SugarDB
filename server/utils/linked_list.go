@@ -19,20 +19,20 @@ func (n *Node[T]) GetValue() T {
 }
 
 type LinkedListOptions struct {
-	Cicular bool
+	Ring bool
 }
 
 type LinkedList[T comparable] struct {
-	head     *Node[T]
-	tail     *Node[T]
-	circular bool
+	head *Node[T]
+	tail *Node[T]
+	ring bool
 }
 
 func NewLinkedList[T comparable](options *LinkedListOptions) *LinkedList[T] {
 	return &LinkedList[T]{
-		head:     nil,
-		tail:     nil,
-		circular: options.Cicular,
+		head: nil,
+		tail: nil,
+		ring: options.Ring,
 	}
 }
 
@@ -42,19 +42,19 @@ func (l *LinkedList[T]) Add(value T) {
 		return
 	}
 
-	if l.tail == nil && !l.circular {
+	if l.tail == nil && !l.ring {
 		l.tail = NewNode(value, nil)
 		l.head.next = l.tail
 		return
 	}
 
-	if l.tail == nil && l.circular {
+	if l.tail == nil && l.ring {
 		l.tail = NewNode(value, l.head)
 		l.head.next = l.tail
 		return
 	}
 
-	if !l.circular {
+	if !l.ring {
 		n := NewNode(value, nil)
 		l.tail.next = n
 		l.tail = n
@@ -80,7 +80,7 @@ func (l *LinkedList[T]) Remove(value T) {
 		return
 	}
 
-	if !l.circular {
+	if !l.ring {
 		if l.head.value == value {
 			l.head = l.head.next
 			return
@@ -97,7 +97,7 @@ func (l *LinkedList[T]) Remove(value T) {
 		}
 	}
 
-	// Linked list is circular
+	// Linked list is ring
 	if l.head.value == value {
 		l.head = l.head.next
 		l.tail.next = l.head
@@ -173,7 +173,7 @@ func (l *LinkedList[T]) Iter() *chan *Node[T] {
 				break
 			}
 			c <- n
-			if n == l.head && n.next == nil && l.circular {
+			if n == l.head && n.next == nil && l.ring {
 				continue
 			}
 			n = n.next
