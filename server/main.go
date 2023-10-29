@@ -30,14 +30,9 @@ type Plugin interface {
 	HandleCommand(cmd []string, server interface{}) ([]byte, error)
 }
 
-type Data struct {
-	mu   sync.Mutex
-	data map[string]interface{}
-}
-
 type Server struct {
 	config  utils.Config
-	data    Data
+	data    sync.Map
 	plugins []Plugin
 
 	raft *raft.Raft
@@ -51,20 +46,22 @@ type Server struct {
 	cancelCh *chan (os.Signal)
 }
 
-func (server *Server) Lock() {
-	server.data.mu.Lock()
-}
-
-func (server *Server) Unlock() {
-	server.data.mu.Unlock()
-}
-
 func (server *Server) GetData(key string) interface{} {
-	return server.data.data[key]
+	value, ok := server.data.Load(key)
+
+	if !ok {
+		return nil
+	}
+
+	return value
 }
 
 func (server *Server) SetData(key string, value interface{}) {
-	server.data.data[key] = value
+	server.data.Store(key, value)
+}
+
+func (server *Server) SetDataExp(key string, value interface{}, exp time.Duration) {
+	// TODO: Implement storing of value with deletion after expiry
 }
 
 func (server *Server) handleConnection(conn net.Conn) {
@@ -296,8 +293,6 @@ func (server *Server) LoadPlugins() {
 }
 
 func (server *Server) Start() {
-	server.data.data = make(map[string]interface{})
-
 	conf := server.config
 
 	server.LoadPlugins()

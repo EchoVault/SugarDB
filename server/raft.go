@@ -172,9 +172,6 @@ func (server *Server) Snapshot() (raft.FSMSnapshot, error) {
 
 // Implements raft.FSM interface
 func (server *Server) Restore(snapshot io.ReadCloser) error {
-	server.Lock()
-	defer server.Unlock()
-
 	b, err := io.ReadAll(snapshot)
 
 	if err != nil {
@@ -187,17 +184,16 @@ func (server *Server) Restore(snapshot io.ReadCloser) error {
 		return err
 	}
 
-	server.data.data = data
+	// TODO: Iterate through the loaded data and set it in server.data
+	// server.data.data = data
 
 	return nil
 }
 
 // Implements FSMSnapshot interface
 func (server *Server) Persist(sink raft.SnapshotSink) error {
-	server.Lock()
-	defer server.Unlock()
-
-	o, err := json.Marshal(server.data.data)
+	// TODO: Copy data before marshaling
+	o, err := json.Marshal(server.data)
 
 	if err != nil {
 		sink.Cancel()

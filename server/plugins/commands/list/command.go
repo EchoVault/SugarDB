@@ -14,8 +14,6 @@ const (
 )
 
 type Server interface {
-	Lock()
-	Unlock()
 	GetData(key string) interface{}
 	SetData(key string, value interface{})
 }
@@ -83,12 +81,10 @@ func handleLLen(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("wrong number of args for LLEN command")
 	}
 
-	server.Lock()
-
 	list, ok := server.GetData(cmd[1]).([]interface{})
 
 	if !ok {
-		server.Unlock()
+
 		return nil, errors.New("LLEN command on non-list item")
 	}
 
@@ -106,21 +102,18 @@ func handleLIndex(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("index must be an integer")
 	}
 
-	server.Lock()
-
 	list, ok := server.GetData(cmd[1]).([]interface{})
 
 	if !ok {
-		server.Unlock()
+
 		return nil, errors.New("LINDEX command on non-list item")
 	}
 
 	if !(index >= 0 && index < len(list)) {
-		server.Unlock()
+
 		return nil, errors.New("index must be within list range")
 	}
 
-	server.Unlock()
 	return []byte(fmt.Sprintf("+%s\r\n\n", list[index])), nil
 }
 
@@ -136,11 +129,7 @@ func handleLRange(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("both start and end indices must be integers")
 	}
 
-	server.Lock()
-
 	list, ok := server.GetData(cmd[1]).([]interface{})
-
-	server.Unlock()
 
 	if !ok {
 		return nil, errors.New("type cannot be returned with LRANGE command")
@@ -206,30 +195,27 @@ func handleLSet(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("wrong number of arguments for LSET command")
 	}
 
-	server.Lock()
-
 	list, ok := server.GetData(cmd[1]).([]interface{})
 
 	if !ok {
-		server.Unlock()
+
 		return nil, errors.New("LSET command on non-list item")
 	}
 
 	index, ok := utils.AdaptType(cmd[2]).(int)
 
 	if !ok {
-		server.Unlock()
+
 		return nil, errors.New("index must be an integer")
 	}
 
 	if !(index >= 0 && index < len(list)) {
-		server.Unlock()
+
 		return nil, errors.New("index must be within range")
 	}
 
 	list[index] = utils.AdaptType(cmd[3])
 	server.SetData(cmd[1], list)
-	server.Unlock()
 
 	return []byte(OK), nil
 }
@@ -250,28 +236,25 @@ func handleLTrim(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("end index must be greater than start index or -1")
 	}
 
-	server.Lock()
-
 	list, ok := server.GetData(cmd[1]).([]interface{})
 
 	if !ok {
-		server.Unlock()
+
 		return nil, errors.New("LTRIM command on non-list item")
 	}
 
 	if !(start >= 0 && start < len(list)) {
-		server.Unlock()
+
 		return nil, errors.New("start index must be within list boundary")
 	}
 
 	if end == -1 || end > len(list) {
 		server.SetData(cmd[1], list[start:])
-		server.Unlock()
+
 		return []byte(OK), nil
 	}
 
 	server.SetData(cmd[1], list[start:end])
-	server.Unlock()
 
 	return []byte(OK), nil
 }
@@ -290,12 +273,10 @@ func handleLRem(cmd []string, server Server) ([]byte, error) {
 
 	absoluteCount := math.Abs(float64(count))
 
-	server.Lock()
-
 	list, ok := server.GetData(cmd[1]).([]interface{})
 
 	if !ok {
-		server.Unlock()
+
 		return nil, errors.New("LREM command on non-list item")
 	}
 
@@ -331,7 +312,6 @@ func handleLRem(cmd []string, server Server) ([]byte, error) {
 	})
 
 	server.SetData(cmd[1], list)
-	server.Unlock()
 
 	return []byte(OK), nil
 }
@@ -348,13 +328,11 @@ func handleLMove(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("wherefrom and whereto arguments must be either LEFT or RIGHT")
 	}
 
-	server.Lock()
-
 	source, sourceOk := server.GetData(cmd[1]).([]interface{})
 	destination, destinationOk := server.GetData(cmd[2]).([]interface{})
 
 	if !sourceOk || !destinationOk {
-		server.Unlock()
+
 		return nil, errors.New("source and destination must both be lists")
 	}
 
@@ -375,7 +353,6 @@ func handleLMove(cmd []string, server Server) ([]byte, error) {
 		}
 	}
 
-	server.Unlock()
 	return []byte(OK), nil
 }
 
@@ -383,8 +360,6 @@ func handleLPush(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, fmt.Errorf("wrong number of arguments for %s command", strings.ToUpper(cmd[0]))
 	}
-
-	server.Lock()
 
 	newElems := []interface{}{}
 
@@ -398,10 +373,10 @@ func handleLPush(cmd []string, server Server) ([]byte, error) {
 		switch strings.ToLower(cmd[0]) {
 		default:
 			server.SetData(cmd[1], newElems)
-			server.Unlock()
+
 			return []byte(OK), nil
 		case "lpushx":
-			server.Unlock()
+
 			return nil, errors.New("no list at key")
 		}
 	}
@@ -409,12 +384,11 @@ func handleLPush(cmd []string, server Server) ([]byte, error) {
 	l, ok := currentList.([]interface{})
 
 	if !ok {
-		server.Unlock()
+
 		return nil, errors.New("LPUSH command on non-list item")
 	}
 
 	server.SetData(cmd[1], append(newElems, l...))
-	server.Unlock()
 
 	return []byte(OK), nil
 }
@@ -424,8 +398,6 @@ func handleRPush(cmd []string, server Server) ([]byte, error) {
 		return nil, fmt.Errorf("wrong number of arguments for %s command", strings.ToUpper(cmd[0]))
 	}
 
-	server.Lock()
-
 	newElems := []interface{}{}
 
 	for _, elem := range cmd[2:] {
@@ -438,10 +410,10 @@ func handleRPush(cmd []string, server Server) ([]byte, error) {
 		switch strings.ToLower(cmd[0]) {
 		default:
 			server.SetData(cmd[1], newElems)
-			server.Unlock()
+
 			return []byte(OK), nil
 		case "rpushx":
-			server.Unlock()
+
 			return nil, errors.New("no list at key")
 		}
 	}
@@ -449,12 +421,11 @@ func handleRPush(cmd []string, server Server) ([]byte, error) {
 	l, ok := currentList.([]interface{})
 
 	if !ok {
-		server.Unlock()
+
 		return nil, errors.New("RPUSH command on non-list item")
 	}
 
 	server.SetData(cmd[1], append(l, newElems...))
-	server.Unlock()
 
 	return []byte(OK), nil
 }
@@ -463,8 +434,6 @@ func handlePop(cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, fmt.Errorf("wrong number of args for %s command", strings.ToUpper(cmd[0]))
 	}
-
-	server.Lock()
 
 	list, ok := server.GetData(cmd[1]).([]interface{})
 
@@ -475,11 +444,11 @@ func handlePop(cmd []string, server Server) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		server.SetData(cmd[1], list[1:])
-		server.Unlock()
+
 		return []byte(fmt.Sprintf("+%v\r\n\n", list[0])), nil
 	case "rpop":
 		server.SetData(cmd[1], list[:len(list)-1])
-		server.Unlock()
+
 		return []byte(fmt.Sprintf("+%v\r\n\n", list[len(list)-1])), nil
 	}
 

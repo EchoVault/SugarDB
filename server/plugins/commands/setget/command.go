@@ -9,8 +9,6 @@ import (
 )
 
 type Server interface {
-	Lock()
-	Unlock()
 	GetData(key string) interface{}
 	SetData(key string, value interface{})
 }
@@ -53,9 +51,7 @@ func handleGet(cmd []string, s Server) ([]byte, error) {
 		return nil, errors.New("wrong number of args for GET command")
 	}
 
-	s.Lock()
 	value := s.GetData(cmd[1])
-	s.Unlock()
 
 	switch value.(type) {
 	default:
@@ -72,8 +68,6 @@ func handleMGet(cmd []string, s Server) ([]byte, error) {
 
 	vals := []string{}
 
-	s.Lock()
-
 	for _, key := range cmd[1:] {
 		switch s.GetData(key).(type) {
 		default:
@@ -82,8 +76,6 @@ func handleMGet(cmd []string, s Server) ([]byte, error) {
 			vals = append(vals, "nil")
 		}
 	}
-
-	s.Unlock()
 
 	var bytes []byte = []byte(fmt.Sprintf("*%d\r\n", len(vals)))
 
@@ -101,9 +93,9 @@ func handleSet(cmd []string, s Server) ([]byte, error) {
 	default:
 		return nil, errors.New("wrong number of args for SET command")
 	case x == 3:
-		s.Lock()
+
 		s.SetData(cmd[1], utils.AdaptType(cmd[2]))
-		s.Unlock()
+
 		return []byte("+OK\r\n\n"), nil
 	}
 }

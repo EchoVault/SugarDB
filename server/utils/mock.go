@@ -2,27 +2,20 @@ package utils
 
 import "sync"
 
-type MockData struct {
-	Mu   sync.Mutex
-	Data map[string]interface{}
-}
-
 type MockServer struct {
-	Data MockData
-}
-
-func (server *MockServer) Lock() {
-	server.Data.Mu.Lock()
-}
-
-func (server *MockServer) Unlock() {
-	server.Data.Mu.Unlock()
+	Data sync.Map
 }
 
 func (server *MockServer) GetData(key string) interface{} {
-	return server.Data.Data[key]
+	value, ok := server.Data.Load(key)
+
+	if !ok {
+		return nil
+	}
+
+	return value
 }
 
 func (server *MockServer) SetData(key string, value interface{}) {
-	server.Data.Data[key] = value
+	server.Data.Store(key, value)
 }

@@ -7,8 +7,6 @@ const (
 )
 
 type Server interface {
-	Lock()
-	Unlock()
 	GetData(key string) interface{}
 	SetData(key string, value interface{})
 }

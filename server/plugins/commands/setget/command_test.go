@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/kelvinmwinuka/memstore/server/utils"
@@ -15,12 +14,7 @@ const (
 )
 
 func TestHandleCommand(t *testing.T) {
-	server := utils.MockServer{
-		Data: utils.MockData{
-			Mu:   sync.Mutex{},
-			Data: make(map[string]interface{}),
-		},
-	}
+	server := utils.MockServer{}
 
 	tests := []struct {
 		cmd      []string
