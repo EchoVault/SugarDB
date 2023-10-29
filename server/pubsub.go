@@ -14,8 +14,6 @@ import (
 
 // Consumer group allows multiple subscribers to share the consumption load of a channel.
 // Only one subscriber in the consumer group will receive messages published to the channel.
-// Once a message is consumed, the subscriber will be moved to the back of the queue and the next
-// subscriber will receive the next message.
 type ConsumerGroup struct {
 	name             string
 	subscribersRWMut sync.RWMutex
@@ -240,10 +238,6 @@ func NewPubSub() *PubSub {
 
 func (ps *PubSub) Subscribe(conn *net.Conn, channelName interface{}, consumerGroup interface{}) {
 	// If no channel name is given, subscribe to all channels
-	// Check if channel with given name exists
-	// If it does, subscribe the connection to the channel
-	// If it does not, create the channel and subscribe to it
-
 	if channelName == nil {
 		for _, channel := range ps.channels {
 			go channel.Subscribe(conn, nil)
@@ -251,6 +245,9 @@ func (ps *PubSub) Subscribe(conn *net.Conn, channelName interface{}, consumerGro
 		return
 	}
 
+	// Check if channel with given name exists
+	// If it does, subscribe the connection to the channel
+	// If it does not, create the channel and subscribe to it
 	channels := utils.Filter[*Channel](ps.channels, func(c *Channel) bool {
 		return c.name == channelName
 	})
