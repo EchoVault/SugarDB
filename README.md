@@ -3,6 +3,8 @@
 - [x] Config file support
 - [x] TCP support w/ TLS
 - [x] HTTP support w/ TLS
+- [x] Replication Cluster support
+- [x] Pub/Sub support
 - [x] Ping/Pong
 - [x] String support
 - [x] Integer support
@@ -19,7 +21,6 @@
 - [ ] Bitmap support
 - [ ] Bitfield support
 - [ ] Support for multiple root CAs on client side
-- [x] Replication Cluster support
-- [ ] Pub/Sub support
 - [ ] Append-Only File & reload from AOF
 - [ ] Periodic snapshots & reload state from snapshot
+- [ ] mTLS for client verification
