@@ -60,10 +60,6 @@ func (server *Server) SetData(key string, value interface{}) {
 	server.data.Store(key, value)
 }
 
-func (server *Server) SetDataExp(key string, value interface{}, exp time.Duration) {
-	// TODO: Implement storing of value with deletion after expiry
-}
-
 func (server *Server) handleConnection(conn net.Conn) {
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 
@@ -257,7 +253,6 @@ func (server *Server) LoadPlugins() {
 
 				for _, file := range files {
 					if !strings.HasSuffix(file.Name(), ".so") {
-						// Skip files that are not .so
 						continue
 					}
 					p, err := plugin.Open(path.Join(conf.PluginDir, "commands", file.Name()))

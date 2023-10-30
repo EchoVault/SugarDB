@@ -184,16 +184,23 @@ func (server *Server) Restore(snapshot io.ReadCloser) error {
 		return err
 	}
 
-	// TODO: Iterate through the loaded data and set it in server.data
-	// server.data.data = data
+	for k, v := range data {
+		server.SetData(k, v)
+	}
 
 	return nil
 }
 
 // Implements FSMSnapshot interface
 func (server *Server) Persist(sink raft.SnapshotSink) error {
-	// TODO: Copy data before marshaling
-	o, err := json.Marshal(server.data)
+	data := map[string]interface{}{}
+
+	server.data.Range(func(key, value any) bool {
+		data[key.(string)] = value
+		return true
+	})
+
+	o, err := json.Marshal(data)
 
 	if err != nil {
 		sink.Cancel()
