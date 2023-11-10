@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kelvinmwinuka/memstore/server/utils"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
 func TestHandleCommandSuccess(t *testing.T) {

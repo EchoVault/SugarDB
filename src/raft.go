@@ -15,7 +15,7 @@ import (
 
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
-	"github.com/kelvinmwinuka/memstore/server/utils"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
 func (server *Server) RaftInit() {
@@ -87,6 +87,7 @@ func (server *Server) RaftInit() {
 
 	server.raft = raftServer
 
+	// TODO: Only bootstrap cluster if --bootstrapCluster=true config is set
 	if conf.JoinAddr == "" {
 		// Bootstrap raft cluster
 		if err := server.raft.BootstrapCluster(raft.Configuration{
@@ -211,6 +212,8 @@ func (server *Server) Persist(sink raft.SnapshotSink) error {
 		sink.Cancel()
 		return err
 	}
+
+	// TODO: Store data in separate snapshot file
 
 	return nil
 }

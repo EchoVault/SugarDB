@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kelvinmwinuka/memstore/server/utils"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
 // Consumer group allows multiple subscribers to share the consumption load of a channel.
@@ -98,21 +98,11 @@ func (cg *ConsumerGroup) Unsubscribe(conn *net.Conn) {
 	cg.subscribersRWMut.Lock()
 	defer cg.subscribersRWMut.Unlock()
 
-	curr := cg.subscribers.Value
-
 	for i := 0; i < cg.subscribers.Len(); i++ {
 		if cg.subscribers.Value == conn {
 			cg.subscribers = cg.subscribers.Prev()
 			cg.subscribers.Unlink(1)
 			break
-		}
-		cg.subscribers = cg.subscribers.Next()
-	}
-
-	// Restore the pointer back to the previous location
-	for i := 0; i < cg.subscribers.Len(); i++ {
-		if cg.subscribers.Value == curr {
-			return
 		}
 		cg.subscribers = cg.subscribers.Next()
 	}

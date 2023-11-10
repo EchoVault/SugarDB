@@ -20,7 +20,7 @@ import (
 
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-	"github.com/kelvinmwinuka/memstore/server/utils"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
 type Plugin interface {
@@ -97,7 +97,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 					continue
 				}
 
-				connRW.Write([]byte("+SUBSCRIBED\r\n\n"))
+				connRW.Write([]byte("+OK\r\n\n"))
 				connRW.Flush()
 				continue
 			}
@@ -115,7 +115,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 					continue
 				}
 
-				connRW.Write([]byte(":1\r\n\n"))
+				connRW.Write([]byte("+OK\r\n\n"))
 				connRW.Flush()
 				continue
 			}
@@ -155,6 +155,8 @@ func (server *Server) handleConnection(conn net.Conn) {
 
 				connRW.Write(r.Response)
 				connRW.Flush()
+
+				// TODO: Add command to AOF
 			} else {
 				// TODO: Forward message to leader and wait for a response
 				connRW.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\n"))

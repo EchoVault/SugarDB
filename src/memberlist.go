@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-	"github.com/kelvinmwinuka/memstore/server/utils"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 	"github.com/sethvargo/go-retry"
 )
 

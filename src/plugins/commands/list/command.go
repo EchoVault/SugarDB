@@ -6,7 +6,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/kelvinmwinuka/memstore/server/utils"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
 const (
