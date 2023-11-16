@@ -186,7 +186,9 @@ func (server *Server) Restore(snapshot io.ReadCloser) error {
 	}
 
 	for k, v := range data {
-		server.SetData(k, v)
+		server.keyLocks[k].Lock()
+		server.SetValue(k, v)
+		server.keyLocks[k].Unlock()
 	}
 
 	return nil
@@ -196,10 +198,7 @@ func (server *Server) Restore(snapshot io.ReadCloser) error {
 func (server *Server) Persist(sink raft.SnapshotSink) error {
 	data := map[string]interface{}{}
 
-	server.data.Range(func(key, value any) bool {
-		data[key.(string)] = value
-		return true
-	})
+	// TODO: Copy current store contents
 
 	o, err := json.Marshal(data)
 

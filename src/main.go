@@ -31,8 +31,11 @@ type Plugin interface {
 }
 
 type Server struct {
-	config  utils.Config
-	data    sync.Map
+	config utils.Config
+
+	store    map[string]interface{}
+	keyLocks map[string]*sync.RWMutex
+
 	plugins []Plugin
 
 	raft *raft.Raft
@@ -46,18 +49,37 @@ type Server struct {
 	cancelCh *chan (os.Signal)
 }
 
-func (server *Server) GetData(key string) interface{} {
-	value, ok := server.data.Load(key)
-
-	if !ok {
-		return nil
-	}
-
-	return value
+func (server *Server) KeyLock(key string) {
+	server.keyLocks[key].Lock()
 }
 
-func (server *Server) SetData(key string, value interface{}) {
-	server.data.Store(key, value)
+func (server *Server) KeyUnlock(key string) {
+	server.keyLocks[key].Unlock()
+}
+
+func (server *Server) KeyRLock(key string) {
+	server.keyLocks[key].RLock()
+}
+
+func (server *Server) KeyRUnlock(key string) {
+	server.keyLocks[key].RUnlock()
+}
+
+func (server *Server) KeyExists(key string) bool {
+	return server.keyLocks[key] != nil
+}
+
+func (server *Server) CreateKey(key string, value interface{}) {
+	server.keyLocks[key] = &sync.RWMutex{}
+	server.store[key] = value
+}
+
+func (server *Server) GetValue(key string) interface{} {
+	return server.store[key]
+}
+
+func (server *Server) SetValue(key string, value interface{}) {
+	server.store[key] = value
 }
 
 func (server *Server) handleConnection(conn net.Conn) {
@@ -97,7 +119,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 					continue
 				}
 
-				connRW.Write([]byte("+OK\r\n\n"))
+				connRW.Write([]byte("+SUBSCRIBE_OK\r\n\n"))
 				connRW.Flush()
 				continue
 			}
@@ -291,6 +313,9 @@ func (server *Server) LoadPlugins() {
 
 func (server *Server) Start() {
 	conf := server.config
+
+	server.store = make(map[string]interface{})
+	server.keyLocks = make(map[string]*sync.RWMutex)
 
 	server.LoadPlugins()
 

@@ -4,13 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
 type Server interface {
-	GetData(key string) interface{}
-	SetData(key string, value interface{})
+	KeyLock(key string)
+	KeyUnlock(key string)
+	KeyRLock(key string)
+	KeyRUnlock(key string)
+	KeyExists(key string) bool
+	CreateKey(key string, value interface{})
+	GetValue(key string) interface{}
+	SetValue(key string, value interface{})
 }
 
 type plugin struct {
@@ -39,8 +43,6 @@ func (p *plugin) HandleCommand(cmd []string, server interface{}) ([]byte, error)
 		return nil, errors.New("command unknown")
 	case "get":
 		return handleGet(cmd, server.(Server))
-	case "set":
-		return handleSet(cmd, server.(Server))
 	case "mget":
 		return handleMGet(cmd, server.(Server))
 	}
@@ -51,7 +53,9 @@ func handleGet(cmd []string, s Server) ([]byte, error) {
 		return nil, errors.New("wrong number of args for GET command")
 	}
 
-	value := s.GetData(cmd[1])
+	s.KeyRLock(cmd[1])
+	value := s.GetValue(cmd[1])
+	s.KeyRUnlock(cmd[1])
 
 	switch value.(type) {
 	default:
@@ -69,12 +73,14 @@ func handleMGet(cmd []string, s Server) ([]byte, error) {
 	vals := []string{}
 
 	for _, key := range cmd[1:] {
-		switch s.GetData(key).(type) {
+		s.KeyRLock(key)
+		switch s.GetValue(key).(type) {
 		default:
-			vals = append(vals, fmt.Sprintf("%v", s.GetData(key)))
+			vals = append(vals, fmt.Sprintf("%v", s.GetValue(key)))
 		case nil:
 			vals = append(vals, "nil")
 		}
+		s.KeyRUnlock(key)
 	}
 
 	var bytes []byte = []byte(fmt.Sprintf("*%d\r\n", len(vals)))
@@ -88,20 +94,8 @@ func handleMGet(cmd []string, s Server) ([]byte, error) {
 	return bytes, nil
 }
 
-func handleSet(cmd []string, s Server) ([]byte, error) {
-	switch x := len(cmd); {
-	default:
-		return nil, errors.New("wrong number of args for SET command")
-	case x == 3:
-
-		s.SetData(cmd[1], utils.AdaptType(cmd[2]))
-
-		return []byte("+OK\r\n\n"), nil
-	}
-}
-
 func init() {
 	Plugin.name = "GetCommand"
-	Plugin.commands = []string{"set", "get", "mget"}
-	Plugin.description = "Handle basic SET, GET and MGET commands"
+	Plugin.commands = []string{"get", "mget"}
+	Plugin.description = "Handle basic GET and MGET commands"
 }

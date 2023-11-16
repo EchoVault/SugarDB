@@ -7,8 +7,13 @@ const (
 )
 
 type Server interface {
-	GetData(key string) interface{}
-	SetData(key string, value interface{})
+	KeyLock(key string)
+	KeyUnlock(key string)
+	KeyRLock(key string)
+	KeyRUnlock(key string)
+	CreateKey(key string, value interface{})
+	GetValue(key string) interface{}
+	SetValue(key string, value interface{})
 }
 
 type plugin struct {
