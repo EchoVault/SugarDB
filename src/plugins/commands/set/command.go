@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"strings"
 )
@@ -43,6 +44,8 @@ func (p *plugin) HandleCommand(cmd []string, server interface{}) ([]byte, error)
 		return nil, errors.New("command unknown")
 	case "set":
 		return handleSet(cmd, server.(Server))
+	case "setnx":
+		return handleSetNX(cmd, server.(Server))
 	}
 }
 
@@ -62,8 +65,29 @@ func handleSet(cmd []string, s Server) ([]byte, error) {
 	}
 }
 
+func handleSetNX(cmd []string, s Server) ([]byte, error) {
+	switch x := len(cmd); {
+	default:
+		return nil, errors.New("wrong number of args for SETNX command")
+	case x == 3:
+		if s.KeyExists(cmd[1]) {
+			return nil, fmt.Errorf("key %s already exists", cmd[1])
+		}
+		s.CreateKey(cmd[1], utils.AdaptType(cmd[2]))
+	}
+	return []byte("+OK\r\n\n"), nil
+}
+
 func init() {
 	Plugin.name = "SetCommand"
-	Plugin.commands = []string{"set"}
+	Plugin.commands = []string{
+		"set",      // (SET key value) Set the value of a key, considering the value's type.
+		"setnx",    // (SETNX key value) Set the key/value only if the key doesn't exist.
+		"mset",     // (MSET key value [key value ...]) Automatically set or modify multiple key/value pairs.
+		"msetnx",   // (MSETNX key value [key value ...]) Automatically set the values of one or more keys only when all keys don't exist.
+		"setrange", // (SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.
+		"strlen",   // (STRLEN key) Returns length of the key's value if it's a string.
+		"substr",   // (SUBSTR key start end) Returns a substring from the string value.
+	}
 	Plugin.description = "Handle basic SET commands"
 }
