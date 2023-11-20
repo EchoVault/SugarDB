@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
@@ -8,9 +9,9 @@ import (
 )
 
 type Server interface {
-	KeyLock(key string)
+	KeyLock(ctx context.Context, key string) (bool, error)
 	KeyUnlock(key string)
-	KeyRLock(key string)
+	KeyRLock(ctx context.Context, key string) (bool, error)
 	KeyRUnlock(key string)
 	KeyExists(key string) bool
 	CreateKey(key string, value interface{})
@@ -38,24 +39,29 @@ func (p *plugin) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommand(cmd []string, server interface{}) ([]byte, error) {
+func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		return nil, errors.New("command unknown")
 	case "set":
-		return handleSet(cmd, server.(Server))
+		return handleSet(ctx, cmd, server.(Server))
 	case "setnx":
-		return handleSetNX(cmd, server.(Server))
+		return handleSetNX(ctx, cmd, server.(Server))
+	case "mset":
+		return handleMSet(ctx, cmd, server.(Server))
 	}
 }
 
-func handleSet(cmd []string, s Server) ([]byte, error) {
+func handleSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	switch x := len(cmd); {
 	default:
 		return nil, errors.New("wrong number of args for SET command")
 	case x == 3:
 		if s.KeyExists(cmd[1]) {
-			s.KeyLock(cmd[1])
+			s.KeyLock(ctx, cmd[1])
 			s.SetValue(cmd[1], utils.AdaptType(cmd[2]))
 			s.KeyUnlock(cmd[1])
 		} else {
@@ -65,7 +71,7 @@ func handleSet(cmd []string, s Server) ([]byte, error) {
 	}
 }
 
-func handleSetNX(cmd []string, s Server) ([]byte, error) {
+func handleSetNX(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	switch x := len(cmd); {
 	default:
 		return nil, errors.New("wrong number of args for SETNX command")
@@ -75,6 +81,10 @@ func handleSetNX(cmd []string, s Server) ([]byte, error) {
 		}
 		s.CreateKey(cmd[1], utils.AdaptType(cmd[2]))
 	}
+	return []byte("+OK\r\n\n"), nil
+}
+
+func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	return []byte("+OK\r\n\n"), nil
 }
 

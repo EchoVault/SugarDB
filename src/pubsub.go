@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"container/ring"
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
-// Consumer group allows multiple subscribers to share the consumption load of a channel.
+// ConsumerGroup allows multiple subscribers to share the consumption load of a channel.
 // Only one subscriber in the consumer group will receive messages published to the channel.
 type ConsumerGroup struct {
 	name             string
@@ -226,7 +227,7 @@ func NewPubSub() *PubSub {
 	}
 }
 
-func (ps *PubSub) Subscribe(conn *net.Conn, channelName interface{}, consumerGroup interface{}) {
+func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channelName interface{}, consumerGroup interface{}) {
 	// If no channel name is given, subscribe to all channels
 	if channelName == nil {
 		for _, channel := range ps.channels {
@@ -257,7 +258,7 @@ func (ps *PubSub) Subscribe(conn *net.Conn, channelName interface{}, consumerGro
 	}
 }
 
-func (ps *PubSub) Unsubscribe(conn *net.Conn, channelName interface{}) {
+func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channelName interface{}) {
 	if channelName == nil {
 		for _, channel := range ps.channels {
 			go channel.Unsubscribe(conn)
@@ -274,7 +275,7 @@ func (ps *PubSub) Unsubscribe(conn *net.Conn, channelName interface{}) {
 	}
 }
 
-func (ps *PubSub) Publish(message string, channelName interface{}) {
+func (ps *PubSub) Publish(ctx context.Context, message string, channelName interface{}) {
 	if channelName == nil {
 		for _, channel := range ps.channels {
 			go channel.Publish(message)

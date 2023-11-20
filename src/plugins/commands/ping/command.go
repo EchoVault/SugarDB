@@ -1,6 +1,9 @@
 package main
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 const (
 	OK = "+OK\r\n\n"
@@ -36,7 +39,7 @@ func (p *plugin) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommand(cmd []string, server interface{}) ([]byte, error) {
+func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
 	switch len(cmd) {
 	default:
 		return nil, errors.New("wrong number of arguments for PING command")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"plugin"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -27,11 +29,13 @@ type Plugin interface {
 	Name() string
 	Commands() []string
 	Description() string
-	HandleCommand(cmd []string, server interface{}) ([]byte, error)
+	HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error)
 }
 
 type Server struct {
 	config utils.Config
+
+	connID atomic.Uint64
 
 	store    map[string]interface{}
 	keyLocks map[string]*sync.RWMutex
@@ -49,16 +53,40 @@ type Server struct {
 	cancelCh *chan (os.Signal)
 }
 
-func (server *Server) KeyLock(key string) {
-	server.keyLocks[key].Lock()
+func (server *Server) KeyLock(ctx context.Context, key string) (bool, error) {
+	ticker := time.NewTicker(5 * time.Millisecond)
+	for {
+		select {
+		default:
+			ok := server.keyLocks[key].TryLock()
+			if ok {
+				return true, nil
+			}
+		case <-ctx.Done():
+			return false, context.Cause(ctx)
+		}
+		<-ticker.C
+	}
 }
 
 func (server *Server) KeyUnlock(key string) {
 	server.keyLocks[key].Unlock()
 }
 
-func (server *Server) KeyRLock(key string) {
-	server.keyLocks[key].RLock()
+func (server *Server) KeyRLock(ctx context.Context, key string) (bool, error) {
+	ticker := time.NewTicker(5 * time.Millisecond)
+	for {
+		select {
+		default:
+			ok := server.keyLocks[key].TryRLock()
+			if ok {
+				return true, nil
+			}
+		case <-ctx.Done():
+			return false, context.Cause(ctx)
+		}
+		<-ticker.C
+	}
 }
 
 func (server *Server) KeyRUnlock(key string) {
@@ -82,14 +110,19 @@ func (server *Server) SetValue(key string, value interface{}) {
 	server.store[key] = value
 }
 
-func (server *Server) handleConnection(conn net.Conn) {
+func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+
+	cid := server.connID.Add(1)
+	ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"),
+		fmt.Sprintf("%s-%d", ctx.Value(utils.ContextServerID("ServerID")), cid))
 
 	for {
 		message, err := utils.ReadMessage(connRW)
 
 		if err != nil && err == io.EOF {
 			// Connection closed
+			server.pubSub.Unsubscribe(ctx, &conn, nil)
 			break
 		}
 
@@ -108,11 +141,11 @@ func (server *Server) handleConnection(conn net.Conn) {
 			if strings.EqualFold(cmd[0], "subscribe") {
 				switch len(cmd) {
 				case 1:
-					server.pubSub.Subscribe(&conn, nil, nil)
+					server.pubSub.Subscribe(ctx, &conn, nil, nil)
 				case 2:
-					server.pubSub.Subscribe(&conn, cmd[1], nil)
+					server.pubSub.Subscribe(ctx, &conn, cmd[1], nil)
 				case 3:
-					server.pubSub.Subscribe(&conn, cmd[1], cmd[2])
+					server.pubSub.Subscribe(ctx, &conn, cmd[1], cmd[2])
 				default:
 					connRW.Write([]byte("-Error wrong number of arguments\r\n\n"))
 					connRW.Flush()
@@ -128,9 +161,9 @@ func (server *Server) handleConnection(conn net.Conn) {
 			if strings.EqualFold(cmd[0], "unsubscribe") {
 				switch len(cmd) {
 				case 1:
-					server.pubSub.Unsubscribe(&conn, nil)
+					server.pubSub.Unsubscribe(ctx, &conn, nil)
 				case 2:
-					server.pubSub.Unsubscribe(&conn, cmd[1])
+					server.pubSub.Unsubscribe(ctx, &conn, cmd[1])
 				default:
 					connRW.Write([]byte("-Error wrong number of arguments\r\n\n"))
 					connRW.Flush()
@@ -143,7 +176,15 @@ func (server *Server) handleConnection(conn net.Conn) {
 			}
 
 			// Handle other commands that need to be synced across the cluster
-			applyRequest := utils.ApplyRequest{CMD: cmd}
+			serverId, _ := ctx.Value(utils.ContextServerID("ServerID")).(string)
+			connectionId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
+
+			applyRequest := utils.ApplyRequest{
+				ServerID:     serverId,
+				ConnectionID: connectionId,
+				CMD:          cmd,
+			}
+
 			b, err := json.Marshal(applyRequest)
 
 			if err != nil {
@@ -190,7 +231,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 	conn.Close()
 }
 
-func (server *Server) StartTCP() {
+func (server *Server) StartTCP(ctx context.Context) {
 	conf := server.config
 	var listener net.Listener
 
@@ -229,11 +270,11 @@ func (server *Server) StartTCP() {
 			continue
 		}
 		// Read loop for connection
-		go server.handleConnection(conn)
+		go server.handleConnection(ctx, conn)
 	}
 }
 
-func (server *Server) StartHTTP() {
+func (server *Server) StartHTTP(ctx context.Context) {
 	conf := server.config
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -255,7 +296,7 @@ func (server *Server) StartHTTP() {
 	}
 }
 
-func (server *Server) LoadPlugins() {
+func (server *Server) LoadPlugins(ctx context.Context) {
 	conf := server.config
 
 	// Load plugins /usr/local/lib/memstore
@@ -304,6 +345,7 @@ func (server *Server) LoadPlugins() {
 						}
 					}
 
+					fmt.Println(plugin)
 					server.plugins = append(server.plugins, plugin)
 				}
 			}
@@ -311,36 +353,38 @@ func (server *Server) LoadPlugins() {
 	}
 }
 
-func (server *Server) Start() {
+func (server *Server) Start(ctx context.Context) {
 	conf := server.config
 
 	server.store = make(map[string]interface{})
 	server.keyLocks = make(map[string]*sync.RWMutex)
 
-	server.LoadPlugins()
+	server.LoadPlugins(ctx)
 
 	if conf.TLS && (len(conf.Key) <= 0 || len(conf.Cert) <= 0) {
 		fmt.Println("Must provide key and certificate file paths for TLS mode.")
 		return
 	}
 
-	server.RaftInit()
-	server.MemberListInit()
+	server.RaftInit(ctx)
+	server.MemberListInit(ctx)
 
 	if conf.HTTP {
-		server.StartHTTP()
+		server.StartHTTP(ctx)
 	} else {
-		server.StartTCP()
+		server.StartTCP(ctx)
 	}
 }
 
-func (server *Server) ShutDown() {
-	server.RaftShutdown()
-	server.MemberListShutdown()
+func (server *Server) ShutDown(ctx context.Context) {
+	server.RaftShutdown(ctx)
+	server.MemberListShutdown(ctx)
 }
 
 func main() {
 	config := utils.GetConfig()
+
+	ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), config.ServerID)
 
 	// Default BindAddr if it's not set
 	if config.BindAddr == "" {
@@ -357,6 +401,8 @@ func main() {
 	server := &Server{
 		config: config,
 
+		connID: atomic.Uint64{},
+
 		broadcastQueue: new(memberlist.TransmitLimitedQueue),
 		numOfNodes:     0,
 
@@ -365,9 +411,9 @@ func main() {
 		cancelCh: &cancelCh,
 	}
 
-	go server.Start()
+	go server.Start(ctx)
 
 	<-cancelCh
 
-	server.ShutDown()
+	server.ShutDown(ctx)
 }

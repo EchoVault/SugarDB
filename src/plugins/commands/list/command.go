@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -15,9 +16,9 @@ const (
 )
 
 type Server interface {
-	KeyLock(key string)
+	KeyLock(ctx context.Context, key string) (bool, error)
 	KeyUnlock(key string)
-	KeyRLock(key string)
+	KeyRLock(ctx context.Context, key string) (bool, error)
 	KeyRUnlock(key string)
 	KeyExists(key string) bool
 	CreateKey(key string, value interface{})
@@ -45,45 +46,45 @@ func (p *plugin) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommand(cmd []string, server interface{}) ([]byte, error) {
+func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
 	c := strings.ToLower(cmd[0])
 
 	switch {
 	default:
 		return nil, errors.New("command unknown")
 	case c == "llen":
-		return handleLLen(cmd, server.(Server))
+		return handleLLen(ctx, cmd, server.(Server))
 
 	case c == "lindex":
-		return handleLIndex(cmd, server.(Server))
+		return handleLIndex(ctx, cmd, server.(Server))
 
 	case c == "lrange":
-		return handleLRange(cmd, server.(Server))
+		return handleLRange(ctx, cmd, server.(Server))
 
 	case c == "lset":
-		return handleLSet(cmd, server.(Server))
+		return handleLSet(ctx, cmd, server.(Server))
 
 	case c == "ltrim":
-		return handleLTrim(cmd, server.(Server))
+		return handleLTrim(ctx, cmd, server.(Server))
 
 	case c == "lrem":
-		return handleLRem(cmd, server.(Server))
+		return handleLRem(ctx, cmd, server.(Server))
 
 	case c == "lmove":
-		return handleLMove(cmd, server.(Server))
+		return handleLMove(ctx, cmd, server.(Server))
 
 	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
-		return handleLPush(cmd, server.(Server))
+		return handleLPush(ctx, cmd, server.(Server))
 
 	case utils.Contains[string]([]string{"rpush", "rpushx"}, c):
-		return handleRPush(cmd, server.(Server))
+		return handleRPush(ctx, cmd, server.(Server))
 
 	case utils.Contains[string]([]string{"lpop", "rpop"}, c):
-		return handlePop(cmd, server.(Server))
+		return handlePop(ctx, cmd, server.(Server))
 	}
 }
 
-func handleLLen(cmd []string, server Server) ([]byte, error) {
+func handleLLen(ctx context.Context, cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, errors.New("wrong number of args for LLEN command")
 	}
@@ -93,9 +94,9 @@ func handleLLen(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("LLEN command on non-list item")
 	}
 
-	server.KeyRLock(cmd[1])
+	server.KeyRLock(ctx, cmd[1])
 	list, ok := server.GetValue(cmd[1]).([]interface{})
-	server.KeyRLock(cmd[1])
+	server.KeyRUnlock(cmd[1])
 
 	if !ok {
 		return nil, errors.New("LLEN command on non-list item")
@@ -104,7 +105,7 @@ func handleLLen(cmd []string, server Server) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n\n", len(list))), nil
 }
 
-func handleLIndex(cmd []string, server Server) ([]byte, error) {
+func handleLIndex(ctx context.Context, cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New("wrong number of args for LINDEX command")
 	}
@@ -119,7 +120,7 @@ func handleLIndex(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("LINDEX command on non-list item")
 	}
 
-	server.KeyRLock(cmd[1])
+	server.KeyRLock(ctx, cmd[1])
 	list, ok := server.GetValue(cmd[1]).([]interface{})
 	server.KeyRUnlock(cmd[1])
 
@@ -134,7 +135,7 @@ func handleLIndex(cmd []string, server Server) ([]byte, error) {
 	return []byte(fmt.Sprintf("+%s\r\n\n", list[index])), nil
 }
 
-func handleLRange(cmd []string, server Server) ([]byte, error) {
+func handleLRange(ctx context.Context, cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New("wrong number of arguments for LRANGE command")
 	}
@@ -150,7 +151,7 @@ func handleLRange(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("LRANGE command on non-list item")
 	}
 
-	server.KeyRLock(cmd[1])
+	server.KeyRLock(ctx, cmd[1])
 	list, ok := server.GetValue(cmd[1]).([]interface{})
 	server.KeyRUnlock(cmd[1])
 
@@ -213,7 +214,7 @@ func handleLRange(cmd []string, server Server) ([]byte, error) {
 	return bytes, nil
 }
 
-func handleLSet(cmd []string, server Server) ([]byte, error) {
+func handleLSet(ctx context.Context, cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New("wrong number of arguments for LSET command")
 	}
@@ -222,7 +223,7 @@ func handleLSet(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("LSET command on non-list item")
 	}
 
-	server.KeyLock(cmd[1])
+	server.KeyLock(ctx, cmd[1])
 	list, ok := server.GetValue(cmd[1]).([]interface{})
 
 	if !ok {
@@ -251,7 +252,7 @@ func handleLSet(cmd []string, server Server) ([]byte, error) {
 	return []byte(OK), nil
 }
 
-func handleLTrim(cmd []string, server Server) ([]byte, error) {
+func handleLTrim(ctx context.Context, cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New("wrong number of args for command LTRIM")
 	}
@@ -271,7 +272,7 @@ func handleLTrim(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("LTRIM command on non-list item")
 	}
 
-	server.KeyLock(cmd[1])
+	server.KeyLock(ctx, cmd[1])
 	list, ok := server.GetValue(cmd[1]).([]interface{})
 
 	if !ok {
@@ -293,7 +294,7 @@ func handleLTrim(cmd []string, server Server) ([]byte, error) {
 	return []byte(OK), nil
 }
 
-func handleLRem(cmd []string, server Server) ([]byte, error) {
+func handleLRem(ctx context.Context, cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New("wrong number of arguments for LREM command")
 	}
@@ -311,7 +312,7 @@ func handleLRem(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("LREM command on non-list item")
 	}
 
-	server.KeyLock(cmd[1])
+	server.KeyLock(ctx, cmd[1])
 	list, ok := server.GetValue(cmd[1]).([]interface{})
 
 	if !ok {
@@ -355,7 +356,7 @@ func handleLRem(cmd []string, server Server) ([]byte, error) {
 	return []byte(OK), nil
 }
 
-func handleLMove(cmd []string, server Server) ([]byte, error) {
+func handleLMove(ctx context.Context, cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 5 {
 		return nil, errors.New("wrong number of arguments for LMOVE command")
 	}
@@ -371,8 +372,9 @@ func handleLMove(cmd []string, server Server) ([]byte, error) {
 		return nil, errors.New("both source and destination must be lists")
 	}
 
-	server.KeyLock(cmd[1])
-	server.KeyLock(cmd[2])
+	// TODO: Make this atomic
+	server.KeyLock(ctx, cmd[1])
+	server.KeyLock(ctx, cmd[2])
 	source, sourceOk := server.GetValue(cmd[1]).([]interface{})
 	destination, destinationOk := server.GetValue(cmd[2]).([]interface{})
 
@@ -403,7 +405,7 @@ func handleLMove(cmd []string, server Server) ([]byte, error) {
 	return []byte(OK), nil
 }
 
-func handleLPush(cmd []string, server Server) ([]byte, error) {
+func handleLPush(ctx context.Context, cmd []string, server Server) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, fmt.Errorf("wrong number of arguments for %s command", strings.ToUpper(cmd[0]))
 	}
@@ -423,7 +425,9 @@ func handleLPush(cmd []string, server Server) ([]byte, error) {
 		}
 	}
 
-	server.KeyLock(cmd[1])
+	server.KeyLock(ctx, cmd[1])
+	defer server.KeyUnlock(cmd[1])
+
 	currentList := server.GetValue(cmd[1])
 
 	l, ok := currentList.([]interface{})
@@ -433,11 +437,10 @@ func handleLPush(cmd []string, server Server) ([]byte, error) {
 	}
 
 	server.SetValue(cmd[1], append(newElems, l...))
-	server.KeyUnlock(cmd[1])
 	return []byte(OK), nil
 }
 
-func handleRPush(cmd []string, server Server) ([]byte, error) {
+func handleRPush(ctx context.Context, cmd []string, server Server) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, fmt.Errorf("wrong number of arguments for %s command", strings.ToUpper(cmd[0]))
 	}
@@ -457,7 +460,9 @@ func handleRPush(cmd []string, server Server) ([]byte, error) {
 		}
 	}
 
-	server.KeyLock(cmd[1])
+	server.KeyLock(ctx, cmd[1])
+	defer server.KeyUnlock(cmd[1])
+
 	currentList := server.GetValue(cmd[1])
 
 	l, ok := currentList.([]interface{})
@@ -467,11 +472,10 @@ func handleRPush(cmd []string, server Server) ([]byte, error) {
 	}
 
 	server.SetValue(cmd[1], append(l, newElems...))
-	server.KeyUnlock(cmd[1])
 	return []byte(OK), nil
 }
 
-func handlePop(cmd []string, server Server) ([]byte, error) {
+func handlePop(ctx context.Context, cmd []string, server Server) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, fmt.Errorf("wrong number of args for %s command", strings.ToUpper(cmd[0]))
 	}
@@ -484,7 +488,9 @@ func handlePop(cmd []string, server Server) ([]byte, error) {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
 	}
 
-	server.KeyLock(cmd[1])
+	server.KeyLock(ctx, cmd[1])
+	defer server.KeyUnlock(cmd[1])
+
 	list, ok := server.GetValue(cmd[1]).([]interface{})
 
 	if !ok {
@@ -494,11 +500,9 @@ func handlePop(cmd []string, server Server) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		server.SetValue(cmd[1], list[1:])
-		server.KeyUnlock(cmd[1])
 		return []byte(fmt.Sprintf("+%v\r\n\n", list[0])), nil
 	case "rpop":
 		server.SetValue(cmd[1], list[:len(list)-1])
-		server.KeyUnlock(cmd[1])
 		return []byte(fmt.Sprintf("+%v\r\n\n", list[len(list)-1])), nil
 	}
 

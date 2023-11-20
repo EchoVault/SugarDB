@@ -1,15 +1,16 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 )
 
 type Server interface {
-	KeyLock(key string)
+	KeyLock(ctx context.Context, key string) (bool, error)
 	KeyUnlock(key string)
-	KeyRLock(key string)
+	KeyRLock(ctx context.Context, key string) (bool, error)
 	KeyRUnlock(key string)
 	KeyExists(key string) bool
 	CreateKey(key string, value interface{})
@@ -37,23 +38,23 @@ func (p *plugin) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommand(cmd []string, server interface{}) ([]byte, error) {
+func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		return nil, errors.New("command unknown")
 	case "get":
-		return handleGet(cmd, server.(Server))
+		return handleGet(ctx, cmd, server.(Server))
 	case "mget":
-		return handleMGet(cmd, server.(Server))
+		return handleMGet(ctx, cmd, server.(Server))
 	}
 }
 
-func handleGet(cmd []string, s Server) ([]byte, error) {
+func handleGet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, errors.New("wrong number of args for GET command")
 	}
 
-	s.KeyRLock(cmd[1])
+	s.KeyRLock(ctx, cmd[1])
 	value := s.GetValue(cmd[1])
 	s.KeyRUnlock(cmd[1])
 
@@ -65,7 +66,7 @@ func handleGet(cmd []string, s Server) ([]byte, error) {
 	}
 }
 
-func handleMGet(cmd []string, s Server) ([]byte, error) {
+func handleMGet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	if len(cmd) < 2 {
 		return nil, errors.New("wrong number of args for MGET command")
 	}
@@ -73,7 +74,7 @@ func handleMGet(cmd []string, s Server) ([]byte, error) {
 	vals := []string{}
 
 	for _, key := range cmd[1:] {
-		s.KeyRLock(key)
+		s.KeyRLock(ctx, key)
 		switch s.GetValue(key).(type) {
 		default:
 			vals = append(vals, fmt.Sprintf("%v", s.GetValue(key)))

@@ -57,7 +57,7 @@ func (broadcastMessage *BroadcastMessage) Finished() {
 	// No-Op
 }
 
-func (server *Server) MemberListInit() {
+func (server *Server) MemberListInit(ctx context.Context) {
 	cfg := memberlist.DefaultLocalConfig()
 	cfg.BindAddr = server.config.BindAddr
 	cfg.BindPort = int(server.config.MemberListBindPort)
@@ -77,8 +77,6 @@ func (server *Server) MemberListInit() {
 	}
 
 	if server.config.JoinAddr != "" {
-		ctx := context.Background()
-
 		backoffPolicy := utils.RetryBackoff(retry.NewFibonacci(1*time.Second), 5, 200*time.Millisecond, 0, 0)
 
 		err := retry.Do(ctx, backoffPolicy, func(ctx context.Context) error {
@@ -93,11 +91,11 @@ func (server *Server) MemberListInit() {
 			log.Fatal(err)
 		}
 
-		go server.broadcastRaftAddress()
+		go server.broadcastRaftAddress(ctx)
 	}
 }
 
-func (server *Server) broadcastRaftAddress() {
+func (server *Server) broadcastRaftAddress(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 
 	for {
@@ -207,7 +205,7 @@ func (server *Server) NotifyUpdate(node *memberlist.Node) {
 	// No-Op
 }
 
-func (server *Server) MemberListShutdown() {
+func (server *Server) MemberListShutdown(ctx context.Context) {
 	// Gracefully leave memberlist cluster
 	err := server.memberList.Leave(500 * time.Millisecond)
 

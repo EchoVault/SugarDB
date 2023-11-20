@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,7 +19,7 @@ import (
 	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
-func (server *Server) RaftInit() {
+func (server *Server) RaftInit(ctx context.Context) {
 	conf := server.config
 
 	raftConfig := raft.DefaultConfig()
@@ -119,12 +120,15 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 			}
 		}
 
+		ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), request.ServerID)
+		ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"), request.ConnectionID)
+
 		switch strings.ToLower(request.CMD[0]) {
 		case "publish":
 			if len(request.CMD) == 3 {
-				server.pubSub.Publish(request.CMD[2], request.CMD[1])
+				server.pubSub.Publish(ctx, request.CMD[2], request.CMD[1])
 			} else if len(request.CMD) == 2 {
-				server.pubSub.Publish(request.CMD[1], nil)
+				server.pubSub.Publish(ctx, request.CMD[1], nil)
 			} else {
 				return utils.ApplyResponse{
 					Error:    errors.New("wrong number of args"),
@@ -139,7 +143,7 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 			// Look for plugin that handles this command and trigger it
 			for _, plugin := range server.plugins {
 				if utils.Contains[string](plugin.Commands(), strings.ToLower(request.CMD[0])) {
-					res, err := plugin.HandleCommand(request.CMD, server)
+					res, err := plugin.HandleCommand(ctx, request.CMD, server)
 
 					if err != nil {
 						return utils.ApplyResponse{
@@ -278,7 +282,7 @@ func (server *Server) removeServer(meta NodeMeta) error {
 	return nil
 }
 
-func (server *Server) RaftShutdown() {
+func (server *Server) RaftShutdown(ctx context.Context) {
 	// Leadership transfer if current node is the leader
 	if server.isRaftLeader() {
 		err := server.raft.LeadershipTransfer().Error()
