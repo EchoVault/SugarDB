@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"strings"
+	"time"
 )
 
 type Server interface {
@@ -60,13 +61,17 @@ func handleSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	default:
 		return nil, errors.New("wrong number of args for SET command")
 	case x == 3:
-		if s.KeyExists(cmd[1]) {
-			s.KeyLock(ctx, cmd[1])
-			s.SetValue(cmd[1], utils.AdaptType(cmd[2]))
-			s.KeyUnlock(cmd[1])
-		} else {
+		if !s.KeyExists(cmd[1]) {
 			s.CreateKey(cmd[1], utils.AdaptType(cmd[2]))
+			return []byte("+OK\r\n\n"), nil
 		}
+
+		if _, err := s.KeyLock(ctx, cmd[1]); err != nil {
+			return nil, err
+		}
+
+		s.SetValue(cmd[1], utils.AdaptType(cmd[2]))
+		s.KeyUnlock(cmd[1])
 		return []byte("+OK\r\n\n"), nil
 	}
 }
@@ -85,6 +90,17 @@ func handleSetNX(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 }
 
 func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
+	defer cancel()
+
+	// Extract all the key, value pairs
+
+	// Acquire all the locks for each key first
+	// If any key cannot be acquired, abandon transaction and release all currently held keys
+
+	// Set all the values
+	// Release all the locks
+
 	return []byte("+OK\r\n\n"), nil
 }
 
