@@ -13,9 +13,9 @@ type Server interface {
 	KeyRLock(ctx context.Context, key string) (bool, error)
 	KeyRUnlock(key string)
 	KeyExists(key string) bool
-	CreateKey(key string, value interface{})
+	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
 	GetValue(key string) interface{}
-	SetValue(key string, value interface{})
+	SetValue(ctx context.Context, key string, value interface{})
 }
 
 type plugin struct {
@@ -54,9 +54,11 @@ func handleGet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 		return nil, errors.New("wrong number of args for GET command")
 	}
 
-	s.KeyRLock(ctx, cmd[1])
-	value := s.GetValue(cmd[1])
-	s.KeyRUnlock(cmd[1])
+	key := cmd[1]
+
+	s.KeyRLock(ctx, key)
+	value := s.GetValue(key)
+	s.KeyRUnlock(key)
 
 	switch value.(type) {
 	default:
@@ -74,14 +76,17 @@ func handleMGet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	vals := []string{}
 
 	for _, key := range cmd[1:] {
-		s.KeyRLock(ctx, key)
-		switch s.GetValue(key).(type) {
-		default:
-			vals = append(vals, fmt.Sprintf("%v", s.GetValue(key)))
-		case nil:
-			vals = append(vals, "nil")
-		}
-		s.KeyRUnlock(key)
+		func(key string) {
+			s.KeyRLock(ctx, key)
+			switch s.GetValue(key).(type) {
+			default:
+				vals = append(vals, fmt.Sprintf("%v", s.GetValue(key)))
+			case nil:
+				vals = append(vals, "nil")
+			}
+			s.KeyRUnlock(key)
+
+		}(key)
 	}
 
 	var bytes []byte = []byte(fmt.Sprintf("*%d\r\n", len(vals)))

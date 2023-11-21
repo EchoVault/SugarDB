@@ -10,13 +10,14 @@ const (
 )
 
 type Server interface {
-	KeyLock(key string)
+	KeyLock(ctx context.Context, key string) (bool, error)
 	KeyUnlock(key string)
-	KeyRLock(key string)
+	KeyRLock(ctx context.Context, key string) (bool, error)
 	KeyRUnlock(key string)
-	CreateKey(key string, value interface{})
+	KeyExists(key string) bool
+	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
 	GetValue(key string) interface{}
-	SetValue(key string, value interface{})
+	SetValue(ctx context.Context, key string, value interface{})
 }
 
 type plugin struct {

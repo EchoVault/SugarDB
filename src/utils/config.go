@@ -23,6 +23,7 @@ type Config struct {
 	MemberListBindPort uint16 `json:"mlPort" yaml:"mlPort"`
 	InMemory           bool   `json:"inMemory" yaml:"inMemory"`
 	DataDir            string `json:"dataDir" yaml:"dataDir"`
+	BootstrapCluster   bool   `json:"BootstrapCluster" yaml:"bootstrapCluster"`
 }
 
 func GetConfig() Config {
@@ -37,8 +38,10 @@ func GetConfig() Config {
 	bindAddr := flag.String("bindAddr", "", "Address to bind the server to.")
 	raftBindPort := flag.Int("raftPort", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	mlBindPort := flag.Int("mlPort", 7946, "Port to use for memberlist communication.")
-	inMemory := flag.Bool("inMemory", false, "Wether to use memory or persisten storage for raft logs and snapshots.")
+	inMemory := flag.Bool("inMemory", false, "Whether to use memory or persisten storage for raft logs and snapshots.")
 	dataDir := flag.String("dataDir", "/var/lib/memstore", "Directory to store raft snapshots and logs.")
+	bootstrapCluster := flag.Bool("bootstrapCluster", false, "Whether this instance should bootstrap a new cluster.")
+
 	config := flag.String(
 		"config",
 		"",
@@ -61,6 +64,7 @@ func GetConfig() Config {
 		MemberListBindPort: uint16(*mlBindPort),
 		InMemory:           *inMemory,
 		DataDir:            *dataDir,
+		BootstrapCluster:   *bootstrapCluster,
 	}
 
 	if len(*config) > 0 {

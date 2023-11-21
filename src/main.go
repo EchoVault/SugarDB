@@ -37,8 +37,9 @@ type Server struct {
 
 	connID atomic.Uint64
 
-	store    map[string]interface{}
-	keyLocks map[string]*sync.RWMutex
+	store           map[string]interface{}
+	keyLocks        map[string]*sync.RWMutex
+	keyCreationLock *sync.Mutex
 
 	plugins []Plugin
 
@@ -97,16 +98,25 @@ func (server *Server) KeyExists(key string) bool {
 	return server.keyLocks[key] != nil
 }
 
-func (server *Server) CreateKey(key string, value interface{}) {
-	server.keyLocks[key] = &sync.RWMutex{}
-	server.store[key] = value
+func (server *Server) CreateKeyAndLock(ctx context.Context, key string) (bool, error) {
+	server.keyCreationLock.Lock()
+	defer server.keyCreationLock.Unlock()
+
+	if !server.KeyExists(key) {
+		keyLock := &sync.RWMutex{}
+		keyLock.Lock()
+		server.keyLocks[key] = keyLock
+		return true, nil
+	}
+
+	return server.KeyLock(ctx, key)
 }
 
 func (server *Server) GetValue(key string) interface{} {
 	return server.store[key]
 }
 
-func (server *Server) SetValue(key string, value interface{}) {
+func (server *Server) SetValue(ctx context.Context, key string, value interface{}) {
 	server.store[key] = value
 }
 
@@ -358,6 +368,7 @@ func (server *Server) Start(ctx context.Context) {
 
 	server.store = make(map[string]interface{})
 	server.keyLocks = make(map[string]*sync.RWMutex)
+	server.keyCreationLock = &sync.Mutex{}
 
 	server.LoadPlugins(ctx)
 

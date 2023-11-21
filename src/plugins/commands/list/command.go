@@ -21,9 +21,9 @@ type Server interface {
 	KeyRLock(ctx context.Context, key string) (bool, error)
 	KeyRUnlock(key string)
 	KeyExists(key string) bool
-	CreateKey(key string, value interface{})
+	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
 	GetValue(key string) interface{}
-	SetValue(key string, value interface{})
+	SetValue(ctx context.Context, key string, value interface{})
 }
 
 type plugin struct {
@@ -246,7 +246,7 @@ func handleLSet(ctx context.Context, cmd []string, server Server) ([]byte, error
 	}
 
 	list[index] = utils.AdaptType(cmd[3])
-	server.SetValue(cmd[1], list)
+	server.SetValue(ctx, cmd[1], list)
 	server.KeyUnlock(cmd[1])
 
 	return []byte(OK), nil
@@ -284,12 +284,12 @@ func handleLTrim(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	}
 
 	if end == -1 || int(end) > len(list) {
-		server.SetValue(cmd[1], list[start:])
+		server.SetValue(ctx, cmd[1], list[start:])
 		server.KeyUnlock(cmd[1])
 		return []byte(OK), nil
 	}
 
-	server.SetValue(cmd[1], list[start:end])
+	server.SetValue(ctx, cmd[1], list[start:end])
 	server.KeyUnlock(cmd[1])
 	return []byte(OK), nil
 }
@@ -350,7 +350,7 @@ func handleLRem(ctx context.Context, cmd []string, server Server) ([]byte, error
 		return elem != nil
 	})
 
-	server.SetValue(cmd[1], list)
+	server.SetValue(ctx, cmd[1], list)
 	server.KeyUnlock(cmd[1])
 
 	return []byte(OK), nil
@@ -384,18 +384,18 @@ func handleLMove(ctx context.Context, cmd []string, server Server) ([]byte, erro
 
 	switch whereFrom {
 	case "left":
-		server.SetValue(cmd[1], append([]interface{}{}, source[1:]...))
+		server.SetValue(ctx, cmd[1], append([]interface{}{}, source[1:]...))
 		if whereTo == "left" {
-			server.SetValue(cmd[2], append(source[0:1], destination...))
+			server.SetValue(ctx, cmd[2], append(source[0:1], destination...))
 		} else if whereTo == "right" {
-			server.SetValue(cmd[2], append(destination, source[0]))
+			server.SetValue(ctx, cmd[2], append(destination, source[0]))
 		}
 	case "right":
-		server.SetValue(cmd[1], append([]interface{}{}, source[:len(source)-1]...))
+		server.SetValue(ctx, cmd[1], append([]interface{}{}, source[:len(source)-1]...))
 		if whereTo == "left" {
-			server.SetValue(cmd[2], append(source[len(source)-1:], destination...))
+			server.SetValue(ctx, cmd[2], append(source[len(source)-1:], destination...))
 		} else if whereTo == "right" {
-			server.SetValue(cmd[2], append(destination, source[len(source)-1]))
+			server.SetValue(ctx, cmd[2], append(destination, source[len(source)-1]))
 		}
 	}
 
@@ -416,19 +416,22 @@ func handleLPush(ctx context.Context, cmd []string, server Server) ([]byte, erro
 		newElems = append(newElems, utils.AdaptType(elem))
 	}
 
-	if !server.KeyExists(cmd[1]) {
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
 		switch strings.ToLower(cmd[0]) {
 		case "lpushx":
 			return nil, fmt.Errorf("%s command on non-list item", cmd[0])
 		default:
-			server.CreateKey(cmd[1], []interface{}{})
+			// TODO: Retry CreateKeyAndLock until we obtain the key lock
+			server.CreateKeyAndLock(ctx, key)
+			server.SetValue(ctx, key, []interface{}{})
 		}
 	}
 
-	server.KeyLock(ctx, cmd[1])
-	defer server.KeyUnlock(cmd[1])
+	defer server.KeyUnlock(key)
 
-	currentList := server.GetValue(cmd[1])
+	currentList := server.GetValue(key)
 
 	l, ok := currentList.([]interface{})
 
@@ -436,7 +439,7 @@ func handleLPush(ctx context.Context, cmd []string, server Server) ([]byte, erro
 		return nil, fmt.Errorf("%s command on non-list item", cmd[0])
 	}
 
-	server.SetValue(cmd[1], append(newElems, l...))
+	server.SetValue(ctx, key, append(newElems, l...))
 	return []byte(OK), nil
 }
 
@@ -456,11 +459,12 @@ func handleRPush(ctx context.Context, cmd []string, server Server) ([]byte, erro
 		case "rpushx":
 			return nil, fmt.Errorf("%s command on non-list item", cmd[0])
 		default:
-			server.CreateKey(cmd[1], []interface{}{})
+			// TODO: Retry CreateKeyAndLock until we managed to obtain the key
+			server.CreateKeyAndLock(ctx, cmd[1])
+			server.SetValue(ctx, cmd[1], []interface{}{})
 		}
 	}
 
-	server.KeyLock(ctx, cmd[1])
 	defer server.KeyUnlock(cmd[1])
 
 	currentList := server.GetValue(cmd[1])
@@ -471,7 +475,7 @@ func handleRPush(ctx context.Context, cmd []string, server Server) ([]byte, erro
 		return nil, errors.New("RPUSH command on non-list item")
 	}
 
-	server.SetValue(cmd[1], append(l, newElems...))
+	server.SetValue(ctx, cmd[1], append(l, newElems...))
 	return []byte(OK), nil
 }
 
@@ -499,10 +503,10 @@ func handlePop(ctx context.Context, cmd []string, server Server) ([]byte, error)
 
 	switch strings.ToLower(cmd[0]) {
 	default:
-		server.SetValue(cmd[1], list[1:])
+		server.SetValue(ctx, cmd[1], list[1:])
 		return []byte(fmt.Sprintf("+%v\r\n\n", list[0])), nil
 	case "rpop":
-		server.SetValue(cmd[1], list[:len(list)-1])
+		server.SetValue(ctx, cmd[1], list[:len(list)-1])
 		return []byte(fmt.Sprintf("+%v\r\n\n", list[len(list)-1])), nil
 	}
 

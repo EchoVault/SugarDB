@@ -24,3 +24,4 @@ CMD "./server" \
   "--http=${HTTP}" \
   "--tls=${TLS}" \
   "--inMemory=${INMEMORY}" \
+  "--bootstrapCluster=${BOOTSTRAP_CLUSTER}" \

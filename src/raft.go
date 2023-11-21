@@ -88,8 +88,7 @@ func (server *Server) RaftInit(ctx context.Context) {
 
 	server.raft = raftServer
 
-	// TODO: Only bootstrap cluster if --bootstrapCluster=true config is set
-	if conf.JoinAddr == "" {
+	if conf.BootstrapCluster {
 		// Bootstrap raft cluster
 		if err := server.raft.BootstrapCluster(raft.Configuration{
 			Servers: []raft.Server{
@@ -106,7 +105,7 @@ func (server *Server) RaftInit(ctx context.Context) {
 
 }
 
-// Implement raft.FSM interface
+// Apply Implements raft.FSM interface
 func (server *Server) Apply(log *raft.Log) interface{} {
 	switch log.Type {
 	case raft.LogCommand:
@@ -191,7 +190,7 @@ func (server *Server) Restore(snapshot io.ReadCloser) error {
 
 	for k, v := range data {
 		server.keyLocks[k].Lock()
-		server.SetValue(k, v)
+		server.SetValue(context.Background(), k, v)
 		server.keyLocks[k].Unlock()
 	}
 
@@ -256,7 +255,7 @@ func (server *Server) addVoter(
 	}
 
 	for _, s := range raftConfig.Configuration().Servers {
-		// Check if a server already exists with the current attribtues
+		// Check if a server already exists with the current attributes
 		if s.ID == id && s.Address == address {
 			return fmt.Errorf("server with id %s and address %s already exists", id, address)
 		}

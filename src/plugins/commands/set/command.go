@@ -15,9 +15,9 @@ type Server interface {
 	KeyRLock(ctx context.Context, key string) (bool, error)
 	KeyRUnlock(key string)
 	KeyExists(key string) bool
-	CreateKey(key string, value interface{})
+	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
 	GetValue(key string) interface{}
-	SetValue(key string, value interface{})
+	SetValue(ctx context.Context, key string, value interface{})
 }
 
 type plugin struct {
@@ -61,17 +61,22 @@ func handleSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	default:
 		return nil, errors.New("wrong number of args for SET command")
 	case x == 3:
-		if !s.KeyExists(cmd[1]) {
-			s.CreateKey(cmd[1], utils.AdaptType(cmd[2]))
+		key := cmd[1]
+
+		if !s.KeyExists(key) {
+			// TODO: Retry CreateKeyAndLock until we manage to obtain the key
+			s.CreateKeyAndLock(ctx, key)
+			s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+			s.KeyUnlock(key)
 			return []byte("+OK\r\n\n"), nil
 		}
 
-		if _, err := s.KeyLock(ctx, cmd[1]); err != nil {
+		if _, err := s.KeyLock(ctx, key); err != nil {
 			return nil, err
 		}
 
-		s.SetValue(cmd[1], utils.AdaptType(cmd[2]))
-		s.KeyUnlock(cmd[1])
+		s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+		s.KeyUnlock(key)
 		return []byte("+OK\r\n\n"), nil
 	}
 }
@@ -81,10 +86,14 @@ func handleSetNX(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	default:
 		return nil, errors.New("wrong number of args for SETNX command")
 	case x == 3:
-		if s.KeyExists(cmd[1]) {
+		key := cmd[1]
+		if s.KeyExists(key) {
 			return nil, fmt.Errorf("key %s already exists", cmd[1])
 		}
-		s.CreateKey(cmd[1], utils.AdaptType(cmd[2]))
+		// TODO: Retry CreateKeyAndLock until we manage to obtain the key
+		s.CreateKeyAndLock(ctx, key)
+		s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+		s.KeyUnlock(key)
 	}
 	return []byte("+OK\r\n\n"), nil
 }
