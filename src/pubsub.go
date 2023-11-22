@@ -46,7 +46,7 @@ func (cg *ConsumerGroup) SendMessage(message string) {
 
 	// Wait for an ACK
 	// If no ACK is received within a time limit, remove this connection from subscribers and retry
-	(*conn).SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+	(*conn).SetReadDeadline(time.Now().Add(250 * time.Millisecond))
 	if msg, err := utils.ReadMessage(rw); err != nil {
 		// Remove the connection from subscribers list
 		cg.Unsubscribe(conn)
@@ -99,6 +99,14 @@ func (cg *ConsumerGroup) Unsubscribe(conn *net.Conn) {
 	cg.subscribersRWMut.Lock()
 	defer cg.subscribersRWMut.Unlock()
 
+	// If length is 1 and the connection passed is the one contained within, unlink it
+	if cg.subscribers.Len() == 1 {
+		if cg.subscribers.Value == conn {
+			cg.subscribers = nil
+		}
+		return
+	}
+
 	for i := 0; i < cg.subscribers.Len(); i++ {
 		if cg.subscribers.Value == conn {
 			cg.subscribers = cg.subscribers.Prev()
@@ -113,7 +121,7 @@ func (cg *ConsumerGroup) Publish(message string) {
 	*cg.messageChan <- message
 }
 
-// A channel can be subscribed to directly, or via a consumer group.
+// Channel - A channel can be subscribed to directly, or via a consumer group.
 // All direct subscribers to the channel will receive any message published to the channel.
 // Only one subscriber of a channel's consumer group will receive a message posted to the channel.
 type Channel struct {
@@ -216,7 +224,7 @@ func (ch *Channel) Publish(message string) {
 	*ch.messageChan <- message
 }
 
-// Pub/Sub container
+// PubSub container
 type PubSub struct {
 	channels []*Channel
 }

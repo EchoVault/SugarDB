@@ -99,7 +99,7 @@ func handleSetNX(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 }
 
 func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
 	defer cancel()
 
 	// Check if key, value pairs are complete
@@ -108,12 +108,56 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	}
 
 	// Extract all the key, value pairs
+	type KeyObject struct {
+		value  interface{}
+		locked bool
+	}
+
+	entries := make(map[string]KeyObject)
+
+	// Release all acquired key locks
+	defer func() {
+		for k, v := range entries {
+			if v.locked {
+				s.KeyUnlock(k)
+				entries[k] = KeyObject{
+					value:  v.value,
+					locked: false,
+				}
+				fmt.Println("UNLOCKED KEY: ", k)
+			}
+		}
+	}()
+
+	for i, key := range cmd[1:] {
+		if i%2 == 0 {
+			entries[key] = KeyObject{
+				value:  utils.AdaptType(cmd[1:][i+1]),
+				locked: false,
+			}
+		}
+	}
 
 	// Acquire all the locks for each key first
 	// If any key cannot be acquired, abandon transaction and release all currently held keys
+	for k, v := range entries {
+		if s.KeyExists(k) {
+			if _, err := s.KeyLock(ctx, k); err != nil {
+				return nil, err
+			}
+			entries[k] = KeyObject{value: v.value, locked: true}
+			continue
+		}
+		if _, err := s.CreateKeyAndLock(ctx, k); err != nil {
+			return nil, err
+		}
+		entries[k] = KeyObject{value: v.value, locked: true}
+	}
 
 	// Set all the values
-	// Release all the locks
+	for k, v := range entries {
+		s.SetValue(ctx, k, v.value)
+	}
 
 	return []byte("+OK\r\n\n"), nil
 }
