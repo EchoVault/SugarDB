@@ -102,6 +102,11 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer cancel()
 
+	// Check if key, value pairs are complete
+	if len(cmd[1:])%2 != 0 {
+		return nil, errors.New("each key must have a matching value")
+	}
+
 	// Extract all the key, value pairs
 
 	// Acquire all the locks for each key first
