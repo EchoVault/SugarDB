@@ -5,10 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"reflect"
 	"strings"
-
-	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
 const (
@@ -46,6 +45,40 @@ func (p *plugin) Description() string {
 	return p.description
 }
 
+func Contains[T comparable](arr []T, elem T) bool {
+	for _, v := range arr {
+		if v == elem {
+			return true
+		}
+	}
+	return false
+}
+
+func Filter[T comparable](arr []T, test func(elem T) bool) (res []T) {
+	for _, e := range arr {
+		if test(e) {
+			res = append(res, e)
+		}
+	}
+	return
+}
+
+func AdaptType(s string) interface{} {
+	// Adapt the type of the parameter to string, float64 or int
+	n, _, err := big.ParseFloat(s, 10, 256, big.RoundingMode(big.Exact))
+
+	if err != nil {
+		return s
+	}
+
+	if n.IsInt() {
+		i, _ := n.Int64()
+		return i
+	}
+
+	return n
+}
+
 func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
 	c := strings.ToLower(cmd[0])
 
@@ -73,13 +106,13 @@ func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interfa
 	case c == "lmove":
 		return handleLMove(ctx, cmd, server.(Server))
 
-	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
+	case Contains[string]([]string{"lpush", "lpushx"}, c):
 		return handleLPush(ctx, cmd, server.(Server))
 
-	case utils.Contains[string]([]string{"rpush", "rpushx"}, c):
+	case Contains[string]([]string{"rpush", "rpushx"}, c):
 		return handleRPush(ctx, cmd, server.(Server))
 
-	case utils.Contains[string]([]string{"lpop", "rpop"}, c):
+	case Contains[string]([]string{"lpop", "rpop"}, c):
 		return handlePop(ctx, cmd, server.(Server))
 	}
 }
@@ -110,7 +143,7 @@ func handleLIndex(ctx context.Context, cmd []string, server Server) ([]byte, err
 		return nil, errors.New("wrong number of args for LINDEX command")
 	}
 
-	index, ok := utils.AdaptType(cmd[2]).(int64)
+	index, ok := AdaptType(cmd[2]).(int64)
 
 	if !ok {
 		return nil, errors.New("index must be an integer")
@@ -140,8 +173,8 @@ func handleLRange(ctx context.Context, cmd []string, server Server) ([]byte, err
 		return nil, errors.New("wrong number of arguments for LRANGE command")
 	}
 
-	start, startOk := utils.AdaptType(cmd[2]).(int64)
-	end, endOk := utils.AdaptType(cmd[3]).(int64)
+	start, startOk := AdaptType(cmd[2]).(int64)
+	end, endOk := AdaptType(cmd[3]).(int64)
 
 	if !startOk || !endOk {
 		return nil, errors.New("both start and end indices must be integers")
@@ -231,7 +264,7 @@ func handleLSet(ctx context.Context, cmd []string, server Server) ([]byte, error
 		return nil, errors.New("LSET command on non-list item")
 	}
 
-	index, ok := utils.AdaptType(cmd[2]).(int64)
+	index, ok := AdaptType(cmd[2]).(int64)
 
 	fmt.Printf("LSET INDEX: `%v`, OK: %v\n", reflect.TypeOf(index), ok)
 
@@ -245,7 +278,7 @@ func handleLSet(ctx context.Context, cmd []string, server Server) ([]byte, error
 		return nil, errors.New("index must be within range")
 	}
 
-	list[index] = utils.AdaptType(cmd[3])
+	list[index] = AdaptType(cmd[3])
 	server.SetValue(ctx, cmd[1], list)
 	server.KeyUnlock(cmd[1])
 
@@ -257,8 +290,8 @@ func handleLTrim(ctx context.Context, cmd []string, server Server) ([]byte, erro
 		return nil, errors.New("wrong number of args for command LTRIM")
 	}
 
-	start, startOk := utils.AdaptType(cmd[2]).(int64)
-	end, endOk := utils.AdaptType(cmd[3]).(int64)
+	start, startOk := AdaptType(cmd[2]).(int64)
+	end, endOk := AdaptType(cmd[3]).(int64)
 
 	if !startOk || !endOk {
 		return nil, errors.New("start and end indices must be integers")
@@ -300,7 +333,7 @@ func handleLRem(ctx context.Context, cmd []string, server Server) ([]byte, error
 	}
 
 	value := cmd[3]
-	count, ok := utils.AdaptType(cmd[2]).(int64)
+	count, ok := AdaptType(cmd[2]).(int64)
 
 	if !ok {
 		return nil, errors.New("count must be an integer")
@@ -346,7 +379,7 @@ func handleLRem(ctx context.Context, cmd []string, server Server) ([]byte, error
 		}
 	}
 
-	list = utils.Filter[interface{}](list, func(elem interface{}) bool {
+	list = Filter[interface{}](list, func(elem interface{}) bool {
 		return elem != nil
 	})
 
@@ -364,7 +397,7 @@ func handleLMove(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	whereFrom := strings.ToLower(cmd[3])
 	whereTo := strings.ToLower(cmd[4])
 
-	if !utils.Contains[string]([]string{"left", "right"}, whereFrom) || !utils.Contains[string]([]string{"left", "right"}, whereTo) {
+	if !Contains[string]([]string{"left", "right"}, whereFrom) || !Contains[string]([]string{"left", "right"}, whereTo) {
 		return nil, errors.New("wherefrom and whereto arguments must be either LEFT or RIGHT")
 	}
 
@@ -413,7 +446,7 @@ func handleLPush(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	newElems := []interface{}{}
 
 	for _, elem := range cmd[2:] {
-		newElems = append(newElems, utils.AdaptType(elem))
+		newElems = append(newElems, AdaptType(elem))
 	}
 
 	key := cmd[1]
@@ -451,7 +484,7 @@ func handleRPush(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	newElems := []interface{}{}
 
 	for _, elem := range cmd[2:] {
-		newElems = append(newElems, utils.AdaptType(elem))
+		newElems = append(newElems, AdaptType(elem))
 	}
 
 	if !server.KeyExists(cmd[1]) {

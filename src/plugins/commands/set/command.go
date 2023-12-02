@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kelvinmwinuka/memstore/src/utils"
+	"math/big"
 	"strings"
 	"time"
 )
@@ -40,6 +40,22 @@ func (p *plugin) Description() string {
 	return p.description
 }
 
+func AdaptType(s string) interface{} {
+	// Adapt the type of the parameter to string, float64 or int
+	n, _, err := big.ParseFloat(s, 10, 256, big.RoundingMode(big.Exact))
+
+	if err != nil {
+		return s
+	}
+
+	if n.IsInt() {
+		i, _ := n.Int64()
+		return i
+	}
+
+	return n
+}
+
 func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
@@ -66,7 +82,7 @@ func handleSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 		if !s.KeyExists(key) {
 			// TODO: Retry CreateKeyAndLock until we manage to obtain the key
 			s.CreateKeyAndLock(ctx, key)
-			s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+			s.SetValue(ctx, key, AdaptType(cmd[2]))
 			s.KeyUnlock(key)
 			return []byte("+OK\r\n\n"), nil
 		}
@@ -75,7 +91,7 @@ func handleSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 			return nil, err
 		}
 
-		s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+		s.SetValue(ctx, key, AdaptType(cmd[2]))
 		s.KeyUnlock(key)
 		return []byte("+OK\r\n\n"), nil
 	}
@@ -92,7 +108,7 @@ func handleSetNX(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 		}
 		// TODO: Retry CreateKeyAndLock until we manage to obtain the key
 		s.CreateKeyAndLock(ctx, key)
-		s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+		s.SetValue(ctx, key, AdaptType(cmd[2]))
 		s.KeyUnlock(key)
 	}
 	return []byte("+OK\r\n\n"), nil
@@ -132,7 +148,7 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	for i, key := range cmd[1:] {
 		if i%2 == 0 {
 			entries[key] = KeyObject{
-				value:  utils.AdaptType(cmd[1:][i+1]),
+				value:  AdaptType(cmd[1:][i+1]),
 				locked: false,
 			}
 		}

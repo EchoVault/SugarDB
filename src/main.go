@@ -355,7 +355,6 @@ func (server *Server) LoadPlugins(ctx context.Context) {
 						}
 					}
 
-					fmt.Println(plugin)
 					server.plugins = append(server.plugins, plugin)
 				}
 			}

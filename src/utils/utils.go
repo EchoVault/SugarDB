@@ -3,13 +3,8 @@ package utils
 import (
 	"bufio"
 	"bytes"
-	"encoding/csv"
-	"errors"
 	"fmt"
-	"math"
-	"math/big"
 	"net"
-	"reflect"
 	"strings"
 	"time"
 
@@ -37,45 +32,6 @@ func ContainsMutual[T comparable](arr1 []T, arr2 []T) (bool, T) {
 	return false, arr1[0]
 }
 
-func IsInteger(n float64) bool {
-	return math.Mod(n, 1.0) == 0
-}
-
-func AdaptType(s string) interface{} {
-	// Adapt the type of the parameter to string, float64 or int
-	n, _, err := big.ParseFloat(s, 10, 256, big.RoundingMode(big.Exact))
-
-	if err != nil {
-		return s
-	}
-
-	if n.IsInt() {
-		i, _ := n.Int64()
-		return i
-	}
-
-	return n
-}
-
-func IncrBy(num interface{}, by interface{}) (interface{}, error) {
-	if !Contains[string]([]string{"int", "float64"}, reflect.TypeOf(num).String()) {
-		return nil, errors.New("can only increment number")
-	}
-	if !Contains[string]([]string{"int", "float64"}, reflect.TypeOf(by).String()) {
-		return nil, errors.New("can only increment by number")
-	}
-
-	n, _ := num.(float64)
-	b, _ := by.(float64)
-	res := n + b
-
-	if IsInteger(res) {
-		return int(res), nil
-	}
-
-	return res, nil
-}
-
 func Filter[T comparable](arr []T, test func(elem T) bool) (res []T) {
 	for _, e := range arr {
 		if test(e) {
@@ -83,34 +39,6 @@ func Filter[T comparable](arr []T, test func(elem T) bool) (res []T) {
 		}
 	}
 	return
-}
-
-func tokenize(comm string) ([]string, error) {
-	r := csv.NewReader(strings.NewReader(comm))
-	r.Comma = ' '
-	return r.Read()
-}
-
-func Encode(comm string) (string, error) {
-	tokens, err := tokenize(comm)
-
-	if err != nil {
-		return "", errors.New("could not parse command")
-	}
-
-	str := fmt.Sprintf("*%d\r\n", len(tokens))
-
-	for i, token := range tokens {
-		if i == 0 {
-			str += fmt.Sprintf("$%d\r\n%s\r\n", len(token), strings.ToUpper(token))
-		} else {
-			str += fmt.Sprintf("$%d\r\n%s\r\n", len(token), token)
-		}
-	}
-
-	str += "\n"
-
-	return str, nil
 }
 
 func Decode(raw string) ([]string, error) {
