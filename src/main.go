@@ -377,8 +377,10 @@ func (server *Server) Start(ctx context.Context) {
 		return
 	}
 
-	server.RaftInit(ctx)
-	server.MemberListInit(ctx)
+	if server.IsInCluster() {
+		server.RaftInit(ctx)
+		server.MemberListInit(ctx)
+	}
 
 	if conf.HTTP {
 		server.StartHTTP(ctx)
@@ -387,9 +389,15 @@ func (server *Server) Start(ctx context.Context) {
 	}
 }
 
+func (server *Server) IsInCluster() bool {
+	return server.config.BootstrapCluster || server.config.JoinAddr != ""
+}
+
 func (server *Server) ShutDown(ctx context.Context) {
-	server.RaftShutdown(ctx)
-	server.MemberListShutdown(ctx)
+	if server.IsInCluster() {
+		server.RaftShutdown(ctx)
+		server.MemberListShutdown(ctx)
+	}
 }
 
 func main() {

@@ -159,6 +159,8 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 		s.SetValue(ctx, k, v.value)
 	}
 
+	<-time.After(10 * time.Second)
+
 	return []byte("+OK\r\n\n"), nil
 }
 
