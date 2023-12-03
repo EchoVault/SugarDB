@@ -139,33 +139,24 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 				Response: []byte(":1\r\n\n"),
 			}
 		default:
-			// Look for plugin that handles this command and trigger it
-			for _, plugin := range server.plugins {
-				if utils.Contains[string](plugin.Commands(), strings.ToLower(request.CMD[0])) {
-					res, err := plugin.HandleCommand(ctx, request.CMD, server)
+			// Handle command using plugins
+			res, err := server.handlePluginCommand(ctx, request.CMD)
 
-					if err != nil {
-						return utils.ApplyResponse{
-							Error:    err,
-							Response: nil,
-						}
-					}
-
-					return utils.ApplyResponse{
-						Error:    nil,
-						Response: res,
-					}
+			if err != nil {
+				return utils.ApplyResponse{
+					Error:    err,
+					Response: nil,
 				}
 			}
-		}
 
-		return utils.ApplyResponse{
-			Error:    fmt.Errorf("%s command not supported", strings.ToUpper(request.CMD[0])),
-			Response: nil,
+			return utils.ApplyResponse{
+				Error:    nil,
+				Response: res,
+			}
+
 		}
 	}
 
-	os.Stderr.Write([]byte("not raft log command\n"))
 	return nil
 }
 

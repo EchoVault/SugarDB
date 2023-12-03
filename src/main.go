@@ -120,6 +120,15 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 	server.store[key] = value
 }
 
+func (server *Server) handlePluginCommand(ctx context.Context, command []string) ([]byte, error) {
+	for _, p := range server.plugins {
+		if utils.Contains[string](p.Commands(), strings.ToLower(command[0])) {
+			return p.HandleCommand(ctx, command, server)
+		}
+	}
+	return nil, fmt.Errorf("%s command not supported", strings.ToUpper(command[0]))
+}
+
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 
