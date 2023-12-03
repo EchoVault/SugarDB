@@ -174,6 +174,16 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 				continue
 			}
 
+			if !server.IsInCluster() {
+				if res, err := server.handlePluginCommand(ctx, cmd); err != nil {
+					connRW.Write([]byte(fmt.Sprintf("-%s\r\n\n", err.Error())))
+				} else {
+					connRW.Write(res)
+				}
+				connRW.Flush()
+				continue
+			}
+
 			// Handle other commands that need to be synced across the cluster
 			serverId, _ := ctx.Value(utils.ContextServerID("ServerID")).(string)
 			connectionId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
