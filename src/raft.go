@@ -11,7 +11,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/raft"
@@ -111,8 +110,7 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 	case raft.LogCommand:
 		var request utils.ApplyRequest
 
-		err := json.Unmarshal(log.Data, &request)
-		if err != nil {
+		if err := json.Unmarshal(log.Data, &request); err != nil {
 			return utils.ApplyResponse{
 				Error:    err,
 				Response: nil,
@@ -122,39 +120,17 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 		ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), request.ServerID)
 		ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"), request.ConnectionID)
 
-		switch strings.ToLower(request.CMD[0]) {
-		// TODO: Remove this scaffold command. All commands comming in will call handlePluginCommand
-		case "publish-xxx":
-			if len(request.CMD) == 3 {
-				server.pubSub.Publish(ctx, request.CMD[2], request.CMD[1])
-			} else if len(request.CMD) == 2 {
-				server.pubSub.Publish(ctx, request.CMD[1], nil)
-			} else {
-				return utils.ApplyResponse{
-					Error:    errors.New("wrong number of args"),
-					Response: nil,
-				}
-			}
+		// Handle command using plugins
+		if res, err := server.handlePluginCommand(ctx, request.CMD); err != nil {
 			return utils.ApplyResponse{
-				Error:    nil,
-				Response: []byte(":1\r\n\n"),
+				Error:    err,
+				Response: nil,
 			}
-		default:
-			// Handle command using plugins
-			res, err := server.handlePluginCommand(ctx, request.CMD)
-
-			if err != nil {
-				return utils.ApplyResponse{
-					Error:    err,
-					Response: nil,
-				}
-			}
-
+		} else {
 			return utils.ApplyResponse{
 				Error:    nil,
 				Response: res,
 			}
-
 		}
 	}
 

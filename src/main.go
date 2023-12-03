@@ -50,8 +50,6 @@ type Server struct {
 	broadcastQueue *memberlist.TransmitLimitedQueue
 	numOfNodes     int
 
-	pubSub *PubSub
-
 	cancelCh *chan (os.Signal)
 }
 
@@ -150,8 +148,6 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 		message, err := utils.ReadMessage(connRW)
 
 		if err != nil && err == io.EOF {
-			// Connection closed
-			server.pubSub.Unsubscribe(ctx, &conn, nil)
 			break
 		}
 
@@ -174,44 +170,6 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 				} else {
 					connRW.Write(b)
 				}
-				connRW.Flush()
-				continue
-			}
-
-			// Handle subscribe command
-			if strings.EqualFold(cmd[0], "subscribe") {
-				switch len(cmd) {
-				case 1:
-					server.pubSub.Subscribe(ctx, &conn, nil, nil)
-				case 2:
-					server.pubSub.Subscribe(ctx, &conn, cmd[1], nil)
-				case 3:
-					server.pubSub.Subscribe(ctx, &conn, cmd[1], cmd[2])
-				default:
-					connRW.Write([]byte("-Error wrong number of arguments\r\n\n"))
-					connRW.Flush()
-					continue
-				}
-
-				connRW.Write([]byte("+SUBSCRIBE_OK\r\n\n"))
-				connRW.Flush()
-				continue
-			}
-
-			// Handle unsubscribe command
-			if strings.EqualFold(cmd[0], "unsubscribe") {
-				switch len(cmd) {
-				case 1:
-					server.pubSub.Unsubscribe(ctx, &conn, nil)
-				case 2:
-					server.pubSub.Unsubscribe(ctx, &conn, cmd[1])
-				default:
-					connRW.Write([]byte("-Error wrong number of arguments\r\n\n"))
-					connRW.Flush()
-					continue
-				}
-
-				connRW.Write([]byte("+OK\r\n\n"))
 				connRW.Flush()
 				continue
 			}
@@ -441,8 +399,6 @@ func main() {
 
 		broadcastQueue: new(memberlist.TransmitLimitedQueue),
 		numOfNodes:     0,
-
-		pubSub: NewPubSub(),
 
 		cancelCh: &cancelCh,
 	}
