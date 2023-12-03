@@ -123,7 +123,8 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 		ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"), request.ConnectionID)
 
 		switch strings.ToLower(request.CMD[0]) {
-		case "publish":
+		// TODO: Remove this scaffold command. All commands comming in will call handlePluginCommand
+		case "publish-xxx":
 			if len(request.CMD) == 3 {
 				server.pubSub.Publish(ctx, request.CMD[2], request.CMD[1])
 			} else if len(request.CMD) == 2 {

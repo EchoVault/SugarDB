@@ -30,6 +30,7 @@ type Plugin interface {
 	Commands() []string
 	Description() string
 	HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error)
+	HandleCommandWithConnection(ctx context.Context, cmd []string, server interface{}, conn *net.Conn) ([]byte, error)
 }
 
 type Server struct {
@@ -129,6 +130,15 @@ func (server *Server) handlePluginCommand(ctx context.Context, command []string)
 	return nil, fmt.Errorf("%s command not supported", strings.ToUpper(command[0]))
 }
 
+func (server *Server) handlePluginCommandWithConnection(ctx context.Context, command []string, conn *net.Conn) ([]byte, error) {
+	for _, p := range server.plugins {
+		if utils.Contains[string](p.Commands(), strings.ToLower(command[0])) {
+			return p.HandleCommandWithConnection(ctx, command, server, conn)
+		}
+	}
+	return nil, fmt.Errorf("%s command not supported", strings.ToUpper(command[0]))
+}
+
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 
@@ -156,6 +166,18 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 			connRW.Flush()
 			continue
 		} else {
+			// Handle subscribe/unsubscribe command
+			if utils.Contains([]string{"subscribe", "unsubscribe"}, strings.ToLower(cmd[0])) {
+				b, err := server.handlePluginCommandWithConnection(ctx, cmd, &conn)
+				if err != nil {
+					connRW.Write([]byte(fmt.Sprintf("-%s\r\n\n", err.Error())))
+				} else {
+					connRW.Write(b)
+				}
+				connRW.Flush()
+				continue
+			}
+
 			// Handle subscribe command
 			if strings.EqualFold(cmd[0], "subscribe") {
 				switch len(cmd) {
@@ -319,55 +341,42 @@ func (server *Server) LoadPlugins(ctx context.Context) {
 	conf := server.config
 
 	// Load plugins /usr/local/lib/memstore
-	pluginDirs, err := os.ReadDir(conf.PluginDir)
+	files, err := os.ReadDir(conf.PluginDir)
 
 	if err != nil {
-		log.Fatal(err, pluginDirs)
+		log.Fatal(err, files)
 	}
 
-	for _, file := range pluginDirs {
-		if file.IsDir() {
-			switch file.Name() {
-			case "commands":
-				files, err := os.ReadDir(path.Join(conf.PluginDir, "commands"))
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".so") {
+			continue
+		}
+		p, err := plugin.Open(path.Join(conf.PluginDir, file.Name()))
+		if err != nil {
+			log.Fatal(err)
+		}
 
-				if err != nil {
-					log.Fatal(err)
-				}
+		pluginSymbol, err := p.Lookup("Plugin")
+		if err != nil {
+			fmt.Printf("unexpected plugin symbol in plugin %s\n", file.Name())
+			continue
+		}
 
-				for _, file := range files {
-					if !strings.HasSuffix(file.Name(), ".so") {
-						continue
-					}
-					p, err := plugin.Open(path.Join(conf.PluginDir, "commands", file.Name()))
-					if err != nil {
-						log.Fatal(err)
-					}
+		pl, ok := pluginSymbol.(Plugin)
+		if !ok {
+			fmt.Printf("invalid plugin signature in plugin %s \n", file.Name())
+			continue
+		}
 
-					pluginSymbol, err := p.Lookup("Plugin")
-					if err != nil {
-						fmt.Printf("unexpected plugin symbol in plugin %s\n", file.Name())
-						continue
-					}
-
-					plugin, ok := pluginSymbol.(Plugin)
-					if !ok {
-						fmt.Printf("invalid plugin signature in plugin %s \n", file.Name())
-						continue
-					}
-
-					// Check if a plugin that handles the same command already exists
-					for _, loadedPlugin := range server.plugins {
-						containsMutual, elem := utils.ContainsMutual[string](loadedPlugin.Commands(), plugin.Commands())
-						if containsMutual {
-							fmt.Printf("plugin that handles %s command already exists. Please handle a different command.\n", elem)
-						}
-					}
-
-					server.plugins = append(server.plugins, plugin)
-				}
+		// Check if a plugin that handles the same command already exists
+		for _, loadedPlugin := range server.plugins {
+			containsMutual, elem := utils.ContainsMutual[string](loadedPlugin.Commands(), pl.Commands())
+			if containsMutual {
+				fmt.Printf("plugin that handles %s command already exists. Please handle a different command.\n", elem)
 			}
 		}
+
+		server.plugins = append(server.plugins, pl)
 	}
 }
 

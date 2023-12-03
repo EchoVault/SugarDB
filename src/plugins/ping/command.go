@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"net"
 )
 
 const (
@@ -38,6 +39,10 @@ func (p *plugin) Commands() []string {
 
 func (p *plugin) Description() string {
 	return p.description
+}
+
+func (p *plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server interface{}, conn *net.Conn) ([]byte, error) {
+	return nil, errors.New("not implemented")
 }
 
 func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {

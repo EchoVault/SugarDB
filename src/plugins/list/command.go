@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"net"
 	"reflect"
 	"strings"
 )
@@ -77,6 +78,10 @@ func AdaptType(s string) interface{} {
 	}
 
 	return n
+}
+
+func (p *plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server interface{}, conn *net.Conn) ([]byte, error) {
+	return nil, errors.New("not implemented")
 }
 
 func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
