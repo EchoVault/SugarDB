@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 )
 
 const (
@@ -46,6 +47,17 @@ func (p *plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, 
 }
 
 func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
+	switch strings.ToLower(cmd[0]) {
+	default:
+		return nil, errors.New("not implemented")
+	case "ping":
+		return handlePing(ctx, cmd, server.(Server))
+	case "ack":
+		return []byte("$-1\r\n\n"), nil
+	}
+}
+
+func handlePing(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	switch len(cmd) {
 	default:
 		return nil, errors.New("wrong number of arguments for PING command")
@@ -58,6 +70,6 @@ func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interfa
 
 func init() {
 	Plugin.name = "PingCommand"
-	Plugin.commands = []string{"ping"}
+	Plugin.commands = []string{"ping", "ack"}
 	Plugin.description = "Handle PING command"
 }
