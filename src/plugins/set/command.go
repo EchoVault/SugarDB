@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"net"
 	"strings"
 	"time"
@@ -39,22 +38,6 @@ func (p *plugin) Commands() []string {
 
 func (p *plugin) Description() string {
 	return p.description
-}
-
-func AdaptType(s string) interface{} {
-	// Adapt the type of the parameter to string, float64 or int
-	n, _, err := big.ParseFloat(s, 10, 256, big.RoundingMode(big.Exact))
-
-	if err != nil {
-		return s
-	}
-
-	if n.IsInt() {
-		i, _ := n.Int64()
-		return i
-	}
-
-	return n
 }
 
 func (p *plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server interface{}, conn *net.Conn) ([]byte, error) {
