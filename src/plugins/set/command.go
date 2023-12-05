@@ -111,7 +111,6 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 		return nil, errors.New("each key must have a matching value")
 	}
 
-	// Extract all the key, value pairs
 	type KeyObject struct {
 		value  interface{}
 		locked bool
@@ -133,6 +132,7 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 		}
 	}()
 
+	// Extract all the key, value pairs
 	for i, key := range cmd[1:] {
 		if i%2 == 0 {
 			entries[key] = KeyObject{
