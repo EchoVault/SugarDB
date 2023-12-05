@@ -20,6 +20,11 @@ type Server interface {
 	SetValue(ctx context.Context, key string, value interface{})
 }
 
+type KeyObject struct {
+	value  interface{}
+	locked bool
+}
+
 type plugin struct {
 	name        string
 	commands    []string
@@ -106,14 +111,9 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
 	defer cancel()
 
-	// Check if key, value pairs are complete
+	// Check if key/value pairs are complete
 	if len(cmd[1:])%2 != 0 {
 		return nil, errors.New("each key must have a matching value")
-	}
-
-	type KeyObject struct {
-		value  interface{}
-		locked bool
 	}
 
 	entries := make(map[string]KeyObject)
@@ -127,12 +127,11 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 					value:  v.value,
 					locked: false,
 				}
-				fmt.Println("UNLOCKED KEY: ", k)
 			}
 		}
 	}()
 
-	// Extract all the key, value pairs
+	// Extract all the key/value pairs
 	for i, key := range cmd[1:] {
 		if i%2 == 0 {
 			entries[key] = KeyObject{
@@ -167,15 +166,11 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 }
 
 func init() {
-	Plugin.name = "SetCommand"
+	Plugin.name = "SetCommands"
 	Plugin.commands = []string{
-		"set",      // (SET key value) Set the value of a key, considering the value's type.
-		"setnx",    // (SETNX key value) Set the key/value only if the key doesn't exist.
-		"mset",     // (MSET key value [key value ...]) Automatically set or modify multiple key/value pairs.
-		"msetnx",   // (MSETNX key value [key value ...]) Automatically set the values of one or more keys only when all keys don't exist.
-		"setrange", // (SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.
-		"strlen",   // (STRLEN key) Returns length of the key's value if it's a string.
-		"substr",   // (SUBSTR key start end) Returns a substring from the string value.
+		"set",   // (SET key value) Set the value of a key, considering the value's type.
+		"setnx", // (SETNX key value) Set the key/value only if the key doesn't exist.
+		"mset",  // (MSET key value [key value ...]) Automatically set or modify multiple key/value pairs.
 	}
 	Plugin.description = "Handle basic SET commands"
 }

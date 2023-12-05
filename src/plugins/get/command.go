@@ -106,7 +106,7 @@ func handleMGet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 }
 
 func init() {
-	Plugin.name = "GetCommand"
+	Plugin.name = "GetCommands"
 	Plugin.commands = []string{"get", "mget"}
 	Plugin.description = "Handle basic GET and MGET commands"
 }

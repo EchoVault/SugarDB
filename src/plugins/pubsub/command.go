@@ -101,7 +101,7 @@ func handlePublish(ctx context.Context, p *plugin, cmd []string, s Server) ([]by
 }
 
 func init() {
-	Plugin.name = "PubSubCommand"
+	Plugin.name = "PubSubCommands"
 	Plugin.commands = []string{"publish", "subscribe", "unsubscribe"}
 	Plugin.description = "Handle PUBSUB functionality."
 	Plugin.pubSub = NewPubSub()

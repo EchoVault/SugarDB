@@ -516,7 +516,7 @@ func handlePop(ctx context.Context, cmd []string, server Server) ([]byte, error)
 }
 
 func init() {
-	Plugin.name = "ListCommand"
+	Plugin.name = "ListCommands"
 	Plugin.commands = []string{
 		"lpush",  // (LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.
 		"lpushx", // (LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.
