@@ -53,6 +53,8 @@ func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interfa
 		return handleStrLen(ctx, cmd, server.(Server))
 	case "substr":
 		return handleSubStr(ctx, cmd, server.(Server))
+	case "getrange":
+		return handleSubStr(ctx, cmd, server.(Server))
 	}
 }
 
@@ -216,6 +218,7 @@ func init() {
 		"setrange", // (SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.
 		"strlen",   // (STRLEN key) Returns length of the key's value if it's a string.
 		"substr",   // (SUBSTR key start end) Returns a substring from the string value.
+		"getrange", // (GETRANGE key start end) Returns a substring from the string value.
 	}
 	Plugin.description = "Handle basic STRING commands"
 }
