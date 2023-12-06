@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"strings"
 )
@@ -60,7 +61,28 @@ func handleSetRange(ctx context.Context, cmd []string, server Server) ([]byte, e
 }
 
 func handleStrLen(ctx context.Context, cmd []string, server Server) ([]byte, error) {
-	return []byte("+OK\r\n\n"), nil
+	if len(cmd[1:]) != 1 {
+		return nil, errors.New("wrong number of args for STRLEN command")
+	}
+
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
+		return []byte(":0\r\n\n"), nil
+	}
+
+	if _, err := server.KeyRLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	value, ok := server.GetValue(key).(string)
+
+	if !ok {
+		return nil, fmt.Errorf("key %s is not a string type", key)
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n\n", len(value))), nil
 }
 
 func handleSubStr(ctx context.Context, cmd []string, server Server) ([]byte, error) {
