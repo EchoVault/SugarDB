@@ -57,7 +57,69 @@ func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interfa
 }
 
 func handleSetRange(ctx context.Context, cmd []string, server Server) ([]byte, error) {
-	return []byte("+OK\r\n\n"), nil
+	if len(cmd[1:]) != 3 {
+		return nil, errors.New("wrong number of args for SETRANGE command")
+	}
+
+	key := cmd[1]
+
+	offset, ok := AdaptType(cmd[2]).(int64)
+	if !ok {
+		return nil, errors.New("offset must be integer")
+	}
+
+	newStr := cmd[3]
+
+	if !server.KeyExists(key) {
+		if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+			return nil, err
+		}
+		server.SetValue(ctx, key, newStr)
+		server.KeyUnlock(key)
+		return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+	}
+
+	str, ok := server.GetValue(key).(string)
+	if !ok {
+		return nil, fmt.Errorf("value at key %s is not a string", key)
+	}
+
+	if _, err := server.KeyLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	if offset >= int64(len(str)) {
+		newStr = str + newStr
+		server.SetValue(ctx, key, newStr)
+		return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+	}
+
+	if offset < 0 {
+		newStr = newStr + str
+		server.SetValue(ctx, key, newStr)
+		return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+	}
+
+	if offset == 0 {
+		newStr = newStr + strings.Join(strings.Split(str, "")[1:], "")
+		server.SetValue(ctx, key, newStr)
+		return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+	}
+
+	if offset == int64(len(str))-1 {
+		newStr = strings.Join(strings.Split(str, "")[0:len(str)-1], "") + newStr
+		server.SetValue(ctx, key, newStr)
+		return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+	}
+
+	strArr := strings.Split(str, "")
+	newStrArr := append(strArr[0:offset], append(strings.Split(newStr, ""), strArr[offset+1:]...)...)
+
+	newStr = strings.Join(newStrArr, "")
+	server.SetValue(ctx, key, newStr)
+
+	return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
 }
 
 func handleStrLen(ctx context.Context, cmd []string, server Server) ([]byte, error) {
