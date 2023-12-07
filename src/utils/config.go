@@ -24,6 +24,7 @@ type Config struct {
 	InMemory           bool   `json:"inMemory" yaml:"inMemory"`
 	DataDir            string `json:"dataDir" yaml:"dataDir"`
 	BootstrapCluster   bool   `json:"BootstrapCluster" yaml:"bootstrapCluster"`
+	AclConfig          string `json:"AclConfig" yaml:"AclConfig"`
 }
 
 func GetConfig() Config {
@@ -41,6 +42,7 @@ func GetConfig() Config {
 	inMemory := flag.Bool("inMemory", false, "Whether to use memory or persisten storage for raft logs and snapshots.")
 	dataDir := flag.String("dataDir", "/var/lib/memstore", "Directory to store raft snapshots and logs.")
 	bootstrapCluster := flag.Bool("bootstrapCluster", false, "Whether this instance should bootstrap a new cluster.")
+	aclConfig := flag.String("aclConfig", "", "ACL config file path.")
 
 	config := flag.String(
 		"config",
@@ -65,6 +67,7 @@ func GetConfig() Config {
 		InMemory:           *inMemory,
 		DataDir:            *dataDir,
 		BootstrapCluster:   *bootstrapCluster,
+		AclConfig:          *aclConfig,
 	}
 
 	if len(*config) > 0 {

@@ -51,6 +51,8 @@ type Server struct {
 	numOfNodes     int
 
 	cancelCh *chan (os.Signal)
+
+	ACL *ACL
 }
 
 func (server *Server) KeyLock(ctx context.Context, key string) (bool, error) {
@@ -409,6 +411,8 @@ func main() {
 
 		broadcastQueue: new(memberlist.TransmitLimitedQueue),
 		numOfNodes:     0,
+
+		ACL: NewACL(config.AclConfig),
 
 		cancelCh: &cancelCh,
 	}

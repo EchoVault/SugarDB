@@ -7,6 +7,7 @@ RUN mkdir -p /etc/ssl/certs/memstore
 COPY ./bin/linux/x86_64/plugins /usr/local/lib/memstore
 COPY ./bin/linux/x86_64/server /opt/memstore/bin
 COPY ./openssl/server /etc/ssl/certs/memstore
+COPY ./config /etc/config/memstore
 
 WORKDIR /opt/memstore/bin
 
@@ -25,3 +26,4 @@ CMD "./server" \
   "--tls=${TLS}" \
   "--inMemory=${INMEMORY}" \
   "--bootstrapCluster=${BOOTSTRAP_CLUSTER}" \
+  "--aclConfig=${ACL_CONFIG}" \
