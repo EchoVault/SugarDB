@@ -24,3 +24,4 @@
 - [ ] Append-Only File & reload from AOF
 - [ ] Periodic snapshots & reload state from snapshot
 - [ ] mTLS for client verification
+- [ ] ACL Authentication Layer
