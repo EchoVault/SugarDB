@@ -2,8 +2,8 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
-	"log"
 	"os"
 	"path"
 
@@ -30,7 +30,7 @@ type Config struct {
 	Password           string `json:"password" yaml:"password"`
 }
 
-func GetConfig() Config {
+func GetConfig() (Config, error) {
 	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false")
 	key := flag.String("key", "", "The private key file path.")
 	cert := flag.String("cert", "", "The signed certificate file path.")
@@ -96,20 +96,28 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 			ext := path.Ext(f.Name())
 
 			if ext == ".json" {
-				json.NewDecoder(f).Decode(&conf)
+				err := json.NewDecoder(f).Decode(&conf)
+				if err != nil {
+					return Config{}, nil
+				}
 			}
 
 			if ext == ".yaml" || ext == ".yml" {
-				yaml.NewDecoder(f).Decode(&conf)
+				err := yaml.NewDecoder(f).Decode(&conf)
+				if err != nil {
+					return Config{}, err
+				}
 			}
 		}
 
 	}
 
 	// If requirePass is set to true, then password must be provided as well
+	var err error = nil
+
 	if conf.RequirePass && conf.Password == "" {
-		log.Fatal("password cannot be empty if requirePass is set to true.")
+		err = errors.New("password cannot be empty if requirePass is set to true")
 	}
 
-	return conf
+	return conf, err
 }

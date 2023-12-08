@@ -50,7 +50,7 @@ type Server struct {
 	broadcastQueue *memberlist.TransmitLimitedQueue
 	numOfNodes     int
 
-	cancelCh *chan (os.Signal)
+	cancelCh *chan os.Signal
 
 	ACL *ACL
 }
@@ -388,7 +388,11 @@ func (server *Server) ShutDown(ctx context.Context) {
 }
 
 func main() {
-	config := utils.GetConfig()
+	config, err := utils.GetConfig()
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), config.ServerID)
 
@@ -401,7 +405,7 @@ func main() {
 		}
 	}
 
-	cancelCh := make(chan (os.Signal), 1)
+	cancelCh := make(chan os.Signal, 1)
 	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
 	server := &Server{
