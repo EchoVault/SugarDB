@@ -12,18 +12,20 @@ COPY ./config /etc/config/memstore
 WORKDIR /opt/memstore/bin
 
 CMD "./server" \ 
-  "--bindAddr" "${BINDADDR}" \
+  "--bindAddr" "${BIND_ADDR}" \
   "--port" "${PORT}" \
-  "--mlPort" "${MLPORT}" \
-  "--raftPort" "${RAFTPORT}" \
-  "--serverId" "${SERVERID}" \
-  "--joinAddr" "${JOINADDR}" \
+  "--mlPort" "${ML_PORT}" \
+  "--raftPort" "${RAFT_PORT}" \
+  "--serverId" "${SERVER_ID}" \
+  "--joinAddr" "${JOIN_ADDR}" \
   "--key" "${KEY}" \
   "--cert" "${CERT}" \
-  "--pluginDir" "${PLUGINDIR}" \
-  "--dataDir" "${DATADIR}" \
+  "--pluginDir" "${PLUGIN_DIR}" \
+  "--dataDir" "${DATA_DIR}" \
   "--http=${HTTP}" \
   "--tls=${TLS}" \
-  "--inMemory=${INMEMORY}" \
+  "--inMemory=${IN_MEMORY}" \
   "--bootstrapCluster=${BOOTSTRAP_CLUSTER}" \
   "--aclConfig=${ACL_CONFIG}" \
+  "--requirePass=${REQUIRE_PASS}" \
+  "--password=${PASSWORD}" \

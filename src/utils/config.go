@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"flag"
+	"log"
 	"os"
 	"path"
 
@@ -25,6 +26,8 @@ type Config struct {
 	DataDir            string `json:"dataDir" yaml:"dataDir"`
 	BootstrapCluster   bool   `json:"BootstrapCluster" yaml:"bootstrapCluster"`
 	AclConfig          string `json:"AclConfig" yaml:"AclConfig"`
+	RequirePass        bool   `json:"requirePass" yaml:"requirePass"`
+	Password           string `json:"password" yaml:"password"`
 }
 
 func GetConfig() Config {
@@ -43,6 +46,17 @@ func GetConfig() Config {
 	dataDir := flag.String("dataDir", "/var/lib/memstore", "Directory to store raft snapshots and logs.")
 	bootstrapCluster := flag.Bool("bootstrapCluster", false, "Whether this instance should bootstrap a new cluster.")
 	aclConfig := flag.String("aclConfig", "", "ACL config file path.")
+	requirePass := flag.Bool(
+		"requirePass",
+		false,
+		"Whether the server should require a password before allowing commands. Default is false.",
+	)
+	password := flag.String(
+		"password",
+		"",
+		`The password for the default user. ACL config file will overwrite this value. 
+It is a plain text value by default but you can provide a SHA256 hash by adding a '#' before the hash.`,
+	)
 
 	config := flag.String(
 		"config",
@@ -68,6 +82,8 @@ func GetConfig() Config {
 		DataDir:            *dataDir,
 		BootstrapCluster:   *bootstrapCluster,
 		AclConfig:          *aclConfig,
+		RequirePass:        *requirePass,
+		Password:           *password,
 	}
 
 	if len(*config) > 0 {
@@ -88,6 +104,11 @@ func GetConfig() Config {
 			}
 		}
 
+	}
+
+	// If requirePass is set to true, then password must be provided as well
+	if conf.RequirePass && conf.Password == "" {
+		log.Fatal("password cannot be empty if requirePass is set to true.")
 	}
 
 	return conf

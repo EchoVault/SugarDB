@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -44,15 +45,15 @@ type ACL struct {
 	Users []User
 }
 
-func NewACL(aclConfig string) *ACL {
+func NewACL(config utils.Config) *ACL {
 	users := []User{}
 
 	// 1. Initialise default ACL user
 
 	// 2. Read and parse the ACL config file and set the
-	if aclConfig != "" {
+	if config.AclConfig != "" {
 		// Override acl configurations from file
-		if f, err := os.Open(aclConfig); err != nil {
+		if f, err := os.Open(config.AclConfig); err != nil {
 			panic(err)
 		} else {
 			defer func() {

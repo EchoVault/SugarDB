@@ -412,7 +412,7 @@ func main() {
 		broadcastQueue: new(memberlist.TransmitLimitedQueue),
 		numOfNodes:     0,
 
-		ACL: NewACL(config.AclConfig),
+		ACL: NewACL(config),
 
 		cancelCh: &cancelCh,
 	}
