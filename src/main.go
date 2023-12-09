@@ -370,15 +370,6 @@ func (server *Server) Start(ctx context.Context) {
 	server.keyLocks = make(map[string]*sync.RWMutex)
 	server.keyCreationLock = &sync.Mutex{}
 
-	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		for {
-			fmt.Println("STORE: ", server.store)
-			fmt.Println("KEYLOCKS: ", server.keyLocks)
-			<-ticker.C
-		}
-	}()
-
 	server.LoadPlugins(ctx)
 
 	if conf.TLS && (len(conf.Key) <= 0 || len(conf.Cert) <= 0) {
