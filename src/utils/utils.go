@@ -33,7 +33,7 @@ func ContainsMutual[T comparable](arr1 []T, arr2 []T) (bool, T) {
 	return false, arr1[0]
 }
 
-func Filter[T comparable](arr []T, test func(elem T) bool) (res []T) {
+func Filter[T any](arr []T, test func(elem T) bool) (res []T) {
 	for _, e := range arr {
 		if test(e) {
 			res = append(res, e)

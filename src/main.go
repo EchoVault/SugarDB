@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/kelvinmwinuka/memstore/src/acl"
 	"io"
 	"log"
 	"net"
@@ -44,7 +45,7 @@ type Server struct {
 
 	cancelCh *chan os.Signal
 
-	ACL *ACL
+	ACL *acl.ACL
 }
 
 func (server *Server) KeyLock(ctx context.Context, key string) (bool, error) {
@@ -128,9 +129,9 @@ func (server *Server) handlePluginCommand(ctx context.Context, cmd []string, con
 		return nil, err
 	}
 	if command.HandleWithConnection {
-		return (*command.Plugin).HandleCommandWithConnection(ctx, cmd, server, conn)
+		return command.Plugin.HandleCommandWithConnection(ctx, cmd, server, conn)
 	}
-	return (*command.Plugin).HandleCommand(ctx, cmd, server)
+	return command.Plugin.HandleCommand(ctx, cmd, server)
 }
 
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
@@ -301,6 +302,9 @@ func (server *Server) StartHTTP(ctx context.Context) {
 func (server *Server) LoadPlugins(ctx context.Context) {
 	conf := server.config
 
+	// Load ACL Internal Commands
+	server.commands = append(server.commands, acl.ACLPlugin.GetCommands()...)
+
 	// Load plugins /usr/local/lib/memstore
 	files, err := os.ReadDir(conf.PluginDir)
 
@@ -342,7 +346,7 @@ func (server *Server) LoadPlugins(ctx context.Context) {
 		}
 
 		for i := 0; i < len(plCommands); i++ {
-			plCommands[i].Plugin = &pl
+			plCommands[i].Plugin = pl
 		}
 
 		// Check if a plugin that handles the same command already exists
@@ -361,6 +365,8 @@ func (server *Server) LoadPlugins(ctx context.Context) {
 			server.commands = append(server.commands, plCommands...)
 		}
 	}
+
+	fmt.Println(server.commands)
 }
 
 func (server *Server) Start(ctx context.Context) {
@@ -429,7 +435,7 @@ func main() {
 		broadcastQueue: new(memberlist.TransmitLimitedQueue),
 		numOfNodes:     0,
 
-		ACL: NewACL(config),
+		ACL: acl.NewACL(config),
 
 		cancelCh: &cancelCh,
 	}

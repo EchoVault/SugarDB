@@ -1,4 +1,4 @@
-package main
+package acl
 
 import (
 	"encoding/json"
@@ -118,13 +118,8 @@ func NewACL(config utils.Config) *ACL {
 	}
 }
 
-func (acl *ACL) HandleACLCommand(conn *net.Conn, cmd []string) error {
-	return nil
-}
-
 func (acl *ACL) RegisterConnection(conn *net.Conn) {
-	// Add connection to the map of registered connections
-	acl.Connections[conn] = nil
+	fmt.Println("Register connection...")
 }
 
 func (acl *ACL) AuthenticateConnection(conn *net.Conn, cmd []string) error {

@@ -25,7 +25,7 @@ type Command struct {
 	Description          string   `json:"Description"`
 	HandleWithConnection bool     `json:"HandleWithConnection"`
 	Sync                 bool     `json:"Sync"` // Specifies if command should be synced across cluster
-	Plugin               *Plugin
+	Plugin               Plugin
 }
 
 type Plugin interface {
