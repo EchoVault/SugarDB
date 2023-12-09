@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -19,9 +20,17 @@ type Server interface {
 	SetValue(ctx context.Context, key string, value interface{})
 }
 
+type Command struct {
+	Command              string   `json:"Command"`
+	Categories           []string `json:"Categories"`
+	Description          string   `json:"Description"`
+	HandleWithConnection bool     `json:"HandleWithConnection"`
+	Sync                 bool     `json:"Sync"`
+}
+
 type plugin struct {
 	name        string
-	commands    []string
+	commands    []Command
 	description string
 }
 
@@ -30,9 +39,8 @@ var Plugin plugin
 func (p *plugin) Name() string {
 	return p.name
 }
-
-func (p *plugin) Commands() []string {
-	return p.commands
+func (p *plugin) Commands() ([]byte, error) {
+	return json.Marshal(p.commands)
 }
 
 func (p *plugin) Description() string {
@@ -214,11 +222,35 @@ func handleSubStr(ctx context.Context, cmd []string, server Server) ([]byte, err
 
 func init() {
 	Plugin.name = "StringCommands"
-	Plugin.commands = []string{
-		"setrange", // (SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.
-		"strlen",   // (STRLEN key) Returns length of the key's value if it's a string.
-		"substr",   // (SUBSTR key start end) Returns a substring from the string value.
-		"getrange", // (GETRANGE key start end) Returns a substring from the string value.
+	Plugin.commands = []Command{
+		{
+			Command:              "setrange",
+			Categories:           []string{},
+			Description:          "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "strlen",
+			Categories:           []string{},
+			Description:          "(STRLEN key) Returns length of the key's value if it's a string.",
+			HandleWithConnection: false,
+			Sync:                 false,
+		},
+		{
+			Command:              "substr",
+			Categories:           []string{},
+			Description:          "(SUBSTR key start end) Returns a substring from the string value.",
+			HandleWithConnection: false,
+			Sync:                 false,
+		},
+		{
+			Command:              "getrange",
+			Categories:           []string{},
+			Description:          "(GETRANGE key start end) Returns a substring from the string value.",
+			HandleWithConnection: false,
+			Sync:                 false,
+		},
 	}
 	Plugin.description = "Handle basic STRING commands"
 }

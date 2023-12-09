@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -25,9 +26,17 @@ type KeyObject struct {
 	locked bool
 }
 
+type Command struct {
+	Command              string   `json:"Command"`
+	Categories           []string `json:"Categories"`
+	Description          string   `json:"Description"`
+	HandleWithConnection bool     `json:"HandleWithConnection"`
+	Sync                 bool     `json:"Sync"`
+}
+
 type plugin struct {
 	name        string
-	commands    []string
+	commands    []Command
 	description string
 }
 
@@ -37,8 +46,8 @@ func (p *plugin) Name() string {
 	return p.name
 }
 
-func (p *plugin) Commands() []string {
-	return p.commands
+func (p *plugin) Commands() ([]byte, error) {
+	return json.Marshal(p.commands)
 }
 
 func (p *plugin) Description() string {
@@ -167,10 +176,28 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 
 func init() {
 	Plugin.name = "SetCommands"
-	Plugin.commands = []string{
-		"set",   // (SET key value) Set the value of a key, considering the value's type.
-		"setnx", // (SETNX key value) Set the key/value only if the key doesn't exist.
-		"mset",  // (MSET key value [key value ...]) Automatically set or modify multiple key/value pairs.
+	Plugin.commands = []Command{
+		{
+			Command:              "set",
+			Categories:           []string{},
+			Description:          "(SET key value) Set the value of a key, considering the value's type.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "setnx",
+			Categories:           []string{},
+			Description:          "(SETNX key value) Set the key/value only if the key doesn't exist.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "mset",
+			Categories:           []string{},
+			Description:          "(MSET key value [key value ...]) Automatically set or modify multiple key/value pairs.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
 	}
 	Plugin.description = "Handle basic SET commands"
 }

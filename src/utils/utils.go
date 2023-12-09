@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -105,6 +106,14 @@ func RetryBackoff(b retry.Backoff, maxRetries uint64, jitter, cappedDuration, ma
 	}
 
 	return backoff
+}
+
+func UnmarshalCommandsJSON(b []byte) ([]Command, error) {
+	commands := []Command{}
+	if err := json.Unmarshal(b, &commands); err != nil {
+		return nil, err
+	}
+	return commands, nil
 }
 
 func GetIPAddress() (string, error) {

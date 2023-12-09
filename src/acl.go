@@ -6,6 +6,7 @@ import (
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"gopkg.in/yaml.v3"
 	"log"
+	"net"
 	"os"
 	"path"
 	"strings"
@@ -42,14 +43,9 @@ type User struct {
 }
 
 type ACL struct {
-	Users []User
-}
-
-func GetPasswordType(password string) string {
-	if strings.Split(password, "")[0] == "#" {
-		return "SHA256"
-	}
-	return "plaintext"
+	Users       []User
+	Connections map[*net.Conn]*User
+	Config      utils.Config
 }
 
 func NewACL(config utils.Config) *ACL {
@@ -59,14 +55,16 @@ func NewACL(config utils.Config) *ACL {
 	defaultUser := User{
 		Username: "default",
 		Enabled:  true,
-		Authentication: UserPassword{
+	}
+	if config.RequirePass {
+		defaultUser.Authentication = UserPassword{
 			Passwords: []Password{
 				{
-					PasswordType:  "plaintext",
+					PasswordType:  GetPasswordType(config.Password),
 					PasswordValue: config.Password,
 				},
 			},
-		},
+		}
 	}
 
 	// 2. Read and parse the ACL config file and set the
@@ -111,9 +109,35 @@ func NewACL(config utils.Config) *ACL {
 		users = append([]User{defaultUser}, users...)
 	}
 
-	// 4. Validate the ACL Config that has been loaded from the file
+	// 4. Normalise the ACL user Config.
 
 	return &ACL{
-		Users: users,
+		Users:       users,
+		Connections: make(map[*net.Conn]*User),
+		Config:      config,
 	}
+}
+
+func (acl *ACL) HandleACLCommand(conn *net.Conn, cmd []string) error {
+	return nil
+}
+
+func (acl *ACL) RegisterConnection(conn *net.Conn) {
+	// Add connection to the map of registered connections
+	acl.Connections[conn] = nil
+}
+
+func (acl *ACL) AuthenticateConnection(conn *net.Conn, cmd []string) error {
+	return nil
+}
+
+func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string) error {
+	return nil
+}
+
+func GetPasswordType(password string) string {
+	if strings.Split(password, "")[0] == "#" {
+		return "SHA256"
+	}
+	return "plaintext"
 }

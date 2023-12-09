@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net"
 	"strings"
@@ -22,9 +23,17 @@ type Server interface {
 	SetValue(ctx context.Context, key string, value interface{})
 }
 
+type Command struct {
+	Command              string   `json:"Command"`
+	Categories           []string `json:"Categories"`
+	Description          string   `json:"Description"`
+	HandleWithConnection bool     `json:"HandleWithConnection"`
+	Sync                 bool     `json:"Sync"`
+}
+
 type plugin struct {
 	name        string
-	commands    []string
+	commands    []Command
 	description string
 }
 
@@ -34,8 +43,8 @@ func (p *plugin) Name() string {
 	return p.name
 }
 
-func (p *plugin) Commands() []string {
-	return p.commands
+func (p *plugin) Commands() ([]byte, error) {
+	return json.Marshal(p.commands)
 }
 
 func (p *plugin) Description() string {
@@ -70,6 +79,21 @@ func handlePing(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 
 func init() {
 	Plugin.name = "PingCommands"
-	Plugin.commands = []string{"ping", "ack"}
+	Plugin.commands = []Command{
+		{
+			Command:              "ping",
+			Categories:           []string{},
+			Description:          "",
+			HandleWithConnection: false,
+			Sync:                 false,
+		},
+		{
+			Command:              "ack",
+			Categories:           []string{},
+			Description:          "",
+			HandleWithConnection: false,
+			Sync:                 false,
+		},
+	}
 	Plugin.description = "Handle PING command"
 }

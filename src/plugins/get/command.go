@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -19,9 +20,18 @@ type Server interface {
 	SetValue(ctx context.Context, key string, value interface{})
 }
 
+type Command struct {
+	Command              string   `json:"Command"`
+	Categories           []string `json:"Categories"`
+	Description          string   `json:"Description"`
+	HandleWithConnection bool     `json:"HandleWithConnection"`
+	Sync                 bool     `json:"Sync"`
+}
+
 type plugin struct {
 	name        string
-	commands    []string
+	commands    []Command
+	categories  []string
 	description string
 }
 
@@ -31,8 +41,8 @@ func (p *plugin) Name() string {
 	return p.name
 }
 
-func (p *plugin) Commands() []string {
-	return p.commands
+func (p *plugin) Commands() ([]byte, error) {
+	return json.Marshal(p.commands)
 }
 
 func (p *plugin) Description() string {
@@ -107,6 +117,21 @@ func handleMGet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 
 func init() {
 	Plugin.name = "GetCommands"
-	Plugin.commands = []string{"get", "mget"}
+	Plugin.commands = []Command{
+		{
+			Command:              "get",
+			Categories:           []string{},
+			Description:          "",
+			HandleWithConnection: false,
+			Sync:                 false,
+		},
+		{
+			Command:              "mget",
+			Categories:           []string{},
+			Description:          "",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+	}
 	Plugin.description = "Handle basic GET and MGET commands"
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -25,9 +26,18 @@ type Server interface {
 	SetValue(ctx context.Context, key string, value interface{})
 }
 
+type Command struct {
+	Command              string   `json:"Command"`
+	Categories           []string `json:"Categories"`
+	Description          string   `json:"Description"`
+	HandleWithConnection bool     `json:"HandleWithConnection"`
+	Sync                 bool     `json:"Sync"`
+}
+
 type plugin struct {
 	name        string
-	commands    []string
+	commands    []Command
+	categories  []string
 	description string
 }
 
@@ -37,8 +47,8 @@ func (p *plugin) Name() string {
 	return p.name
 }
 
-func (p *plugin) Commands() []string {
-	return p.commands
+func (p *plugin) Commands() ([]byte, error) {
+	return json.Marshal(p.commands)
 }
 
 func (p *plugin) Description() string {
@@ -517,20 +527,98 @@ func handlePop(ctx context.Context, cmd []string, server Server) ([]byte, error)
 
 func init() {
 	Plugin.name = "ListCommands"
-	Plugin.commands = []string{
-		"lpush",  // (LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.
-		"lpushx", // (LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.
-		"lpop",   // (LPOP key) Removes and returns the first element of a list.
-		"llen",   // (LLEN key) Return the length of a list.
-		"lrange", // (LRANGE key start end) Return a range of elements between the given indices.
-		"lindex", // (LINDEX key index) Gets list element by index.
-		"lset",   // (LSET key index value) Sets the value of an element in a list by its index.
-		"ltrim",  // (LTRIM key start end) Trims a list to the specified range.
-		"lrem",   // (LREM key count value) Remove elements from list.
-		"lmove",  // (LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT> Move element from one list to the other specifying left/right for both lists.
-		"rpop",   // (RPOP key) Removes and gets the last element in a list.
-		"rpush",  // (RPUSH key value [value2]) Appends one or multiple elements to the end of a list.
-		"rpushx", // (RPUSHX key value) Appends an element to the end of a list, only if the list exists.
+	Plugin.commands = []Command{
+		{
+			Command:              "lpush",
+			Categories:           []string{},
+			Description:          "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "lpushx",
+			Categories:           []string{},
+			Description:          "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "lpop",
+			Categories:           []string{},
+			Description:          "(LPOP key) Removes and returns the first element of a list.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "llen",
+			Categories:           []string{},
+			Description:          "(LLEN key) Return the length of a list.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "lrange",
+			Categories:           []string{},
+			Description:          "(LRANGE key start end) Return a range of elements between the given indices.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "lindex",
+			Categories:           []string{},
+			Description:          "(LINDEX key index) Gets list element by index.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "lset",
+			Categories:           []string{},
+			Description:          "(LSET key index value) Sets the value of an element in a list by its index.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "ltrim",
+			Categories:           []string{},
+			Description:          "(LTRIM key start end) Trims a list to the specified range.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "lrem",
+			Categories:           []string{},
+			Description:          "(LREM key count value) Remove elements from list.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "lmove",
+			Categories:           []string{},
+			Description:          "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT> Move element from one list to the other specifying left/right for both lists.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "rpop",
+			Categories:           []string{},
+			Description:          "(RPOP key) Removes and gets the last element in a list.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "rpush",
+			Categories:           []string{},
+			Description:          "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
+		{
+			Command:              "rpushx",
+			Categories:           []string{},
+			Description:          "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
+			HandleWithConnection: false,
+			Sync:                 true,
+		},
 	}
 	Plugin.description = "Handle List commands"
 }

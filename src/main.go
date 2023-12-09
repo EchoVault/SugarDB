@@ -25,14 +25,6 @@ import (
 	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
-type Plugin interface {
-	Name() string
-	Commands() []string
-	Description() string
-	HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error)
-	HandleCommandWithConnection(ctx context.Context, cmd []string, server interface{}, conn *net.Conn) ([]byte, error)
-}
-
 type Server struct {
 	config utils.Config
 
@@ -42,7 +34,7 @@ type Server struct {
 	keyLocks        map[string]*sync.RWMutex
 	keyCreationLock *sync.Mutex
 
-	plugins []Plugin
+	commands []utils.Command
 
 	raft *raft.Raft
 
@@ -121,25 +113,29 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 	server.store[key] = value
 }
 
-func (server *Server) handlePluginCommand(ctx context.Context, command []string) ([]byte, error) {
-	for _, p := range server.plugins {
-		if utils.Contains[string](p.Commands(), strings.ToLower(command[0])) {
-			return p.HandleCommand(ctx, command, server)
+func (server *Server) getCommand(cmd string) (utils.Command, error) {
+	for _, command := range server.commands {
+		if strings.EqualFold(command.Command, cmd) {
+			return command, nil
 		}
 	}
-	return nil, fmt.Errorf("%s command not supported", strings.ToUpper(command[0]))
+	return utils.Command{}, fmt.Errorf("command %s not supported", cmd)
 }
 
-func (server *Server) handlePluginCommandWithConnection(ctx context.Context, command []string, conn *net.Conn) ([]byte, error) {
-	for _, p := range server.plugins {
-		if utils.Contains[string](p.Commands(), strings.ToLower(command[0])) {
-			return p.HandleCommandWithConnection(ctx, command, server, conn)
-		}
+func (server *Server) handlePluginCommand(ctx context.Context, cmd []string, conn *net.Conn) ([]byte, error) {
+	command, err := server.getCommand(cmd[0])
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("%s command not supported", strings.ToUpper(command[0]))
+	if command.HandleWithConnection {
+		return (*command.Plugin).HandleCommandWithConnection(ctx, cmd, server, conn)
+	}
+	return (*command.Plugin).HandleCommand(ctx, cmd, server)
 }
 
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
+	server.ACL.RegisterConnection(&conn)
+
 	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 
 	cid := server.connID.Add(1)
@@ -164,20 +160,15 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 			connRW.Flush()
 			continue
 		} else {
-			// Handle subscribe/unsubscribe command
-			if utils.Contains([]string{"subscribe", "unsubscribe"}, strings.ToLower(cmd[0])) {
-				b, err := server.handlePluginCommandWithConnection(ctx, cmd, &conn)
-				if err != nil {
-					connRW.Write([]byte(fmt.Sprintf("-%s\r\n\n", err.Error())))
-				} else {
-					connRW.Write(b)
-				}
+			command, err := server.getCommand(cmd[0])
+
+			if err != nil {
+				connRW.WriteString(fmt.Sprintf("-%s\r\n\n", err.Error()))
 				connRW.Flush()
-				continue
 			}
 
-			if !server.IsInCluster() {
-				if res, err := server.handlePluginCommand(ctx, cmd); err != nil {
+			if !server.IsInCluster() || !command.Sync {
+				if res, err := server.handlePluginCommand(ctx, cmd, &conn); err != nil {
 					connRW.Write([]byte(fmt.Sprintf("-%s\r\n\n", err.Error())))
 				} else {
 					connRW.Write(res)
@@ -332,21 +323,43 @@ func (server *Server) LoadPlugins(ctx context.Context) {
 			continue
 		}
 
-		pl, ok := pluginSymbol.(Plugin)
+		pl, ok := pluginSymbol.(utils.Plugin)
 		if !ok {
 			fmt.Printf("invalid plugin signature in plugin %s \n", file.Name())
 			continue
 		}
 
+		b, err := pl.Commands()
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		plCommands, err := utils.UnmarshalCommandsJSON(b)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		for i := 0; i < len(plCommands); i++ {
+			plCommands[i].Plugin = &pl
+		}
+
 		// Check if a plugin that handles the same command already exists
-		for _, loadedPlugin := range server.plugins {
-			containsMutual, elem := utils.ContainsMutual[string](loadedPlugin.Commands(), pl.Commands())
-			if containsMutual {
-				fmt.Printf("plugin that handles %s command already exists. Please handle a different command.\n", elem)
+		commandClash := false
+
+		for _, lc := range server.commands {
+			for _, pc := range plCommands {
+				if strings.EqualFold(lc.Command, pc.Command) {
+					commandClash = true
+					fmt.Printf("plugin that handles %s command already exists.\n", pc.Command)
+				}
 			}
 		}
 
-		server.plugins = append(server.plugins, pl)
+		if !commandClash {
+			server.commands = append(server.commands, plCommands...)
+		}
 	}
 }
 
@@ -356,6 +369,15 @@ func (server *Server) Start(ctx context.Context) {
 	server.store = make(map[string]interface{})
 	server.keyLocks = make(map[string]*sync.RWMutex)
 	server.keyCreationLock = &sync.Mutex{}
+
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		for {
+			fmt.Println("STORE: ", server.store)
+			fmt.Println("KEYLOCKS: ", server.keyLocks)
+			<-ticker.C
+		}
+	}()
 
 	server.LoadPlugins(ctx)
 
