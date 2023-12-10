@@ -365,8 +365,6 @@ func (server *Server) LoadPlugins(ctx context.Context) {
 			server.commands = append(server.commands, plCommands...)
 		}
 	}
-
-	fmt.Println(server.commands)
 }
 
 func (server *Server) Start(ctx context.Context) {
