@@ -42,7 +42,7 @@ func (p Plugin) GetCommands() []utils.Command {
 
 var ACLPlugin Plugin
 
-func NewACLPlugin(acl *ACL) *Plugin {
+func NewACLPlugin(acl *ACL) Plugin {
 	ACLPlugin = Plugin{
 		acl:  acl,
 		name: "ACLCommands",
@@ -139,5 +139,5 @@ func NewACLPlugin(acl *ACL) *Plugin {
 		},
 		description: "Internal plugin to handle ACL commands",
 	}
-	return &ACLPlugin
+	return ACLPlugin
 }

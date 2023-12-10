@@ -46,7 +46,7 @@ type ACL struct {
 	Users       []User
 	Connections map[*net.Conn]*User
 	Config      utils.Config
-	Plugin      *Plugin
+	Plugin      Plugin
 }
 
 func NewACL(config utils.Config) *ACL {
