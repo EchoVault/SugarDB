@@ -46,6 +46,7 @@ type ACL struct {
 	Users       []User
 	Connections map[*net.Conn]*User
 	Config      utils.Config
+	Plugin      *Plugin
 }
 
 func NewACL(config utils.Config) *ACL {
@@ -111,11 +112,18 @@ func NewACL(config utils.Config) *ACL {
 
 	// 4. Normalise the ACL user Config.
 
-	return &ACL{
+	acl := ACL{
 		Users:       users,
 		Connections: make(map[*net.Conn]*User),
 		Config:      config,
 	}
+	acl.Plugin = NewACLPlugin(&acl)
+
+	return &acl
+}
+
+func (acl *ACL) GetPluginCommands() []utils.Command {
+	return acl.Plugin.GetCommands()
 }
 
 func (acl *ACL) RegisterConnection(conn *net.Conn) {

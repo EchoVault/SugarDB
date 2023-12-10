@@ -303,7 +303,7 @@ func (server *Server) LoadPlugins(ctx context.Context) {
 	conf := server.config
 
 	// Load ACL Internal Commands
-	server.commands = append(server.commands, acl.ACLPlugin.GetCommands()...)
+	server.commands = append(server.commands, server.ACL.GetPluginCommands()...)
 
 	// Load plugins /usr/local/lib/memstore
 	files, err := os.ReadDir(conf.PluginDir)
