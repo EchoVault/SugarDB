@@ -17,15 +17,11 @@ type Password struct {
 	PasswordValue string `json:"PasswordValue" yaml:"PasswordValue"`
 }
 
-type UserPassword struct {
-	Passwords []Password `json:"Passwords" yaml:"Passwords"`
-}
-
 type User struct {
 	Username string `json:"Username" yaml:"Username"`
 	Enabled  bool   `json:"Enabled" yaml:"Enabled"`
 
-	Authentication UserPassword `json:"Authentication" yaml:"Authentication"`
+	Passwords []Password `json:"Passwords" yaml:"Passwords"`
 
 	IncludedCategories []string `json:"IncludedCategories" yaml:"IncludedCategories"`
 	ExcludedCategories []string `json:"ExcludedCategories" yaml:"ExcludedCategories"`
@@ -50,20 +46,15 @@ type ACL struct {
 }
 
 func NewACL(config utils.Config) *ACL {
-	users := []User{}
+	var users []User
 
 	// 1. Initialise default ACL user
-	defaultUser := User{
-		Username: "default",
-		Enabled:  true,
-	}
+	defaultUser := CreateUser("default", true)
 	if config.RequirePass {
-		defaultUser.Authentication = UserPassword{
-			Passwords: []Password{
-				{
-					PasswordType:  GetPasswordType(config.Password),
-					PasswordValue: config.Password,
-				},
+		defaultUser.Passwords = []Password{
+			{
+				PasswordType:  GetPasswordType(config.Password),
+				PasswordValue: config.Password,
 			},
 		}
 	}
@@ -96,21 +87,19 @@ func NewACL(config utils.Config) *ACL {
 		}
 	}
 
-	// 3. If users parsed from file do not contain "default" user, add the one we initialised in step 1
-	hasDefault := false
-
-	for _, user := range users {
+	// 3. Merge created default user and loaded default user
+	for i, user := range users {
 		if user.Username == "default" {
-			hasDefault = true
-			break
+			u, err := MergeUser(defaultUser, user)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			users[i] = u
 		}
 	}
 
-	if !hasDefault {
-		users = append([]User{defaultUser}, users...)
-	}
-
-	// 4. Normalise the ACL user Config.
+	// 4. Normalise the list of users ACL Config.
 
 	acl := ACL{
 		Users:       users,
@@ -118,6 +107,8 @@ func NewACL(config utils.Config) *ACL {
 		Config:      config,
 	}
 	acl.Plugin = NewACLPlugin(&acl)
+
+	fmt.Println(acl.Users)
 
 	return &acl
 }
@@ -143,4 +134,49 @@ func GetPasswordType(password string) string {
 		return "SHA256"
 	}
 	return "plaintext"
+}
+
+func CreateUser(username string, enabled bool) User {
+	return User{
+		Username:               username,
+		Enabled:                enabled,
+		Passwords:              []Password{},
+		IncludedCategories:     []string{"*"},
+		ExcludedCategories:     []string{},
+		IncludedCommands:       []string{"*"},
+		ExcludedCommands:       []string{},
+		IncludedKeys:           []string{"*"},
+		ExcludedKeys:           []string{},
+		IncludedReadKeys:       []string{"*"},
+		IncludedWriteKeys:      []string{"*"},
+		IncludedPubSubChannels: []string{"*"},
+		ExcludedPubSubChannels: []string{},
+	}
+}
+
+func NormaliseUser(user User) User {
+	// Normalise the user object
+	return User{}
+}
+
+func MergeUser(base, target User) (User, error) {
+	if base.Username != target.Username {
+		return User{},
+			fmt.Errorf("cannot merge user with username %s to user with username %s", base.Username, target.Username)
+	}
+
+	result := base
+
+	result.Enabled = target.Enabled
+	result.Passwords = append(base.Passwords, target.Passwords...)
+	result.IncludedCategories = append(base.IncludedCategories, target.IncludedCategories...)
+	result.ExcludedCategories = append(base.ExcludedCategories, target.ExcludedCategories...)
+	result.IncludedCommands = append(base.IncludedCommands, target.IncludedCommands...)
+	result.ExcludedCommands = append(base.ExcludedCommands, target.ExcludedCommands...)
+	result.IncludedReadKeys = append(base.IncludedReadKeys, target.IncludedReadKeys...)
+	result.IncludedWriteKeys = append(base.IncludedWriteKeys, target.IncludedWriteKeys...)
+	result.IncludedPubSubChannels = append(base.IncludedPubSubChannels, target.IncludedPubSubChannels...)
+	result.ExcludedPubSubChannels = append(base.ExcludedPubSubChannels, target.ExcludedPubSubChannels...)
+
+	return NormaliseUser(result), nil
 }
