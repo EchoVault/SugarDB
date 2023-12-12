@@ -148,22 +148,17 @@ func CreateUser(username string, enabled bool) User {
 		Username:               username,
 		Enabled:                enabled,
 		Passwords:              []Password{},
-		IncludedCategories:     []string{"*"},
+		IncludedCategories:     []string{},
 		ExcludedCategories:     []string{},
-		IncludedCommands:       []string{"*"},
+		IncludedCommands:       []string{},
 		ExcludedCommands:       []string{},
-		IncludedKeys:           []string{"*"},
+		IncludedKeys:           []string{},
 		ExcludedKeys:           []string{},
-		IncludedReadKeys:       []string{"*"},
-		IncludedWriteKeys:      []string{"*"},
-		IncludedPubSubChannels: []string{"*"},
+		IncludedReadKeys:       []string{},
+		IncludedWriteKeys:      []string{},
+		IncludedPubSubChannels: []string{},
 		ExcludedPubSubChannels: []string{},
 	}
-}
-
-func RemoveLeadingChar(slice []string, leading string) []string {
-	var result []string
-	return result
 }
 
 func RemoveDuplicates(slice []string) []string {
@@ -181,9 +176,12 @@ func RemoveDuplicates(slice []string) []string {
 	return keys
 }
 
-func NormaliseAllEntries(slice []string, allAlias string) []string {
+func NormaliseAllEntries(slice []string, allAlias string, defaultAllIncluded bool) []string {
 	result := slice
 	if utils.Contains(result, "*") || utils.Contains(result, allAlias) {
+		result = []string{"*"}
+	}
+	if len(result) == 0 && defaultAllIncluded {
 		result = []string{"*"}
 	}
 	return result
@@ -193,16 +191,26 @@ func NormaliseUser(user User) User {
 	// Normalise the user object
 	result := user
 
-	result.IncludedCategories = NormaliseAllEntries(RemoveDuplicates(result.IncludedCategories), "allCategories")
-	result.ExcludedCategories = NormaliseAllEntries(RemoveDuplicates(result.ExcludedCategories), "allCategories")
-	result.IncludedCommands = NormaliseAllEntries(RemoveDuplicates(result.IncludedCommands), "allCommands")
-	result.ExcludedCommands = NormaliseAllEntries(RemoveDuplicates(result.ExcludedCommands), "allCommands")
-	result.IncludedKeys = NormaliseAllEntries(RemoveDuplicates(result.IncludedKeys), "allKeys")
-	result.ExcludedKeys = NormaliseAllEntries(RemoveDuplicates(result.ExcludedKeys), "allKeys")
-	result.IncludedReadKeys = NormaliseAllEntries(RemoveDuplicates(result.IncludedReadKeys), "allKeys")
-	result.IncludedWriteKeys = NormaliseAllEntries(RemoveDuplicates(result.IncludedWriteKeys), "allKeys")
-	result.IncludedPubSubChannels = NormaliseAllEntries(RemoveDuplicates(result.IncludedPubSubChannels), "allChannels")
-	result.ExcludedPubSubChannels = NormaliseAllEntries(RemoveDuplicates(result.ExcludedPubSubChannels), "allChannels")
+	result.IncludedCategories =
+		NormaliseAllEntries(RemoveDuplicates(result.IncludedCategories), "allCategories", true)
+	result.ExcludedCategories =
+		NormaliseAllEntries(RemoveDuplicates(result.ExcludedCategories), "allCategories", false)
+	result.IncludedCommands =
+		NormaliseAllEntries(RemoveDuplicates(result.IncludedCommands), "allCommands", true)
+	result.ExcludedCommands =
+		NormaliseAllEntries(RemoveDuplicates(result.ExcludedCommands), "allCommands", false)
+	result.IncludedKeys =
+		NormaliseAllEntries(RemoveDuplicates(result.IncludedKeys), "allKeys", true)
+	result.ExcludedKeys =
+		NormaliseAllEntries(RemoveDuplicates(result.ExcludedKeys), "allKeys", false)
+	result.IncludedReadKeys =
+		NormaliseAllEntries(RemoveDuplicates(result.IncludedReadKeys), "allKeys", true)
+	result.IncludedWriteKeys =
+		NormaliseAllEntries(RemoveDuplicates(result.IncludedWriteKeys), "allKeys", true)
+	result.IncludedPubSubChannels =
+		NormaliseAllEntries(RemoveDuplicates(result.IncludedPubSubChannels), "allChannels", true)
+	result.ExcludedPubSubChannels =
+		NormaliseAllEntries(RemoveDuplicates(result.ExcludedPubSubChannels), "allChannels", false)
 
 	return result
 }
