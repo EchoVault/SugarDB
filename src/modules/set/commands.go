@@ -1,77 +1,63 @@
-package main
+package set
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
 	"strings"
 	"time"
 )
-
-type Server interface {
-	KeyLock(ctx context.Context, key string) (bool, error)
-	KeyUnlock(key string)
-	KeyRLock(ctx context.Context, key string) (bool, error)
-	KeyRUnlock(key string)
-	KeyExists(key string) bool
-	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
-	GetValue(key string) interface{}
-	SetValue(ctx context.Context, key string, value interface{})
-}
 
 type KeyObject struct {
 	value  interface{}
 	locked bool
 }
 
-type Command struct {
-	Command              string   `json:"Command"`
-	Categories           []string `json:"Categories"`
-	Description          string   `json:"Description"`
-	HandleWithConnection bool     `json:"HandleWithConnection"`
-	Sync                 bool     `json:"Sync"`
-}
-
-type plugin struct {
+type Plugin struct {
 	name        string
-	commands    []Command
+	commands    []utils.Command
 	description string
 }
 
-var Plugin plugin
+var SetModule Plugin
 
-func (p *plugin) Name() string {
+func (p Plugin) Name() string {
 	return p.name
 }
 
-func (p *plugin) Commands() ([]byte, error) {
+func (p Plugin) Commands() ([]byte, error) {
 	return json.Marshal(p.commands)
 }
 
-func (p *plugin) Description() string {
+func (p Plugin) GetCommands() []utils.Command {
+	return p.commands
+}
+
+func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server interface{}, conn *net.Conn) ([]byte, error) {
+func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		return nil, errors.New("command unknown")
 	case "set":
-		return handleSet(ctx, cmd, server.(Server))
+		return handleSet(ctx, cmd, server)
 	case "setnx":
-		return handleSetNX(ctx, cmd, server.(Server))
+		return handleSetNX(ctx, cmd, server)
 	case "mset":
-		return handleMSet(ctx, cmd, server.(Server))
+		return handleMSet(ctx, cmd, server)
 	}
 }
 
-func handleSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
+func handleSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -84,7 +70,7 @@ func handleSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 		if !s.KeyExists(key) {
 			// TODO: Retry CreateKeyAndLock until we manage to obtain the key
 			s.CreateKeyAndLock(ctx, key)
-			s.SetValue(ctx, key, AdaptType(cmd[2]))
+			s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
 			s.KeyUnlock(key)
 			return []byte("+OK\r\n\n"), nil
 		}
@@ -93,13 +79,13 @@ func handleSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 			return nil, err
 		}
 
-		s.SetValue(ctx, key, AdaptType(cmd[2]))
+		s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
 		s.KeyUnlock(key)
 		return []byte("+OK\r\n\n"), nil
 	}
 }
 
-func handleSetNX(ctx context.Context, cmd []string, s Server) ([]byte, error) {
+func handleSetNX(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
 	switch x := len(cmd); {
 	default:
 		return nil, errors.New("wrong number of args for SETNX command")
@@ -110,13 +96,13 @@ func handleSetNX(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 		}
 		// TODO: Retry CreateKeyAndLock until we manage to obtain the key
 		s.CreateKeyAndLock(ctx, key)
-		s.SetValue(ctx, key, AdaptType(cmd[2]))
+		s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
 		s.KeyUnlock(key)
 	}
 	return []byte("+OK\r\n\n"), nil
 }
 
-func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
+func handleMSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
 	defer cancel()
 
@@ -144,7 +130,7 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	for i, key := range cmd[1:] {
 		if i%2 == 0 {
 			entries[key] = KeyObject{
-				value:  AdaptType(cmd[1:][i+1]),
+				value:  utils.AdaptType(cmd[1:][i+1]),
 				locked: false,
 			}
 		}
@@ -174,30 +160,37 @@ func handleMSet(ctx context.Context, cmd []string, s Server) ([]byte, error) {
 	return []byte("+OK\r\n\n"), nil
 }
 
-func init() {
-	Plugin.name = "SetCommands"
-	Plugin.commands = []Command{
-		{
-			Command:              "set",
-			Categories:           []string{},
-			Description:          "(SET key value) Set the value of a key, considering the value's type.",
-			HandleWithConnection: false,
-			Sync:                 true,
+func NewModule() Plugin {
+	SetModule := Plugin{
+		name: "SetCommands",
+		commands: []utils.Command{
+			{
+				Command:              "set",
+				Categories:           []string{},
+				Description:          "(SET key value) Set the value of a key, considering the value's type.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               SetModule,
+			},
+			{
+				Command:              "setnx",
+				Categories:           []string{},
+				Description:          "(SETNX key value) Set the key/value only if the key doesn't exist.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               SetModule,
+			},
+			{
+				Command:              "mset",
+				Categories:           []string{},
+				Description:          "(MSET key value [key value ...]) Automatically set or modify multiple key/value pairs.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               SetModule,
+			},
 		},
-		{
-			Command:              "setnx",
-			Categories:           []string{},
-			Description:          "(SETNX key value) Set the key/value only if the key doesn't exist.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "mset",
-			Categories:           []string{},
-			Description:          "(MSET key value [key value ...]) Automatically set or modify multiple key/value pairs.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
+		description: "Handle basic SET commands",
 	}
-	Plugin.description = "Handle basic SET commands"
+
+	return SetModule
 }

@@ -1,79 +1,66 @@
-package main
+package str
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
 	"strings"
 )
 
-type Server interface {
-	KeyLock(ctx context.Context, key string) (bool, error)
-	KeyUnlock(key string)
-	KeyRLock(ctx context.Context, key string) (bool, error)
-	KeyRUnlock(key string)
-	KeyExists(key string) bool
-	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
-	GetValue(key string) interface{}
-	SetValue(ctx context.Context, key string, value interface{})
-}
-
-type Command struct {
-	Command              string   `json:"Command"`
-	Categories           []string `json:"Categories"`
-	Description          string   `json:"Description"`
-	HandleWithConnection bool     `json:"HandleWithConnection"`
-	Sync                 bool     `json:"Sync"`
-}
-
-type plugin struct {
+type Plugin struct {
 	name        string
-	commands    []Command
+	commands    []utils.Command
 	description string
 }
 
-var Plugin plugin
+var StringModule Plugin
 
-func (p *plugin) Name() string {
+func (p Plugin) Name() string {
 	return p.name
 }
-func (p *plugin) Commands() ([]byte, error) {
+
+func (p Plugin) Commands() ([]byte, error) {
 	return json.Marshal(p.commands)
 }
 
-func (p *plugin) Description() string {
+func (p Plugin) GetCommands() []utils.Command {
+	return p.commands
+}
+
+func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server interface{}, conn *net.Conn) ([]byte, error) {
+func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		return nil, errors.New("command unknown")
 	case "setrange":
-		return handleSetRange(ctx, cmd, server.(Server))
+		return handleSetRange(ctx, cmd, server)
 	case "strlen":
-		return handleStrLen(ctx, cmd, server.(Server))
+		return handleStrLen(ctx, cmd, server)
 	case "substr":
-		return handleSubStr(ctx, cmd, server.(Server))
+		return handleSubStr(ctx, cmd, server)
 	case "getrange":
-		return handleSubStr(ctx, cmd, server.(Server))
+		return handleSubStr(ctx, cmd, server)
 	}
 }
 
-func handleSetRange(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleSetRange(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd[1:]) != 3 {
 		return nil, errors.New("wrong number of args for SETRANGE command")
 	}
 
 	key := cmd[1]
 
-	offset, ok := AdaptType(cmd[2]).(int64)
+	offset, ok := utils.AdaptType(cmd[2]).(int64)
 	if !ok {
 		return nil, errors.New("offset must be integer")
 	}
@@ -132,7 +119,7 @@ func handleSetRange(ctx context.Context, cmd []string, server Server) ([]byte, e
 	return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
 }
 
-func handleStrLen(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleStrLen(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd[1:]) != 1 {
 		return nil, errors.New("wrong number of args for STRLEN command")
 	}
@@ -157,15 +144,15 @@ func handleStrLen(ctx context.Context, cmd []string, server Server) ([]byte, err
 	return []byte(fmt.Sprintf(":%d\r\n\n", len(value))), nil
 }
 
-func handleSubStr(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleSubStr(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd[1:]) != 3 {
 		return nil, errors.New("wrong number of args for SUBSTR command")
 	}
 
 	key := cmd[1]
 
-	start, startOk := AdaptType(cmd[2]).(int64)
-	end, endOk := AdaptType(cmd[3]).(int64)
+	start, startOk := utils.AdaptType(cmd[2]).(int64)
+	end, endOk := utils.AdaptType(cmd[3]).(int64)
 	reversed := false
 
 	if !startOk || !endOk {
@@ -220,37 +207,44 @@ func handleSubStr(ctx context.Context, cmd []string, server Server) ([]byte, err
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n\n", len(str), str)), nil
 }
 
-func init() {
-	Plugin.name = "StringCommands"
-	Plugin.commands = []Command{
-		{
-			Command:              "setrange",
-			Categories:           []string{},
-			Description:          "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
-			HandleWithConnection: false,
-			Sync:                 true,
+func NewModule() Plugin {
+	StringModule := Plugin{
+		name: "StringCommands",
+		commands: []utils.Command{
+			{
+				Command:              "setrange",
+				Categories:           []string{},
+				Description:          "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               StringModule,
+			},
+			{
+				Command:              "strlen",
+				Categories:           []string{},
+				Description:          "(STRLEN key) Returns length of the key's value if it's a string.",
+				HandleWithConnection: false,
+				Sync:                 false,
+				Plugin:               StringModule,
+			},
+			{
+				Command:              "substr",
+				Categories:           []string{},
+				Description:          "(SUBSTR key start end) Returns a substring from the string value.",
+				HandleWithConnection: false,
+				Sync:                 false,
+				Plugin:               StringModule,
+			},
+			{
+				Command:              "getrange",
+				Categories:           []string{},
+				Description:          "(GETRANGE key start end) Returns a substring from the string value.",
+				HandleWithConnection: false,
+				Sync:                 false,
+				Plugin:               StringModule,
+			},
 		},
-		{
-			Command:              "strlen",
-			Categories:           []string{},
-			Description:          "(STRLEN key) Returns length of the key's value if it's a string.",
-			HandleWithConnection: false,
-			Sync:                 false,
-		},
-		{
-			Command:              "substr",
-			Categories:           []string{},
-			Description:          "(SUBSTR key start end) Returns a substring from the string value.",
-			HandleWithConnection: false,
-			Sync:                 false,
-		},
-		{
-			Command:              "getrange",
-			Categories:           []string{},
-			Description:          "(GETRANGE key start end) Returns a substring from the string value.",
-			HandleWithConnection: false,
-			Sync:                 false,
-		},
+		description: "Handle basic STRING commands",
 	}
-	Plugin.description = "Handle basic STRING commands"
+	return StringModule
 }

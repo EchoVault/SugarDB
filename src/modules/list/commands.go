@@ -1,10 +1,11 @@
-package main
+package list
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 	"math"
 	"net"
 	"reflect"
@@ -15,89 +16,74 @@ const (
 	OK = "+OK\r\n\n"
 )
 
-type Server interface {
-	KeyLock(ctx context.Context, key string) (bool, error)
-	KeyUnlock(key string)
-	KeyRLock(ctx context.Context, key string) (bool, error)
-	KeyRUnlock(key string)
-	KeyExists(key string) bool
-	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
-	GetValue(key string) interface{}
-	SetValue(ctx context.Context, key string, value interface{})
-}
-
-type Command struct {
-	Command              string   `json:"Command"`
-	Categories           []string `json:"Categories"`
-	Description          string   `json:"Description"`
-	HandleWithConnection bool     `json:"HandleWithConnection"`
-	Sync                 bool     `json:"Sync"`
-}
-
-type plugin struct {
+type Plugin struct {
 	name        string
-	commands    []Command
+	commands    []utils.Command
 	categories  []string
 	description string
 }
 
-var Plugin plugin
+var ListModule Plugin
 
-func (p *plugin) Name() string {
+func (p Plugin) Name() string {
 	return p.name
 }
 
-func (p *plugin) Commands() ([]byte, error) {
+func (p Plugin) Commands() ([]byte, error) {
 	return json.Marshal(p.commands)
 }
 
-func (p *plugin) Description() string {
+func (p Plugin) GetCommands() []utils.Command {
+	return p.commands
+}
+
+func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p *plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server interface{}, conn *net.Conn) ([]byte, error) {
+func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (p *plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	c := strings.ToLower(cmd[0])
 
 	switch {
 	default:
 		return nil, errors.New("command unknown")
 	case c == "llen":
-		return handleLLen(ctx, cmd, server.(Server))
+		return handleLLen(ctx, cmd, server)
 
 	case c == "lindex":
-		return handleLIndex(ctx, cmd, server.(Server))
+		return handleLIndex(ctx, cmd, server)
 
 	case c == "lrange":
-		return handleLRange(ctx, cmd, server.(Server))
+		return handleLRange(ctx, cmd, server)
 
 	case c == "lset":
-		return handleLSet(ctx, cmd, server.(Server))
+		return handleLSet(ctx, cmd, server)
 
 	case c == "ltrim":
-		return handleLTrim(ctx, cmd, server.(Server))
+		return handleLTrim(ctx, cmd, server)
 
 	case c == "lrem":
-		return handleLRem(ctx, cmd, server.(Server))
+		return handleLRem(ctx, cmd, server)
 
 	case c == "lmove":
-		return handleLMove(ctx, cmd, server.(Server))
+		return handleLMove(ctx, cmd, server)
 
-	case Contains[string]([]string{"lpush", "lpushx"}, c):
-		return handleLPush(ctx, cmd, server.(Server))
+	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
+		return handleLPush(ctx, cmd, server)
 
-	case Contains[string]([]string{"rpush", "rpushx"}, c):
-		return handleRPush(ctx, cmd, server.(Server))
+	case utils.Contains[string]([]string{"rpush", "rpushx"}, c):
+		return handleRPush(ctx, cmd, server)
 
-	case Contains[string]([]string{"lpop", "rpop"}, c):
-		return handlePop(ctx, cmd, server.(Server))
+	case utils.Contains[string]([]string{"lpop", "rpop"}, c):
+		return handlePop(ctx, cmd, server)
 	}
 }
 
-func handleLLen(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleLLen(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, errors.New("wrong number of args for LLEN command")
 	}
@@ -118,12 +104,12 @@ func handleLLen(ctx context.Context, cmd []string, server Server) ([]byte, error
 	return []byte(fmt.Sprintf(":%d\r\n\n", len(list))), nil
 }
 
-func handleLIndex(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleLIndex(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New("wrong number of args for LINDEX command")
 	}
 
-	index, ok := AdaptType(cmd[2]).(int64)
+	index, ok := utils.AdaptType(cmd[2]).(int64)
 
 	if !ok {
 		return nil, errors.New("index must be an integer")
@@ -148,13 +134,13 @@ func handleLIndex(ctx context.Context, cmd []string, server Server) ([]byte, err
 	return []byte(fmt.Sprintf("+%s\r\n\n", list[index])), nil
 }
 
-func handleLRange(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleLRange(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New("wrong number of arguments for LRANGE command")
 	}
 
-	start, startOk := AdaptType(cmd[2]).(int64)
-	end, endOk := AdaptType(cmd[3]).(int64)
+	start, startOk := utils.AdaptType(cmd[2]).(int64)
+	end, endOk := utils.AdaptType(cmd[3]).(int64)
 
 	if !startOk || !endOk {
 		return nil, errors.New("both start and end indices must be integers")
@@ -227,7 +213,7 @@ func handleLRange(ctx context.Context, cmd []string, server Server) ([]byte, err
 	return bytes, nil
 }
 
-func handleLSet(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleLSet(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New("wrong number of arguments for LSET command")
 	}
@@ -244,7 +230,7 @@ func handleLSet(ctx context.Context, cmd []string, server Server) ([]byte, error
 		return nil, errors.New("LSET command on non-list item")
 	}
 
-	index, ok := AdaptType(cmd[2]).(int64)
+	index, ok := utils.AdaptType(cmd[2]).(int64)
 
 	fmt.Printf("LSET INDEX: `%v`, OK: %v\n", reflect.TypeOf(index), ok)
 
@@ -258,20 +244,20 @@ func handleLSet(ctx context.Context, cmd []string, server Server) ([]byte, error
 		return nil, errors.New("index must be within range")
 	}
 
-	list[index] = AdaptType(cmd[3])
+	list[index] = utils.AdaptType(cmd[3])
 	server.SetValue(ctx, cmd[1], list)
 	server.KeyUnlock(cmd[1])
 
 	return []byte(OK), nil
 }
 
-func handleLTrim(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleLTrim(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New("wrong number of args for command LTRIM")
 	}
 
-	start, startOk := AdaptType(cmd[2]).(int64)
-	end, endOk := AdaptType(cmd[3]).(int64)
+	start, startOk := utils.AdaptType(cmd[2]).(int64)
+	end, endOk := utils.AdaptType(cmd[3]).(int64)
 
 	if !startOk || !endOk {
 		return nil, errors.New("start and end indices must be integers")
@@ -307,13 +293,13 @@ func handleLTrim(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	return []byte(OK), nil
 }
 
-func handleLRem(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleLRem(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New("wrong number of arguments for LREM command")
 	}
 
 	value := cmd[3]
-	count, ok := AdaptType(cmd[2]).(int64)
+	count, ok := utils.AdaptType(cmd[2]).(int64)
 
 	if !ok {
 		return nil, errors.New("count must be an integer")
@@ -359,7 +345,7 @@ func handleLRem(ctx context.Context, cmd []string, server Server) ([]byte, error
 		}
 	}
 
-	list = Filter[interface{}](list, func(elem interface{}) bool {
+	list = utils.Filter[interface{}](list, func(elem interface{}) bool {
 		return elem != nil
 	})
 
@@ -369,7 +355,7 @@ func handleLRem(ctx context.Context, cmd []string, server Server) ([]byte, error
 	return []byte(OK), nil
 }
 
-func handleLMove(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleLMove(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 5 {
 		return nil, errors.New("wrong number of arguments for LMOVE command")
 	}
@@ -377,7 +363,7 @@ func handleLMove(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	whereFrom := strings.ToLower(cmd[3])
 	whereTo := strings.ToLower(cmd[4])
 
-	if !Contains[string]([]string{"left", "right"}, whereFrom) || !Contains[string]([]string{"left", "right"}, whereTo) {
+	if !utils.Contains[string]([]string{"left", "right"}, whereFrom) || !utils.Contains[string]([]string{"left", "right"}, whereTo) {
 		return nil, errors.New("wherefrom and whereto arguments must be either LEFT or RIGHT")
 	}
 
@@ -418,7 +404,7 @@ func handleLMove(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	return []byte(OK), nil
 }
 
-func handleLPush(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleLPush(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, fmt.Errorf("wrong number of arguments for %s command", strings.ToUpper(cmd[0]))
 	}
@@ -426,7 +412,7 @@ func handleLPush(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	newElems := []interface{}{}
 
 	for _, elem := range cmd[2:] {
-		newElems = append(newElems, AdaptType(elem))
+		newElems = append(newElems, utils.AdaptType(elem))
 	}
 
 	key := cmd[1]
@@ -456,7 +442,7 @@ func handleLPush(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	return []byte(OK), nil
 }
 
-func handleRPush(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handleRPush(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, fmt.Errorf("wrong number of arguments for %s command", strings.ToUpper(cmd[0]))
 	}
@@ -464,7 +450,7 @@ func handleRPush(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	newElems := []interface{}{}
 
 	for _, elem := range cmd[2:] {
-		newElems = append(newElems, AdaptType(elem))
+		newElems = append(newElems, utils.AdaptType(elem))
 	}
 
 	if !server.KeyExists(cmd[1]) {
@@ -492,7 +478,7 @@ func handleRPush(ctx context.Context, cmd []string, server Server) ([]byte, erro
 	return []byte(OK), nil
 }
 
-func handlePop(ctx context.Context, cmd []string, server Server) ([]byte, error) {
+func handlePop(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, fmt.Errorf("wrong number of args for %s command", strings.ToUpper(cmd[0]))
 	}
@@ -525,100 +511,116 @@ func handlePop(ctx context.Context, cmd []string, server Server) ([]byte, error)
 
 }
 
-func init() {
-	Plugin.name = "ListCommands"
-	Plugin.commands = []Command{
-		{
-			Command:              "lpush",
-			Categories:           []string{},
-			Description:          "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
-			HandleWithConnection: false,
-			Sync:                 true,
+func NewModule() Plugin {
+	ListModule := Plugin{
+		name: "ListCommands",
+		commands: []utils.Command{
+			{
+				Command:              "lpush",
+				Categories:           []string{},
+				Description:          "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "lpushx",
+				Categories:           []string{},
+				Description:          "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "lpop",
+				Categories:           []string{},
+				Description:          "(LPOP key) Removes and returns the first element of a list.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "llen",
+				Categories:           []string{},
+				Description:          "(LLEN key) Return the length of a list.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "lrange",
+				Categories:           []string{},
+				Description:          "(LRANGE key start end) Return a range of elements between the given indices.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "lindex",
+				Categories:           []string{},
+				Description:          "(LINDEX key index) Gets list element by index.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "lset",
+				Categories:           []string{},
+				Description:          "(LSET key index value) Sets the value of an element in a list by its index.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "ltrim",
+				Categories:           []string{},
+				Description:          "(LTRIM key start end) Trims a list to the specified range.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "lrem",
+				Categories:           []string{},
+				Description:          "(LREM key count value) Remove elements from list.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "lmove",
+				Categories:           []string{},
+				Description:          "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT> Move element from one list to the other specifying left/right for both lists.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "rpop",
+				Categories:           []string{},
+				Description:          "(RPOP key) Removes and gets the last element in a list.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "rpush",
+				Categories:           []string{},
+				Description:          "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
+			{
+				Command:              "rpushx",
+				Categories:           []string{},
+				Description:          "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
+				HandleWithConnection: false,
+				Sync:                 true,
+				Plugin:               ListModule,
+			},
 		},
-		{
-			Command:              "lpushx",
-			Categories:           []string{},
-			Description:          "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "lpop",
-			Categories:           []string{},
-			Description:          "(LPOP key) Removes and returns the first element of a list.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "llen",
-			Categories:           []string{},
-			Description:          "(LLEN key) Return the length of a list.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "lrange",
-			Categories:           []string{},
-			Description:          "(LRANGE key start end) Return a range of elements between the given indices.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "lindex",
-			Categories:           []string{},
-			Description:          "(LINDEX key index) Gets list element by index.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "lset",
-			Categories:           []string{},
-			Description:          "(LSET key index value) Sets the value of an element in a list by its index.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "ltrim",
-			Categories:           []string{},
-			Description:          "(LTRIM key start end) Trims a list to the specified range.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "lrem",
-			Categories:           []string{},
-			Description:          "(LREM key count value) Remove elements from list.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "lmove",
-			Categories:           []string{},
-			Description:          "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT> Move element from one list to the other specifying left/right for both lists.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "rpop",
-			Categories:           []string{},
-			Description:          "(RPOP key) Removes and gets the last element in a list.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "rpush",
-			Categories:           []string{},
-			Description:          "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
-		{
-			Command:              "rpushx",
-			Categories:           []string{},
-			Description:          "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
-			HandleWithConnection: false,
-			Sync:                 true,
-		},
+		description: "Handle List commands",
 	}
-	Plugin.description = "Handle List commands"
+	return ListModule
 }

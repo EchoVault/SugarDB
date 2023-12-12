@@ -17,12 +17,18 @@ type Plugin struct {
 	acl         *ACL
 }
 
+var ACLPlugin Plugin
+
 func (p Plugin) Name() string {
 	return p.name
 }
 
 func (p Plugin) Commands() ([]byte, error) {
 	return json.Marshal(p.commands)
+}
+
+func (p Plugin) GetCommands() []utils.Command {
+	return p.commands
 }
 
 func (p Plugin) Description() string {
@@ -72,10 +78,6 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 	return nil, errors.New("not implemented")
 }
 
-func (p Plugin) GetCommands() []utils.Command {
-	return p.commands
-}
-
 func (p Plugin) handleAuth(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	return nil, errors.New("AUTH not implemented")
 }
@@ -120,9 +122,7 @@ func (p Plugin) handleSave(ctx context.Context, cmd []string, server utils.Serve
 	return nil, errors.New("ACL SAVE not implemented")
 }
 
-var ACLPlugin Plugin
-
-func NewACLPlugin(acl *ACL) Plugin {
+func NewModule(acl *ACL) Plugin {
 	ACLPlugin = Plugin{
 		acl:  acl,
 		name: "ACLCommands",

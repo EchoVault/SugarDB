@@ -6,7 +6,12 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/kelvinmwinuka/memstore/src/acl"
+	"github.com/kelvinmwinuka/memstore/src/modules/acl"
+	"github.com/kelvinmwinuka/memstore/src/modules/get"
+	"github.com/kelvinmwinuka/memstore/src/modules/list"
+	"github.com/kelvinmwinuka/memstore/src/modules/ping"
+	"github.com/kelvinmwinuka/memstore/src/modules/set"
+	str "github.com/kelvinmwinuka/memstore/src/modules/string"
 	"io"
 	"log"
 	"net"
@@ -131,6 +136,7 @@ func (server *Server) handlePluginCommand(ctx context.Context, cmd []string, con
 	if command.HandleWithConnection {
 		return command.Plugin.HandleCommandWithConnection(ctx, cmd, server, conn)
 	}
+	fmt.Println("SERVER: ", server)
 	return command.Plugin.HandleCommand(ctx, cmd, server)
 }
 
@@ -303,8 +309,18 @@ func (server *Server) StartHTTP(ctx context.Context) {
 func (server *Server) LoadPlugins(ctx context.Context) {
 	conf := server.config
 
-	// Load ACL Internal Commands
-	server.commands = append(server.commands, server.ACL.GetPluginCommands()...)
+	// Load Ping module
+	server.commands = append(server.commands, ping.NewModule().GetCommands()...)
+	// Load ACL Commands module
+	server.commands = append(server.commands, acl.NewModule(server.ACL).GetCommands()...)
+	// Load Set module
+	server.commands = append(server.commands, set.NewModule().GetCommands()...)
+	// Load String module
+	server.commands = append(server.commands, str.NewModule().GetCommands()...)
+	// Load Get module
+	server.commands = append(server.commands, get.NewModule().GetCommands()...)
+	// Load List module
+	server.commands = append(server.commands, list.NewModule().GetCommands()...)
 
 	// Load plugins /usr/local/lib/memstore
 	files, err := os.ReadDir(conf.PluginDir)
