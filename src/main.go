@@ -10,6 +10,7 @@ import (
 	"github.com/kelvinmwinuka/memstore/src/modules/get"
 	"github.com/kelvinmwinuka/memstore/src/modules/list"
 	"github.com/kelvinmwinuka/memstore/src/modules/ping"
+	"github.com/kelvinmwinuka/memstore/src/modules/pubsub"
 	"github.com/kelvinmwinuka/memstore/src/modules/set"
 	str "github.com/kelvinmwinuka/memstore/src/modules/string"
 	"io"
@@ -48,7 +49,8 @@ type Server struct {
 
 	cancelCh *chan os.Signal
 
-	ACL *acl.ACL
+	ACL    *acl.ACL
+	PubSub *pubsub.PubSub
 }
 
 func (server *Server) KeyLock(ctx context.Context, key string) (bool, error) {
@@ -305,8 +307,9 @@ func (server *Server) StartHTTP(ctx context.Context) {
 }
 
 func (server *Server) LoadModules(ctx context.Context) {
-	server.commands = append(server.commands, ping.NewModule().GetCommands()...)
 	server.commands = append(server.commands, acl.NewModule(server.ACL).GetCommands()...)
+	server.commands = append(server.commands, pubsub.NewModule(server.PubSub).GetCommands()...)
+	server.commands = append(server.commands, ping.NewModule().GetCommands()...)
 	server.commands = append(server.commands, set.NewModule().GetCommands()...)
 	server.commands = append(server.commands, str.NewModule().GetCommands()...)
 	server.commands = append(server.commands, get.NewModule().GetCommands()...)
@@ -379,7 +382,8 @@ func main() {
 		broadcastQueue: new(memberlist.TransmitLimitedQueue),
 		numOfNodes:     0,
 
-		ACL: acl.NewACL(config),
+		ACL:    acl.NewACL(config),
+		PubSub: pubsub.NewPubSub(),
 
 		cancelCh: &cancelCh,
 	}

@@ -1,10 +1,11 @@
-package main
+package pubsub
 
 import (
 	"bufio"
 	"container/ring"
 	"context"
 	"fmt"
+	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
 	"strings"
 	"sync"
@@ -45,7 +46,7 @@ func (cg *ConsumerGroup) SendMessage(message string) {
 	// Wait for an ACK
 	// If no ACK is received within a time limit, remove this connection from subscribers and retry
 	(*conn).SetReadDeadline(time.Now().Add(250 * time.Millisecond))
-	if msg, err := ReadMessage(rw); err != nil {
+	if msg, err := utils.ReadMessage(rw); err != nil {
 		// Remove the connection from subscribers list
 		cg.Unsubscribe(conn)
 		// Reset the deadline
@@ -160,7 +161,7 @@ func (ch *Channel) Start() {
 						(*conn).SetReadDeadline(time.Time{})
 					}()
 
-					if msg, err := ReadMessage(rw); err != nil {
+					if msg, err := utils.ReadMessage(rw); err != nil {
 						ch.Unsubscribe(conn)
 					} else {
 						if strings.TrimSpace(msg) != "+ACK" {
@@ -176,14 +177,14 @@ func (ch *Channel) Start() {
 }
 
 func (ch *Channel) Subscribe(conn *net.Conn, consumerGroupName interface{}) {
-	if consumerGroupName == nil && !Contains[*net.Conn](ch.subscribers, conn) {
+	if consumerGroupName == nil && !utils.Contains[*net.Conn](ch.subscribers, conn) {
 		ch.subscribersRWMut.Lock()
 		defer ch.subscribersRWMut.Unlock()
 		ch.subscribers = append(ch.subscribers, conn)
 		return
 	}
 
-	groups := Filter[*ConsumerGroup](ch.consumerGroups, func(group *ConsumerGroup) bool {
+	groups := utils.Filter[*ConsumerGroup](ch.consumerGroups, func(group *ConsumerGroup) bool {
 		return group.name == consumerGroupName.(string)
 	})
 
@@ -206,7 +207,7 @@ func (ch *Channel) Unsubscribe(conn *net.Conn) {
 	ch.subscribersRWMut.Lock()
 	defer ch.subscribersRWMut.Unlock()
 
-	ch.subscribers = Filter[*net.Conn](ch.subscribers, func(c *net.Conn) bool {
+	ch.subscribers = utils.Filter[*net.Conn](ch.subscribers, func(c *net.Conn) bool {
 		return c != conn
 	})
 
@@ -229,7 +230,9 @@ type PubSub struct {
 
 func NewPubSub() *PubSub {
 	return &PubSub{
-		channels: []*Channel{},
+		channels: []*Channel{
+			NewChannel("chan"),
+		},
 	}
 }
 
@@ -245,7 +248,7 @@ func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channelName int
 	// Check if channel with given name exists
 	// If it does, subscribe the connection to the channel
 	// If it does not, create the channel and subscribe to it
-	channels := Filter[*Channel](ps.channels, func(c *Channel) bool {
+	channels := utils.Filter[*Channel](ps.channels, func(c *Channel) bool {
 		return c.name == channelName
 	})
 
@@ -272,7 +275,7 @@ func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channelName i
 		return
 	}
 
-	channels := Filter[*Channel](ps.channels, func(c *Channel) bool {
+	channels := utils.Filter[*Channel](ps.channels, func(c *Channel) bool {
 		return c.name == channelName
 	})
 
@@ -289,7 +292,7 @@ func (ps *PubSub) Publish(ctx context.Context, message string, channelName inter
 		return
 	}
 
-	channels := Filter[*Channel](ps.channels, func(c *Channel) bool {
+	channels := utils.Filter[*Channel](ps.channels, func(c *Channel) bool {
 		return c.name == channelName
 	})
 

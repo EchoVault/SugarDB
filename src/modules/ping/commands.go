@@ -73,7 +73,6 @@ func NewModule() Plugin {
 				Description:          "",
 				HandleWithConnection: false,
 				Sync:                 false,
-				Plugin:               PingModule,
 			},
 			{
 				Command:              "ack",
@@ -81,7 +80,6 @@ func NewModule() Plugin {
 				Description:          "",
 				HandleWithConnection: false,
 				Sync:                 false,
-				Plugin:               PingModule,
 			},
 		},
 		description: "Handle PING command",

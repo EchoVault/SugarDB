@@ -217,7 +217,6 @@ func NewModule() Plugin {
 				Description:          "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
 				HandleWithConnection: false,
 				Sync:                 true,
-				Plugin:               StringModule,
 			},
 			{
 				Command:              "strlen",
@@ -225,7 +224,6 @@ func NewModule() Plugin {
 				Description:          "(STRLEN key) Returns length of the key's value if it's a string.",
 				HandleWithConnection: false,
 				Sync:                 false,
-				Plugin:               StringModule,
 			},
 			{
 				Command:              "substr",
@@ -233,7 +231,6 @@ func NewModule() Plugin {
 				Description:          "(SUBSTR key start end) Returns a substring from the string value.",
 				HandleWithConnection: false,
 				Sync:                 false,
-				Plugin:               StringModule,
 			},
 			{
 				Command:              "getrange",
@@ -241,7 +238,6 @@ func NewModule() Plugin {
 				Description:          "(GETRANGE key start end) Returns a substring from the string value.",
 				HandleWithConnection: false,
 				Sync:                 false,
-				Plugin:               StringModule,
 			},
 		},
 		description: "Handle basic STRING commands",

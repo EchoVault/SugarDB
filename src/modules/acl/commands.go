@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
 	"strings"
@@ -119,6 +120,7 @@ func (p Plugin) handleLoad(ctx context.Context, cmd []string, server utils.Serve
 }
 
 func (p Plugin) handleSave(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	fmt.Println(p.acl)
 	return nil, errors.New("ACL SAVE not implemented")
 }
 
@@ -133,7 +135,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "List all the categories and commands inside a category",
 				HandleWithConnection: false,
 				Sync:                 false,
-				Plugin:               ACLPlugin,
 			},
 			{
 				Command:              "cat",
@@ -141,7 +142,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "List all the categories and commands inside a category",
 				HandleWithConnection: false,
 				Sync:                 false,
-				Plugin:               ACLPlugin,
 			},
 			{
 				Command:              "auth",
@@ -149,7 +149,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "Authenticates the connection",
 				HandleWithConnection: true,
 				Sync:                 false,
-				Plugin:               ACLPlugin,
 			},
 			{
 				Command:              "users",
@@ -157,7 +156,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "List all ACL users",
 				HandleWithConnection: false,
 				Sync:                 false,
-				Plugin:               ACLPlugin,
 			},
 			{
 				Command:              "setuser",
@@ -165,7 +163,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "Configure a new or existing user",
 				HandleWithConnection: false,
 				Sync:                 true,
-				Plugin:               ACLPlugin,
 			},
 			{
 				Command:              "getuser",
@@ -173,7 +170,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "List the ACL rules of a user",
 				HandleWithConnection: true,
 				Sync:                 false,
-				Plugin:               ACLPlugin,
 			},
 			{
 				Command:              "deluser",
@@ -181,7 +177,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "Deletes users and terminates their connections",
 				HandleWithConnection: false,
 				Sync:                 true,
-				Plugin:               ACLPlugin,
 			},
 			{
 				Command:              "whoami",
@@ -189,7 +184,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "Returns the authenticated user of the current connection",
 				HandleWithConnection: false,
 				Sync:                 true,
-				Plugin:               ACLPlugin,
 			},
 
 			{
@@ -198,7 +192,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "Generates a password that can be used to identify a user",
 				HandleWithConnection: false,
 				Sync:                 true,
-				Plugin:               ACLPlugin,
 			},
 			{
 				Command:              "list",
@@ -206,7 +199,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "Dumps effective acl rules in acl config file format",
 				HandleWithConnection: false,
 				Sync:                 true,
-				Plugin:               ACLPlugin,
 			},
 			{
 				Command:              "load",
@@ -214,7 +206,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "Reloads the rules from the configured ACL config file",
 				HandleWithConnection: false,
 				Sync:                 true,
-				Plugin:               ACLPlugin,
 			},
 			{
 				Command:              "save",
@@ -222,7 +213,6 @@ func NewModule(acl *ACL) Plugin {
 				Description:          "Saves the effective ACL rules the configured ACL config file",
 				HandleWithConnection: false,
 				Sync:                 true,
-				Plugin:               ACLPlugin,
 			},
 		},
 		description: "Internal plugin to handle ACL commands",
