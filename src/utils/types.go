@@ -31,18 +31,17 @@ type ApplyResponse struct {
 }
 
 type SubCommand struct {
-	SubCommand  string `json:"SubCommand"`
-	Description string `json:"Description"`
+	SubCommand  string
+	Description string
 }
 
 type Command struct {
-	Command              string       `json:"Command"`
-	Categories           []string     `json:"Categories"`
-	Description          string       `json:"Description"`
-	SubCommands          []SubCommand `json:"SubCommands"`
-	HandleWithConnection bool         `json:"HandleWithConnection"`
-	Sync                 bool         `json:"Sync"` // Specifies if command should be synced across cluster
-	Plugin               Plugin
+	Command              string
+	Categories           []string
+	Description          string
+	SubCommands          []SubCommand
+	HandleWithConnection bool
+	Sync                 bool // Specifies if command should be synced across cluster
 }
 
 type Plugin interface {
