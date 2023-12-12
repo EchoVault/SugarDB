@@ -166,6 +166,7 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 			if err != nil {
 				connRW.WriteString(fmt.Sprintf("-%s\r\n\n", err.Error()))
 				connRW.Flush()
+				continue
 			}
 
 			if !server.IsInCluster() || !command.Sync {
@@ -364,6 +365,8 @@ func (server *Server) LoadPlugins(ctx context.Context) {
 		if !commandClash {
 			server.commands = append(server.commands, plCommands...)
 		}
+
+		fmt.Println(server.commands)
 	}
 }
 

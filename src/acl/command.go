@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
+	"strings"
 )
 
 type Plugin struct {
@@ -28,16 +29,95 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server interface{}, conn *net.Conn) ([]byte, error) {
+func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	if strings.EqualFold(cmd[0], "auth") {
+		return p.handleAuth(ctx, cmd, server, conn)
+	}
+	if strings.EqualFold(cmd[0], "acl") {
+		switch strings.ToLower(cmd[1]) {
+		default:
+			return nil, errors.New("not implemented")
+		case "getuser":
+			return p.handleGetUser(ctx, cmd, server, conn)
+		}
+	}
 	return nil, errors.New("not implemented")
 }
 
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server interface{}) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	if strings.EqualFold(cmd[0], "acl") {
+		switch strings.ToLower(cmd[1]) {
+		default:
+			return nil, errors.New("not implemented")
+		case "cat":
+			return p.handleCat(ctx, cmd, server)
+		case "users":
+			return p.handleUsers(ctx, cmd, server)
+		case "setuser":
+			return p.handleSetUser(ctx, cmd, server)
+		case "deluser":
+			return p.handleDelUser(ctx, cmd, server)
+		case "whoami":
+			return p.handleWhoAmI(ctx, cmd, server)
+		case "genpass":
+			return p.handleGenPass(ctx, cmd, server)
+		case "list":
+			return p.handleList(ctx, cmd, server)
+		case "load":
+			return p.handleLoad(ctx, cmd, server)
+		case "save":
+			return p.handleSave(ctx, cmd, server)
+		}
+	}
 	return nil, errors.New("not implemented")
 }
 
 func (p Plugin) GetCommands() []utils.Command {
 	return p.commands
+}
+
+func (p Plugin) handleAuth(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	return nil, errors.New("AUTH not implemented")
+}
+
+func (p Plugin) handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	return nil, errors.New("ACL GET USER not implemented")
+}
+
+func (p Plugin) handleCat(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ACL CAT not implemented")
+}
+
+func (p Plugin) handleUsers(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ACL USERS not implemented")
+}
+
+func (p Plugin) handleSetUser(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ACL SETUSER not implemented")
+}
+
+func (p Plugin) handleDelUser(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ACL DELUSER not implemented")
+}
+
+func (p Plugin) handleWhoAmI(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ACL WHOAMI not implemented")
+}
+
+func (p Plugin) handleGenPass(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ACL GENPASS not implemented")
+}
+
+func (p Plugin) handleList(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ACL LIST not implemented")
+}
+
+func (p Plugin) handleLoad(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ACL LOAD not implemented")
+}
+
+func (p Plugin) handleSave(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ACL SAVE not implemented")
 }
 
 var ACLPlugin Plugin
@@ -47,6 +127,14 @@ func NewACLPlugin(acl *ACL) Plugin {
 		acl:  acl,
 		name: "ACLCommands",
 		commands: []utils.Command{
+			{
+				Command:              "acl",
+				Categories:           []string{},
+				Description:          "List all the categories and commands inside a category",
+				HandleWithConnection: false,
+				Sync:                 false,
+				Plugin:               ACLPlugin,
+			},
 			{
 				Command:              "cat",
 				Categories:           []string{},
