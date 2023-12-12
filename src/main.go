@@ -18,8 +18,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path"
-	"plugin"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -306,84 +304,13 @@ func (server *Server) StartHTTP(ctx context.Context) {
 	}
 }
 
-func (server *Server) LoadPlugins(ctx context.Context) {
-	conf := server.config
-
-	// Load Ping module
+func (server *Server) LoadModules(ctx context.Context) {
 	server.commands = append(server.commands, ping.NewModule().GetCommands()...)
-	// Load ACL Commands module
 	server.commands = append(server.commands, acl.NewModule(server.ACL).GetCommands()...)
-	// Load Set module
 	server.commands = append(server.commands, set.NewModule().GetCommands()...)
-	// Load String module
 	server.commands = append(server.commands, str.NewModule().GetCommands()...)
-	// Load Get module
 	server.commands = append(server.commands, get.NewModule().GetCommands()...)
-	// Load List module
 	server.commands = append(server.commands, list.NewModule().GetCommands()...)
-
-	// Load plugins /usr/local/lib/memstore
-	files, err := os.ReadDir(conf.PluginDir)
-
-	if err != nil {
-		log.Fatal(err, files)
-	}
-
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".so") {
-			continue
-		}
-		p, err := plugin.Open(path.Join(conf.PluginDir, file.Name()))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		pluginSymbol, err := p.Lookup("Plugin")
-		if err != nil {
-			fmt.Printf("unexpected plugin symbol in plugin %s\n", file.Name())
-			continue
-		}
-
-		pl, ok := pluginSymbol.(utils.Plugin)
-		if !ok {
-			fmt.Printf("invalid plugin signature in plugin %s \n", file.Name())
-			continue
-		}
-
-		b, err := pl.Commands()
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		plCommands, err := utils.UnmarshalCommandsJSON(b)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		for i := 0; i < len(plCommands); i++ {
-			plCommands[i].Plugin = pl
-		}
-
-		// Check if a plugin that handles the same command already exists
-		commandClash := false
-
-		for _, lc := range server.commands {
-			for _, pc := range plCommands {
-				if strings.EqualFold(lc.Command, pc.Command) {
-					commandClash = true
-					fmt.Printf("plugin that handles %s command already exists.\n", pc.Command)
-				}
-			}
-		}
-
-		if !commandClash {
-			server.commands = append(server.commands, plCommands...)
-		}
-
-		fmt.Println(server.commands)
-	}
 }
 
 func (server *Server) Start(ctx context.Context) {
@@ -393,7 +320,7 @@ func (server *Server) Start(ctx context.Context) {
 	server.keyLocks = make(map[string]*sync.RWMutex)
 	server.keyCreationLock = &sync.Mutex{}
 
-	server.LoadPlugins(ctx)
+	server.LoadModules(ctx)
 
 	if conf.TLS && (len(conf.Key) <= 0 || len(conf.Cert) <= 0) {
 		fmt.Println("Must provide key and certificate file paths for TLS mode.")
