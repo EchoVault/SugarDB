@@ -87,7 +87,9 @@ func NewACL(config utils.Config) *ACL {
 		}
 	}
 
-	// 3. Merge created default user and loaded default user
+	// 3.
+	// i) Merge created default user and loaded default user
+	// ii) Merge other users with sensible defaults
 	for i, user := range users {
 		if user.Username == "default" {
 			u, err := MergeUser(defaultUser, user)
@@ -96,10 +98,15 @@ func NewACL(config utils.Config) *ACL {
 				continue
 			}
 			users[i] = u
+		} else {
+			u, err := MergeUser(CreateUser(user.Username, user.Enabled), user)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			users[i] = u
 		}
 	}
-
-	// 4. Normalise the list of users ACL Config.
 
 	acl := ACL{
 		Users:       users,
@@ -154,9 +161,50 @@ func CreateUser(username string, enabled bool) User {
 	}
 }
 
+func RemoveLeadingChar(slice []string, leading string) []string {
+	var result []string
+	return result
+}
+
+func RemoveDuplicates(slice []string) []string {
+	entries := make(map[string]int)
+	keys := []string{}
+
+	for _, s := range slice {
+		entries[s] += 1
+	}
+
+	for key, _ := range entries {
+		keys = append(keys, key)
+	}
+
+	return keys
+}
+
+func NormaliseAllEntries(slice []string, allAlias string) []string {
+	result := slice
+	if utils.Contains(result, "*") || utils.Contains(result, allAlias) {
+		result = []string{"*"}
+	}
+	return result
+}
+
 func NormaliseUser(user User) User {
 	// Normalise the user object
-	return User{}
+	result := user
+
+	result.IncludedCategories = NormaliseAllEntries(RemoveDuplicates(result.IncludedCategories), "allCategories")
+	result.ExcludedCategories = NormaliseAllEntries(RemoveDuplicates(result.ExcludedCategories), "allCategories")
+	result.IncludedCommands = NormaliseAllEntries(RemoveDuplicates(result.IncludedCommands), "allCommands")
+	result.ExcludedCommands = NormaliseAllEntries(RemoveDuplicates(result.ExcludedCommands), "allCommands")
+	result.IncludedKeys = NormaliseAllEntries(RemoveDuplicates(result.IncludedKeys), "allKeys")
+	result.ExcludedKeys = NormaliseAllEntries(RemoveDuplicates(result.ExcludedKeys), "allKeys")
+	result.IncludedReadKeys = NormaliseAllEntries(RemoveDuplicates(result.IncludedReadKeys), "allKeys")
+	result.IncludedWriteKeys = NormaliseAllEntries(RemoveDuplicates(result.IncludedWriteKeys), "allKeys")
+	result.IncludedPubSubChannels = NormaliseAllEntries(RemoveDuplicates(result.IncludedPubSubChannels), "allChannels")
+	result.ExcludedPubSubChannels = NormaliseAllEntries(RemoveDuplicates(result.ExcludedPubSubChannels), "allChannels")
+
+	return result
 }
 
 func MergeUser(base, target User) (User, error) {
