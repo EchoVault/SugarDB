@@ -7,11 +7,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/modules/acl"
+	"github.com/kelvinmwinuka/memstore/src/modules/etc"
 	"github.com/kelvinmwinuka/memstore/src/modules/get"
 	"github.com/kelvinmwinuka/memstore/src/modules/list"
 	"github.com/kelvinmwinuka/memstore/src/modules/ping"
 	"github.com/kelvinmwinuka/memstore/src/modules/pubsub"
-	"github.com/kelvinmwinuka/memstore/src/modules/set"
 	str "github.com/kelvinmwinuka/memstore/src/modules/string"
 	"io"
 	"log"
@@ -39,7 +39,7 @@ type Server struct {
 	keyLocks        map[string]*sync.RWMutex
 	keyCreationLock *sync.Mutex
 
-	commands []utils.Command
+	commands map[string]utils.ServerCommand
 
 	raft *raft.Raft
 
@@ -119,13 +119,13 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 	server.store[key] = value
 }
 
-func (server *Server) getCommand(cmd string) (utils.Command, error) {
-	for _, command := range server.commands {
-		if strings.EqualFold(command.Command, cmd) {
+func (server *Server) getCommand(cmd string) (utils.ServerCommand, error) {
+	for key, command := range server.commands {
+		if strings.EqualFold(key, cmd) {
 			return command, nil
 		}
 	}
-	return utils.Command{}, fmt.Errorf("command %s not supported", cmd)
+	return utils.ServerCommand{}, fmt.Errorf("command %s not supported", cmd)
 }
 
 func (server *Server) handlePluginCommand(ctx context.Context, cmd []string, conn *net.Conn) ([]byte, error) {
@@ -133,11 +133,7 @@ func (server *Server) handlePluginCommand(ctx context.Context, cmd []string, con
 	if err != nil {
 		return nil, err
 	}
-	if command.HandleWithConnection {
-		return command.Plugin.HandleCommandWithConnection(ctx, cmd, server, conn)
-	}
-	fmt.Println("SERVER: ", server)
-	return command.Plugin.HandleCommand(ctx, cmd, server)
+	return command.Plugin.HandleCommand(ctx, cmd, server, conn)
 }
 
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
@@ -175,7 +171,13 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 				continue
 			}
 
-			if !server.IsInCluster() || !command.Sync {
+			synchronize := command.Command.Sync
+
+			if subCommand, ok := utils.GetSubCommand(command, cmd).(utils.SubCommand); ok {
+				synchronize = subCommand.Sync
+			}
+
+			if !server.IsInCluster() || !synchronize {
 				if res, err := server.handlePluginCommand(ctx, cmd, &conn); err != nil {
 					connRW.Write([]byte(fmt.Sprintf("-%s\r\n\n", err.Error())))
 				} else {
@@ -306,14 +308,24 @@ func (server *Server) StartHTTP(ctx context.Context) {
 	}
 }
 
+func (server *Server) LoadCommands(plugin utils.Plugin) {
+	commands := plugin.Commands()
+	for _, command := range commands {
+		server.commands[command.Command] = utils.ServerCommand{
+			Command: command,
+			Plugin:  plugin,
+		}
+	}
+}
+
 func (server *Server) LoadModules(ctx context.Context) {
-	server.commands = append(server.commands, acl.NewModule(server.ACL).GetCommands()...)
-	server.commands = append(server.commands, pubsub.NewModule(server.PubSub).GetCommands()...)
-	server.commands = append(server.commands, ping.NewModule().GetCommands()...)
-	server.commands = append(server.commands, set.NewModule().GetCommands()...)
-	server.commands = append(server.commands, str.NewModule().GetCommands()...)
-	server.commands = append(server.commands, get.NewModule().GetCommands()...)
-	server.commands = append(server.commands, list.NewModule().GetCommands()...)
+	server.LoadCommands(acl.NewModule(server.ACL))
+	server.LoadCommands(pubsub.NewModule(server.PubSub))
+	server.LoadCommands(ping.NewModule())
+	server.LoadCommands(get.NewModule())
+	server.LoadCommands(list.NewModule())
+	server.LoadCommands(str.NewModule())
+	server.LoadCommands(etc.NewModule())
 }
 
 func (server *Server) Start(ctx context.Context) {
@@ -362,7 +374,7 @@ func main() {
 
 	ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), config.ServerID)
 
-	// Default BindAddr if it's not set
+	// Default BindAddr if it's not etc
 	if config.BindAddr == "" {
 		if addr, err := utils.GetIPAddress(); err != nil {
 			log.Fatal(err)
@@ -384,6 +396,8 @@ func main() {
 
 		ACL:    acl.NewACL(config),
 		PubSub: pubsub.NewPubSub(),
+
+		commands: make(map[string]utils.ServerCommand),
 
 		cancelCh: &cancelCh,
 	}

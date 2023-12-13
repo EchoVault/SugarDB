@@ -2,7 +2,6 @@ package get
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
@@ -23,11 +22,7 @@ func (p Plugin) Name() string {
 	return p.name
 }
 
-func (p Plugin) Commands() ([]byte, error) {
-	return json.Marshal(p.commands)
-}
-
-func (p Plugin) GetCommands() []utils.Command {
+func (p Plugin) Commands() []utils.Command {
 	return p.commands
 }
 
@@ -35,11 +30,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		return nil, errors.New("command unknown")
@@ -106,20 +97,16 @@ func NewModule() Plugin {
 		name: "GetCommands",
 		commands: []utils.Command{
 			{
-				Command:              "get",
-				Categories:           []string{},
-				Description:          "",
-				HandleWithConnection: false,
-				Sync:                 false,
-				Plugin:               GetModule,
+				Command:     "get",
+				Categories:  []string{},
+				Description: "",
+				Sync:        false,
 			},
 			{
-				Command:              "mget",
-				Categories:           []string{},
-				Description:          "",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               GetModule,
+				Command:     "mget",
+				Categories:  []string{},
+				Description: "",
+				Sync:        true,
 			},
 		},
 		description: "Handle basic GET and MGET commands",

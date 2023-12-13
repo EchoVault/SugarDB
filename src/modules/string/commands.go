@@ -2,7 +2,6 @@ package str
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
@@ -22,11 +21,7 @@ func (p Plugin) Name() string {
 	return p.name
 }
 
-func (p Plugin) Commands() ([]byte, error) {
-	return json.Marshal(p.commands)
-}
-
-func (p Plugin) GetCommands() []utils.Command {
+func (p Plugin) Commands() []utils.Command {
 	return p.commands
 }
 
@@ -34,11 +29,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		return nil, errors.New("command unknown")
@@ -212,32 +203,28 @@ func NewModule() Plugin {
 		name: "StringCommands",
 		commands: []utils.Command{
 			{
-				Command:              "setrange",
-				Categories:           []string{},
-				Description:          "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
-				HandleWithConnection: false,
-				Sync:                 true,
+				Command:     "setrange",
+				Categories:  []string{},
+				Description: "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
+				Sync:        true,
 			},
 			{
-				Command:              "strlen",
-				Categories:           []string{},
-				Description:          "(STRLEN key) Returns length of the key's value if it's a string.",
-				HandleWithConnection: false,
-				Sync:                 false,
+				Command:     "strlen",
+				Categories:  []string{},
+				Description: "(STRLEN key) Returns length of the key's value if it's a string.",
+				Sync:        false,
 			},
 			{
-				Command:              "substr",
-				Categories:           []string{},
-				Description:          "(SUBSTR key start end) Returns a substring from the string value.",
-				HandleWithConnection: false,
-				Sync:                 false,
+				Command:     "substr",
+				Categories:  []string{},
+				Description: "(SUBSTR key start end) Returns a substring from the string value.",
+				Sync:        false,
 			},
 			{
-				Command:              "getrange",
-				Categories:           []string{},
-				Description:          "(GETRANGE key start end) Returns a substring from the string value.",
-				HandleWithConnection: false,
-				Sync:                 false,
+				Command:     "getrange",
+				Categories:  []string{},
+				Description: "(GETRANGE key start end) Returns a substring from the string value.",
+				Sync:        false,
 			},
 		},
 		description: "Handle basic STRING commands",

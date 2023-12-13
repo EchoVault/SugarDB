@@ -2,7 +2,6 @@ package pubsub
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
@@ -27,11 +26,7 @@ func (p Plugin) Name() string {
 	return p.name
 }
 
-func (p Plugin) Commands() ([]byte, error) {
-	return json.Marshal(p.commands)
-}
-
-func (p Plugin) GetCommands() []utils.Command {
+func (p Plugin) Commands() []utils.Command {
 	fmt.Println(p)
 	return p.commands
 }
@@ -40,23 +35,16 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	switch strings.ToLower(cmd[0]) {
-	default:
-		return nil, errors.New("command unknown")
-	case "subscribe":
-		return handleSubscribe(ctx, p, cmd, server, conn)
-	case "unsubscribe":
-		return handleUnsubscribe(ctx, p, cmd, server, conn)
-	}
-}
-
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		return nil, errors.New("command unknown")
 	case "publish":
 		return handlePublish(ctx, p, cmd, server)
+	case "subscribe":
+		return handleSubscribe(ctx, p, cmd, server, conn)
+	case "unsubscribe":
+		return handleUnsubscribe(ctx, p, cmd, server, conn)
 	}
 }
 
@@ -107,25 +95,22 @@ func NewModule(pubsub *PubSub) Plugin {
 		name:   "PubSubCommands",
 		commands: []utils.Command{
 			{
-				Command:              "publish",
-				Categories:           []string{},
-				Description:          "",
-				HandleWithConnection: false,
-				Sync:                 true,
+				Command:     "publish",
+				Categories:  []string{},
+				Description: "",
+				Sync:        true,
 			},
 			{
-				Command:              "subscribe",
-				Categories:           []string{},
-				Description:          "",
-				HandleWithConnection: true,
-				Sync:                 false,
+				Command:     "subscribe",
+				Categories:  []string{},
+				Description: "",
+				Sync:        false,
 			},
 			{
-				Command:              "unsubscribe",
-				Categories:           []string{},
-				Description:          "",
-				HandleWithConnection: true,
-				Sync:                 false,
+				Command:     "unsubscribe",
+				Categories:  []string{},
+				Description: "",
+				Sync:        false,
 			},
 		},
 		description: "Handle PUBSUB functionality",

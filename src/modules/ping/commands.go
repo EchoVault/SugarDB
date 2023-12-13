@@ -2,7 +2,6 @@ package ping
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
@@ -25,11 +24,7 @@ func (p Plugin) Name() string {
 	return p.name
 }
 
-func (p Plugin) Commands() ([]byte, error) {
-	return json.Marshal(p.commands)
-}
-
-func (p Plugin) GetCommands() []utils.Command {
+func (p Plugin) Commands() []utils.Command {
 	return p.commands
 }
 
@@ -37,11 +32,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		return nil, errors.New("not implemented")
@@ -68,18 +59,16 @@ func NewModule() Plugin {
 		name: "PingCommands",
 		commands: []utils.Command{
 			{
-				Command:              "ping",
-				Categories:           []string{},
-				Description:          "",
-				HandleWithConnection: false,
-				Sync:                 false,
+				Command:     "ping",
+				Categories:  []string{},
+				Description: "",
+				Sync:        false,
 			},
 			{
-				Command:              "ack",
-				Categories:           []string{},
-				Description:          "",
-				HandleWithConnection: false,
-				Sync:                 false,
+				Command:     "ack",
+				Categories:  []string{},
+				Description: "",
+				Sync:        false,
 			},
 		},
 		description: "Handle PING command",

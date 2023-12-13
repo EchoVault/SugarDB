@@ -5,6 +5,11 @@ import (
 	"net"
 )
 
+type ServerCommand struct {
+	Command Command
+	Plugin  Plugin
+}
+
 type Server interface {
 	KeyLock(ctx context.Context, key string) (bool, error)
 	KeyUnlock(key string)
@@ -31,23 +36,23 @@ type ApplyResponse struct {
 }
 
 type SubCommand struct {
-	SubCommand  string
+	Command     string
+	Categories  []string
 	Description string
+	Sync        bool // Specifies if sub-command should be synced across cluster
 }
 
 type Command struct {
-	Command              string
-	Categories           []string
-	Description          string
-	SubCommands          []SubCommand
-	HandleWithConnection bool
-	Sync                 bool // Specifies if command should be synced across cluster
+	Command     string
+	Categories  []string
+	Description string
+	SubCommands []SubCommand
+	Sync        bool // Specifies if command should be synced across cluster
 }
 
 type Plugin interface {
 	Name() string
-	Commands() ([]byte, error)
+	Commands() []Command
 	Description() string
-	HandleCommand(ctx context.Context, cmd []string, server Server) ([]byte, error)
-	HandleCommandWithConnection(ctx context.Context, cmd []string, server Server, conn *net.Conn) ([]byte, error)
+	HandleCommand(ctx context.Context, cmd []string, server Server, conn *net.Conn) ([]byte, error)
 }

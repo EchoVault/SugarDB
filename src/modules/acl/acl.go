@@ -58,7 +58,7 @@ func NewACL(config utils.Config) *ACL {
 		}
 	}
 
-	// 2. Read and parse the ACL config file and set the
+	// 2. Read and parse the ACL config file and etc the
 	if config.AclConfig != "" {
 		// Override acl configurations from file
 		if f, err := os.Open(config.AclConfig); err != nil {

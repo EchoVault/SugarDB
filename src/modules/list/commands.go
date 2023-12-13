@@ -2,7 +2,6 @@ package list
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
@@ -29,11 +28,7 @@ func (p Plugin) Name() string {
 	return p.name
 }
 
-func (p Plugin) Commands() ([]byte, error) {
-	return json.Marshal(p.commands)
-}
-
-func (p Plugin) GetCommands() []utils.Command {
+func (p Plugin) Commands() []utils.Command {
 	return p.commands
 }
 
@@ -41,11 +36,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	c := strings.ToLower(cmd[0])
 
 	switch {
@@ -516,108 +507,82 @@ func NewModule() Plugin {
 		name: "ListCommands",
 		commands: []utils.Command{
 			{
-				Command:              "lpush",
-				Categories:           []string{},
-				Description:          "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "lpush",
+				Categories:  []string{},
+				Description: "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
+				Sync:        true,
 			},
 			{
-				Command:              "lpushx",
-				Categories:           []string{},
-				Description:          "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "lpushx",
+				Categories:  []string{},
+				Description: "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
+				Sync:        true,
 			},
 			{
-				Command:              "lpop",
-				Categories:           []string{},
-				Description:          "(LPOP key) Removes and returns the first element of a list.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "lpop",
+				Categories:  []string{},
+				Description: "(LPOP key) Removes and returns the first element of a list.",
+				Sync:        true,
 			},
 			{
-				Command:              "llen",
-				Categories:           []string{},
-				Description:          "(LLEN key) Return the length of a list.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "llen",
+				Categories:  []string{},
+				Description: "(LLEN key) Return the length of a list.",
+				Sync:        true,
 			},
 			{
-				Command:              "lrange",
-				Categories:           []string{},
-				Description:          "(LRANGE key start end) Return a range of elements between the given indices.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "lrange",
+				Categories:  []string{},
+				Description: "(LRANGE key start end) Return a range of elements between the given indices.",
+				Sync:        true,
 			},
 			{
-				Command:              "lindex",
-				Categories:           []string{},
-				Description:          "(LINDEX key index) Gets list element by index.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "lindex",
+				Categories:  []string{},
+				Description: "(LINDEX key index) Gets list element by index.",
+				Sync:        true,
 			},
 			{
-				Command:              "lset",
-				Categories:           []string{},
-				Description:          "(LSET key index value) Sets the value of an element in a list by its index.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "lset",
+				Categories:  []string{},
+				Description: "(LSET key index value) Sets the value of an element in a list by its index.",
+				Sync:        true,
 			},
 			{
-				Command:              "ltrim",
-				Categories:           []string{},
-				Description:          "(LTRIM key start end) Trims a list to the specified range.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "ltrim",
+				Categories:  []string{},
+				Description: "(LTRIM key start end) Trims a list to the specified range.",
+				Sync:        true,
 			},
 			{
-				Command:              "lrem",
-				Categories:           []string{},
-				Description:          "(LREM key count value) Remove elements from list.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "lrem",
+				Categories:  []string{},
+				Description: "(LREM key count value) Remove elements from list.",
+				Sync:        true,
 			},
 			{
-				Command:              "lmove",
-				Categories:           []string{},
-				Description:          "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT> Move element from one list to the other specifying left/right for both lists.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "lmove",
+				Categories:  []string{},
+				Description: "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT> Move element from one list to the other specifying left/right for both lists.",
+				Sync:        true,
 			},
 			{
-				Command:              "rpop",
-				Categories:           []string{},
-				Description:          "(RPOP key) Removes and gets the last element in a list.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "rpop",
+				Categories:  []string{},
+				Description: "(RPOP key) Removes and gets the last element in a list.",
+				Sync:        true,
 			},
 			{
-				Command:              "rpush",
-				Categories:           []string{},
-				Description:          "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "rpush",
+				Categories:  []string{},
+				Description: "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
+				Sync:        true,
 			},
 			{
-				Command:              "rpushx",
-				Categories:           []string{},
-				Description:          "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               ListModule,
+				Command:     "rpushx",
+				Categories:  []string{},
+				Description: "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
+				Sync:        true,
 			},
 		},
 		description: "Handle List commands",

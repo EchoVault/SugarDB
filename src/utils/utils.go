@@ -146,3 +146,15 @@ func GetIPAddress() (string, error) {
 
 	return localAddr, nil
 }
+
+func GetSubCommand(command ServerCommand, cmd []string) interface{} {
+	if len(command.Command.SubCommands) == 0 || len(cmd) < 2 {
+		return nil
+	}
+	for _, subCommand := range command.Command.SubCommands {
+		if strings.EqualFold(subCommand.Command, cmd[1]) {
+			return subCommand
+		}
+	}
+	return nil
+}

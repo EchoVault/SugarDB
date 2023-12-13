@@ -1,8 +1,7 @@
-package set
+package etc
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
@@ -28,11 +27,7 @@ func (p Plugin) Name() string {
 	return p.name
 }
 
-func (p Plugin) Commands() ([]byte, error) {
-	return json.Marshal(p.commands)
-}
-
-func (p Plugin) GetCommands() []utils.Command {
+func (p Plugin) Commands() []utils.Command {
 	return p.commands
 }
 
@@ -40,11 +35,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	switch strings.ToLower(cmd[0]) {
 	default:
 		return nil, errors.New("command unknown")
@@ -165,28 +156,22 @@ func NewModule() Plugin {
 		name: "SetCommands",
 		commands: []utils.Command{
 			{
-				Command:              "set",
-				Categories:           []string{},
-				Description:          "(SET key value) Set the value of a key, considering the value's type.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               SetModule,
+				Command:     "set",
+				Categories:  []string{},
+				Description: "(SET key value) Set the value of a key, considering the value's type.",
+				Sync:        true,
 			},
 			{
-				Command:              "setnx",
-				Categories:           []string{},
-				Description:          "(SETNX key value) Set the key/value only if the key doesn't exist.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               SetModule,
+				Command:     "setnx",
+				Categories:  []string{},
+				Description: "(SETNX key value) Set the key/value only if the key doesn't exist.",
+				Sync:        true,
 			},
 			{
-				Command:              "mset",
-				Categories:           []string{},
-				Description:          "(MSET key value [key value ...]) Automatically set or modify multiple key/value pairs.",
-				HandleWithConnection: false,
-				Sync:                 true,
-				Plugin:               SetModule,
+				Command:     "mset",
+				Categories:  []string{},
+				Description: "(MSET key value [key value ...]) Automatically etc or modify multiple key/value pairs.",
+				Sync:        true,
 			},
 		},
 		description: "Handle basic SET commands",

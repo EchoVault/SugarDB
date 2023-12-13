@@ -2,7 +2,6 @@ package acl
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
@@ -24,11 +23,7 @@ func (p Plugin) Name() string {
 	return p.name
 }
 
-func (p Plugin) Commands() ([]byte, error) {
-	return json.Marshal(p.commands)
-}
-
-func (p Plugin) GetCommands() []utils.Command {
+func (p Plugin) Commands() []utils.Command {
 	return p.commands
 }
 
@@ -36,7 +31,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if strings.EqualFold(cmd[0], "auth") {
 		return p.handleAuth(ctx, cmd, server, conn)
 	}
@@ -46,16 +41,6 @@ func (p Plugin) HandleCommandWithConnection(ctx context.Context, cmd []string, s
 			return nil, errors.New("not implemented")
 		case "getuser":
 			return p.handleGetUser(ctx, cmd, server, conn)
-		}
-	}
-	return nil, errors.New("not implemented")
-}
-
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	if strings.EqualFold(cmd[0], "acl") {
-		switch strings.ToLower(cmd[1]) {
-		default:
-			return nil, errors.New("not implemented")
 		case "cat":
 			return p.handleCat(ctx, cmd, server)
 		case "users":
@@ -130,89 +115,79 @@ func NewModule(acl *ACL) Plugin {
 		name: "ACLCommands",
 		commands: []utils.Command{
 			{
-				Command:              "acl",
-				Categories:           []string{},
-				Description:          "List all the categories and commands inside a category",
-				HandleWithConnection: false,
-				Sync:                 false,
+				Command:     "auth",
+				Categories:  []string{},
+				Description: "Authenticates the connection",
+				Sync:        false,
 			},
 			{
-				Command:              "cat",
-				Categories:           []string{},
-				Description:          "List all the categories and commands inside a category",
-				HandleWithConnection: false,
-				Sync:                 false,
-			},
-			{
-				Command:              "auth",
-				Categories:           []string{},
-				Description:          "Authenticates the connection",
-				HandleWithConnection: true,
-				Sync:                 false,
-			},
-			{
-				Command:              "users",
-				Categories:           []string{},
-				Description:          "List all ACL users",
-				HandleWithConnection: false,
-				Sync:                 false,
-			},
-			{
-				Command:              "setuser",
-				Categories:           []string{},
-				Description:          "Configure a new or existing user",
-				HandleWithConnection: false,
-				Sync:                 true,
-			},
-			{
-				Command:              "getuser",
-				Categories:           []string{},
-				Description:          "List the ACL rules of a user",
-				HandleWithConnection: true,
-				Sync:                 false,
-			},
-			{
-				Command:              "deluser",
-				Categories:           []string{},
-				Description:          "Deletes users and terminates their connections",
-				HandleWithConnection: false,
-				Sync:                 true,
-			},
-			{
-				Command:              "whoami",
-				Categories:           []string{},
-				Description:          "Returns the authenticated user of the current connection",
-				HandleWithConnection: false,
-				Sync:                 true,
-			},
+				Command:     "acl",
+				Categories:  []string{},
+				Description: "List all the categories and commands inside a category",
+				Sync:        false,
+				SubCommands: []utils.SubCommand{
+					{
+						Command:     "cat",
+						Categories:  []string{},
+						Description: "List all the categories and commands inside a category",
+						Sync:        false,
+					},
+					{
+						Command:     "users",
+						Categories:  []string{},
+						Description: "List all ACL users",
+						Sync:        false,
+					},
+					{
+						Command:     "setuser",
+						Categories:  []string{},
+						Description: "Configure a new or existing user",
+						Sync:        true,
+					},
+					{
+						Command:     "getuser",
+						Categories:  []string{},
+						Description: "List the ACL rules of a user",
+						Sync:        false,
+					},
+					{
+						Command:     "deluser",
+						Categories:  []string{},
+						Description: "Deletes users and terminates their connections",
+						Sync:        true,
+					},
+					{
+						Command:     "whoami",
+						Categories:  []string{},
+						Description: "Returns the authenticated user of the current connection",
+						Sync:        true,
+					},
 
-			{
-				Command:              "genpass",
-				Categories:           []string{},
-				Description:          "Generates a password that can be used to identify a user",
-				HandleWithConnection: false,
-				Sync:                 true,
-			},
-			{
-				Command:              "list",
-				Categories:           []string{},
-				Description:          "Dumps effective acl rules in acl config file format",
-				HandleWithConnection: false,
-				Sync:                 true,
-			},
-			{
-				Command:              "load",
-				Categories:           []string{},
-				Description:          "Reloads the rules from the configured ACL config file",
-				HandleWithConnection: false,
-				Sync:                 true,
-			},
-			{
-				Command:              "save",
-				Categories:           []string{},
-				Description:          "Saves the effective ACL rules the configured ACL config file",
-				HandleWithConnection: false,
-				Sync:                 true,
+					{
+						Command:     "genpass",
+						Categories:  []string{},
+						Description: "Generates a password that can be used to identify a user",
+						Sync:        true,
+					},
+					{
+						Command:     "list",
+						Categories:  []string{},
+						Description: "Dumps effective acl rules in acl config file format",
+						Sync:        true,
+					},
+					{
+						Command:     "load",
+						Categories:  []string{},
+						Description: "Reloads the rules from the configured ACL config file",
+						Sync:        true,
+					},
+					{
+						Command:     "save",
+						Categories:  []string{},
+						Description: "Saves the effective ACL rules the configured ACL config file",
+						Sync:        true,
+					},
+				},
 			},
 		},
 		description: "Internal plugin to handle ACL commands",

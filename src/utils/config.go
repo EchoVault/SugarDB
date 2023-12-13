@@ -112,11 +112,11 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 
 	}
 
-	// If requirePass is set to true, then password must be provided as well
+	// If requirePass is etc to true, then password must be provided as well
 	var err error = nil
 
 	if conf.RequirePass && conf.Password == "" {
-		err = errors.New("password cannot be empty if requirePass is set to true")
+		err = errors.New("password cannot be empty if requirePass is etc to true")
 	}
 
 	return conf, err
