@@ -97,23 +97,44 @@ func NewModule(pubsub *PubSub) Plugin {
 			{
 				Command:     "publish",
 				Categories:  []string{},
-				Description: "",
+				Description: "(PUBLISH channel message) Publish a message to the specified channel.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					// Treat the channel as a key
+					if len(cmd) != 3 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "subscribe",
 				Categories:  []string{},
-				Description: "",
+				Description: "(SUBSCRIBE channel [consumer_group]) Subscribe to a channel with an option to join a consumer group on the channel.",
 				Sync:        false,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					// Treat the channel as a key
+					if len(cmd) < 2 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "unsubscribe",
 				Categories:  []string{},
-				Description: "",
+				Description: "(UNSUBSCRIBE channel) Unsubscribe from a channel.",
 				Sync:        false,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					// Treat the channel as a key
+					if len(cmd) != 2 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 		},
-		description: "Handle PUBSUB functionality",
+		description: "Handle PUBSUB feature",
 	}
 	return PubSubModule
 }

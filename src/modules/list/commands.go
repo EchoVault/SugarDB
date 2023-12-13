@@ -511,78 +511,156 @@ func NewModule() Plugin {
 				Categories:  []string{},
 				Description: "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) < 3 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "lpushx",
 				Categories:  []string{},
 				Description: "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 3 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "lpop",
 				Categories:  []string{},
 				Description: "(LPOP key) Removes and returns the first element of a list.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 2 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "llen",
 				Categories:  []string{},
 				Description: "(LLEN key) Return the length of a list.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 2 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "lrange",
 				Categories:  []string{},
 				Description: "(LRANGE key start end) Return a range of elements between the given indices.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 4 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "lindex",
 				Categories:  []string{},
 				Description: "(LINDEX key index) Gets list element by index.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 3 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "lset",
 				Categories:  []string{},
 				Description: "(LSET key index value) Sets the value of an element in a list by its index.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 4 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "ltrim",
 				Categories:  []string{},
 				Description: "(LTRIM key start end) Trims a list to the specified range.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 4 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "lrem",
 				Categories:  []string{},
 				Description: "(LREM key count value) Remove elements from list.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 4 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "lmove",
 				Categories:  []string{},
-				Description: "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT> Move element from one list to the other specifying left/right for both lists.",
+				Description: "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>) Move element from one list to the other specifying left/right for both lists.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 5 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1], cmd[2]}, nil
+				},
 			},
 			{
 				Command:     "rpop",
 				Categories:  []string{},
 				Description: "(RPOP key) Removes and gets the last element in a list.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 2 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "rpush",
 				Categories:  []string{},
 				Description: "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) < 3 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "rpushx",
 				Categories:  []string{},
 				Description: "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 3 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 		},
 		description: "Handle List commands",

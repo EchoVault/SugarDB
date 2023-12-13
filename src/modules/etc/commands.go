@@ -160,18 +160,42 @@ func NewModule() Plugin {
 				Categories:  []string{},
 				Description: "(SET key value) Set the value of a key, considering the value's type.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 3 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "setnx",
 				Categories:  []string{},
 				Description: "(SETNX key value) Set the key/value only if the key doesn't exist.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 3 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "mset",
 				Categories:  []string{},
 				Description: "(MSET key value [key value ...]) Automatically etc or modify multiple key/value pairs.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd[1:])%2 != 0 {
+						return nil, errors.New("each key must be paired with a value")
+					}
+					var keys []string
+					for i, key := range cmd[1:] {
+						if i%2 == 0 {
+							keys = append(keys, key)
+						}
+					}
+					return keys, nil
+				},
 			},
 		},
 		description: "Handle basic SET commands",

@@ -207,24 +207,48 @@ func NewModule() Plugin {
 				Categories:  []string{},
 				Description: "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 4 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "strlen",
 				Categories:  []string{},
 				Description: "(STRLEN key) Returns length of the key's value if it's a string.",
 				Sync:        false,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 2 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "substr",
 				Categories:  []string{},
 				Description: "(SUBSTR key start end) Returns a substring from the string value.",
 				Sync:        false,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 4 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "getrange",
 				Categories:  []string{},
 				Description: "(GETRANGE key start end) Returns a substring from the string value.",
 				Sync:        false,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 4 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 		},
 		description: "Handle basic STRING commands",

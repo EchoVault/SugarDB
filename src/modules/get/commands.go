@@ -99,14 +99,26 @@ func NewModule() Plugin {
 			{
 				Command:     "get",
 				Categories:  []string{},
-				Description: "",
+				Description: "(GET key) Get the value at the specified key.",
 				Sync:        false,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) != 2 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return []string{cmd[1]}, nil
+				},
 			},
 			{
 				Command:     "mget",
 				Categories:  []string{},
-				Description: "",
+				Description: "(MGET key1 [key2]) Get multiple values from the specified keys.",
 				Sync:        true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					if len(cmd) < 2 {
+						return nil, errors.New("wrong number of arguments")
+					}
+					return cmd[1:], nil
+				},
 			},
 		},
 		description: "Handle basic GET and MGET commands",

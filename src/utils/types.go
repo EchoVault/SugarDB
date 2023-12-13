@@ -35,11 +35,14 @@ type ApplyResponse struct {
 	Response []byte
 }
 
+type KeyExtractionFunc func(cmd []string) ([]string, error)
+
 type SubCommand struct {
 	Command     string
 	Categories  []string
 	Description string
 	Sync        bool // Specifies if sub-command should be synced across cluster
+	KeyExtractionFunc
 }
 
 type Command struct {
@@ -48,6 +51,7 @@ type Command struct {
 	Description string
 	SubCommands []SubCommand
 	Sync        bool // Specifies if command should be synced across cluster
+	KeyExtractionFunc
 }
 
 type Plugin interface {

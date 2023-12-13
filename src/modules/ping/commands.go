@@ -61,14 +61,20 @@ func NewModule() Plugin {
 			{
 				Command:     "ping",
 				Categories:  []string{},
-				Description: "",
+				Description: "(PING [value]) Ping the server. If a value is provided, the value will be echoed.",
 				Sync:        false,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					return []string{}, nil
+				},
 			},
 			{
 				Command:     "ack",
 				Categories:  []string{},
 				Description: "",
 				Sync:        false,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					return []string{}, nil
+				},
 			},
 		},
 		description: "Handle PING command",
