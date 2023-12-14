@@ -50,7 +50,7 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 		case "deluser":
 			return p.handleDelUser(ctx, cmd, server)
 		case "whoami":
-			return p.handleWhoAmI(ctx, cmd, server)
+			return p.handleWhoAmI(ctx, cmd, server, conn)
 		case "list":
 			return p.handleList(ctx, cmd, server)
 		case "load":
@@ -92,8 +92,9 @@ func (p Plugin) handleDelUser(ctx context.Context, cmd []string, server utils.Se
 	return nil, errors.New("ACL DELUSER not implemented")
 }
 
-func (p Plugin) handleWhoAmI(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ACL WHOAMI not implemented")
+func (p Plugin) handleWhoAmI(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	connectionInfo := p.acl.Connections[conn]
+	return []byte(fmt.Sprintf("+%s\r\n\n", connectionInfo.User.Username)), nil
 }
 
 func (p Plugin) handleList(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {

@@ -1,6 +1,7 @@
 package acl
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -134,11 +135,62 @@ func (acl *ACL) RegisterConnection(conn *net.Conn) {
 }
 
 func (acl *ACL) AuthenticateConnection(conn *net.Conn, cmd []string) error {
+	var passwords []Password
+	var user User
+
+	h := sha256.New()
+
+	if len(cmd) == 2 {
+		// Process AUTH <password>
+		h.Write([]byte(cmd[1]))
+		passwords = []Password{
+			{PasswordType: "plaintext", PasswordValue: cmd[1]},
+			{PasswordType: "SHA256", PasswordValue: string(h.Sum(nil))},
+		}
+		// Authenticate with default user
+		user = utils.Filter(acl.Users, func(elem User) bool {
+			return user.Username == "default"
+		})[0]
+	}
+	if len(cmd) == 3 {
+		// Process AUTH <username> <password>
+		h.Write([]byte(cmd[2]))
+		passwords = []Password{
+			{PasswordType: "plaintext", PasswordValue: cmd[2]},
+			{PasswordType: "SHA256", PasswordValue: string(h.Sum(nil))},
+		}
+		// Find user with the specified username
+		userFound := false
+		for _, u := range acl.Users {
+			if u.Username == cmd[1] {
+				user = u
+				userFound = true
+				break
+			}
+		}
+		if !userFound {
+			return fmt.Errorf("no user with username %s", cmd[1])
+		}
+	}
+
+	for _, userPassword := range user.Passwords {
+		for _, password := range passwords {
+			if strings.EqualFold(userPassword.PasswordType, password.PasswordType) &&
+				userPassword.PasswordValue == password.PasswordValue {
+				// Set the current connection to the selected user and set them as authenticated
+				acl.Connections[conn] = Connection{
+					Authenticated: true,
+					User:          user,
+				}
+				return nil
+			}
+		}
+	}
+
 	return errors.New("could not authenticate user")
 }
 
 func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.Command, subCommand interface{}) error {
-	fmt.Println("SUBCOMMAND: ", subCommand)
 	return nil
 }
 
