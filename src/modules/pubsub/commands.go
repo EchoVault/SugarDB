@@ -58,7 +58,6 @@ func handleSubscribe(ctx context.Context, p Plugin, cmd []string, s utils.Server
 		p.pubSub.Subscribe(ctx, conn, cmd[1], nil)
 	case 3:
 		// Subscribe to specified channel and specified consumer group
-		fmt.Println(p.pubSub)
 		p.pubSub.Subscribe(ctx, conn, cmd[1], cmd[2])
 	default:
 		return nil, errors.New("wrong number of arguments")
