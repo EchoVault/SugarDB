@@ -109,7 +109,7 @@ func NewModule(pubsub *PubSub) Plugin {
 			},
 			{
 				Command:     "subscribe",
-				Categories:  []string{utils.PubSubCategory, utils.SlowCategory},
+				Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
 				Description: "(SUBSCRIBE channel [consumer_group]) Subscribe to a channel with an option to join a consumer group on the channel.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -122,7 +122,7 @@ func NewModule(pubsub *PubSub) Plugin {
 			},
 			{
 				Command:     "unsubscribe",
-				Categories:  []string{utils.PubSubCategory, utils.SlowCategory},
+				Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
 				Description: "(UNSUBSCRIBE channel) Unsubscribe from a channel.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
