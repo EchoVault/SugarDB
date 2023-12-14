@@ -38,9 +38,14 @@ type User struct {
 	ExcludedPubSubChannels []string `json:"ExcludedPubSubChannels" yaml:"ExcludedPubSubChannels"`
 }
 
+type Connection struct {
+	Authenticated bool
+	User          User
+}
+
 type ACL struct {
 	Users       []User
-	Connections map[*net.Conn]*User
+	Connections map[*net.Conn]Connection
 	Config      utils.Config
 }
 
@@ -58,7 +63,7 @@ func NewACL(config utils.Config) *ACL {
 		}
 	}
 
-	// 2. Read and parse the ACL config file and etc the
+	// 2. Read and parse the ACL config file
 	if config.AclConfig != "" {
 		// Override acl configurations from file
 		if f, err := os.Open(config.AclConfig); err != nil {
@@ -109,17 +114,22 @@ func NewACL(config utils.Config) *ACL {
 
 	acl := ACL{
 		Users:       users,
-		Connections: make(map[*net.Conn]*User),
+		Connections: make(map[*net.Conn]Connection),
 		Config:      config,
 	}
-
-	fmt.Println(acl.Users)
 
 	return &acl
 }
 
 func (acl *ACL) RegisterConnection(conn *net.Conn) {
-	fmt.Println("Register connection...")
+	// This is called only when a connection is established.
+	defaultUser := utils.Filter(acl.Users, func(elem User) bool {
+		return elem.Username == "default"
+	})[0]
+	acl.Connections[conn] = Connection{
+		Authenticated: false,
+		User:          defaultUser,
+	}
 }
 
 func (acl *ACL) AuthenticateConnection(conn *net.Conn, cmd []string) error {
