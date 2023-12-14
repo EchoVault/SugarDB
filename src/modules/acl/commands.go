@@ -81,7 +81,12 @@ func (p Plugin) handleCat(ctx context.Context, cmd []string, server utils.Server
 }
 
 func (p Plugin) handleUsers(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ACL USERS not implemented")
+	res := fmt.Sprintf("*%d\r\n", len(p.acl.Users))
+	for _, user := range p.acl.Users {
+		res += fmt.Sprintf("$%d\r\n%s\r\n", len(user.Username), user.Username)
+	}
+	res += "\n"
+	return []byte(res), nil
 }
 
 func (p Plugin) handleSetUser(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
