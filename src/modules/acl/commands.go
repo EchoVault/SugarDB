@@ -122,7 +122,7 @@ func NewModule(acl *ACL) Plugin {
 		commands: []utils.Command{
 			{
 				Command:     "auth",
-				Categories:  []string{},
+				Categories:  []string{utils.ConnectionCategory, utils.SlowCategory},
 				Description: "(AUTH [username] password) Authenticates the connection",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -137,8 +137,8 @@ func NewModule(acl *ACL) Plugin {
 				SubCommands: []utils.SubCommand{
 					{
 						Command:     "cat",
-						Categories:  []string{},
-						Description: "(ACL CAT) List all the categories and commands inside a category.",
+						Categories:  []string{utils.SlowCategory},
+						Description: "(ACL CAT [category]) List all the categories and commands inside a category.",
 						Sync:        false,
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
@@ -146,8 +146,8 @@ func NewModule(acl *ACL) Plugin {
 					},
 					{
 						Command:     "users",
-						Categories:  []string{},
-						Description: "(ACL LIST) List all ACL users",
+						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+						Description: "(ACL USERS) List all usersnames of the configured ACL users",
 						Sync:        false,
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
@@ -155,7 +155,7 @@ func NewModule(acl *ACL) Plugin {
 					},
 					{
 						Command:     "setuser",
-						Categories:  []string{},
+						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 						Description: "(ACL SETUSER) Configure a new or existing user",
 						Sync:        true,
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -164,7 +164,7 @@ func NewModule(acl *ACL) Plugin {
 					},
 					{
 						Command:     "getuser",
-						Categories:  []string{},
+						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 						Description: "(ACL GETUSER) List the ACL rules of a user",
 						Sync:        false,
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -173,7 +173,7 @@ func NewModule(acl *ACL) Plugin {
 					},
 					{
 						Command:     "deluser",
-						Categories:  []string{},
+						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 						Description: "(ACL DELUSER) Deletes users and terminates their connections",
 						Sync:        true,
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -182,7 +182,7 @@ func NewModule(acl *ACL) Plugin {
 					},
 					{
 						Command:     "whoami",
-						Categories:  []string{},
+						Categories:  []string{utils.FastCategory},
 						Description: "(ACL WHOAMI) Returns the authenticated user of the current connection",
 						Sync:        true,
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -191,7 +191,7 @@ func NewModule(acl *ACL) Plugin {
 					},
 					{
 						Command:     "list",
-						Categories:  []string{},
+						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 						Description: "(ACL LIST) Dumps effective acl rules in acl config file format",
 						Sync:        true,
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -200,7 +200,7 @@ func NewModule(acl *ACL) Plugin {
 					},
 					{
 						Command:     "load",
-						Categories:  []string{},
+						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 						Description: "(ACL LOAD) Reloads the rules from the configured ACL config file",
 						Sync:        true,
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -209,7 +209,7 @@ func NewModule(acl *ACL) Plugin {
 					},
 					{
 						Command:     "save",
-						Categories:  []string{},
+						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 						Description: "(ACL SAVE) Saves the effective ACL rules the configured ACL config file",
 						Sync:        true,
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {

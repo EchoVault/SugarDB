@@ -98,7 +98,7 @@ func NewModule() Plugin {
 		commands: []utils.Command{
 			{
 				Command:     "get",
-				Categories:  []string{},
+				Categories:  []string{utils.ReadCategory, utils.FastCategory},
 				Description: "(GET key) Get the value at the specified key.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -110,7 +110,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "mget",
-				Categories:  []string{},
+				Categories:  []string{utils.ReadCategory, utils.FastCategory},
 				Description: "(MGET key1 [key2]) Get multiple values from the specified keys.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {

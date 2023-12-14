@@ -508,7 +508,7 @@ func NewModule() Plugin {
 		commands: []utils.Command{
 			{
 				Command:     "lpush",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 				Description: "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -520,7 +520,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "lpushx",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 				Description: "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -532,7 +532,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "lpop",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 				Description: "(LPOP key) Removes and returns the first element of a list.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -544,7 +544,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "llen",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.FastCategory},
 				Description: "(LLEN key) Return the length of a list.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -556,7 +556,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "lrange",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(LRANGE key start end) Return a range of elements between the given indices.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -568,7 +568,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "lindex",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(LINDEX key index) Gets list element by index.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -580,7 +580,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "lset",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: "(LSET key index value) Sets the value of an element in a list by its index.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -592,7 +592,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "ltrim",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: "(LTRIM key start end) Trims a list to the specified range.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -604,7 +604,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "lrem",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: "(LREM key count value) Remove elements from list.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -616,7 +616,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "lmove",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>) Move element from one list to the other specifying left/right for both lists.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -628,7 +628,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "rpop",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 				Description: "(RPOP key) Removes and gets the last element in a list.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -640,7 +640,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "rpush",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 				Description: "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -652,7 +652,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "rpushx",
-				Categories:  []string{},
+				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 				Description: "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {

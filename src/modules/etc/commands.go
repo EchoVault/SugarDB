@@ -153,11 +153,11 @@ func handleMSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, erro
 
 func NewModule() Plugin {
 	SetModule := Plugin{
-		name: "SetCommands",
+		name: "OtherCommands",
 		commands: []utils.Command{
 			{
 				Command:     "set",
-				Categories:  []string{},
+				Categories:  []string{utils.WriteCategory, utils.SlowCategory},
 				Description: "(SET key value) Set the value of a key, considering the value's type.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -169,7 +169,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "setnx",
-				Categories:  []string{},
+				Categories:  []string{utils.WriteCategory, utils.SlowCategory},
 				Description: "(SETNX key value) Set the key/value only if the key doesn't exist.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -181,7 +181,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "mset",
-				Categories:  []string{},
+				Categories:  []string{utils.WriteCategory, utils.SlowCategory},
 				Description: "(MSET key value [key value ...]) Automatically etc or modify multiple key/value pairs.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {

@@ -176,7 +176,8 @@ func (acl *ACL) AuthenticateConnection(conn *net.Conn, cmd []string) error {
 	for _, userPassword := range user.Passwords {
 		for _, password := range passwords {
 			if strings.EqualFold(userPassword.PasswordType, password.PasswordType) &&
-				userPassword.PasswordValue == password.PasswordValue {
+				userPassword.PasswordValue == password.PasswordValue &&
+				user.Enabled {
 				// Set the current connection to the selected user and set them as authenticated
 				acl.Connections[conn] = Connection{
 					Authenticated: true,
@@ -191,6 +192,13 @@ func (acl *ACL) AuthenticateConnection(conn *net.Conn, cmd []string) error {
 }
 
 func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.Command, subCommand interface{}) error {
+	// 1. Check if password is required and if we're authorized
+	// 2. Check if commands category is in IncludedCommands
+	// 3. Check if commands category is in ExcludedCommands
+	// 4. Check if commands is in IncludedCommands
+	// 5. Check if commands is in ExcludedCommands
+	// 6. Check if keys are in IncludedKeys
+	// 7. Check if keys are in ExcludedKeys
 	return nil
 }
 

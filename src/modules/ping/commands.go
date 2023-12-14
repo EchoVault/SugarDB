@@ -60,7 +60,7 @@ func NewModule() Plugin {
 		commands: []utils.Command{
 			{
 				Command:     "ping",
-				Categories:  []string{},
+				Categories:  []string{utils.FastCategory, utils.ConnectionCategory},
 				Description: "(PING [value]) Ping the server. If a value is provided, the value will be echoed.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {

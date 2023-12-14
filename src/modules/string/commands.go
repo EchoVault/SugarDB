@@ -204,7 +204,7 @@ func NewModule() Plugin {
 		commands: []utils.Command{
 			{
 				Command:     "setrange",
-				Categories:  []string{},
+				Categories:  []string{utils.StringCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -216,7 +216,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "strlen",
-				Categories:  []string{},
+				Categories:  []string{utils.StringCategory, utils.ReadCategory, utils.FastCategory},
 				Description: "(STRLEN key) Returns length of the key's value if it's a string.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -228,7 +228,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "substr",
-				Categories:  []string{},
+				Categories:  []string{utils.StringCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(SUBSTR key start end) Returns a substring from the string value.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -240,7 +240,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "getrange",
-				Categories:  []string{},
+				Categories:  []string{utils.StringCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(GETRANGE key start end) Returns a substring from the string value.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
