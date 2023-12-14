@@ -2,6 +2,7 @@ package acl
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"gopkg.in/yaml.v3"
@@ -133,10 +134,11 @@ func (acl *ACL) RegisterConnection(conn *net.Conn) {
 }
 
 func (acl *ACL) AuthenticateConnection(conn *net.Conn, cmd []string) error {
-	return nil
+	return errors.New("could not authenticate user")
 }
 
-func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string) error {
+func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.Command, subCommand interface{}) error {
+	fmt.Println("SUBCOMMAND: ", subCommand)
 	return nil
 }
 

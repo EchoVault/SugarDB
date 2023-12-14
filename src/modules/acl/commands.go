@@ -63,7 +63,13 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 }
 
 func (p Plugin) handleAuth(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("AUTH not implemented")
+	if len(cmd) < 2 || len(cmd) > 3 {
+		return nil, errors.New("wrong number of arguments")
+	}
+	if err := p.acl.AuthenticateConnection(conn, cmd); err != nil {
+		return nil, err
+	}
+	return []byte("+OK\r\n\n"), nil
 }
 
 func (p Plugin) handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {

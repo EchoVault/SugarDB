@@ -173,8 +173,19 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 
 			synchronize := command.Command.Sync
 
-			if subCommand, ok := utils.GetSubCommand(command, cmd).(utils.SubCommand); ok {
+			subCommand, ok := utils.GetSubCommand(command, cmd).(utils.SubCommand)
+
+			if ok {
 				synchronize = subCommand.Sync
+				err = server.ACL.AuthorizeConnection(&conn, cmd, command.Command, subCommand)
+			} else {
+				err = server.ACL.AuthorizeConnection(&conn, cmd, command.Command, nil)
+			}
+
+			if err != nil {
+				connRW.WriteString(fmt.Sprintf("-%s\r\n\n", err.Error()))
+				connRW.Flush()
+				continue
 			}
 
 			if !server.IsInCluster() || !synchronize {
