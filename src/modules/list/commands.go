@@ -11,10 +11,6 @@ import (
 	"strings"
 )
 
-const (
-	OK = "+OK\r\n\n"
-)
-
 type Plugin struct {
 	name        string
 	commands    []utils.Command
@@ -76,7 +72,7 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 
 func handleLLen(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New("wrong number of args for LLEN command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	if !server.KeyExists(cmd[1]) {
@@ -97,7 +93,7 @@ func handleLLen(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 
 func handleLIndex(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 3 {
-		return nil, errors.New("wrong number of args for LINDEX command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	index, ok := utils.AdaptType(cmd[2]).(int64)
@@ -127,7 +123,7 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.Server) ([]byt
 
 func handleLRange(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New("wrong number of arguments for LRANGE command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	start, startOk := utils.AdaptType(cmd[2]).(int64)
@@ -206,7 +202,7 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server) ([]byt
 
 func handleLSet(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New("wrong number of arguments for LSET command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	if !server.KeyExists(cmd[1]) {
@@ -239,12 +235,12 @@ func handleLSet(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	server.SetValue(ctx, cmd[1], list)
 	server.KeyUnlock(cmd[1])
 
-	return []byte(OK), nil
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func handleLTrim(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New("wrong number of args for command LTRIM")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	start, startOk := utils.AdaptType(cmd[2]).(int64)
@@ -276,17 +272,17 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	if end == -1 || int(end) > len(list) {
 		server.SetValue(ctx, cmd[1], list[start:])
 		server.KeyUnlock(cmd[1])
-		return []byte(OK), nil
+		return []byte(utils.OK_RESPONSE), nil
 	}
 
 	server.SetValue(ctx, cmd[1], list[start:end])
 	server.KeyUnlock(cmd[1])
-	return []byte(OK), nil
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func handleLRem(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New("wrong number of arguments for LREM command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	value := cmd[3]
@@ -343,12 +339,12 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	server.SetValue(ctx, cmd[1], list)
 	server.KeyUnlock(cmd[1])
 
-	return []byte(OK), nil
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func handleLMove(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 5 {
-		return nil, errors.New("wrong number of arguments for LMOVE command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	whereFrom := strings.ToLower(cmd[3])
@@ -392,12 +388,12 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	server.KeyUnlock(cmd[1])
 	server.KeyUnlock(cmd[2])
 
-	return []byte(OK), nil
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func handleLPush(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) < 3 {
-		return nil, fmt.Errorf("wrong number of arguments for %s command", strings.ToUpper(cmd[0]))
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	newElems := []interface{}{}
@@ -430,12 +426,12 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	}
 
 	server.SetValue(ctx, key, append(newElems, l...))
-	return []byte(OK), nil
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func handleRPush(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) < 3 {
-		return nil, fmt.Errorf("wrong number of arguments for %s command", strings.ToUpper(cmd[0]))
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	newElems := []interface{}{}
@@ -466,12 +462,12 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	}
 
 	server.SetValue(ctx, cmd[1], append(l, newElems...))
-	return []byte(OK), nil
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func handlePop(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 2 {
-		return nil, fmt.Errorf("wrong number of args for %s command", strings.ToUpper(cmd[0]))
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	if !server.KeyExists(cmd[1]) {
@@ -513,7 +509,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) < 3 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -525,7 +521,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 3 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -537,7 +533,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 2 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -549,7 +545,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 2 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -561,7 +557,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 4 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -573,7 +569,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 3 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -585,7 +581,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 4 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -597,7 +593,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 4 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -609,7 +605,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 4 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -621,7 +617,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 5 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1], cmd[2]}, nil
 				},
@@ -633,7 +629,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 2 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -645,7 +641,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) < 3 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -657,7 +653,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 3 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},

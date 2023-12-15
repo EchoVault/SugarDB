@@ -9,10 +9,6 @@ import (
 	"strings"
 )
 
-const (
-	OK = "+OK\r\n\n"
-)
-
 type Plugin struct {
 	name        string
 	commands    []utils.Command
@@ -60,7 +56,7 @@ func handleSubscribe(ctx context.Context, p Plugin, cmd []string, s utils.Server
 		// Subscribe to specified channel and specified consumer group
 		p.pubSub.Subscribe(ctx, conn, cmd[1], cmd[2])
 	default:
-		return nil, errors.New("wrong number of arguments")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 	return []byte("+SUBSCRIBE_OK\r\n\n"), nil
 }
@@ -72,9 +68,9 @@ func handleUnsubscribe(ctx context.Context, p Plugin, cmd []string, s utils.Serv
 	case 2:
 		p.pubSub.Unsubscribe(ctx, conn, cmd[1])
 	default:
-		return nil, errors.New("wrong number of arguments")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
-	return []byte("+OK\r\n\n"), nil
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func handlePublish(ctx context.Context, p Plugin, cmd []string, s utils.Server) ([]byte, error) {
@@ -83,7 +79,7 @@ func handlePublish(ctx context.Context, p Plugin, cmd []string, s utils.Server) 
 	} else if len(cmd) == 2 {
 		p.pubSub.Publish(ctx, cmd[1], nil)
 	} else {
-		return nil, errors.New("wrong number of arguments")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 	return []byte("+PUBLISH_OK\r\n\n"), nil
 }
@@ -101,7 +97,7 @@ func NewModule(pubsub *PubSub) Plugin {
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					// Treat the channel as a key
 					if len(cmd) != 3 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -114,7 +110,7 @@ func NewModule(pubsub *PubSub) Plugin {
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					// Treat the channel as a key
 					if len(cmd) < 2 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -127,7 +123,7 @@ func NewModule(pubsub *PubSub) Plugin {
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					// Treat the channel as a key
 					if len(cmd) != 2 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},

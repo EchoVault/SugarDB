@@ -8,10 +8,6 @@ import (
 	"strings"
 )
 
-const (
-	OK = "+OK\r\n\n"
-)
-
 type Plugin struct {
 	name        string
 	commands    []utils.Command
@@ -46,7 +42,7 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 func handlePing(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
 	switch len(cmd) {
 	default:
-		return nil, errors.New("wrong number of arguments for PING command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	case 1:
 		return []byte("+PONG\r\n\n"), nil
 	case 2:

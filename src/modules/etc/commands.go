@@ -54,7 +54,7 @@ func handleSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error
 
 	switch x := len(cmd); {
 	default:
-		return nil, errors.New("wrong number of args for SET command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	case x == 3:
 		key := cmd[1]
 
@@ -63,7 +63,7 @@ func handleSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error
 			s.CreateKeyAndLock(ctx, key)
 			s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
 			s.KeyUnlock(key)
-			return []byte("+OK\r\n\n"), nil
+			return []byte(utils.OK_RESPONSE), nil
 		}
 
 		if _, err := s.KeyLock(ctx, key); err != nil {
@@ -72,14 +72,14 @@ func handleSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error
 
 		s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
 		s.KeyUnlock(key)
-		return []byte("+OK\r\n\n"), nil
+		return []byte(utils.OK_RESPONSE), nil
 	}
 }
 
 func handleSetNX(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
 	switch x := len(cmd); {
 	default:
-		return nil, errors.New("wrong number of args for SETNX command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	case x == 3:
 		key := cmd[1]
 		if s.KeyExists(key) {
@@ -90,7 +90,7 @@ func handleSetNX(ctx context.Context, cmd []string, s utils.Server) ([]byte, err
 		s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
 		s.KeyUnlock(key)
 	}
-	return []byte("+OK\r\n\n"), nil
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func handleMSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
@@ -148,7 +148,7 @@ func handleMSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, erro
 		s.SetValue(ctx, k, v.value)
 	}
 
-	return []byte("+OK\r\n\n"), nil
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func NewModule() Plugin {
@@ -162,7 +162,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 3 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -174,7 +174,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 3 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},

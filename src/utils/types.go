@@ -60,29 +60,3 @@ type Plugin interface {
 	Description() string
 	HandleCommand(ctx context.Context, cmd []string, server Server, conn *net.Conn) ([]byte, error)
 }
-
-type CommandCategory string
-
-const (
-	AdminCategory       = "admin"
-	BitmapCategory      = "bitmap"
-	BlockingCategory    = "blocking"
-	ConnectionCategory  = "connection"
-	DangerousCategory   = "dangerous"
-	GeoCategory         = "geo"
-	HashCategory        = "hash"
-	HyperLogLogCategory = "hyperloglog"
-	FastCategory        = "fast"
-	KeyspaceCategory    = "keyspace"
-	ListCategory        = "list"
-	PubSubCategory      = "pubsub"
-	ReadCategory        = "read"
-	ScriptingCategory   = "scripting"
-	SetCategory         = "set"
-	SortedSetCategory   = "sortedset"
-	SlowCategory        = "slow"
-	StreamCategory      = "stream"
-	StringCategory      = "string"
-	TransactionCategory = "transaction"
-	WriteCategory       = "write"
-)

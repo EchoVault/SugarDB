@@ -43,7 +43,7 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 
 func handleGet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New("wrong number of args for GET command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	key := cmd[1]
@@ -62,7 +62,7 @@ func handleGet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error
 
 func handleMGet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New("wrong number of args for MGET command")
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	vals := []string{}
@@ -103,7 +103,7 @@ func NewModule() Plugin {
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 2 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return []string{cmd[1]}, nil
 				},
@@ -115,7 +115,7 @@ func NewModule() Plugin {
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) < 2 {
-						return nil, errors.New("wrong number of arguments")
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return cmd[1:], nil
 				},
