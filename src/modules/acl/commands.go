@@ -73,7 +73,96 @@ func (p Plugin) handleAuth(ctx context.Context, cmd []string, server utils.Serve
 }
 
 func (p Plugin) handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("ACL GET USER not implemented")
+	if len(cmd) != 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	var user User
+	userFound := false
+
+	for _, u := range p.acl.Users {
+		if u.Username == cmd[2] {
+			user = u
+			userFound = true
+			break
+		}
+	}
+
+	if !userFound {
+		return nil, errors.New("user not found")
+	}
+
+	// username,
+	res := fmt.Sprintf("*11\r\n+%s", user.Username)
+
+	// flags
+	res = res + fmt.Sprintf("\r\n+flags\r\n*%d", 1)
+	if user.Enabled {
+		res = res + fmt.Sprintf("\r\n+on")
+	} else {
+		res = res + fmt.Sprintf("\r\n+off")
+	}
+
+	// categories
+	res = res + fmt.Sprintf("\r\n+categories\r\n*%d", len(user.IncludedCategories)+len(user.ExcludedCategories))
+	for _, category := range user.IncludedCategories {
+		if category == "*" {
+			res = res + fmt.Sprintf("\r\n++@all")
+			continue
+		}
+		res = res + fmt.Sprintf("\r\n++@%s", category)
+	}
+	for _, category := range user.ExcludedCategories {
+		if category == "*" {
+			res = res + fmt.Sprintf("\r\n+-@all")
+			continue
+		}
+		res = res + fmt.Sprintf("\r\n+-@%s", category)
+	}
+
+	// commands
+	res = res + fmt.Sprintf("\r\n+commands\r\n*%d", len(user.IncludedCommands)+len(user.ExcludedCommands))
+	for _, command := range user.IncludedCommands {
+		if command == "*" {
+			res = res + fmt.Sprintf("\r\n++all")
+			continue
+		}
+		res = res + fmt.Sprintf("\r\n++%s", command)
+	}
+	for _, command := range user.ExcludedCommands {
+		if command == "*" {
+			res = res + fmt.Sprintf("\r\n+-all")
+			continue
+		}
+		res = res + fmt.Sprintf("\r\n+-%s", command)
+	}
+
+	// keys
+	res = res + fmt.Sprintf("\r\n+keys\r\n*%d",
+		len(user.IncludedKeys)+len(user.IncludedReadKeys)+len(user.IncludedWriteKeys))
+	for _, key := range user.IncludedKeys {
+		res = res + fmt.Sprintf("\r\n+%s~%s", "%RW", key)
+	}
+	for _, key := range user.IncludedReadKeys {
+		res = res + fmt.Sprintf("\r\n+%s~%s", "%R", key)
+	}
+	for _, key := range user.IncludedWriteKeys {
+		res = res + fmt.Sprintf("\r\n+%s~%s", "%W", key)
+	}
+
+	// channels
+	res = res + fmt.Sprintf("\r\n+channels\r\n*%d",
+		len(user.IncludedPubSubChannels)+len(user.ExcludedPubSubChannels))
+	for _, channel := range user.IncludedPubSubChannels {
+		res = res + fmt.Sprintf("\r\n++&%s", channel)
+	}
+	for _, channel := range user.ExcludedPubSubChannels {
+		res = res + fmt.Sprintf("\r\n+-&%s", channel)
+	}
+
+	res += "\r\n\n"
+
+	return []byte(res), nil
 }
 
 func (p Plugin) handleCat(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
