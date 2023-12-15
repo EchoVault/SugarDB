@@ -32,7 +32,6 @@ type User struct {
 	ExcludedCommands []string `json:"ExcludedCommands" yaml:"ExcludedCommands"`
 
 	IncludedKeys      []string `json:"IncludedKeys" yaml:"IncludedKeys"`
-	ExcludedKeys      []string `json:"ExcludedKeys" yaml:"ExcludedKeys"`
 	IncludedReadKeys  []string `json:"IncludedReadKeys" yaml:"IncludedReadKeys"`
 	IncludedWriteKeys []string `json:"IncludedWriteKeys" yaml:"IncludedWriteKeys"`
 
@@ -219,7 +218,6 @@ func CreateUser(username string, enabled bool) User {
 		IncludedCommands:       []string{},
 		ExcludedCommands:       []string{},
 		IncludedKeys:           []string{},
-		ExcludedKeys:           []string{},
 		IncludedReadKeys:       []string{},
 		IncludedWriteKeys:      []string{},
 		IncludedPubSubChannels: []string{},
@@ -267,8 +265,6 @@ func NormaliseUser(user User) User {
 		NormaliseAllEntries(RemoveDuplicates(result.ExcludedCommands), "allCommands", false)
 	result.IncludedKeys =
 		NormaliseAllEntries(RemoveDuplicates(result.IncludedKeys), "allKeys", true)
-	result.ExcludedKeys =
-		NormaliseAllEntries(RemoveDuplicates(result.ExcludedKeys), "allKeys", false)
 	result.IncludedReadKeys =
 		NormaliseAllEntries(RemoveDuplicates(result.IncludedReadKeys), "allKeys", true)
 	result.IncludedWriteKeys =

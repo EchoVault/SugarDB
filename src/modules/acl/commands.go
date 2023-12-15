@@ -137,11 +137,11 @@ func (p Plugin) handleCat(ctx context.Context, cmd []string, server utils.Server
 }
 
 func (p Plugin) handleUsers(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	res := fmt.Sprintf("*%d\r\n", len(p.acl.Users))
+	res := fmt.Sprintf("*%d", len(p.acl.Users))
 	for _, user := range p.acl.Users {
-		res += fmt.Sprintf("$%d\r\n%s\r\n", len(user.Username), user.Username)
+		res += fmt.Sprintf("\r\n$%d\r\n%s", len(user.Username), user.Username)
 	}
-	res += "\n"
+	res += "\r\n\n"
 	return []byte(res), nil
 }
 
@@ -159,7 +159,85 @@ func (p Plugin) handleWhoAmI(ctx context.Context, cmd []string, server utils.Ser
 }
 
 func (p Plugin) handleList(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ACL LIST not implemented")
+	if len(cmd) > 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+	res := fmt.Sprintf("*%d", len(p.acl.Users))
+	s := ""
+	for _, user := range p.acl.Users {
+		s = user.Username
+		// User enabled
+		if user.Enabled {
+			s += " on"
+		} else {
+			s += " off"
+		}
+		// Passwords
+		for _, password := range user.Passwords {
+			if strings.EqualFold(password.PasswordType, "plaintext") {
+				s += fmt.Sprintf(" %s", password.PasswordValue)
+			}
+			if strings.EqualFold(password.PasswordType, "SHA256") {
+				s += fmt.Sprintf(" #%s", password.PasswordValue)
+			}
+		}
+		// Included categories
+		for _, category := range user.IncludedCategories {
+			if category == "*" {
+				s += " +@all"
+				continue
+			}
+			s += fmt.Sprintf(" +@%s", category)
+		}
+		// Excluded categories
+		for _, category := range user.ExcludedCategories {
+			if category == "*" {
+				s += " -@all"
+				continue
+			}
+			s += fmt.Sprintf(" -@%s", category)
+		}
+		// Included commands
+		for _, command := range user.IncludedCommands {
+			if command == "*" {
+				s += " +all"
+				continue
+			}
+			s += fmt.Sprintf(" +%s", command)
+		}
+		// Excluded commands
+		for _, command := range user.ExcludedCommands {
+			if command == "*" {
+				s += " -all"
+				continue
+			}
+			s += fmt.Sprintf(" -%s", command)
+		}
+		// Included keys
+		for _, key := range user.IncludedKeys {
+			s += fmt.Sprintf(" %s~%s", "%RW", key)
+		}
+		// Included read keys
+		for _, key := range user.IncludedReadKeys {
+			s += fmt.Sprintf(" %s~%s", "%R", key)
+		}
+		// Included write keys
+		for _, key := range user.IncludedReadKeys {
+			s += fmt.Sprintf(" %s~%s", "%W", key)
+		}
+		// Included Pub/Sub channels
+		for _, channel := range user.IncludedPubSubChannels {
+			s += fmt.Sprintf(" +&%s", channel)
+		}
+		// Excluded Pup/Sub channels
+		for _, channel := range user.ExcludedPubSubChannels {
+			s += fmt.Sprintf(" -&%s", channel)
+		}
+		res = res + fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+	}
+
+	res = res + "\r\n\n"
+	return []byte(res), nil
 }
 
 func (p Plugin) handleLoad(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {

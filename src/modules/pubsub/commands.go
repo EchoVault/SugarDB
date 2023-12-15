@@ -3,7 +3,6 @@ package pubsub
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
 	"strings"
@@ -23,7 +22,6 @@ func (p Plugin) Name() string {
 }
 
 func (p Plugin) Commands() []utils.Command {
-	fmt.Println(p)
 	return p.commands
 }
 
