@@ -77,7 +77,63 @@ func (p Plugin) handleGetUser(ctx context.Context, cmd []string, server utils.Se
 }
 
 func (p Plugin) handleCat(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ACL CAT not implemented")
+	if len(cmd) > 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	categories := make(map[string][]string)
+
+	commands := server.GetAllCommands(ctx)
+
+	for _, command := range commands {
+		if len(command.SubCommands) == 0 {
+			for _, category := range command.Categories {
+				categories[category] = append(categories[category], command.Command)
+			}
+			continue
+		}
+		for _, subcommand := range command.SubCommands {
+			for _, category := range subcommand.Categories {
+				categories[category] = append(categories[category],
+					fmt.Sprintf("%s|%s", command.Command, subcommand.Command))
+			}
+		}
+	}
+
+	if len(cmd) == 2 {
+		var cats []string
+		length := 0
+		for key, _ := range categories {
+			cats = append(cats, key)
+			length += 1
+		}
+		res := fmt.Sprintf("*%d", length)
+		for i, cat := range cats {
+			res = fmt.Sprintf("%s\r\n+%s", res, cat)
+			if i == len(cats)-1 {
+				res = res + "\r\n\n"
+			}
+		}
+		return []byte(res), nil
+	}
+
+	if len(cmd) == 3 {
+		var res string
+		for category, commands := range categories {
+			if strings.EqualFold(category, cmd[2]) {
+				res = fmt.Sprintf("*%d", len(commands))
+				for i, command := range commands {
+					res = fmt.Sprintf("%s\r\n+%s", res, command)
+					if i == len(commands)-1 {
+						res = res + "\r\n\n"
+					}
+				}
+				return []byte(res), nil
+			}
+		}
+	}
+
+	return nil, errors.New("category not found")
 }
 
 func (p Plugin) handleUsers(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {

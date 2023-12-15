@@ -119,6 +119,14 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 	server.store[key] = value
 }
 
+func (server *Server) GetAllCommands(ctx context.Context) []utils.Command {
+	var commands []utils.Command
+	for _, serverCommand := range server.commands {
+		commands = append(commands, serverCommand.Command)
+	}
+	return commands
+}
+
 func (server *Server) getCommand(cmd string) (utils.ServerCommand, error) {
 	for key, command := range server.commands {
 		if strings.EqualFold(key, cmd) {

@@ -19,6 +19,7 @@ type Server interface {
 	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
 	GetValue(key string) interface{}
 	SetValue(ctx context.Context, key string, value interface{})
+	GetAllCommands(ctx context.Context) []Command
 }
 
 type ContextServerID string
