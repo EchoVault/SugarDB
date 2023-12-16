@@ -93,7 +93,7 @@ func (p Plugin) handleGetUser(ctx context.Context, cmd []string, server utils.Se
 	}
 
 	// username,
-	res := fmt.Sprintf("*11\r\n+%s", user.Username)
+	res := fmt.Sprintf("*12\r\n+username\r\n*1\r\n+%s", user.Username)
 
 	// flags
 	res = res + fmt.Sprintf("\r\n+flags\r\n*%d", 1)

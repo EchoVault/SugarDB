@@ -79,7 +79,7 @@ func handlePublish(ctx context.Context, p Plugin, cmd []string, s utils.Server) 
 	} else {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
-	return []byte("+PUBLISH_OK\r\n\n"), nil
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func NewModule(pubsub *PubSub) Plugin {
