@@ -17,8 +17,6 @@ type Plugin struct {
 	acl         *ACL
 }
 
-var ACLPlugin Plugin
-
 func (p Plugin) Name() string {
 	return p.name
 }
@@ -339,7 +337,7 @@ func (p Plugin) handleSave(ctx context.Context, cmd []string, server utils.Serve
 }
 
 func NewModule(acl *ACL) Plugin {
-	ACLPlugin = Plugin{
+	ACLPlugin := Plugin{
 		acl:  acl,
 		name: "ACLCommands",
 		commands: []utils.Command{

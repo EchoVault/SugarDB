@@ -15,8 +15,6 @@ type Plugin struct {
 	pubSub      *PubSub
 }
 
-var PubSubModule Plugin
-
 func (p Plugin) Name() string {
 	return p.name
 }

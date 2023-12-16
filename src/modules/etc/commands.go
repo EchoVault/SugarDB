@@ -21,8 +21,6 @@ type Plugin struct {
 	description string
 }
 
-var SetModule Plugin
-
 func (p Plugin) Name() string {
 	return p.name
 }

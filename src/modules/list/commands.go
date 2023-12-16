@@ -18,8 +18,6 @@ type Plugin struct {
 	description string
 }
 
-var ListModule Plugin
-
 func (p Plugin) Name() string {
 	return p.name
 }
