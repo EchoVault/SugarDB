@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 )
 
 type Password struct {
@@ -131,6 +132,37 @@ func (acl *ACL) RegisterConnection(conn *net.Conn) {
 		Authenticated: false,
 		User:          defaultUser,
 	}
+}
+
+func (acl *ACL) DeleteUser(usernames []string) error {
+	var user User
+	for _, username := range usernames {
+		if username == "default" {
+			// Skip default user
+			continue
+		}
+		// Extract the user
+		for _, u := range acl.Users {
+			if username == u.Username {
+				user = u
+			}
+		}
+		// Skip if the current username was not found in the ACL
+		if username != user.Username {
+			continue
+		}
+		// Terminate every connection attached to this user
+		for connRef, connection := range acl.Connections {
+			if connection.User.Username == user.Username {
+				(*connRef).SetReadDeadline(time.Now().Add(-1 * time.Second))
+			}
+		}
+		// Delete the user from the ACL
+		acl.Users = utils.Filter(acl.Users, func(u User) bool {
+			return u.Username != user.Username
+		})
+	}
+	return nil
 }
 
 func (acl *ACL) AuthenticateConnection(conn *net.Conn, cmd []string) error {

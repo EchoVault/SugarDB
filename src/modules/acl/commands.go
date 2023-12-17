@@ -237,7 +237,13 @@ func (p Plugin) handleSetUser(ctx context.Context, cmd []string, server utils.Se
 }
 
 func (p Plugin) handleDelUser(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ACL DELUSER not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+	if err := p.acl.DeleteUser(cmd[2:]); err != nil {
+		return nil, err
+	}
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func (p Plugin) handleWhoAmI(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -395,7 +401,7 @@ func NewModule(acl *ACL) Plugin {
 					{
 						Command:     "deluser",
 						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-						Description: "(ACL DELUSER) Deletes users and terminates their connections",
+						Description: "(ACL DELUSER) Deletes users and terminates their connections. Cannot delete default user",
 						Sync:        true,
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil

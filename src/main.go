@@ -156,13 +156,23 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	for {
 		message, err := utils.ReadMessage(connRW)
 
-		if err != nil && err == io.EOF {
-			break
-		}
-
 		if err != nil {
+			if err == io.EOF {
+				// Connection closed
+				break
+			}
+			if err, ok := err.(net.Error); ok && err.Timeout() {
+				// Connection timeout
+				fmt.Println(err)
+				break
+			}
+			if err, ok := err.(tls.RecordHeaderError); ok {
+				// TLS verification error
+				fmt.Println(err)
+				break
+			}
 			fmt.Println(err)
-			continue
+			break
 		}
 
 		if cmd, err := utils.Decode(message); err != nil {
@@ -264,7 +274,21 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 
 func (server *Server) StartTCP(ctx context.Context) {
 	conf := server.config
-	var listener net.Listener
+
+	listenConfig := net.ListenConfig{
+		KeepAlive: 200 * time.Millisecond,
+	}
+
+	listener, err := listenConfig.Listen(ctx, "tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if !conf.TLS {
+		// TCP
+		fmt.Printf("Starting TCP server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+	}
 
 	if conf.TLS {
 		// TLS
@@ -274,23 +298,9 @@ func (server *Server) StartTCP(ctx context.Context) {
 			log.Fatal(err)
 		}
 
-		if l, err := tls.Listen("tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port), &tls.Config{
+		listener = tls.NewListener(listener, &tls.Config{
 			Certificates: []tls.Certificate{cer},
-		}); err != nil {
-			log.Fatal(err)
-		} else {
-			listener = l
-		}
-	}
-
-	if !conf.TLS {
-		// TCP
-		fmt.Printf("Starting TCP server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
-		if l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port)); err != nil {
-			log.Fatal(err)
-		} else {
-			listener = l
-		}
+		})
 	}
 
 	// Listen to connection
