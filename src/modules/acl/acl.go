@@ -1,6 +1,7 @@
 package acl
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -134,7 +135,7 @@ func (acl *ACL) RegisterConnection(conn *net.Conn) {
 	}
 }
 
-func (acl *ACL) DeleteUser(usernames []string) error {
+func (acl *ACL) DeleteUser(ctx context.Context, usernames []string) error {
 	var user User
 	for _, username := range usernames {
 		if username == "default" {
@@ -165,7 +166,7 @@ func (acl *ACL) DeleteUser(usernames []string) error {
 	return nil
 }
 
-func (acl *ACL) AuthenticateConnection(conn *net.Conn, cmd []string) error {
+func (acl *ACL) AuthenticateConnection(ctx context.Context, conn *net.Conn, cmd []string) error {
 	var passwords []Password
 	var user User
 
