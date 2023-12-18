@@ -75,9 +75,8 @@ func (p Plugin) handleGetUser(ctx context.Context, cmd []string, server utils.Se
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	var user User
+	var user *User
 	userFound := false
-
 	for _, u := range p.acl.Users {
 		if u.Username == cmd[2] {
 			user = u
@@ -233,7 +232,10 @@ func (p Plugin) handleUsers(ctx context.Context, cmd []string, server utils.Serv
 }
 
 func (p Plugin) handleSetUser(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ACL SETUSER not implemented")
+	if err := p.acl.SetUser(ctx, cmd[2:]); err != nil {
+		return nil, err
+	}
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func (p Plugin) handleDelUser(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
