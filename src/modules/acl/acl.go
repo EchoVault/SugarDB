@@ -21,27 +21,6 @@ type Password struct {
 	PasswordValue string `json:"PasswordValue" yaml:"PasswordValue"`
 }
 
-type User struct {
-	Username   string `json:"Username" yaml:"Username"`
-	Enabled    bool   `json:"Enabled" yaml:"Enabled"`
-	NoPassword bool   `json:"NoPassword" yaml:"NoPassword"`
-
-	Passwords []Password `json:"Passwords" yaml:"Passwords"`
-
-	IncludedCategories []string `json:"IncludedCategories" yaml:"IncludedCategories"`
-	ExcludedCategories []string `json:"ExcludedCategories" yaml:"ExcludedCategories"`
-
-	IncludedCommands []string `json:"IncludedCommands" yaml:"IncludedCommands"`
-	ExcludedCommands []string `json:"ExcludedCommands" yaml:"ExcludedCommands"`
-
-	IncludedKeys      []string `json:"IncludedKeys" yaml:"IncludedKeys"`
-	IncludedReadKeys  []string `json:"IncludedReadKeys" yaml:"IncludedReadKeys"`
-	IncludedWriteKeys []string `json:"IncludedWriteKeys" yaml:"IncludedWriteKeys"`
-
-	IncludedPubSubChannels []string `json:"IncludedPubSubChannels" yaml:"IncludedPubSubChannels"`
-	ExcludedPubSubChannels []string `json:"ExcludedPubSubChannels" yaml:"ExcludedPubSubChannels"`
-}
-
 type Connection struct {
 	Authenticated bool
 	User          *User
@@ -96,25 +75,21 @@ func NewACL(config utils.Config) *ACL {
 		}
 	}
 
-	// 3.
-	// i) Merge created default user and loaded default user
-	// ii) Merge other users with sensible defaults
-	for i, user := range users {
+	// 3. If default user was not loaded from file, add the created one
+	defaultLoaded := false
+	for _, user := range users {
 		if user.Username == "default" {
-			err := MergeUser(defaultUser, user)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-		} else {
-			u := CreateUser(user.Username)
-			err := MergeUser(u, user)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-			users[i] = u
+			defaultLoaded = true
+			break
 		}
+	}
+	if !defaultLoaded {
+		users = append([]*User{defaultUser}, users...)
+	}
+
+	// 4. Normalise all users
+	for _, user := range users {
+		user.Normalise()
 	}
 
 	acl := ACL{
@@ -273,12 +248,12 @@ func (acl *ACL) SetUser(ctx context.Context, cmd []string) error {
 		}
 	}
 
+	user.Normalise()
+
 	// Add user to ACL
 	acl.Users = append(utils.Filter(acl.Users, func(u *User) bool {
 		return u.Username != user.Username
 	}), user)
-
-	fmt.Printf("%+v\n", user)
 
 	return nil
 }
@@ -396,13 +371,6 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 	return nil
 }
 
-func GetPasswordType(password string) string {
-	if password[0] == '#' {
-		return "SHA256"
-	}
-	return "plaintext"
-}
-
 func CreateUser(username string) *User {
 	return &User{
 		Username:               username,
@@ -419,74 +387,4 @@ func CreateUser(username string) *User {
 		IncludedPubSubChannels: []string{},
 		ExcludedPubSubChannels: []string{},
 	}
-}
-
-func RemoveDuplicates(slice []string) []string {
-	entries := make(map[string]int)
-	keys := []string{}
-
-	for _, s := range slice {
-		entries[s] += 1
-	}
-
-	for key, _ := range entries {
-		keys = append(keys, key)
-	}
-
-	return keys
-}
-
-func NormaliseAllEntries(slice []string, allAlias string, defaultAllIncluded bool) []string {
-	result := slice
-	if utils.Contains(result, "*") || utils.Contains(result, allAlias) {
-		result = []string{"*"}
-	}
-	if len(result) == 0 && defaultAllIncluded {
-		result = []string{"*"}
-	}
-	return result
-}
-
-func NormaliseUser(user *User) {
-	// Normalise the user object
-	user.IncludedCategories =
-		NormaliseAllEntries(RemoveDuplicates(user.IncludedCategories), "allCategories", true)
-	user.ExcludedCategories =
-		NormaliseAllEntries(RemoveDuplicates(user.ExcludedCategories), "allCategories", false)
-	user.IncludedCommands =
-		NormaliseAllEntries(RemoveDuplicates(user.IncludedCommands), "allCommands", true)
-	user.ExcludedCommands =
-		NormaliseAllEntries(RemoveDuplicates(user.ExcludedCommands), "allCommands", false)
-	user.IncludedKeys =
-		NormaliseAllEntries(RemoveDuplicates(user.IncludedKeys), "allKeys", true)
-	user.IncludedReadKeys =
-		NormaliseAllEntries(RemoveDuplicates(user.IncludedReadKeys), "allKeys", true)
-	user.IncludedWriteKeys =
-		NormaliseAllEntries(RemoveDuplicates(user.IncludedWriteKeys), "allKeys", true)
-	user.IncludedPubSubChannels =
-		NormaliseAllEntries(RemoveDuplicates(user.IncludedPubSubChannels), "allChannels", true)
-	user.ExcludedPubSubChannels =
-		NormaliseAllEntries(RemoveDuplicates(user.ExcludedPubSubChannels), "allChannels", false)
-}
-
-func MergeUser(base, target *User) error {
-	if base.Username != target.Username {
-		return fmt.Errorf("cannot merge user with username %s to user with username %s",
-			base.Username, target.Username)
-	}
-
-	base.Enabled = target.Enabled
-	base.Passwords = append(base.Passwords, target.Passwords...)
-	base.IncludedCategories = append(base.IncludedCategories, target.IncludedCategories...)
-	base.ExcludedCategories = append(base.ExcludedCategories, target.ExcludedCategories...)
-	base.IncludedCommands = append(base.IncludedCommands, target.IncludedCommands...)
-	base.ExcludedCommands = append(base.ExcludedCommands, target.ExcludedCommands...)
-	base.IncludedReadKeys = append(base.IncludedReadKeys, target.IncludedReadKeys...)
-	base.IncludedWriteKeys = append(base.IncludedWriteKeys, target.IncludedWriteKeys...)
-	base.IncludedPubSubChannels = append(base.IncludedPubSubChannels, target.IncludedPubSubChannels...)
-	base.ExcludedPubSubChannels = append(base.ExcludedPubSubChannels, target.ExcludedPubSubChannels...)
-
-	NormaliseUser(base)
-
-	return nil
 }

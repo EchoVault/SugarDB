@@ -93,11 +93,19 @@ func (p Plugin) handleGetUser(ctx context.Context, cmd []string, server utils.Se
 	res := fmt.Sprintf("*12\r\n+username\r\n*1\r\n+%s", user.Username)
 
 	// flags
-	res = res + fmt.Sprintf("\r\n+flags\r\n*%d", 1)
+	var flags []string
 	if user.Enabled {
-		res = res + fmt.Sprintf("\r\n+on")
+		flags = append(flags, "on")
 	} else {
-		res = res + fmt.Sprintf("\r\n+off")
+		flags = append(flags, "off")
+	}
+	if user.NoPassword {
+		flags = append(flags, "nopass")
+	}
+
+	res = res + fmt.Sprintf("\r\n+flags\r\n*%d", len(flags))
+	for _, flag := range flags {
+		res = fmt.Sprintf("%s\r\n+%s", res, flag)
 	}
 
 	// categories
@@ -270,7 +278,7 @@ func (p Plugin) handleList(ctx context.Context, cmd []string, server utils.Serve
 		// Passwords
 		for _, password := range user.Passwords {
 			if strings.EqualFold(password.PasswordType, "plaintext") {
-				s += fmt.Sprintf(" %s", password.PasswordValue)
+				s += fmt.Sprintf(" >%s", password.PasswordValue)
 			}
 			if strings.EqualFold(password.PasswordType, "SHA256") {
 				s += fmt.Sprintf(" #%s", password.PasswordValue)
