@@ -102,6 +102,9 @@ func (p Plugin) handleGetUser(ctx context.Context, cmd []string, server utils.Se
 	if user.NoPassword {
 		flags = append(flags, "nopass")
 	}
+	if user.NoKeys {
+		flags = append(flags, "nokeys")
+	}
 
 	res = res + fmt.Sprintf("\r\n+flags\r\n*%d", len(flags))
 	for _, flag := range flags {
@@ -278,6 +281,10 @@ func (p Plugin) handleList(ctx context.Context, cmd []string, server utils.Serve
 		// NoPassword
 		if user.NoPassword {
 			s += " nopass"
+		}
+		// No keys
+		if user.NoKeys {
+			s += " nokeys"
 		}
 		// Passwords
 		for _, password := range user.Passwords {

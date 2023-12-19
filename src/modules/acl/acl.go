@@ -240,11 +240,26 @@ func (acl *ACL) SetUser(ctx context.Context, cmd []string) error {
 		}
 	}
 
-	// If resetpass is provided, delete all passwords and set NoPassword to false
 	for _, str := range cmd {
+		// If resetpass is provided, delete all passwords and set NoPassword to false
 		if strings.EqualFold(str, "resetpass") {
 			user.Passwords = []Password{}
 			user.NoPassword = false
+		}
+		// If nocommands is provided, disable all commands for this user
+		if strings.EqualFold(str, "nocommands") {
+			user.ExcludedCommands = []string{"*"}
+		}
+		// If resetkeys is provided, reset all keys that the user can access
+		if strings.EqualFold(str, "resetkeys") {
+			user.IncludedKeys = []string{}
+			user.IncludedReadKeys = []string{}
+			user.IncludedWriteKeys = []string{}
+			user.NoKeys = true
+		}
+		// If resetchannels is provided, remove all the pub/sub channels that the user can access
+		if strings.EqualFold(str, "resetchannels") {
+			user.ExcludedPubSubChannels = []string{"*"}
 		}
 	}
 

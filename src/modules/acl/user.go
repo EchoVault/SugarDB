@@ -8,6 +8,7 @@ type User struct {
 	Username   string `json:"Username" yaml:"Username"`
 	Enabled    bool   `json:"Enabled" yaml:"Enabled"`
 	NoPassword bool   `json:"NoPassword" yaml:"NoPassword"`
+	NoKeys     bool   `json:"NoKeys" yaml:"NoKeys"`
 
 	Passwords []Password `json:"Passwords" yaml:"Passwords"`
 
@@ -33,21 +34,24 @@ func (user *User) Normalise() {
 	}
 
 	user.IncludedCommands = RemoveDuplicateEntries(user.IncludedCommands, "allCommands")
+	if len(user.IncludedCommands) == 0 {
+		user.IncludedCommands = []string{"*"}
+	}
 	user.ExcludedCommands = RemoveDuplicateEntries(user.ExcludedCommands, "allCommands")
 	if utils.Contains(user.ExcludedCommands, "*") {
 		user.IncludedCommands = []string{}
 	}
 
 	user.IncludedKeys = RemoveDuplicateEntries(user.IncludedKeys, "allKeys")
-	if len(user.IncludedKeys) == 0 {
+	if len(user.IncludedKeys) == 0 && !user.NoKeys {
 		user.IncludedKeys = []string{"*"}
 	}
 	user.IncludedReadKeys = RemoveDuplicateEntries(user.IncludedReadKeys, "allKeys")
-	if len(user.IncludedReadKeys) == 0 {
+	if len(user.IncludedReadKeys) == 0 && !user.NoKeys {
 		user.IncludedReadKeys = []string{"*"}
 	}
 	user.IncludedWriteKeys = RemoveDuplicateEntries(user.IncludedWriteKeys, "allKeys")
-	if len(user.IncludedWriteKeys) == 0 {
+	if len(user.IncludedWriteKeys) == 0 && !user.NoKeys {
 		user.IncludedWriteKeys = []string{"*"}
 	}
 
