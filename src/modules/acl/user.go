@@ -228,6 +228,39 @@ func (user *User) UpdateUser(cmd []string) error {
 	return nil
 }
 
+func (user *User) Merge(new *User) {
+	user.Enabled = new.Enabled
+	user.NoKeys = new.NoKeys
+	user.NoPassword = new.NoPassword
+	user.Passwords = append(user.Passwords, new.Passwords...)
+	user.IncludedCategories = append(user.IncludedCategories, new.IncludedCategories...)
+	user.ExcludedCategories = append(user.ExcludedCategories, new.ExcludedCategories...)
+	user.IncludedCommands = append(user.IncludedCommands, new.IncludedCommands...)
+	user.ExcludedCommands = append(user.ExcludedCommands, new.ExcludedCommands...)
+	user.IncludedKeys = append(user.IncludedKeys, new.IncludedKeys...)
+	user.IncludedReadKeys = append(user.IncludedReadKeys, new.IncludedReadKeys...)
+	user.IncludedWriteKeys = append(user.IncludedWriteKeys, new.IncludedWriteKeys...)
+	user.IncludedPubSubChannels = append(user.IncludedPubSubChannels, new.IncludedPubSubChannels...)
+	user.ExcludedPubSubChannels = append(user.ExcludedPubSubChannels, new.ExcludedPubSubChannels...)
+	user.Normalise()
+}
+
+func (user *User) Replace(new *User) {
+	user.Enabled = new.Enabled
+	user.NoKeys = new.NoKeys
+	user.NoPassword = new.NoPassword
+	user.Passwords = new.Passwords
+	user.IncludedCategories = new.IncludedCategories
+	user.ExcludedCategories = new.ExcludedCategories
+	user.IncludedCommands = new.IncludedCommands
+	user.ExcludedCommands = new.ExcludedCommands
+	user.IncludedKeys = new.IncludedKeys
+	user.IncludedReadKeys = new.IncludedReadKeys
+	user.IncludedWriteKeys = new.IncludedWriteKeys
+	user.IncludedPubSubChannels = new.IncludedPubSubChannels
+	user.ExcludedPubSubChannels = new.ExcludedPubSubChannels
+}
+
 func GetPasswordType(password string) string {
 	if password[0] == '#' {
 		return "SHA256"
