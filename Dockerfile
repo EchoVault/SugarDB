@@ -6,7 +6,6 @@ RUN mkdir -p /etc/ssl/certs/memstore
 
 COPY ./bin/linux/x86_64/server /opt/memstore/bin
 COPY ./openssl/server /etc/ssl/certs/memstore
-COPY ./config /etc/config/memstore
 
 WORKDIR /opt/memstore/bin
 

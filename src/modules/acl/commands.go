@@ -2,10 +2,14 @@ package acl
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
+	"gopkg.in/yaml.v3"
 	"net"
+	"os"
+	"path"
 	"strings"
 )
 
@@ -359,8 +363,44 @@ func (p Plugin) handleLoad(ctx context.Context, cmd []string, server utils.Serve
 }
 
 func (p Plugin) handleSave(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	fmt.Println(p.acl)
-	return nil, errors.New("ACL SAVE not implemented")
+	if f, err := os.OpenFile(p.acl.Config.AclConfig, os.O_WRONLY|os.O_CREATE, os.ModeAppend); err != nil {
+		return nil, err
+	} else {
+		defer func() {
+			if err := f.Close(); err != nil {
+				// TODO: Log file close error
+				fmt.Println(err)
+			}
+		}()
+		ext := path.Ext(f.Name())
+		if ext == ".json" {
+			// Write to JSON config file
+			out, err := json.Marshal(p.acl.Users)
+			if err != nil {
+				return nil, err
+			}
+			_, err = f.Write(out)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if ext == ".yaml" || ext == ".yml" {
+			// Write to yaml file
+			out, err := yaml.Marshal(p.acl.Users)
+			if err != nil {
+				return nil, err
+			}
+			_, err = f.Write(out)
+			if err != nil {
+				return nil, err
+			}
+		}
+		err = f.Sync()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return []byte(utils.OK_RESPONSE), nil
 }
 
 func NewModule(acl *ACL) Plugin {

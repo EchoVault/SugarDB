@@ -113,162 +113,23 @@ func (acl *ACL) RegisterConnection(conn *net.Conn) {
 }
 
 func (acl *ACL) SetUser(ctx context.Context, cmd []string) error {
-	user := CreateUser(cmd[0])
-
 	// Check if user with the given username already exists
 	// If it does, replace user variable with this user
-	for _, u := range acl.Users {
-		if u.Username == cmd[0] {
-			user = u
+	for _, user := range acl.Users {
+		if user.Username == cmd[0] {
+			return user.UpdateUser(cmd)
 		}
 	}
 
-	for _, str := range cmd {
-		// Parse enabled
-		if strings.EqualFold(str, "on") {
-			user.Enabled = true
-		}
-		if strings.EqualFold(str, "off") {
-			user.Enabled = false
-		}
-		// Parse passwords
-		if str[0] == '>' || str[0] == '#' {
-			user.Passwords = append(user.Passwords, Password{
-				PasswordType:  GetPasswordType(str),
-				PasswordValue: str[1:],
-			})
-			user.NoPassword = false
-			continue
-		}
-		if str[0] == '<' {
-			user.Passwords = utils.Filter(user.Passwords, func(password Password) bool {
-				if strings.EqualFold(password.PasswordType, "SHA256") {
-					return true
-				}
-				return password.PasswordValue == str[1:]
-			})
-			continue
-		}
-		if str[0] == '!' {
-			user.Passwords = utils.Filter(user.Passwords, func(password Password) bool {
-				if strings.EqualFold(password.PasswordType, "plaintext") {
-					return true
-				}
-				return password.PasswordValue == str[1:]
-			})
-			continue
-		}
-		// Parse categories
-		if strings.EqualFold(str, "nocommands") {
-			user.ExcludedCategories = []string{"*"}
-			user.ExcludedCommands = []string{"*"}
-			continue
-		}
-		if strings.EqualFold(str, "allCategories") {
-			user.IncludedCategories = []string{"*"}
-			continue
-		}
-		if len(str) > 3 && str[1] == '@' {
-			if str[0] == '+' {
-				user.IncludedCategories = append(user.IncludedCategories, str[2:])
-				continue
-			}
-			if str[0] == '-' {
-				user.ExcludedCategories = append(user.ExcludedCategories, str[2:])
-				continue
-			}
-		}
-		// Parse keys
-		if strings.EqualFold(str, "allKeys") {
-			user.IncludedKeys = []string{"*"}
-			user.IncludedReadKeys = []string{"*"}
-			user.IncludedWriteKeys = []string{"*"}
-			continue
-		}
-		if len(str) > 1 && str[0] == '~' {
-			user.IncludedKeys = append(user.IncludedKeys, str[1:])
-			continue
-		}
-		if len(str) > 4 && strings.EqualFold(str[0:4], "%RW~") {
-			user.IncludedKeys = append(user.IncludedKeys, str[4:])
-			continue
-		}
-		if len(str) > 3 && strings.EqualFold(str[0:3], "%R~") {
-			user.IncludedReadKeys = append(user.IncludedReadKeys, str[3:])
-			continue
-		}
-		if len(str) > 3 && strings.EqualFold(str[0:3], "%W~") {
-			user.IncludedWriteKeys = append(user.IncludedWriteKeys, str[3:])
-			continue
-		}
-		// Parse channels
-		if strings.EqualFold(str, "allChannels") {
-			user.IncludedPubSubChannels = []string{"*"}
-		}
-		if len(str) > 2 && str[1] == '&' {
-			if str[0] == '+' {
-				user.IncludedPubSubChannels = append(user.IncludedPubSubChannels, str[2:])
-				continue
-			}
-			if str[0] == '-' {
-				user.ExcludedPubSubChannels = append(user.ExcludedPubSubChannels, str[2:])
-				continue
-			}
-		}
-		// Parse commands
-		if strings.EqualFold(str, "allCommands") {
-			user.IncludedCommands = []string{"*"}
-			continue
-		}
-		if len(str) > 2 && !utils.Contains([]uint8{'&', '@'}, str[1]) {
-			if str[0] == '+' {
-				user.IncludedCommands = append(user.IncludedCommands, str[1:])
-				continue
-			}
-			if str[0] == '-' {
-				user.ExcludedCommands = append(user.ExcludedCommands, str[1:])
-				continue
-			}
-		}
-	}
-
-	// If nopass is provided, delete all passwords
-	for _, str := range cmd {
-		if strings.EqualFold(str, "nopass") {
-			user.Passwords = []Password{}
-			user.NoPassword = true
-		}
-	}
-
-	for _, str := range cmd {
-		// If resetpass is provided, delete all passwords and set NoPassword to false
-		if strings.EqualFold(str, "resetpass") {
-			user.Passwords = []Password{}
-			user.NoPassword = false
-		}
-		// If nocommands is provided, disable all commands for this user
-		if strings.EqualFold(str, "nocommands") {
-			user.ExcludedCommands = []string{"*"}
-		}
-		// If resetkeys is provided, reset all keys that the user can access
-		if strings.EqualFold(str, "resetkeys") {
-			user.IncludedKeys = []string{}
-			user.IncludedReadKeys = []string{}
-			user.IncludedWriteKeys = []string{}
-			user.NoKeys = true
-		}
-		// If resetchannels is provided, remove all the pub/sub channels that the user can access
-		if strings.EqualFold(str, "resetchannels") {
-			user.ExcludedPubSubChannels = []string{"*"}
-		}
+	user := CreateUser(cmd[0])
+	if err := user.UpdateUser(cmd); err != nil {
+		return err
 	}
 
 	user.Normalise()
 
 	// Add user to ACL
-	acl.Users = append(utils.Filter(acl.Users, func(u *User) bool {
-		return u.Username != user.Username
-	}), user)
+	acl.Users = append(acl.Users, user)
 
 	return nil
 }
@@ -381,8 +242,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 	// 3. Check if commands category is in ExcludedCommands
 	// 4. Check if commands is in IncludedCommands
 	// 5. Check if commands is in ExcludedCommands
-	// 6. Check if keys are in IncludedKeys
-	// 7. Check if keys are in ExcludedKeys
+	// 6. Check keys
 	return nil
 }
 
