@@ -237,6 +237,26 @@ func (acl *ACL) AuthenticateConnection(ctx context.Context, conn *net.Conn, cmd 
 }
 
 func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.Command, subCommand interface{}) error {
+	// Extract command, categories, and keys
+	comm := command.Command
+	categories := command.Categories
+
+	keys, err := command.KeyExtractionFunc(cmd)
+	if err != nil {
+		return err
+	}
+
+	if sub, ok := subCommand.(utils.SubCommand); ok {
+		comm = fmt.Sprintf("%s|%s", comm, sub.Command)
+		categories = append(categories, sub.Categories...)
+		keys, err = sub.KeyExtractionFunc(cmd)
+		if err != nil {
+			return err
+		}
+	}
+
+	fmt.Println(comm, categories, keys)
+
 	// 1. Check if password is required and if we're authorized
 	// 2. Check if commands category is in IncludedCommands
 	// 3. Check if commands category is in ExcludedCommands

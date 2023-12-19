@@ -488,6 +488,9 @@ func NewModule(acl *ACL) Plugin {
 				Categories:  []string{},
 				Description: "Access-Control-List commands",
 				Sync:        false,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					return []string{}, nil
+				},
 				SubCommands: []utils.SubCommand{
 					{
 						Command:     "cat",
