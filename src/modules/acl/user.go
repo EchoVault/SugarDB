@@ -1,5 +1,9 @@
 package acl
 
+import (
+	"github.com/kelvinmwinuka/memstore/src/utils"
+)
+
 type User struct {
 	Username   string `json:"Username" yaml:"Username"`
 	Enabled    bool   `json:"Enabled" yaml:"Enabled"`
@@ -24,13 +28,37 @@ type User struct {
 func (user *User) Normalise() {
 	user.IncludedCategories = RemoveDuplicateEntries(user.IncludedCategories, "allCategories")
 	user.ExcludedCategories = RemoveDuplicateEntries(user.ExcludedCategories, "allCategories")
+	if utils.Contains(user.ExcludedCategories, "*") {
+		user.IncludedCategories = []string{}
+	}
+
 	user.IncludedCommands = RemoveDuplicateEntries(user.IncludedCommands, "allCommands")
 	user.ExcludedCommands = RemoveDuplicateEntries(user.ExcludedCommands, "allCommands")
+	if utils.Contains(user.ExcludedCommands, "*") {
+		user.IncludedCommands = []string{}
+	}
+
 	user.IncludedKeys = RemoveDuplicateEntries(user.IncludedKeys, "allKeys")
+	if len(user.IncludedKeys) == 0 {
+		user.IncludedKeys = []string{"*"}
+	}
 	user.IncludedReadKeys = RemoveDuplicateEntries(user.IncludedReadKeys, "allKeys")
+	if len(user.IncludedReadKeys) == 0 {
+		user.IncludedReadKeys = []string{"*"}
+	}
 	user.IncludedWriteKeys = RemoveDuplicateEntries(user.IncludedWriteKeys, "allKeys")
+	if len(user.IncludedWriteKeys) == 0 {
+		user.IncludedWriteKeys = []string{"*"}
+	}
+
 	user.IncludedPubSubChannels = RemoveDuplicateEntries(user.IncludedPubSubChannels, "allChannels")
+	if len(user.IncludedPubSubChannels) == 0 {
+		user.IncludedPubSubChannels = []string{"*"}
+	}
 	user.ExcludedPubSubChannels = RemoveDuplicateEntries(user.ExcludedPubSubChannels, "allChannels")
+	if utils.Contains(user.ExcludedPubSubChannels, "*") {
+		user.IncludedPubSubChannels = []string{}
+	}
 }
 
 func RemoveDuplicateEntries(entries []string, allAlias string) (res []string) {

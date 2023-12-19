@@ -190,15 +190,15 @@ func (acl *ACL) SetUser(ctx context.Context, cmd []string) error {
 			continue
 		}
 		if len(str) > 4 && strings.EqualFold(str[0:4], "%RW~") {
-			user.IncludedKeys = append(user.IncludedKeys, str[3:])
+			user.IncludedKeys = append(user.IncludedKeys, str[4:])
 			continue
 		}
-		if len(str) > 3 && strings.EqualFold(str[0:4], "%R~") {
-			user.IncludedReadKeys = append(user.IncludedReadKeys, str[2:])
+		if len(str) > 3 && strings.EqualFold(str[0:3], "%R~") {
+			user.IncludedReadKeys = append(user.IncludedReadKeys, str[3:])
 			continue
 		}
-		if len(str) > 3 && strings.EqualFold(str[0:4], "%w~") {
-			user.IncludedWriteKeys = append(user.IncludedWriteKeys, str[2:])
+		if len(str) > 3 && strings.EqualFold(str[0:3], "%W~") {
+			user.IncludedWriteKeys = append(user.IncludedWriteKeys, str[3:])
 			continue
 		}
 		// Parse channels
