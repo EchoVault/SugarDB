@@ -275,6 +275,10 @@ func (p Plugin) handleList(ctx context.Context, cmd []string, server utils.Serve
 		} else {
 			s += " off"
 		}
+		// NoPassword
+		if user.NoPassword {
+			s += " nopass"
+		}
 		// Passwords
 		for _, password := range user.Passwords {
 			if strings.EqualFold(password.PasswordType, "plaintext") {
