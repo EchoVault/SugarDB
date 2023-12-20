@@ -271,11 +271,45 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 
 	fmt.Println(keys, categories, comm)
 
-	// 2. Check if commands category is in IncludedCommands
-	// 3. Check if commands category is in ExcludedCommands
-	// 4. Check if commands is in IncludedCommands
-	// 5. Check if commands is in ExcludedCommands
-	// 6. Check keys
+	// 2. Check if all categories are in IncludedCategories
+	if !utils.Contains(connection.User.IncludedCategories, "*") {
+		includedCount := make(map[string]int)
+		for _, cat := range categories {
+			includedCount[strings.ToLower(cat)] = 0
+		}
+		for _, cat := range connection.User.IncludedCategories {
+			includedCount[strings.ToLower(cat)] += 1
+		}
+		for cat, count := range includedCount {
+			if count == 0 {
+				return fmt.Errorf("unauthorized to run @%s commands", cat)
+			}
+		}
+	}
+
+	// 3. Check if commands category is in ExcludedCategories
+	if utils.Contains(connection.User.ExcludedCategories, "*") {
+		return errors.New("not authorized to run any commands")
+	} else {
+		excludedCount := make(map[string]int)
+		for _, cat := range categories {
+			excludedCount[strings.ToLower(cat)] = 0
+		}
+		for _, cat := range connection.User.ExcludedCategories {
+			excludedCount[strings.ToLower(cat)] += 1
+		}
+		for cat, count := range excludedCount {
+			if count > 0 {
+				return fmt.Errorf("not authorized to run @%s commands", cat)
+			}
+		}
+	}
+
+	// 4. Check if commands are in IncludedCommands
+	// 5. Check if command are in ExcludedCommands
+	// 6. Check if keys are in IncludedKeys
+	// 7. If @read is in the list of categories, check if keys are in IncludedReadKeys
+	// 8. If @write is in the list of categories, check if keys are in IncludedWriteKeys
 	return nil
 }
 
