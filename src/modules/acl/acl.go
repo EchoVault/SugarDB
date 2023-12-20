@@ -269,8 +269,6 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return errors.New("user must be authenticated")
 	}
 
-	fmt.Println(keys, categories, comm)
-
 	// 2. Check if all categories are in IncludedCategories
 	if !utils.Contains(connection.User.IncludedCategories, "*") {
 		includedCount := make(map[string]int)
@@ -331,8 +329,52 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 	}
 
 	// 6. Check if keys are in IncludedKeys
+	if !utils.Contains(connection.User.IncludedKeys, "*") {
+		includedCount := make(map[string]int)
+		for _, key := range keys {
+			includedCount[key] = 0
+		}
+		for _, key := range connection.User.IncludedKeys {
+			includedCount[key] += 1
+		}
+		for key, count := range includedCount {
+			if count == 0 {
+				return fmt.Errorf("not authorized to access key %s~%s", "%RW", key)
+			}
+		}
+	}
+
 	// 7. If @read is in the list of categories, check if keys are in IncludedReadKeys
+	if utils.Contains(categories, utils.ReadCategory) && !utils.Contains(connection.User.IncludedReadKeys, "*") {
+		includedCount := make(map[string]int)
+		for _, key := range keys {
+			includedCount[key] = 0
+		}
+		for _, key := range connection.User.IncludedReadKeys {
+			includedCount[key] += 1
+		}
+		for key, count := range includedCount {
+			if count == 0 {
+				return fmt.Errorf("not authorised to acces key %s~%s", "%R", key)
+			}
+		}
+	}
+
 	// 8. If @write is in the list of categories, check if keys are in IncludedWriteKeys
+	if utils.Contains(categories, utils.WriteCategory) && !utils.Contains(connection.User.IncludedWriteKeys, "*") {
+		includedCount := make(map[string]int)
+		for _, key := range keys {
+			includedCount[key] = 0
+		}
+		for _, key := range connection.User.IncludedWriteKeys {
+			includedCount[key] += 1
+		}
+		for key, count := range includedCount {
+			if count == 0 {
+				return fmt.Errorf("not authorised to acces key %s~%s", "%W", key)
+			}
+		}
+	}
 	return nil
 }
 
