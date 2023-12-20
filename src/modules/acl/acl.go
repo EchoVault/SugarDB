@@ -107,7 +107,7 @@ func (acl *ACL) RegisterConnection(conn *net.Conn) {
 		return elem.Username == "default"
 	})[0]
 	acl.Connections[conn] = Connection{
-		Authenticated: !defaultUser.NoPassword,
+		Authenticated: defaultUser.NoPassword,
 		User:          defaultUser,
 	}
 }
@@ -255,9 +255,22 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		}
 	}
 
-	fmt.Println(comm, categories, keys)
+	// If the command is 'auth', then return early and allow it
+	if strings.EqualFold(comm, "auth") {
+		// TODO: Add rate limiting to prevent auth spamming
+		return nil
+	}
+
+	// Get current connection ACL details
+	connection := acl.Connections[conn]
 
 	// 1. Check if password is required and if we're authorized
+	if acl.Config.RequirePass && !connection.Authenticated {
+		return errors.New("user must be authenticated")
+	}
+
+	fmt.Println(keys, categories, comm)
+
 	// 2. Check if commands category is in IncludedCommands
 	// 3. Check if commands category is in ExcludedCommands
 	// 4. Check if commands is in IncludedCommands
