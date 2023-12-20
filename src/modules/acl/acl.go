@@ -264,6 +264,11 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 	// 1. Get current connection ACL details
 	connection := acl.Connections[conn]
 
+	// 1. Check if password is required and if we're authorized
+	if acl.Config.RequirePass && !connection.Authenticated {
+		return errors.New("user must be authenticated")
+	}
+
 	// 2. PUBSUB authorisation comes first because it has slightly different handling.
 	if utils.Contains(categories, utils.PubSubCategory) {
 		// In PUBSUB, KeyExtractionFunc returns channels so "keys" is aliased to "channels" for clarity
@@ -303,12 +308,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return nil
 	}
 
-	// 1. Check if password is required and if we're authorized
-	if acl.Config.RequirePass && !connection.Authenticated {
-		return errors.New("user must be authenticated")
-	}
-
-	// 2. Check if all categories are in IncludedCategories
+	// 3. Check if all categories are in IncludedCategories
 	if !utils.Contains(connection.User.IncludedCategories, "*") {
 		includedCount := make(map[string]int)
 		for _, cat := range categories {
@@ -324,7 +324,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		}
 	}
 
-	// 3. Check if commands category is in ExcludedCategories
+	// 4. Check if commands category is in ExcludedCategories
 	if utils.Contains(connection.User.ExcludedCategories, "*") {
 		return errors.New("not authorized to run @all commands")
 	} else {
@@ -342,7 +342,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		}
 	}
 
-	// 4. Check if commands are in IncludedCommands
+	// 5. Check if commands are in IncludedCommands
 	if !utils.Contains(connection.User.IncludedCommands, "*") {
 		included := false
 		for _, includedCommand := range connection.User.IncludedCommands {
@@ -356,7 +356,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		}
 	}
 
-	// 5. Check if command are in ExcludedCommands
+	// 6. Check if command are in ExcludedCommands
 	if utils.Contains(connection.User.ExcludedCommands, "*") {
 		return errors.New("not authorised to run any commands")
 	} else {
@@ -367,7 +367,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		}
 	}
 
-	// 6. Check if keys are in IncludedKeys
+	// 7. Check if keys are in IncludedKeys
 	if !utils.Contains(connection.User.IncludedKeys, "*") {
 		includedCount := make(map[string]int)
 		for _, key := range keys {
@@ -383,7 +383,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		}
 	}
 
-	// 7. If @read is in the list of categories, check if keys are in IncludedReadKeys
+	// 8. If @read is in the list of categories, check if keys are in IncludedReadKeys
 	if utils.Contains(categories, utils.ReadCategory) && !utils.Contains(connection.User.IncludedReadKeys, "*") {
 		includedCount := make(map[string]int)
 		for _, key := range keys {
@@ -399,7 +399,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		}
 	}
 
-	// 8. If @write is in the list of categories, check if keys are in IncludedWriteKeys
+	// 9. If @write is in the list of categories, check if keys are in IncludedWriteKeys
 	if utils.Contains(categories, utils.WriteCategory) && !utils.Contains(connection.User.IncludedWriteKeys, "*") {
 		includedCount := make(map[string]int)
 		for _, key := range keys {
