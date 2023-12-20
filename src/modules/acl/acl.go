@@ -261,8 +261,47 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return nil
 	}
 
-	// Get current connection ACL details
+	// 1. Get current connection ACL details
 	connection := acl.Connections[conn]
+
+	// 2. PUBSUB authorisation comes first because it has slightly different handling.
+	if utils.Contains(categories, utils.PubSubCategory) {
+		// In PUBSUB, KeyExtractionFunc returns channels so "keys" is aliased to "channels" for clarity
+		channels := keys
+		// 2.1) Check if the channel is in IncludedPubSubChannels
+		if !utils.Contains(connection.User.IncludedPubSubChannels, "*") {
+			includedCount := make(map[string]int)
+			for _, channel := range channels {
+				includedCount[channel] = 0
+			}
+			for _, channel := range connection.User.IncludedPubSubChannels {
+				includedCount[channel] += 1
+			}
+			for channel, count := range includedCount {
+				if count == 0 {
+					return fmt.Errorf("not authorised to access pubsub channel &%s", channel)
+				}
+			}
+		}
+		// 2.2) Check if the channel is in ExcludedPubSubChannels
+		if utils.Contains(connection.User.ExcludedPubSubChannels, "*") {
+			return errors.New("not authorised to access any pusub channels")
+		} else {
+			excludedChannels := make(map[string]int)
+			for _, channel := range channels {
+				excludedChannels[channel] = 0
+			}
+			for _, channel := range connection.User.ExcludedPubSubChannels {
+				excludedChannels[channel] += 1
+			}
+			for channel, count := range excludedChannels {
+				if count > 0 {
+					return fmt.Errorf("not authorised to access pubsub channel &%s", channel)
+				}
+			}
+		}
+		return nil
+	}
 
 	// 1. Check if password is required and if we're authorized
 	if acl.Config.RequirePass && !connection.Authenticated {
@@ -375,6 +414,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 			}
 		}
 	}
+
 	return nil
 }
 
