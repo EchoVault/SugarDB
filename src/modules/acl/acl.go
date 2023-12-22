@@ -417,21 +417,3 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 
 	return nil
 }
-
-func CreateUser(username string) *User {
-	return &User{
-		Username:               username,
-		Enabled:                true,
-		NoPassword:             false,
-		Passwords:              []Password{},
-		IncludedCategories:     []string{},
-		ExcludedCategories:     []string{},
-		IncludedCommands:       []string{},
-		ExcludedCommands:       []string{},
-		IncludedKeys:           []string{},
-		IncludedReadKeys:       []string{},
-		IncludedWriteKeys:      []string{},
-		IncludedPubSubChannels: []string{},
-		ExcludedPubSubChannels: []string{},
-	}
-}

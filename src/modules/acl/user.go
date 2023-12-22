@@ -261,6 +261,24 @@ func (user *User) Replace(new *User) {
 	user.ExcludedPubSubChannels = new.ExcludedPubSubChannels
 }
 
+func CreateUser(username string) *User {
+	return &User{
+		Username:               username,
+		Enabled:                true,
+		NoPassword:             false,
+		Passwords:              []Password{},
+		IncludedCategories:     []string{},
+		ExcludedCategories:     []string{},
+		IncludedCommands:       []string{},
+		ExcludedCommands:       []string{},
+		IncludedKeys:           []string{},
+		IncludedReadKeys:       []string{},
+		IncludedWriteKeys:      []string{},
+		IncludedPubSubChannels: []string{},
+		ExcludedPubSubChannels: []string{},
+	}
+}
+
 func GetPasswordType(password string) string {
 	if password[0] == '#' {
 		return "SHA256"
