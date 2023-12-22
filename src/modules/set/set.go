@@ -1,5 +1,9 @@
 package set
 
+import (
+	"math/rand"
+)
+
 type Set struct {
 	members map[interface{}]interface{}
 }
@@ -25,6 +29,33 @@ func (set *Set) Add(elems []interface{}) int {
 	return count
 }
 
+func (set *Set) Get(v interface{}) interface{} {
+	return set.members[v]
+}
+
+func (set *Set) GetRandom(count int) []interface{} {
+	keys := []interface{}{}
+	for k, _ := range set.members {
+		keys = append(keys, k)
+	}
+
+	res := []interface{}{}
+
+	var n int
+
+	if count > 1 {
+		for i := 0; i < count; i++ {
+			n = rand.Intn(len(keys))
+			res = append(res, keys[n])
+		}
+	} else {
+		n = rand.Intn(len(keys))
+		res = append(res, keys[n])
+	}
+
+	return res
+}
+
 func (set *Set) Remove(elems []interface{}) int {
 	count := 0
 	for _, e := range elems {
@@ -37,7 +68,9 @@ func (set *Set) Remove(elems []interface{}) int {
 }
 
 func (set *Set) Pop(count int) []interface{} {
-	return []interface{}{}
+	keys := set.GetRandom(count)
+	set.Remove(keys)
+	return keys
 }
 
 func (set *Set) Contains(v interface{}) bool {
