@@ -16,8 +16,6 @@ type Plugin struct {
 	description string
 }
 
-var GetModule Plugin
-
 func (p Plugin) Name() string {
 	return p.name
 }
@@ -120,7 +118,7 @@ func NewModule() Plugin {
 				Command:     "mget",
 				Categories:  []string{utils.ReadCategory, utils.FastCategory},
 				Description: "(MGET key1 [key2]) Get multiple values from the specified keys.",
-				Sync:        true,
+				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) < 2 {
 						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
