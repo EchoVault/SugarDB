@@ -131,7 +131,7 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server) (
 }
 
 func NewModule() Plugin {
-	GetModule := Plugin{
+	return Plugin{
 		name: "SetCommands",
 		commands: []utils.Command{
 			{
@@ -330,5 +330,4 @@ func NewModule() Plugin {
 		},
 		description: "Handle commands for sets",
 	}
-	return GetModule
 }

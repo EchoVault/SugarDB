@@ -13,6 +13,7 @@ import (
 	"github.com/kelvinmwinuka/memstore/src/modules/ping"
 	"github.com/kelvinmwinuka/memstore/src/modules/pubsub"
 	"github.com/kelvinmwinuka/memstore/src/modules/set"
+	"github.com/kelvinmwinuka/memstore/src/modules/sorted_set"
 	str "github.com/kelvinmwinuka/memstore/src/modules/string"
 	"io"
 	"log"
@@ -357,6 +358,7 @@ func (server *Server) LoadModules(ctx context.Context) {
 	server.LoadCommands(str.NewModule())
 	server.LoadCommands(etc.NewModule())
 	server.LoadCommands(set.NewModule())
+	server.LoadCommands(sorted_set.NewModule())
 }
 
 func (server *Server) Start(ctx context.Context) {
