@@ -48,6 +48,10 @@ func handleGet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error
 
 	key := cmd[1]
 
+	if !s.KeyExists(key) {
+		return []byte("+nil\r\n\n"), nil
+	}
+
 	s.KeyRLock(ctx, key)
 	value := s.GetValue(key)
 	s.KeyRUnlock(key)
@@ -69,6 +73,10 @@ func handleMGet(ctx context.Context, cmd []string, s utils.Server) ([]byte, erro
 
 	for _, key := range cmd[1:] {
 		func(key string) {
+			if !s.KeyExists(key) {
+				vals = append(vals, "nil")
+				return
+			}
 			s.KeyRLock(ctx, key)
 			switch s.GetValue(key).(type) {
 			default:
