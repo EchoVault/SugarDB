@@ -5,23 +5,21 @@ import (
 )
 
 type Set struct {
-	members map[interface{}]interface{}
+	members map[string]interface{}
 }
 
-func NewSet(elems []interface{}) *Set {
+func NewSet(elems []string) *Set {
 	set := &Set{
-		members: make(map[interface{}]interface{}),
+		members: make(map[string]interface{}),
 	}
-	for _, e := range elems {
-		set.members[e] = struct{}{}
-	}
+	set.Add(elems)
 	return set
 }
 
-func (set *Set) Add(elems []interface{}) int {
+func (set *Set) Add(elems []string) int {
 	count := 0
 	for _, e := range elems {
-		if set.members[e] == nil {
+		if !set.Contains(e) {
 			set.members[e] = struct{}{}
 			count += 1
 		}
@@ -29,17 +27,17 @@ func (set *Set) Add(elems []interface{}) int {
 	return count
 }
 
-func (set *Set) Get(v interface{}) interface{} {
-	return set.members[v]
+func (set *Set) Get(e string) interface{} {
+	return set.members[e]
 }
 
-func (set *Set) GetRandom(count int) []interface{} {
-	keys := []interface{}{}
+func (set *Set) GetRandom(count int) []string {
+	keys := []string{}
 	for k, _ := range set.members {
 		keys = append(keys, k)
 	}
 
-	res := []interface{}{}
+	res := []string{}
 
 	var n int
 
@@ -56,10 +54,10 @@ func (set *Set) GetRandom(count int) []interface{} {
 	return res
 }
 
-func (set *Set) Remove(elems []interface{}) int {
+func (set *Set) Remove(elems []string) int {
 	count := 0
 	for _, e := range elems {
-		if set.members[e] != nil {
+		if set.Get(e) != nil {
 			delete(set.members, e)
 			count += 1
 		}
@@ -67,21 +65,21 @@ func (set *Set) Remove(elems []interface{}) int {
 	return count
 }
 
-func (set *Set) Pop(count int) []interface{} {
+func (set *Set) Pop(count int) []string {
 	keys := set.GetRandom(count)
 	set.Remove(keys)
 	return keys
 }
 
-func (set *Set) Contains(v interface{}) bool {
-	return set.members[v] != nil
+func (set *Set) Contains(e string) bool {
+	return set.Get(e) != nil
 }
 
 func (set *Set) Union(others []*Set) Set {
 	union := *set
 	for _, s := range others {
 		for k, _ := range s.members {
-			union.Add([]interface{}{k})
+			union.Add([]string{k})
 		}
 	}
 	return union
@@ -89,7 +87,7 @@ func (set *Set) Union(others []*Set) Set {
 
 func (set *Set) Intersection(others []*Set) Set {
 	intersection := *set
-	remove := []interface{}{}
+	remove := []string{}
 	for _, s := range others {
 		for k, _ := range s.members {
 			if !intersection.Contains(k) {
@@ -103,7 +101,7 @@ func (set *Set) Intersection(others []*Set) Set {
 
 func (set *Set) Subtract(others []*Set) Set {
 	diff := *set
-	remove := []interface{}{}
+	remove := []string{}
 	for _, s := range others {
 		for k, _ := range s.members {
 			if diff.Contains(k) {
@@ -115,11 +113,11 @@ func (set *Set) Subtract(others []*Set) Set {
 	return diff
 }
 
-func (set *Set) Move(destination *Set, v interface{}) int {
-	if set.members[v] == nil {
+func (set *Set) Move(destination *Set, e string) int {
+	if set.Get(e) == nil {
 		return 0
 	}
-	set.Remove([]interface{}{v})
-	destination.Add([]interface{}{v})
+	set.Remove([]string{e})
+	destination.Add([]string{e})
 	return 1
 }

@@ -3,6 +3,7 @@ package set
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
 	"strings"
@@ -67,7 +68,38 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 }
 
 func handleSADD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SADD not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+
+	var set *Set
+
+	if !server.KeyExists(key) {
+		set = NewSet(cmd[2:])
+		if ok, err := server.CreateKeyAndLock(ctx, key); !ok && err != nil {
+			return nil, err
+		}
+		server.SetValue(ctx, key, set)
+		server.KeyUnlock(key)
+		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(cmd[2:]))), nil
+	}
+
+	_, err := server.KeyLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	set, ok := server.GetValue(key).(*Set)
+	if !ok {
+		return nil, fmt.Errorf("value at key %s is not a set", key)
+	}
+
+	count := set.Add(cmd[2:])
+
+	return []byte(fmt.Sprintf(":%d\r\n\n", count)), nil
 }
 
 func handleSCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
