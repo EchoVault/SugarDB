@@ -39,17 +39,6 @@ func Contains[T comparable](arr []T, elem T) bool {
 	return false
 }
 
-func ContainsMutual[T comparable](arr1 []T, arr2 []T) (bool, T) {
-	for _, a := range arr1 {
-		for _, b := range arr2 {
-			if a == b {
-				return true, a
-			}
-		}
-	}
-	return false, arr1[0]
-}
-
 func Filter[T any](arr []T, test func(elem T) bool) (res []T) {
 	for _, e := range arr {
 		if test(e) {
