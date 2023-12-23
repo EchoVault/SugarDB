@@ -499,7 +499,48 @@ func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server) ([]b
 }
 
 func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SMISMEMBER not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	members := cmd[2:]
+
+	if !server.KeyExists(key) {
+		res := fmt.Sprintf("*%d", len(members))
+		for i, _ := range members {
+			res = fmt.Sprintf("%s\r\n:0", res)
+			if i == len(members)-1 {
+				res += "\r\n\r\n"
+			}
+		}
+		return []byte(res), nil
+	}
+
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	set, ok := server.GetValue(key).(*Set)
+	if !ok {
+		return nil, fmt.Errorf("value at key %s is not a set", key)
+	}
+
+	res := fmt.Sprintf("*%d", len(members))
+	for i, m := range members {
+		if set.Contains(m) {
+			res += "\r\n:1"
+		} else {
+			res += "\r\n:0"
+		}
+		if i == len(members)-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleSMOVE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
