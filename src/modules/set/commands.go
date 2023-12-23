@@ -686,7 +686,31 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server) (
 }
 
 func handleSREM(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SREM not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	members := cmd[2:]
+
+	if !server.KeyExists(key) {
+		return []byte(":0\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	set, ok := server.GetValue(key).(*Set)
+	if !ok {
+		return nil, fmt.Errorf("value at key %s is not a set", key)
+	}
+
+	count := set.Remove(members)
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
 }
 
 func handleSUNION(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
