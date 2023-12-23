@@ -6,11 +6,13 @@ import (
 
 type Set struct {
 	members map[string]interface{}
+	length  int
 }
 
 func NewSet(elems []string) *Set {
 	set := &Set{
 		members: make(map[string]interface{}),
+		length:  0,
 	}
 	set.Add(elems)
 	return set
@@ -24,11 +26,24 @@ func (set *Set) Add(elems []string) int {
 			count += 1
 		}
 	}
+	set.length += count
 	return count
 }
 
 func (set *Set) Get(e string) interface{} {
 	return set.members[e]
+}
+
+func (set *Set) GetAll() []string {
+	var res []string
+	for e, _ := range set.members {
+		res = append(res, e)
+	}
+	return res
+}
+
+func (set *Set) Cardinality() int {
+	return set.length
 }
 
 func (set *Set) GetRandom(count int) []string {
@@ -62,6 +77,7 @@ func (set *Set) Remove(elems []string) int {
 			count += 1
 		}
 	}
+	set.length -= count
 	return count
 }
 
@@ -75,8 +91,8 @@ func (set *Set) Contains(e string) bool {
 	return set.Get(e) != nil
 }
 
-func (set *Set) Union(others []*Set) Set {
-	union := *set
+func (set *Set) Union(others []*Set) *Set {
+	union := NewSet(set.GetAll())
 	for _, s := range others {
 		for k, _ := range s.members {
 			union.Add([]string{k})
@@ -85,8 +101,8 @@ func (set *Set) Union(others []*Set) Set {
 	return union
 }
 
-func (set *Set) Intersection(others []*Set) Set {
-	intersection := *set
+func (set *Set) Intersection(others []*Set) *Set {
+	intersection := NewSet(set.GetAll())
 	remove := []string{}
 	for _, s := range others {
 		for k, _ := range s.members {
@@ -99,8 +115,8 @@ func (set *Set) Intersection(others []*Set) Set {
 	return intersection
 }
 
-func (set *Set) Subtract(others []*Set) Set {
-	diff := *set
+func (set *Set) Subtract(others []*Set) *Set {
+	diff := NewSet(set.GetAll())
 	remove := []string{}
 	for _, s := range others {
 		for k, _ := range s.members {

@@ -41,7 +41,7 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 	case "sdiffstore":
 		return handleSDIFFSTORE(ctx, cmd, server)
 	case "sinter":
-		return handleSINTERSTORE(ctx, cmd, server)
+		return handleSINTER(ctx, cmd, server)
 	case "sintercard":
 		return handleSINTERCARD(ctx, cmd, server)
 	case "sinterstore":
@@ -103,15 +103,145 @@ func handleSADD(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 }
 
 func handleSCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SCARD not implemented")
+	if len(cmd) != 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
+		return []byte(fmt.Sprintf(":0\r\n\r\n")), nil
+	}
+
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	set, ok := server.GetValue(key).(*Set)
+	if !ok {
+		return nil, fmt.Errorf("value at key %s is not a set", key)
+	}
+
+	cardinality := set.Cardinality()
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", cardinality)), nil
 }
 
 func handleSDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SDIFF not implemented")
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	for _, key := range cmd[1:] {
+		if !server.KeyExists(key) {
+			continue
+		}
+		_, err := server.KeyRLock(ctx, key)
+		if err != nil {
+			continue
+		}
+		locks[key] = true
+	}
+
+	var sets []*Set
+	for key, _ := range locks {
+		set, ok := server.GetValue(key).(*Set)
+		if !ok {
+			continue
+		}
+		sets = append(sets, set)
+	}
+
+	if len(sets) <= 0 {
+		return nil, errors.New("not enough sets in the keys provided")
+	}
+
+	diff := sets[0].Subtract(sets[1:])
+	elems := diff.GetAll()
+
+	res := fmt.Sprintf("*%d", len(elems))
+	for i, e := range elems {
+		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(e), e)
+		if i == len(elems)-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SDIFFSTORE not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	destination := cmd[1]
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	for _, key := range cmd[2:] {
+		if !server.KeyExists(key) {
+			continue
+		}
+		_, err := server.KeyRLock(ctx, key)
+		if err != nil {
+			continue
+		}
+		locks[key] = true
+	}
+
+	var sets []*Set
+	for key, _ := range locks {
+		set, ok := server.GetValue(key).(*Set)
+		if !ok {
+			continue
+		}
+		sets = append(sets, set)
+	}
+
+	if len(sets) <= 0 {
+		return nil, errors.New("not enough sets in the keys provided")
+	}
+
+	diff := sets[0].Subtract(sets[1:])
+	elems := diff.GetAll()
+
+	res := fmt.Sprintf(":%d\r\n\r\n", len(elems))
+
+	if server.KeyExists(destination) {
+		if _, err := server.KeyLock(ctx, destination); err != nil {
+			return nil, err
+		}
+		server.SetValue(ctx, destination, diff)
+		server.KeyUnlock(destination)
+		return []byte(res), nil
+	}
+
+	if _, err := server.CreateKeyAndLock(ctx, destination); err != nil {
+		return nil, err
+	}
+	server.SetValue(ctx, destination, diff)
+	server.KeyUnlock(destination)
+
+	return []byte(res), nil
 }
 
 func handleSINTER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
