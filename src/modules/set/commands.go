@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
+	"slices"
 	"strings"
 )
 
@@ -285,7 +286,7 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server) ([]byt
 		return nil, fmt.Errorf("not enough sets in the keys provided")
 	}
 
-	intersect := sets[0].Intersection(sets[1:])
+	intersect := sets[0].Intersection(sets[1:], 0)
 	elems := intersect.GetAll()
 
 	res := fmt.Sprintf("*%d", len(elems))
@@ -300,11 +301,137 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server) ([]byt
 }
 
 func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SINTERCARD not implemented")
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	// Extract the limit from the command
+	var limit int
+	limitIdx := slices.IndexFunc(cmd, func(s string) bool {
+		return strings.EqualFold(s, "limit")
+	})
+	if limitIdx >= 0 && limitIdx < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+	if limitIdx != -1 {
+		limitIdx += 1
+		if limitIdx >= len(cmd) {
+			return nil, errors.New("provide limit after LIMIT keyword")
+		}
+
+		if l, ok := utils.AdaptType(cmd[limitIdx]).(int); !ok {
+			return nil, errors.New("limit must be an integer")
+		} else {
+			limit = l
+		}
+	}
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	var keySlice []string
+	if limitIdx == -1 {
+		keySlice = cmd[1:]
+	} else {
+		keySlice = cmd[1 : limitIdx-1]
+	}
+
+	for _, key := range keySlice {
+		if !server.KeyExists(key) {
+			// If key does not exist, then there is no intersection
+			return []byte("*0\r\n\r\n"), nil
+		}
+		_, err := server.KeyRLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		locks[key] = true
+	}
+
+	var sets []*Set
+
+	for key, _ := range locks {
+		set, ok := server.GetValue(key).(*Set)
+		if !ok {
+			// If the value at the key is not a set, return error
+			return nil, fmt.Errorf("value at key %s is not a set", key)
+		}
+		sets = append(sets, set)
+	}
+
+	if len(sets) <= 0 {
+		return nil, fmt.Errorf("not enough sets in the keys provided")
+	}
+
+	intersect := sets[0].Intersection(sets[1:], limit)
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", intersect.Cardinality())), nil
 }
 
 func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SINTERSTORE not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	for _, key := range cmd[2:] {
+		if !server.KeyExists(key) {
+			// If key does not exist, then there is no intersection
+			return []byte("*0\r\n\r\n"), nil
+		}
+		_, err := server.KeyRLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		locks[key] = true
+	}
+
+	var sets []*Set
+
+	for key, _ := range locks {
+		set, ok := server.GetValue(key).(*Set)
+		if !ok {
+			// If the value at the key is not a set, return error
+			return nil, fmt.Errorf("value at key %s is not a set", key)
+		}
+		sets = append(sets, set)
+	}
+
+	if len(sets) <= 0 {
+		return nil, fmt.Errorf("not enough sets in the keys provided")
+	}
+
+	intersect := sets[0].Intersection(sets[1:], 0)
+	destination := cmd[1]
+
+	if server.KeyExists(destination) {
+		if _, err := server.KeyLock(ctx, destination); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := server.CreateKeyAndLock(ctx, destination); err != nil {
+			return nil, err
+		}
+	}
+
+	server.SetValue(ctx, destination, intersect)
+	server.KeyUnlock(destination)
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", intersect.Cardinality())), nil
 }
 
 func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -410,7 +537,7 @@ func NewModule() Plugin {
 			{
 				Command:     "sintercard",
 				Categories:  []string{},
-				Description: "(SINTERCARD key [key...]) Returns the cardinality of the intersection between multiple sets.",
+				Description: "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) < 2 {

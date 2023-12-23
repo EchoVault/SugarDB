@@ -24,10 +24,12 @@ func AdaptType(s string) interface{} {
 
 	if n.IsInt() {
 		i, _ := n.Int64()
-		return i
+		return int(i)
 	}
 
-	return n
+	f, _ := n.Float64()
+
+	return f
 }
 
 func Contains[T comparable](arr []T, elem T) bool {

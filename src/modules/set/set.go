@@ -101,17 +101,31 @@ func (set *Set) Union(others []*Set) *Set {
 	return union
 }
 
-func (set *Set) Intersection(others []*Set) *Set {
-	intersection := NewSet(set.GetAll())
-	remove := []string{}
-	for _, s := range others {
-		for k, _ := range s.members {
-			if !intersection.Contains(k) {
-				remove = append(remove, k)
+func (set *Set) Intersection(others []*Set, limit int) *Set {
+	intersection := NewSet([]string{})
+	for sIdx, s := range others {
+		if sIdx == 0 {
+			for _, e := range s.GetAll() {
+				if limit > 0 && intersection.Cardinality() == limit {
+					return intersection
+				}
+				if set.Contains(e) {
+					intersection.Add([]string{e})
+				}
+			}
+			continue
+		}
+		for _, e := range s.GetAll() {
+			if limit > 0 && intersection.Cardinality() == limit {
+				return intersection
+			}
+			if !intersection.Contains(e) {
+				intersection.Remove([]string{e})
+			} else {
+				intersection.Add([]string{e})
 			}
 		}
 	}
-	intersection.Remove(remove)
 	return intersection
 }
 
