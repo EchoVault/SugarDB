@@ -144,7 +144,7 @@ func (set *Set) Subtract(others []*Set) *Set {
 }
 
 func (set *Set) Move(destination *Set, e string) int {
-	if set.Get(e) == nil {
+	if !set.Contains(e) {
 		return 0
 	}
 	set.Remove([]string{e})

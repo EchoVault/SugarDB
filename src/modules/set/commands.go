@@ -544,7 +544,57 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server) ([
 }
 
 func handleSMOVE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SMOVE not implemented")
+	if len(cmd) != 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	source := cmd[1]
+	destination := cmd[2]
+	member := cmd[3]
+
+	if !server.KeyExists(source) {
+		return []byte(":0\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyLock(ctx, source)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(source)
+
+	sourceSet, ok := server.GetValue(source).(*Set)
+	if !ok {
+		return nil, errors.New("source is not a set")
+	}
+
+	var destinationSet *Set
+
+	if !server.KeyExists(destination) {
+		// Destination key does not exist
+		_, err := server.CreateKeyAndLock(ctx, destination)
+		if err != nil {
+			return nil, err
+		}
+		defer server.KeyUnlock(destination)
+		destinationSet = NewSet([]string{})
+		server.SetValue(ctx, destination, destinationSet)
+	} else {
+		// Destination key exists
+		_, err := server.KeyLock(ctx, destination)
+		if err != nil {
+			return nil, err
+		}
+		defer server.KeyUnlock(destination)
+		ds, ok := server.GetValue(destination).(*Set)
+		if !ok {
+			return nil, errors.New("destination is not a set")
+		}
+		destinationSet = ds
+	}
+
+	res := sourceSet.Move(destinationSet, member)
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", res)), nil
 }
 
 func handleSPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
