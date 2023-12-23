@@ -149,3 +149,10 @@ func GetSubCommand(command ServerCommand, cmd []string) interface{} {
 	}
 	return nil
 }
+
+func AbsInt(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
+}

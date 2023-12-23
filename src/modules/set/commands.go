@@ -598,11 +598,91 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server) ([]byte
 }
 
 func handleSPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SPOP not implemented")
+	if len(cmd) < 2 || len(cmd) > 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	count := 1
+
+	if len(cmd) == 3 {
+		c, ok := utils.AdaptType(cmd[2]).(int)
+		if !ok {
+			return nil, errors.New("count must be an integer")
+		}
+		count = c
+	}
+
+	if !server.KeyExists(key) {
+		return []byte("*-1\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	set, ok := server.GetValue(key).(*Set)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a set", key)
+	}
+
+	members := set.Pop(count)
+
+	res := fmt.Sprintf("*%d", len(members))
+	for i, m := range members {
+		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(m), m)
+		if i == len(members)-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SRANDMEMBER not implemented")
+	if len(cmd) < 2 || len(cmd) > 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	count := 1
+
+	if len(cmd) == 3 {
+		c, ok := utils.AdaptType(cmd[2]).(int)
+		if !ok {
+			return nil, errors.New("count must be an integer")
+		}
+		count = c
+	}
+
+	if !server.KeyExists(key) {
+		return []byte("*-1\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	set, ok := server.GetValue(key).(*Set)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a set", key)
+	}
+
+	members := set.GetRandom(count)
+
+	res := fmt.Sprintf("*%d", len(members))
+	for i, m := range members {
+		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(m), m)
+		if i == len(members)-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleSREM(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {

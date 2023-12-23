@@ -1,6 +1,7 @@
 package set
 
 import (
+	"github.com/kelvinmwinuka/memstore/src/utils"
 	"math/rand"
 )
 
@@ -47,23 +48,37 @@ func (set *Set) Cardinality() int {
 }
 
 func (set *Set) GetRandom(count int) []string {
-	keys := []string{}
-	for k, _ := range set.members {
-		keys = append(keys, k)
+	keys := set.GetAll()
+
+	if count == 0 {
+		return []string{}
+	}
+
+	if utils.AbsInt(count) >= set.Cardinality() {
+		return keys
 	}
 
 	res := []string{}
 
 	var n int
 
-	if count > 1 {
-		for i := 0; i < count; i++ {
+	if count < 0 {
+		// If count is negative, allow repeat elements
+		for i := 0; i < utils.AbsInt(count); i++ {
 			n = rand.Intn(len(keys))
 			res = append(res, keys[n])
 		}
 	} else {
-		n = rand.Intn(len(keys))
-		res = append(res, keys[n])
+		// Count is positive, do not allow repeat elements
+		for i := 0; i < utils.AbsInt(count); i++ {
+			n = rand.Intn(len(keys))
+			if !utils.Contains(res, keys[n]) {
+				res = append(res, keys[n])
+				keys = utils.Filter(keys, func(elem string) bool {
+					return elem != keys[n]
+				})
+			}
+		}
 	}
 
 	return res
