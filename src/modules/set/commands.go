@@ -449,6 +449,7 @@ func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]
 	if err != nil {
 		return nil, err
 	}
+	defer server.KeyRUnlock(key)
 
 	set, ok := server.GetValue(key).(*Set)
 	if !ok {
@@ -463,7 +464,38 @@ func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]
 }
 
 func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SMEMBERS not implemented")
+	if len(cmd) != 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
+		return []byte("*0\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	set, ok := server.GetValue(key).(*Set)
+	if !ok {
+		return nil, fmt.Errorf("value at key %s is not a set", key)
+	}
+
+	elems := set.GetAll()
+
+	res := fmt.Sprintf("*%d", len(elems))
+	for i, e := range elems {
+		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(e), e)
+		if i == len(elems)-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
