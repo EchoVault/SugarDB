@@ -245,7 +245,58 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server) ([
 }
 
 func handleSINTER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SINTER not implemented")
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	for _, key := range cmd[1:] {
+		if !server.KeyExists(key) {
+			// If key does not exist, then there is no intersection
+			return []byte("*0\r\n\r\n"), nil
+		}
+		_, err := server.KeyRLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		locks[key] = true
+	}
+
+	var sets []*Set
+
+	for key, _ := range locks {
+		set, ok := server.GetValue(key).(*Set)
+		if !ok {
+			// If the value at the key is not a set, return error
+			return nil, fmt.Errorf("value at key %s is not a set", key)
+		}
+		sets = append(sets, set)
+	}
+
+	if len(sets) <= 0 {
+		return nil, fmt.Errorf("not enough sets in the keys provided")
+	}
+
+	intersect := sets[0].Intersection(sets[1:])
+	elems := intersect.GetAll()
+
+	res := fmt.Sprintf("*%d", len(elems))
+	for i, e := range elems {
+		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(e), e)
+		if i == len(elems)-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
