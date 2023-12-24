@@ -714,7 +714,54 @@ func handleSREM(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 }
 
 func handleSUNION(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SUNION not implemented")
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	for _, key := range cmd[1:] {
+		if !server.KeyExists(key) {
+			continue
+		}
+		_, err := server.KeyRLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		locks[key] = true
+	}
+
+	var sets []*Set
+
+	for key, locked := range locks {
+		if !locked {
+			continue
+		}
+		set, ok := server.GetValue(key).(*Set)
+		if !ok {
+			return nil, fmt.Errorf("value at key %s is not a set", key)
+		}
+		sets = append(sets, set)
+	}
+
+	union := sets[0].Union(sets[1:])
+
+	res := fmt.Sprintf("*%d", union.Cardinality())
+	for i, e := range union.GetAll() {
+		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(e), e)
+		if i == len(union.GetAll())-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
