@@ -7,7 +7,6 @@ import (
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"math"
 	"net"
-	"reflect"
 	"strings"
 )
 
@@ -73,20 +72,25 @@ func handleLLen(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	if !server.KeyExists(cmd[1]) {
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
 		// Key, does not exist, return
 		return nil, errors.New("LLEN command on non-list item")
 	}
 
-	server.KeyRLock(ctx, cmd[1])
-	list, ok := server.GetValue(cmd[1]).([]interface{})
-	server.KeyRUnlock(cmd[1])
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	list, ok := server.GetValue(key).([]interface{})
+	server.KeyRUnlock(key)
 
 	if !ok {
 		return nil, errors.New("LLEN command on non-list item")
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\n", len(list))), nil
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(list))), nil
 }
 
 func handleLIndex(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -94,19 +98,23 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.Server) ([]byt
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	index, ok := utils.AdaptType(cmd[2]).(int64)
+	key := cmd[1]
+	index, ok := utils.AdaptType(cmd[2]).(int)
 
 	if !ok {
 		return nil, errors.New("index must be an integer")
 	}
 
-	if !server.KeyExists(cmd[1]) {
+	if !server.KeyExists(key) {
 		return nil, errors.New("LINDEX command on non-list item")
 	}
 
-	server.KeyRLock(ctx, cmd[1])
-	list, ok := server.GetValue(cmd[1]).([]interface{})
-	server.KeyRUnlock(cmd[1])
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	list, ok := server.GetValue(key).([]interface{})
+	server.KeyRUnlock(key)
 
 	if !ok {
 		return nil, errors.New("LINDEX command on non-list item")
@@ -116,7 +124,7 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.Server) ([]byt
 		return nil, errors.New("index must be within list range")
 	}
 
-	return []byte(fmt.Sprintf("+%s\r\n\n", list[index])), nil
+	return []byte(fmt.Sprintf("+%s\r\n\r\n", list[index])), nil
 }
 
 func handleLRange(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -124,20 +132,24 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server) ([]byt
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	start, startOk := utils.AdaptType(cmd[2]).(int64)
-	end, endOk := utils.AdaptType(cmd[3]).(int64)
+	key := cmd[1]
+	start, startOk := utils.AdaptType(cmd[2]).(int)
+	end, endOk := utils.AdaptType(cmd[3]).(int)
 
 	if !startOk || !endOk {
 		return nil, errors.New("both start and end indices must be integers")
 	}
 
-	if !server.KeyExists(cmd[1]) {
+	if !server.KeyExists(key) {
 		return nil, errors.New("LRANGE command on non-list item")
 	}
 
-	server.KeyRLock(ctx, cmd[1])
-	list, ok := server.GetValue(cmd[1]).([]interface{})
-	server.KeyRUnlock(cmd[1])
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	list, ok := server.GetValue(key).([]interface{})
+	server.KeyRUnlock(key)
 
 	if !ok {
 		return nil, errors.New("type cannot be returned with LRANGE command")
@@ -162,7 +174,7 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server) ([]byt
 			str := fmt.Sprintf("%v", list[i])
 			bytes = append(bytes, []byte("$"+fmt.Sprint(len(str))+"\r\n"+str+"\r\n")...)
 		}
-		bytes = append(bytes, []byte("\n")...)
+		bytes = append(bytes, []byte("\r\n")...)
 		return bytes, nil
 	}
 
@@ -193,7 +205,7 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server) ([]byt
 
 	}
 
-	bytes = append(bytes, []byte("\n")...)
+	bytes = append(bytes, []byte("\r\n")...)
 
 	return bytes, nil
 }
@@ -203,35 +215,38 @@ func handleLSet(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	if !server.KeyExists(cmd[1]) {
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
 		return nil, errors.New("LSET command on non-list item")
 	}
 
-	server.KeyLock(ctx, cmd[1])
-	list, ok := server.GetValue(cmd[1]).([]interface{})
+	_, err := server.KeyLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	list, ok := server.GetValue(key).([]interface{})
 
 	if !ok {
-		server.KeyUnlock(cmd[1])
+		server.KeyUnlock(key)
 		return nil, errors.New("LSET command on non-list item")
 	}
 
-	index, ok := utils.AdaptType(cmd[2]).(int64)
-
-	fmt.Printf("LSET INDEX: `%v`, OK: %v\n", reflect.TypeOf(index), ok)
+	index, ok := utils.AdaptType(cmd[2]).(int)
 
 	if !ok {
-		server.KeyUnlock(cmd[1])
+		server.KeyUnlock(key)
 		return nil, errors.New("index must be an integer")
 	}
 
-	if !(index >= 0 && int(index) < len(list)) {
-		server.KeyUnlock(cmd[1])
+	if !(index >= 0 && index < len(list)) {
+		server.KeyUnlock(key)
 		return nil, errors.New("index must be within range")
 	}
 
 	list[index] = utils.AdaptType(cmd[3])
-	server.SetValue(ctx, cmd[1], list)
-	server.KeyUnlock(cmd[1])
+	server.SetValue(ctx, key, list)
+	server.KeyUnlock(key)
 
 	return []byte(utils.OK_RESPONSE), nil
 }
@@ -241,8 +256,9 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server) ([]byte
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	start, startOk := utils.AdaptType(cmd[2]).(int64)
-	end, endOk := utils.AdaptType(cmd[3]).(int64)
+	key := cmd[1]
+	start, startOk := utils.AdaptType(cmd[2]).(int)
+	end, endOk := utils.AdaptType(cmd[3]).(int)
 
 	if !startOk || !endOk {
 		return nil, errors.New("start and end indices must be integers")
@@ -252,12 +268,12 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server) ([]byte
 		return nil, errors.New("end index must be greater than start index or -1")
 	}
 
-	if !server.KeyExists(cmd[1]) {
+	if !server.KeyExists(key) {
 		return nil, errors.New("LTRIM command on non-list item")
 	}
 
-	server.KeyLock(ctx, cmd[1])
-	list, ok := server.GetValue(cmd[1]).([]interface{})
+	server.KeyLock(ctx, key)
+	list, ok := server.GetValue(key).([]interface{})
 
 	if !ok {
 		return nil, errors.New("LTRIM command on non-list item")
@@ -268,13 +284,13 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	}
 
 	if end == -1 || int(end) > len(list) {
-		server.SetValue(ctx, cmd[1], list[start:])
-		server.KeyUnlock(cmd[1])
+		server.SetValue(ctx, key, list[start:])
+		server.KeyUnlock(key)
 		return []byte(utils.OK_RESPONSE), nil
 	}
 
-	server.SetValue(ctx, cmd[1], list[start:end])
-	server.KeyUnlock(cmd[1])
+	server.SetValue(ctx, key, list[start:end])
+	server.KeyUnlock(key)
 	return []byte(utils.OK_RESPONSE), nil
 }
 
@@ -283,8 +299,9 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
+	key := cmd[1]
 	value := cmd[3]
-	count, ok := utils.AdaptType(cmd[2]).(int64)
+	count, ok := utils.AdaptType(cmd[2]).(int)
 
 	if !ok {
 		return nil, errors.New("count must be an integer")
@@ -292,12 +309,17 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 
 	absoluteCount := math.Abs(float64(count))
 
-	if !server.KeyExists(cmd[1]) {
+	if !server.KeyExists(key) {
 		return nil, errors.New("LREM command on non-list item")
 	}
 
-	server.KeyLock(ctx, cmd[1])
-	list, ok := server.GetValue(cmd[1]).([]interface{})
+	_, err := server.KeyLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	list, ok := server.GetValue(key).([]interface{})
 
 	if !ok {
 		return nil, errors.New("LREM command on non-list item")
@@ -334,8 +356,7 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 		return elem != nil
 	})
 
-	server.SetValue(ctx, cmd[1], list)
-	server.KeyUnlock(cmd[1])
+	server.SetValue(ctx, key, list)
 
 	return []byte(utils.OK_RESPONSE), nil
 }
@@ -345,6 +366,8 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server) ([]byte
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
+	source := cmd[1]
+	destination := cmd[2]
 	whereFrom := strings.ToLower(cmd[3])
 	whereTo := strings.ToLower(cmd[4])
 
@@ -352,15 +375,24 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server) ([]byte
 		return nil, errors.New("wherefrom and whereto arguments must be either LEFT or RIGHT")
 	}
 
-	if !server.KeyExists(cmd[1]) || !server.KeyExists(cmd[2]) {
+	if !server.KeyExists(source) || !server.KeyExists(destination) {
 		return nil, errors.New("both source and destination must be lists")
 	}
 
-	// TODO: Make this atomic
-	server.KeyLock(ctx, cmd[1])
-	server.KeyLock(ctx, cmd[2])
-	source, sourceOk := server.GetValue(cmd[1]).([]interface{})
-	destination, destinationOk := server.GetValue(cmd[2]).([]interface{})
+	_, err := server.KeyLock(ctx, source)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(source)
+
+	_, err = server.KeyLock(ctx, destination)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(destination)
+
+	sourceList, sourceOk := server.GetValue(source).([]interface{})
+	destinationList, destinationOk := server.GetValue(destination).([]interface{})
 
 	if !sourceOk || !destinationOk {
 		return nil, errors.New("both source and destination must be lists")
@@ -368,23 +400,20 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server) ([]byte
 
 	switch whereFrom {
 	case "left":
-		server.SetValue(ctx, cmd[1], append([]interface{}{}, source[1:]...))
+		server.SetValue(ctx, source, append([]interface{}{}, sourceList[1:]...))
 		if whereTo == "left" {
-			server.SetValue(ctx, cmd[2], append(source[0:1], destination...))
+			server.SetValue(ctx, destination, append(sourceList[0:1], destinationList...))
 		} else if whereTo == "right" {
-			server.SetValue(ctx, cmd[2], append(destination, source[0]))
+			server.SetValue(ctx, destination, append(destinationList, sourceList[0]))
 		}
 	case "right":
-		server.SetValue(ctx, cmd[1], append([]interface{}{}, source[:len(source)-1]...))
+		server.SetValue(ctx, source, append([]interface{}{}, sourceList[:len(sourceList)-1]...))
 		if whereTo == "left" {
-			server.SetValue(ctx, cmd[2], append(source[len(source)-1:], destination...))
+			server.SetValue(ctx, destination, append(sourceList[len(source)-1:], destinationList...))
 		} else if whereTo == "right" {
-			server.SetValue(ctx, cmd[2], append(destination, source[len(source)-1]))
+			server.SetValue(ctx, destination, append(destinationList, source[len(source)-1]))
 		}
 	}
-
-	server.KeyUnlock(cmd[1])
-	server.KeyUnlock(cmd[2])
 
 	return []byte(utils.OK_RESPONSE), nil
 }
@@ -411,6 +440,11 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server) ([]byte
 			server.CreateKeyAndLock(ctx, key)
 			server.SetValue(ctx, key, []interface{}{})
 		}
+	} else {
+		_, err := server.KeyLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	defer server.KeyUnlock(key)
@@ -432,26 +466,36 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server) ([]byte
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
+	key := cmd[1]
+
 	newElems := []interface{}{}
 
 	for _, elem := range cmd[2:] {
 		newElems = append(newElems, utils.AdaptType(elem))
 	}
 
-	if !server.KeyExists(cmd[1]) {
+	if !server.KeyExists(key) {
 		switch strings.ToLower(cmd[0]) {
 		case "rpushx":
 			return nil, fmt.Errorf("%s command on non-list item", cmd[0])
 		default:
 			// TODO: Retry CreateKeyAndLock until we managed to obtain the key
-			server.CreateKeyAndLock(ctx, cmd[1])
-			server.SetValue(ctx, cmd[1], []interface{}{})
+			_, err := server.CreateKeyAndLock(ctx, key)
+			if err != nil {
+				return nil, err
+			}
+			server.SetValue(ctx, key, []interface{}{})
+		}
+	} else {
+		_, err := server.KeyLock(ctx, key)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	defer server.KeyUnlock(cmd[1])
+	defer server.KeyUnlock(key)
 
-	currentList := server.GetValue(cmd[1])
+	currentList := server.GetValue(key)
 
 	l, ok := currentList.([]interface{})
 
@@ -459,7 +503,7 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server) ([]byte
 		return nil, errors.New("RPUSH command on non-list item")
 	}
 
-	server.SetValue(ctx, cmd[1], append(l, newElems...))
+	server.SetValue(ctx, key, append(l, newElems...))
 	return []byte(utils.OK_RESPONSE), nil
 }
 
@@ -468,18 +512,23 @@ func handlePop(ctx context.Context, cmd []string, server utils.Server) ([]byte, 
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	if !server.KeyExists(cmd[1]) {
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
 	}
 
-	if !server.KeyExists(cmd[1]) {
+	if !server.KeyExists(key) {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
 	}
 
-	server.KeyLock(ctx, cmd[1])
-	defer server.KeyUnlock(cmd[1])
+	_, err := server.KeyLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
 
-	list, ok := server.GetValue(cmd[1]).([]interface{})
+	list, ok := server.GetValue(key).([]interface{})
 
 	if !ok {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
@@ -487,13 +536,12 @@ func handlePop(ctx context.Context, cmd []string, server utils.Server) ([]byte, 
 
 	switch strings.ToLower(cmd[0]) {
 	default:
-		server.SetValue(ctx, cmd[1], list[1:])
-		return []byte(fmt.Sprintf("+%v\r\n\n", list[0])), nil
+		server.SetValue(ctx, key, list[1:])
+		return []byte(fmt.Sprintf("+%v\r\n\r\n", list[0])), nil
 	case "rpop":
-		server.SetValue(ctx, cmd[1], list[:len(list)-1])
-		return []byte(fmt.Sprintf("+%v\r\n\n", list[len(list)-1])), nil
+		server.SetValue(ctx, key, list[:len(list)-1])
+		return []byte(fmt.Sprintf("+%v\r\n\r\n", list[len(list)-1])), nil
 	}
-
 }
 
 func NewModule() Plugin {
@@ -540,7 +588,7 @@ func NewModule() Plugin {
 				Command:     "llen",
 				Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.FastCategory},
 				Description: "(LLEN key) Return the length of a list.",
-				Sync:        true,
+				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 2 {
 						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
@@ -552,7 +600,7 @@ func NewModule() Plugin {
 				Command:     "lrange",
 				Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(LRANGE key start end) Return a range of elements between the given indices.",
-				Sync:        true,
+				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 4 {
 						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
@@ -564,7 +612,7 @@ func NewModule() Plugin {
 				Command:     "lindex",
 				Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(LINDEX key index) Gets list element by index.",
-				Sync:        true,
+				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 3 {
 						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
