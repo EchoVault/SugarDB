@@ -829,7 +829,7 @@ func NewModule() Plugin {
 		commands: []utils.Command{
 			{
 				Command:     "sadd",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
 				Description: "(SADD key member [member...]) Add one or more members to the set.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -841,7 +841,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "scard",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
 				Description: "(SCARD key) Returns the cardinality of the set.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -853,7 +853,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "sdiff",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(SDIFF key [key...]) Returns the difference between all the sets in the given keys.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -865,7 +865,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "sdiffstore",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: "(SDIFFSTORE destination key [key...]) Stores the difference between all the sets at the destination key.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -877,7 +877,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "sinter",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: "(SINTER key [key...]) Returns the intersection of multiple sets.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -889,7 +889,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "sintercard",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -901,7 +901,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "sinterstore",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: "(SINTERSTORE destination key [key...]) Stores the intersection of multiple sets at the destination key.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -913,7 +913,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "sismember",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
 				Description: "(SISMEMBER key member) Returns if member is contained in the set.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -925,7 +925,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "smembers",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(SMEMBERS key) Returns all members of a set.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -937,7 +937,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "smismember",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
 				Description: "(SMISMEMBER key member [member...]) Returns if multiple members are in the set.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -950,7 +950,7 @@ func NewModule() Plugin {
 
 			{
 				Command:     "smove",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
 				Description: "(SMOVE source destination member) Moves a member from source set to destination set.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -962,7 +962,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "spop",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: "(SPOP key [count]) Returns and removes one or more random members from the set.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -974,7 +974,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "srandmember",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(SRANDMEMBER key [count]) Returns one or more random members from the set without removing them.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -986,7 +986,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "srem",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
 				Description: "(SREM key member [member...]) Remove one or more members from a set.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -998,7 +998,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "sunion",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: "(SUNION key [key...]) Returns the members of the set resulting from the union of the provided sets.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -1010,7 +1010,7 @@ func NewModule() Plugin {
 			},
 			{
 				Command:     "sunionstore",
-				Categories:  []string{},
+				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: "(SUNIONSTORE destination key [key...]) Stores the union of the given sets into destination.",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
