@@ -765,7 +765,62 @@ func handleSUNION(ctx context.Context, cmd []string, server utils.Server) ([]byt
 }
 
 func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("SUNIONSTORE not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	for _, key := range cmd[2:] {
+		if !server.KeyExists(key) {
+			continue
+		}
+		_, err := server.KeyRLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		locks[key] = true
+	}
+
+	var sets []*Set
+
+	for key, locked := range locks {
+		if !locked {
+			continue
+		}
+		set, ok := server.GetValue(key).(*Set)
+		if !ok {
+			return nil, fmt.Errorf("value at key %s is not a set", key)
+		}
+		sets = append(sets, set)
+	}
+
+	union := sets[0].Union(sets[1:])
+
+	destination := cmd[1]
+
+	if server.KeyExists(destination) {
+		_, err := server.KeyLock(ctx, destination)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		_, err := server.CreateKeyAndLock(ctx, destination)
+		if err != nil {
+			return nil, err
+		}
+	}
+	defer server.KeyUnlock(destination)
+
+	server.SetValue(ctx, destination, union)
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", union.Cardinality())), nil
 }
 
 func NewModule() Plugin {
