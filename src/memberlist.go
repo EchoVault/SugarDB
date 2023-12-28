@@ -25,7 +25,7 @@ type BroadcastMessage struct {
 	Content string `json:"Content"`
 }
 
-// Implements Broadcast interface
+// Invalidates Implements Broadcast interface
 func (broadcastMessage *BroadcastMessage) Invalidates(other memberlist.Broadcast) bool {
 	mb, ok := other.(*BroadcastMessage)
 
@@ -40,7 +40,7 @@ func (broadcastMessage *BroadcastMessage) Invalidates(other memberlist.Broadcast
 	return false
 }
 
-// Implements Broadcast interface
+// Message Implements Broadcast interface
 func (broadcastMessage *BroadcastMessage) Message() []byte {
 	msg, err := json.Marshal(broadcastMessage)
 
@@ -52,7 +52,7 @@ func (broadcastMessage *BroadcastMessage) Message() []byte {
 	return msg
 }
 
-// Implements Broadcast interface
+// Finished Implements Broadcast interface
 func (broadcastMessage *BroadcastMessage) Finished() {
 	// No-Op
 }
