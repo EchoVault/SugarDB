@@ -201,7 +201,27 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 }
 
 func handleZCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZCARD not implemented")
+	if len(cmd) != 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
+		return []byte("*0\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", set.Cardinality())), nil
 }
 
 func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
