@@ -3,6 +3,7 @@ package sorted_set
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
 	"slices"
@@ -74,10 +75,6 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 		return handleZREMRANGEBYRANK(ctx, cmd, server)
 	case "zrange":
 		return handleZRANGE(ctx, cmd, server)
-	case "zrangebylex":
-		return handleZRANGEBYLEX(ctx, cmd, server)
-	case "zrangebyscore":
-		return handleZRANGEBYSCORE(ctx, cmd, server)
 	case "zrangestore":
 		return handleZRANGESTORE(ctx, cmd, server)
 	case "zunion":
@@ -88,7 +85,119 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 }
 
 func handleZADD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZADD not implemented")
+	if len(cmd) < 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+
+	var updatePolicy interface{} = nil
+	var comparison interface{} = nil
+	var changed interface{} = nil
+	var incr interface{} = nil
+
+	// Find the first valid score and this will be the start of the score/member pairs
+	var membersStartIndex int
+	for i := 0; i < len(cmd); i++ {
+		if membersStartIndex != 0 {
+			break
+		}
+		switch utils.AdaptType(cmd[i]).(type) {
+		case float64:
+			membersStartIndex = i
+		case int:
+			membersStartIndex = i
+		}
+	}
+
+	if membersStartIndex < 2 || len(cmd[membersStartIndex:])%2 != 0 {
+		return nil, errors.New("score/member pairs must be float/string")
+	}
+
+	var members []MemberParam
+
+	for i := 0; i < len(cmd[membersStartIndex:]); i++ {
+		if i%2 != 0 {
+			continue
+		}
+		score := utils.AdaptType(cmd[membersStartIndex:][i])
+		switch score.(type) {
+		default:
+			return nil, errors.New("invalid score in score/member list")
+		case float64:
+			s, _ := score.(float64)
+			members = append(members, MemberParam{
+				value: Value(cmd[membersStartIndex:][i+1]),
+				score: Score(s),
+			})
+		case int:
+			s, _ := score.(int)
+			members = append(members, MemberParam{
+				value: Value(cmd[membersStartIndex:][i+1]),
+				score: Score(s),
+			})
+		}
+	}
+
+	// Parse options using membersStartIndex as the upper limit
+	if membersStartIndex > 2 {
+		options := cmd[2:membersStartIndex]
+		for _, option := range options {
+			if utils.Contains([]string{"xx", "nx"}, strings.ToLower(option)) {
+				updatePolicy = option
+				continue
+			}
+			if utils.Contains([]string{"gt", "lt"}, strings.ToLower(option)) {
+				comparison = option
+				continue
+			}
+			if strings.EqualFold(option, "ch") {
+				changed = option
+				continue
+			}
+			if strings.EqualFold(option, "incr") {
+				incr = option
+				continue
+			}
+			return nil, fmt.Errorf("invalid option %s", option)
+		}
+	}
+
+	if server.KeyExists(key) {
+		// Key exists
+		_, err := server.KeyLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		defer server.KeyUnlock(key)
+		set, ok := server.GetValue(key).(*SortedSet)
+		if !ok {
+			return nil, fmt.Errorf("value at %s is not a sorted set")
+		}
+		count, err := set.AddOrUpdate(members, updatePolicy, comparison, changed, incr)
+		if err != nil {
+			return nil, err
+		}
+		// If INCR option is provided, return the new score value
+		if incr != nil {
+			m := set.Get(members[0].value)
+			return []byte(fmt.Sprintf("+%f\r\n\r\n", m.score)), nil
+		}
+
+		return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
+	}
+
+	// Key does not exist
+	_, err := server.CreateKeyAndLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	set := NewSortedSet(members)
+	server.SetValue(ctx, key, set)
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", set.Cardinality())), nil
 }
 
 func handleZCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
