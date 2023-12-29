@@ -318,7 +318,66 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte
 }
 
 func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZINCRBY not implemented")
+	if len(cmd) != 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	member := Value(cmd[3])
+	var increment Score
+
+	switch utils.AdaptType(cmd[2]).(type) {
+	default:
+		return nil, errors.New("increment must be a double")
+	case string:
+		if strings.EqualFold("-inf", strings.ToLower(cmd[2])) {
+			increment = Score(math.Inf(-1))
+		} else if strings.EqualFold("+inf", strings.ToLower(cmd[2])) {
+			increment = Score(math.Inf(1))
+		} else {
+			return nil, errors.New("increment must be a double")
+		}
+	case float64:
+		s, _ := utils.AdaptType(cmd[2]).(float64)
+		increment = Score(s)
+	case int:
+		s, _ := utils.AdaptType(cmd[2]).(int)
+		increment = Score(s)
+	}
+
+	if server.KeyExists(key) {
+		_, err := server.KeyLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		defer server.KeyUnlock(key)
+		set, ok := server.GetValue(key).(*SortedSet)
+		if !ok {
+			return nil, fmt.Errorf("value at %s is not a sorted set", key)
+		}
+		_, err = set.AddOrUpdate(
+			[]MemberParam{{value: member, score: increment}}, "xx", nil, nil, "incr")
+		if err != nil {
+			return nil, err
+		}
+		return []byte(fmt.Sprintf("+%f\r\n\r\n", set.Get(member).score)), nil
+	}
+
+	_, err := server.CreateKeyAndLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	set := NewSortedSet([]MemberParam{
+		{
+			value: member,
+			score: increment,
+		},
+	})
+	server.SetValue(ctx, key, set)
+
+	return []byte(fmt.Sprintf("+%f\r\n\r\n", set.Get(member).score)), nil
 }
 
 func handleZINTER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
