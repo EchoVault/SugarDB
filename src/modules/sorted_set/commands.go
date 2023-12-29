@@ -43,13 +43,13 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 	case "zdiff":
 		return handleZDIFF(ctx, cmd, server)
 	case "zdiffstore":
-		return handleZDIFF(ctx, cmd, server)
+		return handleZDIFFSTORE(ctx, cmd, server)
 	case "zincrby":
 		return handleZINCRBY(ctx, cmd, server)
 	case "zinter":
 		return handleZINTER(ctx, cmd, server)
 	case "zinterstore":
-		return handleZINTER(ctx, cmd, server)
+		return handleZINTERSTORE(ctx, cmd, server)
 	case "zmpop":
 		return handleZMPOP(ctx, cmd, server)
 	case "zmpopmax":
@@ -314,7 +314,85 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server) ([]byt
 }
 
 func handleZDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZDIFF not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	keys := utils.Filter(cmd[1:], func(s string) bool {
+		return !strings.EqualFold(s, "withscores")
+	})
+
+	withscoresIndex := slices.IndexFunc(cmd, func(s string) bool {
+		return strings.EqualFold(s, "withscores")
+	})
+	if withscoresIndex > -1 && withscoresIndex < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	var sets []*SortedSet
+
+	for _, key := range keys {
+		if !server.KeyExists(key) {
+			continue
+		}
+		locked, err := server.KeyRLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		locks[key] = locked
+		set, ok := server.GetValue(key).(*SortedSet)
+		if !ok {
+			return nil, fmt.Errorf("value at error %s is not a sorted set", key)
+		}
+		sets = append(sets, set)
+	}
+
+	var diff *SortedSet
+
+	switch len(sets) {
+	case 0:
+		return []byte("*0\r\n\r\n"), nil
+	case 1:
+		diff = sets[0]
+	default:
+		d, err := sets[0].Subtract(sets[1:])
+		if err != nil {
+			return nil, err
+		}
+		diff = d
+	}
+
+	res := fmt.Sprintf("*%d", diff.Cardinality())
+	includeScores := withscoresIndex != -1 && withscoresIndex >= 2
+
+	var str string
+	for i, m := range diff.GetAll() {
+		if includeScores {
+			str = fmt.Sprintf("%s %f", m.value, m.score)
+			res += fmt.Sprintf("\r\n$%d\r\n%s", len(str), str)
+		} else {
+			str = string(m.value)
+			res += fmt.Sprintf("\r\n$%d\r\n%s", len(str), str)
+		}
+		if i == diff.Cardinality()-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
+}
+
+func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ZDIFFSTORE not implemented")
 }
 
 func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -382,6 +460,10 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server) ([]by
 
 func handleZINTER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	return nil, errors.New("ZINTER not implemented")
+}
+
+func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ZINTERSTORE not implemented")
 }
 
 func handleZMPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
