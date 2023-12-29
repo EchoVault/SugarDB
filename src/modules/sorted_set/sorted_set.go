@@ -162,7 +162,7 @@ func (set *SortedSet) Remove(v Value) bool {
 	return false
 }
 
-func (set *SortedSet) Subtract(others []*SortedSet) (*SortedSet, error) {
+func (set *SortedSet) Subtract(others []*SortedSet) *SortedSet {
 	res := NewSortedSet(set.GetAll())
 	for _, ss := range others {
 		for _, m := range ss.GetAll() {
@@ -171,5 +171,10 @@ func (set *SortedSet) Subtract(others []*SortedSet) (*SortedSet, error) {
 			}
 		}
 	}
-	return res, nil
+	return res
+}
+
+func (set *SortedSet) Intersect(others []*SortedSet) *SortedSet {
+	res := NewSortedSet([]MemberParam{})
+	return res
 }

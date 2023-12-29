@@ -364,11 +364,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	case 1:
 		diff = sets[0]
 	default:
-		d, err := sets[0].Subtract(sets[1:])
-		if err != nil {
-			return nil, err
-		}
-		diff = d
+		diff = sets[0].Subtract(sets[1:])
 	}
 
 	res := fmt.Sprintf("*%d", diff.Cardinality())
