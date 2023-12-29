@@ -480,7 +480,27 @@ func handleZREVRANK(ctx context.Context, cmd []string, server utils.Server) ([]b
 }
 
 func handleZSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZSCORE not implemented")
+	if len(cmd) != 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+	key := cmd[1]
+	if !server.KeyExists(key) {
+		return []byte("+(nil)\r\n\r\n"), nil
+	}
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+	member := set.Get(Value(cmd[2]))
+	if !member.exists {
+		return []byte("+(nil)\r\n\r\n"), nil
+	}
+	return []byte(fmt.Sprintf("+%f\r\n\r\n", member.score)), nil
 }
 
 func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
