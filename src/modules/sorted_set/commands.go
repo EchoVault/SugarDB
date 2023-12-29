@@ -397,7 +397,42 @@ func handleZMPOPMIN(ctx context.Context, cmd []string, server utils.Server) ([]b
 }
 
 func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZMSCORE not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
+		return []byte("*0\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+
+	res := fmt.Sprintf("*%d", len(cmd[2:]))
+	var member MemberObject
+	for i, m := range cmd[2:] {
+		member = set.Get(Value(m))
+		if !member.exists {
+			res = fmt.Sprintf("%s\r\n+(nil)", res)
+		} else {
+			res = fmt.Sprintf("%s\r\n+%f", res, member.score)
+		}
+		if i == len(cmd[2:])-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
