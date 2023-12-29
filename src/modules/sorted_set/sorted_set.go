@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
+	"math"
 	"strings"
 )
 
@@ -174,6 +175,9 @@ func (set *SortedSet) AddOrUpdate(
 		for _, m := range members {
 			if !set.Contains(m.value) {
 				return count, fmt.Errorf("cannot increment member %s as it does not exist in the sorted set", m.value)
+			}
+			if utils.Contains([]Score{Score(math.Inf(-1)), Score(math.Inf(1))}, set.members[m.value].score) {
+				return count, errors.New("cannot increment -inf or +inf")
 			}
 			set.members[m.value] = MemberObject{
 				value:  m.value,

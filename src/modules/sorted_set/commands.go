@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
+	"math"
 	"net"
 	"slices"
 	"strings"
@@ -42,13 +43,13 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 	case "zdiff":
 		return handleZDIFF(ctx, cmd, server)
 	case "zdiffstore":
-		return handleZDIFFSTORE(ctx, cmd, server)
+		return handleZDIFF(ctx, cmd, server)
 	case "zincrby":
 		return handleZINCRBY(ctx, cmd, server)
 	case "zinter":
 		return handleZINTER(ctx, cmd, server)
 	case "zinterstore":
-		return handleZINTERSTORE(ctx, cmd, server)
+		return handleZINTER(ctx, cmd, server)
 	case "zmpop":
 		return handleZMPOP(ctx, cmd, server)
 	case "zmpopmax":
@@ -80,7 +81,7 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 	case "zunion":
 		return handleZUNION(ctx, cmd, server)
 	case "zunionstore":
-		return handleZUNIONSCORE(ctx, cmd, server)
+		return handleZUNION(ctx, cmd, server)
 	}
 }
 
@@ -103,6 +104,10 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 			break
 		}
 		switch utils.AdaptType(cmd[i]).(type) {
+		case string:
+			if utils.Contains([]string{"-inf", "+inf"}, strings.ToLower(cmd[i])) {
+				membersStartIndex = i
+			}
 		case float64:
 			membersStartIndex = i
 		case int:
@@ -124,6 +129,22 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 		switch score.(type) {
 		default:
 			return nil, errors.New("invalid score in score/member list")
+		case string:
+			var s float64
+			if strings.ToLower(score.(string)) == "-inf" {
+				s = math.Inf(-1)
+				members = append(members, MemberParam{
+					value: Value(cmd[membersStartIndex:][i+1]),
+					score: Score(s),
+				})
+			}
+			if strings.ToLower(score.(string)) == "+inf" {
+				s = math.Inf(1)
+				members = append(members, MemberParam{
+					value: Value(cmd[membersStartIndex:][i+1]),
+					score: Score(s),
+				})
+			}
 		case float64:
 			s, _ := score.(float64)
 			members = append(members, MemberParam{
@@ -225,15 +246,75 @@ func handleZCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte
 }
 
 func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZCOUNT not implemented")
+	if len(cmd) != 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+
+	minimum := Score(math.Inf(-1))
+	switch utils.AdaptType(cmd[2]).(type) {
+	default:
+		return nil, errors.New("min constraint must be a double")
+	case string:
+		if strings.ToLower(cmd[2]) == "+inf" {
+			minimum = Score(math.Inf(1))
+		} else {
+			return nil, errors.New("min constraint must be a double")
+		}
+	case float64:
+		s, _ := utils.AdaptType(cmd[2]).(float64)
+		minimum = Score(s)
+	case int:
+		s, _ := utils.AdaptType(cmd[2]).(int)
+		minimum = Score(s)
+	}
+
+	maximum := Score(math.Inf(1))
+	switch utils.AdaptType(cmd[3]).(type) {
+	default:
+		return nil, errors.New("max constraint must be a double")
+	case string:
+		if strings.ToLower(cmd[3]) == "-inf" {
+			maximum = Score(math.Inf(-1))
+		} else {
+			return nil, errors.New("max constraint must be a double")
+		}
+	case float64:
+		s, _ := utils.AdaptType(cmd[3]).(float64)
+		maximum = Score(s)
+	case int:
+		s, _ := utils.AdaptType(cmd[3]).(int)
+		maximum = Score(s)
+	}
+
+	if !server.KeyExists(key) {
+		return []byte("*0\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+
+	var members []MemberParam
+	for _, m := range set.GetAll() {
+		if m.score >= minimum && m.score <= maximum {
+			members = append(members, m)
+		}
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(members))), nil
 }
 
 func handleZDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	return nil, errors.New("ZDIFF not implemented")
-}
-
-func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZDIFFSTORE not implemented")
 }
 
 func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -242,10 +323,6 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server) ([]by
 
 func handleZINTER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	return nil, errors.New("ZINTER not implemented")
-}
-
-func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZINTERSTORE not implemented")
 }
 
 func handleZMPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -300,24 +377,12 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return nil, errors.New("ZRANGE not implemented")
 }
 
-func handleZRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZRANGEBYLEX not implemented")
-}
-
-func handleZRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZRANGEBYSCORE not implemented")
-}
-
 func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	return nil, errors.New("ZRANGESTORE not implemented")
 }
 
 func handleZUNION(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	return nil, errors.New("ZUNION not implemented")
-}
-
-func handleZUNIONSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZUNIONSTORE not implemented")
 }
 
 func NewModule() Plugin {
