@@ -81,7 +81,7 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 	case "zunion":
 		return handleZUNION(ctx, cmd, server)
 	case "zunionstore":
-		return handleZUNION(ctx, cmd, server)
+		return handleZUNIONSTORE(ctx, cmd, server)
 	}
 }
 
@@ -651,15 +651,23 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server) ([]byt
 		if locked {
 			set, ok := server.GetValue(key).(*SortedSet)
 			if !ok {
-				return nil, fmt.Errorf("value at key %s is not a sorted set")
+				return nil, fmt.Errorf("value at key %s is not a sorted set", key)
 			}
 			sets = append(sets, set)
 		}
 	}
 
-	union, err := sets[0].Union(sets[1:], weights, aggregate)
-	if err != nil {
-		return nil, err
+	var union *SortedSet
+
+	if len(sets) > 1 {
+		union, err = sets[0].Union(sets[1:], weights, aggregate)
+		if err != nil {
+			return nil, err
+		}
+	} else if len(sets) == 1 {
+		union = sets[0]
+	} else {
+		return nil, errors.New("no sorted sets to form union")
 	}
 
 	res := fmt.Sprintf("*%d", union.Cardinality())
@@ -676,6 +684,83 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	}
 
 	return []byte(res), nil
+}
+
+func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	destination := cmd[1]
+
+	// Remove destination key from list of keys
+	cmd = slices.DeleteFunc(cmd, func(s string) bool {
+		return s == destination
+	})
+
+	keys, weights, aggregate, _, err := extractKeysWeightsAggregateWithScores(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	for _, key := range keys {
+		if server.KeyExists(key) {
+			_, err := server.KeyRLock(ctx, key)
+			if err != nil {
+				return nil, err
+			}
+			locks[key] = true
+		}
+	}
+
+	var sets []*SortedSet
+
+	for key, locked := range locks {
+		if locked {
+			set, ok := server.GetValue(key).(*SortedSet)
+			if !ok {
+				return nil, fmt.Errorf("value at %s is not a sorted set", key)
+			}
+			sets = append(sets, set)
+		}
+	}
+
+	var union *SortedSet
+
+	if len(sets) > 1 {
+		union, err = sets[0].Union(sets[1:], weights, aggregate)
+		if err != nil {
+			return nil, err
+		}
+	} else if len(sets) == 1 {
+		union = sets[0]
+	} else {
+		return nil, errors.New("no sorted sets to form union")
+	}
+
+	if server.KeyExists(destination) {
+		if _, err := server.KeyLock(ctx, destination); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := server.CreateKeyAndLock(ctx, destination); err != nil {
+			return nil, err
+		}
+	}
+	defer server.KeyUnlock(destination)
+
+	server.SetValue(ctx, destination, union)
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", union.Cardinality())), nil
 }
 
 func NewModule() Plugin {
