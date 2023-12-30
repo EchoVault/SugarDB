@@ -464,9 +464,63 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server) ([]byt
 		return nil, err
 	}
 
-	fmt.Println(keys, weights, aggregate, withscores)
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
 
-	return []byte("+OK\r\n\r\n"), nil
+	var sets []*SortedSet
+
+	for _, key := range keys {
+		if server.KeyExists(key) {
+			_, err := server.KeyRLock(ctx, key)
+			if err != nil {
+				return nil, err
+			}
+			locks[key] = true
+			set, ok := server.GetValue(key).(*SortedSet)
+			if !ok {
+				return nil, fmt.Errorf("value at %s is not a sorted set", key)
+			}
+			sets = append(sets, set)
+		}
+	}
+
+	var intersect *SortedSet
+
+	if len(sets) > 1 {
+		if intersect, err = sets[0].Intersect(sets[1:], weights, aggregate); err != nil {
+			return nil, err
+		}
+	} else if len(sets) == 1 {
+		intersect = sets[0]
+	} else {
+		return nil, errors.New("not enough sets to form an intersect")
+	}
+
+	res := fmt.Sprintf("*%d", intersect.Cardinality())
+
+	if intersect.Cardinality() > 0 {
+		for i, m := range intersect.GetAll() {
+			if withscores {
+				s := fmt.Sprintf("%s %f", m.value, m.score)
+				res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+			} else {
+				res += fmt.Sprintf("\r\n%s", m.value)
+			}
+			if i == intersect.Cardinality()-1 {
+				res += "\r\n\r\n"
+			}
+		}
+	} else {
+		res += "\r\n\r\n"
+	}
+
+	return []byte(res), nil
 }
 
 func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -474,7 +528,67 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server) (
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	return []byte("+OK\r\n\r\n"), nil
+	destination := cmd[1]
+
+	cmd = slices.DeleteFunc(cmd, func(s string) bool {
+		return s == destination
+	})
+
+	keys, weights, aggregate, _, err := extractKeysWeightsAggregateWithScores(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	var sets []*SortedSet
+
+	for _, key := range keys {
+		_, err := server.KeyRLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		locks[key] = true
+		set, ok := server.GetValue(key).(*SortedSet)
+		if !ok {
+			return nil, fmt.Errorf("value at %s is not a sorted set", key)
+		}
+		sets = append(sets, set)
+	}
+
+	var intersect *SortedSet
+
+	if len(sets) > 1 {
+		if intersect, err = sets[0].Intersect(sets[1:], weights, aggregate); err != nil {
+			return nil, err
+		}
+	} else if len(sets) == 1 {
+		intersect = sets[0]
+	} else {
+		return nil, errors.New("not enough sets to form an intersect")
+	}
+
+	if server.KeyExists(destination) {
+		if _, err := server.KeyLock(ctx, destination); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := server.CreateKeyAndLock(ctx, destination); err != nil {
+			return nil, err
+		}
+	}
+	defer server.KeyUnlock(destination)
+
+	server.SetValue(ctx, destination, intersect)
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", intersect.Cardinality())), nil
 }
 
 func handleZMPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -635,6 +749,8 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server) ([]byt
 		}
 	}()
 
+	var sets []*SortedSet
+
 	for _, key := range keys {
 		if server.KeyExists(key) {
 			_, err := server.KeyRLock(ctx, key)
@@ -642,13 +758,6 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server) ([]byt
 				return nil, err
 			}
 			locks[key] = true
-		}
-	}
-
-	var sets []*SortedSet
-
-	for key, locked := range locks {
-		if locked {
 			set, ok := server.GetValue(key).(*SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at key %s is not a sorted set", key)
@@ -712,6 +821,8 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server) (
 		}
 	}()
 
+	var sets []*SortedSet
+
 	for _, key := range keys {
 		if server.KeyExists(key) {
 			_, err := server.KeyRLock(ctx, key)
@@ -719,13 +830,6 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server) (
 				return nil, err
 			}
 			locks[key] = true
-		}
-	}
-
-	var sets []*SortedSet
-
-	for key, locked := range locks {
-		if locked {
 			set, ok := server.GetValue(key).(*SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at %s is not a sorted set", key)

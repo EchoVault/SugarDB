@@ -220,7 +220,46 @@ func (set *SortedSet) Union(others []*SortedSet, weights []int, aggregate string
 	return res, nil
 }
 
-func (set *SortedSet) Intersect(others []*SortedSet, weights []int, aggregate string) *SortedSet {
+func (set *SortedSet) Intersect(others []*SortedSet, weights []int, aggregate string) (*SortedSet, error) {
 	res := NewSortedSet([]MemberParam{})
-	return res
+	// Find intersect between this set and the first set in others
+	var score Score
+	for _, m := range set.GetAll() {
+		if others[0].Contains(m.value) {
+			switch strings.ToLower(aggregate) {
+			case "sum":
+				score = m.score*Score(weights[0]) + (others[0].Get(m.value).score * Score(weights[1]))
+			case "min":
+				score = compareScores(m.score*Score(weights[0]), others[0].Get(m.value).score*Score(weights[1]), "lt")
+			case "max":
+				score = compareScores(m.score*Score(weights[0]), others[0].Get(m.value).score*Score(weights[1]), "gt")
+			}
+			if _, err := res.AddOrUpdate([]MemberParam{
+				{value: m.value, score: score},
+			}, nil, nil, nil, nil); err != nil {
+				return nil, err
+			}
+		}
+	}
+	// Calculate intersect with the remaining sets in others
+	for setIdx, sortedSet := range others[1:] {
+		for _, m := range sortedSet.GetAll() {
+			if res.Contains(m.value) {
+				switch strings.ToLower(aggregate) {
+				case "sum":
+					score = res.Get(m.value).score + (m.score * Score(weights[setIdx+1]))
+				case "min":
+					score = compareScores(res.Get(m.value).score, m.score*Score(weights[setIdx+1]), "lt")
+				case "max":
+					score = compareScores(res.Get(m.value).score, m.score*Score(weights[setIdx+1]), "gt")
+				}
+				if _, err := res.AddOrUpdate([]MemberParam{
+					{value: m.value, score: score},
+				}, nil, nil, nil, nil); err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+	return res, nil
 }
