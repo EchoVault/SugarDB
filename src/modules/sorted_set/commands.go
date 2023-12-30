@@ -455,11 +455,26 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server) ([]by
 }
 
 func handleZINTER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZINTER not implemented")
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	keys, weights, aggregate, withscores, err := extractKeysWeightsAggregateWithScores(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(keys, weights, aggregate, withscores)
+
+	return []byte("+OK\r\n\r\n"), nil
 }
 
 func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZINTERSTORE not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	return []byte("+OK\r\n\r\n"), nil
 }
 
 func handleZMPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -602,7 +617,65 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server) (
 }
 
 func handleZUNION(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZUNION not implemented")
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	keys, weights, aggregate, withscores, err := extractKeysWeightsAggregateWithScores(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	for _, key := range keys {
+		if server.KeyExists(key) {
+			_, err := server.KeyRLock(ctx, key)
+			if err != nil {
+				return nil, err
+			}
+			locks[key] = true
+		}
+	}
+
+	var sets []*SortedSet
+
+	for key, locked := range locks {
+		if locked {
+			set, ok := server.GetValue(key).(*SortedSet)
+			if !ok {
+				return nil, fmt.Errorf("value at key %s is not a sorted set")
+			}
+			sets = append(sets, set)
+		}
+	}
+
+	union, err := sets[0].Union(sets[1:], weights, aggregate)
+	if err != nil {
+		return nil, err
+	}
+
+	res := fmt.Sprintf("*%d", union.Cardinality())
+	for i, m := range union.GetAll() {
+		if withscores {
+			s := fmt.Sprintf("%s %f", m.value, m.score)
+			res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+		} else {
+			res += fmt.Sprintf("\r\n+%s", m.value)
+		}
+		if i == union.Cardinality()-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func NewModule() Plugin {
@@ -711,9 +784,10 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					if endIdx == -1 {
 						return cmd[1:], nil
 					}
-					if endIdx >= 2 {
-						return cmd[1:endIdx], nil
+					if endIdx >= 1 {
+						return cmd[1 : endIdx+1], nil
 					}
+					// TODO: Change this to syntax error
 					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 				},
 			},

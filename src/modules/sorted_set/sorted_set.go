@@ -163,6 +163,7 @@ func (set *SortedSet) Remove(v Value) bool {
 }
 
 func (set *SortedSet) Subtract(others []*SortedSet) *SortedSet {
+
 	res := NewSortedSet(set.GetAll())
 	for _, ss := range others {
 		for _, m := range ss.GetAll() {
@@ -174,7 +175,52 @@ func (set *SortedSet) Subtract(others []*SortedSet) *SortedSet {
 	return res
 }
 
-func (set *SortedSet) Intersect(others []*SortedSet) *SortedSet {
+func (set *SortedSet) Union(others []*SortedSet, weights []int, aggregate string) (*SortedSet, error) {
+	res := NewSortedSet([]MemberParam{})
+	// Add elements from this set
+	for _, m := range set.GetAll() {
+		if _, err := res.AddOrUpdate(
+			[]MemberParam{{value: m.value, score: m.score * Score(weights[0])}},
+			nil, nil, nil, nil); err != nil {
+			return nil, err
+		}
+	}
+	// Add elements from the other sets
+	var weightsIndex int
+	var score Score
+	for setIndex, sortedSet := range others {
+		weightsIndex = setIndex + 1
+		for _, m := range sortedSet.GetAll() {
+			if !res.Contains(m.value) {
+				// This member is not contained in the union
+				if _, err := res.AddOrUpdate([]MemberParam{
+					{value: m.value, score: m.score * Score(weights[weightsIndex])},
+				}, nil, nil, nil, nil); err != nil {
+					return nil, err
+				}
+			} else {
+				// This member is contained in the union
+				score = res.Get(m.value).score
+				switch strings.ToLower(aggregate) {
+				case "sum":
+					score = score + (m.score * Score(weights[weightsIndex]))
+				case "min":
+					score = compareScores(score, m.score*Score(weights[weightsIndex]), "lt")
+				case "max":
+					score = compareScores(score, m.score*Score(weights[weightsIndex]), "gt")
+				}
+				if _, err := res.AddOrUpdate([]MemberParam{
+					{value: m.value, score: score},
+				}, nil, nil, nil, nil); err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+	return res, nil
+}
+
+func (set *SortedSet) Intersect(others []*SortedSet, weights []int, aggregate string) *SortedSet {
 	res := NewSortedSet([]MemberParam{})
 	return res
 }

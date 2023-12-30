@@ -3,8 +3,85 @@ package sorted_set
 import (
 	"errors"
 	"github.com/kelvinmwinuka/memstore/src/utils"
+	"slices"
+	"strconv"
 	"strings"
 )
+
+func extractKeysWeightsAggregateWithScores(cmd []string) ([]string, []int, string, bool, error) {
+	firstModifierIndex := -1
+
+	var weights []int
+	weightsIndex := slices.IndexFunc(cmd, func(s string) bool {
+		return strings.EqualFold(s, "weights")
+	})
+	if weightsIndex != -1 {
+		firstModifierIndex = weightsIndex
+		for i := weightsIndex + 1; i < len(cmd); i++ {
+			if utils.Contains([]string{"aggregate", "withscores"}, cmd[i]) {
+				break
+			}
+			w, err := strconv.Atoi(cmd[i])
+			if err != nil {
+				return []string{}, []int{}, "", false, err
+			}
+			weights = append(weights, w)
+		}
+	}
+
+	aggregate := "sum"
+	aggregateIndex := slices.IndexFunc(cmd, func(s string) bool {
+		return strings.EqualFold(s, "aggregate")
+	})
+	if aggregateIndex != -1 {
+		if firstModifierIndex != -1 && (aggregateIndex != -1 && aggregateIndex < firstModifierIndex) {
+			firstModifierIndex = aggregateIndex
+		} else if firstModifierIndex == -1 {
+			firstModifierIndex = aggregateIndex
+		}
+		if aggregateIndex >= len(cmd)-1 {
+			return []string{}, []int{}, "", false, errors.New("aggregate must be SUM, MIN, or MAX")
+		}
+		if !utils.Contains([]string{"sum", "min", "max"}, strings.ToLower(cmd[aggregateIndex+1])) {
+			return []string{}, []int{}, "", false, errors.New("aggregate must be SUM, MIN, or MAX")
+		}
+		aggregate = strings.ToLower(cmd[aggregateIndex+1])
+	}
+
+	withscores := false
+	withscoresIndex := slices.IndexFunc(cmd, func(s string) bool {
+		return strings.EqualFold(s, "withscores")
+	})
+	if withscoresIndex != -1 {
+		if firstModifierIndex != -1 && (withscoresIndex != -1 && withscoresIndex < firstModifierIndex) {
+			firstModifierIndex = withscoresIndex
+		} else if firstModifierIndex == -1 {
+			firstModifierIndex = withscoresIndex
+		}
+		withscores = true
+	}
+
+	var keys []string
+	if firstModifierIndex == -1 {
+		keys = cmd[1:]
+	} else if firstModifierIndex != -1 && firstModifierIndex < 2 {
+		return []string{}, []int{}, "", false, errors.New("must provide at least 1 key")
+	} else {
+		keys = cmd[1:firstModifierIndex]
+	}
+	if len(keys) < 1 {
+		return []string{}, []int{}, "", false, errors.New("must provide at least 1 key")
+	}
+	if weightsIndex != -1 && (len(keys) != len(weights)) {
+		return []string{}, []int{}, "", false, errors.New("number of weights should match number of keys")
+	} else if weightsIndex == -1 {
+		for i := 0; i < len(keys); i++ {
+			weights = append(weights, 1)
+		}
+	}
+
+	return keys, weights, aggregate, withscores, nil
+}
 
 func validateUpdatePolicy(updatePolicy interface{}) (string, error) {
 	if updatePolicy == nil {
