@@ -54,9 +54,9 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 	case "zmpop":
 		return handleZMPOP(ctx, cmd, server)
 	case "zpopmax":
-		return handleZPOPMAX(ctx, cmd, server)
-	case "zmpopmin":
-		return handleZPOPMIN(ctx, cmd, server)
+		return handleZPOP(ctx, cmd, server)
+	case "zpopmin":
+		return handleZPOP(ctx, cmd, server)
 	case "zmscore":
 		return handleZMSCORE(ctx, cmd, server)
 	case "zscore":
@@ -738,12 +738,57 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte("+(nil)\r\n\r\n"), nil
 }
 
-func handleZPOPMAX(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZMPOPMAX not implemented")
-}
+func handleZPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	if len(cmd) < 2 || len(cmd) > 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
 
-func handleZPOPMIN(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZMPOPMIN not implemented")
+	key := cmd[1]
+	count := 1
+	policy := "min"
+
+	if strings.EqualFold(cmd[0], "zpopmax") {
+		policy = "max"
+	}
+
+	if len(cmd) == 3 {
+		c, err := strconv.Atoi(cmd[2])
+		if err != nil {
+			return nil, err
+		}
+		count = c
+	}
+
+	if !server.KeyExists(key) {
+		return []byte("+(nil)\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at key %s is not a sorted set", key)
+	}
+
+	popped, err := set.Pop(count, policy)
+	if err != nil {
+		return nil, err
+	}
+
+	res := fmt.Sprintf("*%d", popped.Cardinality())
+	for i, m := range popped.GetAll() {
+		s := fmt.Sprintf("%s %f", m.value, m.score)
+		res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+		if i == popped.Cardinality()-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -1107,8 +1152,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-								strings.EqualFold(s, "AGGREGATE") ||
-								strings.EqualFold(s, "WITHSCORES") {
+							strings.EqualFold(s, "AGGREGATE") ||
+							strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
@@ -1136,8 +1181,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-								strings.EqualFold(s, "AGGREGATE") ||
-								strings.EqualFold(s, "WITHSCORES") {
+							strings.EqualFold(s, "AGGREGATE") ||
+							strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
@@ -1211,7 +1256,7 @@ Removes and returns 'count' number of members in the sorted set with the lowest 
 					if len(cmd) < 2 {
 						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
-					return cmd[1:2], nil
+					return []string{cmd[1]}, nil
 				},
 			},
 			{

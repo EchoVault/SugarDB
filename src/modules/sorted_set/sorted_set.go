@@ -291,6 +291,7 @@ func (set *SortedSet) Pop(count int, policy string) (*SortedSet, error) {
 			set.Remove(members[i].value)
 			_, err := popped.AddOrUpdate([]MemberParam{members[i]}, nil, nil, nil, nil)
 			if err != nil {
+				fmt.Println(err.Error())
 				// TODO: Add all the removed elements back if we encounter an error
 				return nil, err
 			}
