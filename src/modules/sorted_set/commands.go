@@ -945,7 +945,45 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 }
 
 func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZREMRANGEBYSCORE not implemented")
+	if len(cmd) != 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	deletedCount := 0
+	key := cmd[1]
+
+	minimum, err := strconv.ParseFloat(cmd[2], 64)
+	if err != nil {
+		return nil, err
+	}
+
+	maximum, err := strconv.ParseFloat(cmd[3], 64)
+	if err != nil {
+		return nil, err
+	}
+
+	if !server.KeyExists(key) {
+		return []byte("_\r\n\r\n"), nil
+	}
+
+	if _, err := server.KeyLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+
+	for _, m := range set.GetAll() {
+		if m.score >= Score(minimum) && m.score <= Score(maximum) {
+			set.Remove(m.value)
+			deletedCount += 1
+		}
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
 }
 
 func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -1194,8 +1232,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-							strings.EqualFold(s, "AGGREGATE") ||
-							strings.EqualFold(s, "WITHSCORES") {
+								strings.EqualFold(s, "AGGREGATE") ||
+								strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
@@ -1223,8 +1261,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-							strings.EqualFold(s, "AGGREGATE") ||
-							strings.EqualFold(s, "WITHSCORES") {
+								strings.EqualFold(s, "AGGREGATE") ||
+								strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
