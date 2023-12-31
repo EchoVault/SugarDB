@@ -163,7 +163,6 @@ func (set *SortedSet) Remove(v Value) bool {
 }
 
 func (set *SortedSet) Subtract(others []*SortedSet) *SortedSet {
-
 	res := NewSortedSet(set.GetAll())
 	for _, ss := range others {
 		for _, m := range ss.GetAll() {

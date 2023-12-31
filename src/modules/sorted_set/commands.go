@@ -388,7 +388,64 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte
 }
 
 func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZDIFFSTORE not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	destination := cmd[1]
+	keys := cmd[2:]
+
+	locks := make(map[string]bool)
+	defer func() {
+		for key, locked := range locks {
+			if locked {
+				server.KeyRUnlock(key)
+			}
+		}
+	}()
+
+	var sets []*SortedSet
+
+	for _, key := range keys {
+		if server.KeyExists(key) {
+			_, err := server.KeyRLock(ctx, key)
+			if err != nil {
+				return nil, err
+			}
+			set, ok := server.GetValue(key).(*SortedSet)
+			if !ok {
+				return nil, fmt.Errorf("value at %s is not a sorted set", key)
+			}
+			sets = append(sets, set)
+		}
+	}
+
+	var diff *SortedSet
+
+	if len(sets) > 1 {
+		diff = sets[0].Subtract(sets[1:])
+	} else if len(sets) == 1 {
+		diff = sets[0]
+	} else {
+		return nil, errors.New("not enough sorted sets to calculate difference")
+	}
+
+	if server.KeyExists(destination) {
+		_, err := server.KeyLock(ctx, destination)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		_, err := server.CreateKeyAndLock(ctx, destination)
+		if err != nil {
+			return nil, err
+		}
+	}
+	defer server.KeyUnlock(destination)
+
+	server.SetValue(ctx, destination, diff)
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", diff.Cardinality())), nil
 }
 
 func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -964,8 +1021,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-							strings.EqualFold(s, "AGGREGATE") ||
-							strings.EqualFold(s, "WITHSCORES") {
+								strings.EqualFold(s, "AGGREGATE") ||
+								strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
@@ -993,8 +1050,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-							strings.EqualFold(s, "AGGREGATE") ||
-							strings.EqualFold(s, "WITHSCORES") {
+								strings.EqualFold(s, "AGGREGATE") ||
+								strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
