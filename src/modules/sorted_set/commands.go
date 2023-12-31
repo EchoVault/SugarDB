@@ -1,6 +1,7 @@
 package sorted_set
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -835,7 +836,49 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server) (
 }
 
 func handleZRANK(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZRANK not implemented")
+	if len(cmd) < 3 || len(cmd) > 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	member := cmd[2]
+	withscores := false
+
+	if len(cmd) == 4 && strings.EqualFold(cmd[3], "withscores") {
+		withscores = true
+	}
+
+	if !server.KeyExists(key) {
+		return []byte("_\r\n\r\n"), nil
+	}
+
+	if _, err := server.KeyRLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+
+	members := set.GetAll()
+	slices.SortFunc(members, func(a, b MemberParam) int {
+		return cmp.Compare(a.score, b.score)
+	})
+
+	for i := 0; i < len(members); i++ {
+		if members[i].value == Value(member) {
+			if withscores {
+				score := strconv.FormatFloat(float64(members[i].score), 'f', -1, 64)
+				return []byte(fmt.Sprintf("*2\r\n:%d\r\n$%d\r\n%s\r\n\r\n", i, len(score), score)), nil
+			} else {
+				return []byte(fmt.Sprintf(":%d\r\n\r\n", i)), nil
+			}
+		}
+	}
+
+	return []byte("_\r\n\r\n"), nil
 }
 
 func handleZREM(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
