@@ -940,10 +940,6 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return []byte(fmt.Sprintf("+%f\r\n\r\n", member.score)), nil
 }
 
-func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZREMRANGEBYLEX not implemented")
-}
-
 func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
@@ -987,7 +983,71 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Serv
 }
 
 func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZREMRANGEBYRANK not implemented")
+	if len(cmd) != 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+
+	start, err := strconv.Atoi(cmd[2])
+	if err != nil {
+		return nil, err
+	}
+
+	stop, err := strconv.Atoi(cmd[3])
+	if err != nil {
+		return nil, err
+	}
+
+	if !server.KeyExists(key) {
+		return []byte("_\r\n\r\n"), nil
+	}
+
+	if _, err := server.KeyLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+
+	if start < 0 {
+		start = start + set.Cardinality()
+	}
+	if stop < 0 {
+		stop = stop + set.Cardinality()
+	}
+
+	if start < 0 || start > set.Cardinality()-1 || stop < 0 || start > set.Cardinality()-1 {
+		return nil, errors.New("indices out of bounds")
+	}
+
+	members := set.GetAll()
+	slices.SortFunc(members, func(a, b MemberParam) int {
+		return cmp.Compare(a.score, b.score)
+	})
+
+	deletedCount := 0
+
+	if start < stop {
+		for i := start; i <= stop; i++ {
+			set.Remove(members[i].value)
+			deletedCount += 1
+		}
+	} else {
+		for i := stop; i <= start; i++ {
+			set.Remove(members[i].value)
+			deletedCount += 1
+		}
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
+}
+
+func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	return nil, errors.New("ZREMRANGEBYLEX not implemented")
 }
 
 func handleZRANGE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -1232,8 +1292,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-								strings.EqualFold(s, "AGGREGATE") ||
-								strings.EqualFold(s, "WITHSCORES") {
+							strings.EqualFold(s, "AGGREGATE") ||
+							strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
@@ -1261,8 +1321,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-								strings.EqualFold(s, "AGGREGATE") ||
-								strings.EqualFold(s, "WITHSCORES") {
+							strings.EqualFold(s, "AGGREGATE") ||
+							strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
