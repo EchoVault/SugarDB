@@ -65,7 +65,7 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 	case "zrank":
 		return handleZRANK(ctx, cmd, server)
 	case "zrevrank":
-		return handleZREVRANK(ctx, cmd, server)
+		return handleZRANK(ctx, cmd, server)
 	case "zrem":
 		return handleZREM(ctx, cmd, server)
 	case "zrandmember":
@@ -864,6 +864,9 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server) ([]byte
 
 	members := set.GetAll()
 	slices.SortFunc(members, func(a, b MemberParam) int {
+		if strings.EqualFold(cmd[0], "zrevrank") {
+			return cmp.Compare(b.score, a.score)
+		}
 		return cmp.Compare(a.score, b.score)
 	})
 
@@ -911,10 +914,6 @@ func handleZREM(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	}
 
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
-}
-
-func handleZREVRANK(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZREVRANK not implemented")
 }
 
 func handleZSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
