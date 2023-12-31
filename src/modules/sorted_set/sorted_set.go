@@ -1,10 +1,12 @@
 package sorted_set
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"math"
+	"slices"
 	"strings"
 )
 
@@ -261,4 +263,39 @@ func (set *SortedSet) Intersect(others []*SortedSet, weights []int, aggregate st
 		}
 	}
 	return res, nil
+}
+
+func (set *SortedSet) Pop(count int, policy string) (*SortedSet, error) {
+	popped := NewSortedSet([]MemberParam{})
+	if !slices.Contains([]string{"min", "max"}, strings.ToLower(policy)) {
+		return nil, errors.New("policy must be MIN or MAX")
+	}
+	if count < 0 {
+		return nil, errors.New("count must be a positive integer")
+	}
+	if count == 0 {
+		return popped, nil
+	}
+
+	members := set.GetAll()
+
+	slices.SortFunc(members, func(a, b MemberParam) int {
+		if strings.EqualFold(policy, "min") {
+			return cmp.Compare(a.score, b.score)
+		}
+		return cmp.Compare(b.score, a.score)
+	})
+
+	for i := 0; i < count; i++ {
+		if i < len(members) {
+			set.Remove(members[i].value)
+			_, err := popped.AddOrUpdate([]MemberParam{members[i]}, nil, nil, nil, nil)
+			if err != nil {
+				// TODO: Add all the removed elements back if we encounter an error
+				return nil, err
+			}
+		}
+	}
+
+	return popped, nil
 }

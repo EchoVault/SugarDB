@@ -8,6 +8,7 @@ import (
 	"math"
 	"net"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -52,10 +53,10 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 		return handleZINTERSTORE(ctx, cmd, server)
 	case "zmpop":
 		return handleZMPOP(ctx, cmd, server)
-	case "zmpopmax":
-		return handleZMPOPMAX(ctx, cmd, server)
+	case "zpopmax":
+		return handleZPOPMAX(ctx, cmd, server)
 	case "zmpopmin":
-		return handleZMPOPMIN(ctx, cmd, server)
+		return handleZPOPMIN(ctx, cmd, server)
 	case "zmscore":
 		return handleZMSCORE(ctx, cmd, server)
 	case "zscore":
@@ -649,14 +650,99 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server) (
 }
 
 func handleZMPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZMPOP not implemented")
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	count := 1
+	policy := "min"
+	modifierIdx := -1
+
+	// Parse COUNT from command
+	countIdx := slices.IndexFunc(cmd, func(s string) bool {
+		return strings.ToLower(s) == "count"
+	})
+	if countIdx != -1 {
+		if countIdx < 2 {
+			return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		}
+		if countIdx == len(cmd)-1 {
+			return nil, errors.New("count must be a positive integer")
+		}
+		c, err := strconv.Atoi(cmd[countIdx+1])
+		if err != nil {
+			return nil, err
+		}
+		if c <= 0 {
+			return nil, errors.New("count must be a positive integer")
+		}
+		count = c
+		modifierIdx = countIdx
+	}
+
+	// Parse MIN/MAX from the command
+	policyIdx := slices.IndexFunc(cmd, func(s string) bool {
+		return slices.Contains([]string{"min", "max"}, strings.ToLower(s))
+	})
+	if policyIdx != -1 {
+		if policyIdx < 2 {
+			return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		}
+		policy = strings.ToLower(cmd[policyIdx])
+		if modifierIdx == -1 || (policyIdx < modifierIdx) {
+			modifierIdx = policyIdx
+		}
+	}
+
+	var keys []string
+	if modifierIdx == -1 {
+		keys = cmd[1:]
+	} else {
+		keys = cmd[1:modifierIdx]
+	}
+
+	for _, key := range keys {
+		if server.KeyExists(key) {
+			_, err := server.KeyLock(ctx, key)
+			if err != nil {
+				continue
+			}
+			v, ok := server.GetValue(key).(*SortedSet)
+			if !ok || v.Cardinality() == 0 {
+				server.KeyUnlock(key)
+				continue
+			}
+			popped, err := v.Pop(count, policy)
+			if err != nil {
+				server.KeyUnlock(key)
+				return nil, err
+			}
+			server.KeyUnlock(key)
+			if popped.Cardinality() == 0 {
+				return []byte("+(nil)\r\n\r\n"), nil
+			}
+
+			res := fmt.Sprintf("*%d", popped.Cardinality())
+			for i, m := range popped.GetAll() {
+				s := fmt.Sprintf("%s %f", m.value, m.score)
+				res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+				if i == popped.Cardinality()-1 {
+					res += "\r\n\r\n"
+				}
+			}
+
+			return []byte(res), nil
+		}
+	}
+
+	return []byte("+(nil)\r\n\r\n"), nil
 }
 
-func handleZMPOPMAX(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZPOPMAX(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	return nil, errors.New("ZMPOPMAX not implemented")
 }
 
-func handleZMPOPMIN(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZPOPMIN(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
 	return nil, errors.New("ZMPOPMIN not implemented")
 }
 
