@@ -144,7 +144,7 @@ func (set *SortedSet) AddOrUpdate(
 			continue
 		}
 		// Policy not specified, just set the elements and scores
-		if set.members[m.value].score != m.score {
+		if set.members[m.value].score != m.score || !set.members[m.value].exists {
 			count += 1
 		}
 		set.members[m.value] = MemberObject{
