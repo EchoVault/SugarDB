@@ -1047,7 +1047,62 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 }
 
 func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZREMRANGEBYLEX not implemented")
+	if len(cmd) != 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	minimum := cmd[2]
+	maximum := cmd[3]
+
+	if !server.KeyExists(key) {
+		return []byte("_\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+
+	members := set.GetAll()
+
+	if len(members) == 0 {
+		return []byte(":0\r\n\r\n"), nil
+	}
+	if len(members) == 1 {
+		// Remove the single member if it's within the range
+		if slices.Contains([]int{1, 0}, compareLex(string(members[0].value), minimum)) &&
+			slices.Contains([]int{-1, 0}, compareLex(string(members[0].value), maximum)) {
+			set.Remove(members[0].value)
+			return []byte(":1\r\n\r\n"), nil
+		}
+	}
+
+	// Check if all the members have the same score. If not, return nil
+	for i := 0; i < len(members)-1; i++ {
+		if members[i].score != members[i+1].score {
+			return []byte("_\r\n\r\n"), nil
+		}
+	}
+
+	deletedCount := 0
+
+	// All the members have the same score
+	for _, m := range members {
+		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
+			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+			set.Remove(m.value)
+			deletedCount += 1
+		}
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
 }
 
 func handleZRANGE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {

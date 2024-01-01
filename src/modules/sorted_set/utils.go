@@ -1,6 +1,7 @@
 package sorted_set
 
 import (
+	"cmp"
 	"errors"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"slices"
@@ -158,4 +159,31 @@ func compareScores(old Score, new Score, comp string) Score {
 		}
 		return old
 	}
+}
+
+func compareLex(s1 string, s2 string) int {
+	if s1 == s2 {
+		return 0
+	}
+	if strings.Contains(s1, s2) {
+		return 1
+	}
+	if strings.Contains(s2, s1) {
+		return -1
+	}
+
+	limit := len(s1)
+	if len(s2) < limit {
+		limit = len(s2)
+	}
+
+	var c int
+	for i := 0; i < limit; i++ {
+		c = cmp.Compare(s1[i], s2[i])
+		if c != 0 {
+			break
+		}
+	}
+
+	return c
 }
