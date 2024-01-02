@@ -70,13 +70,14 @@ func (set *Set) GetRandom(count int) []string {
 		}
 	} else {
 		// Count is positive, do not allow repeat elements
-		for i := 0; i < utils.AbsInt(count); i++ {
+		for i := 0; i < utils.AbsInt(count); {
 			n = rand.Intn(len(keys))
 			if !utils.Contains(res, keys[n]) {
 				res = append(res, keys[n])
 				keys = utils.Filter(keys, func(elem string) bool {
 					return elem != keys[n]
 				})
+				i++
 			}
 		}
 	}

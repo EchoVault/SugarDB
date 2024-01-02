@@ -832,7 +832,61 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server) ([]by
 }
 
 func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZRANDMEMBER not implemented")
+	if len(cmd) < 2 || len(cmd) > 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+
+	count := 1
+	if len(cmd) >= 3 {
+		c, err := strconv.Atoi(cmd[2])
+		if err != nil {
+			return nil, err
+		}
+		count = c
+	}
+
+	withscores := false
+	if len(cmd) == 4 {
+		if strings.EqualFold(cmd[3], "withscores") {
+			withscores = true
+		} else {
+			return nil, errors.New("last option must be WITHSCORES")
+		}
+	}
+
+	if !server.KeyExists(key) {
+		return []byte("_\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a dorted set", key)
+	}
+
+	members := set.GetRandom(count)
+
+	res := fmt.Sprintf("*%d", len(members))
+	for i, m := range members {
+		if withscores {
+			s := fmt.Sprintf("%s %s", m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
+			res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+		} else {
+			res += fmt.Sprintf("\r\n$%d\r\n%s", len(m.value), m.value)
+		}
+		if i == len(members)-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleZRANK(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"math"
+	"math/rand"
 	"slices"
 	"strings"
 )
@@ -51,6 +52,42 @@ func (set *SortedSet) Contains(m Value) bool {
 
 func (set *SortedSet) Get(v Value) MemberObject {
 	return set.members[v]
+}
+
+func (set *SortedSet) GetRandom(count int) []MemberParam {
+	var res []MemberParam
+
+	members := set.GetAll()
+
+	if utils.AbsInt(count) >= len(members) {
+		return members
+	}
+
+	var n int
+
+	if count < 0 {
+		// If count is negative, allow repeat numbers
+		for i := 0; i < utils.AbsInt(count); i++ {
+			n = rand.Intn(len(members))
+			res = append(res, members[n])
+		}
+	} else {
+		// If count is positive only allow unique values
+		for i := 0; i < utils.AbsInt(count); {
+			n = rand.Intn(len(members))
+			if !slices.ContainsFunc(res, func(m MemberParam) bool {
+				return m.value == members[n].value
+			}) {
+				res = append(res, members[n])
+				slices.DeleteFunc(members, func(m MemberParam) bool {
+					return m.value == members[n].value
+				})
+				i++
+			}
+		}
+	}
+
+	return res
 }
 
 func (set *SortedSet) GetAll() []MemberParam {
