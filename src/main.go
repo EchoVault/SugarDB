@@ -9,6 +9,7 @@ import (
 	"github.com/kelvinmwinuka/memstore/src/modules/acl"
 	"github.com/kelvinmwinuka/memstore/src/modules/etc"
 	"github.com/kelvinmwinuka/memstore/src/modules/get"
+	"github.com/kelvinmwinuka/memstore/src/modules/hash"
 	"github.com/kelvinmwinuka/memstore/src/modules/list"
 	"github.com/kelvinmwinuka/memstore/src/modules/ping"
 	"github.com/kelvinmwinuka/memstore/src/modules/pubsub"
@@ -359,6 +360,7 @@ func (server *Server) LoadModules(ctx context.Context) {
 	server.LoadCommands(etc.NewModule())
 	server.LoadCommands(set.NewModule())
 	server.LoadCommands(sorted_set.NewModule())
+	server.LoadCommands(hash.NewModule())
 }
 
 func (server *Server) Start(ctx context.Context) {
