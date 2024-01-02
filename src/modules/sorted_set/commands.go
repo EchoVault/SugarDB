@@ -1357,10 +1357,6 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server) (
 	offset := 0
 	count := -1
 
-	withscores := slices.ContainsFunc(cmd[5:], func(s string) bool {
-		return strings.EqualFold(s, "withscores")
-	})
-
 	reverse := slices.ContainsFunc(cmd[5:], func(s string) bool {
 		return strings.EqualFold(s, "rev")
 	})
@@ -1404,11 +1400,89 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server) (
 		count = c
 	}
 
-	fmt.Println("DESTINATION: ", destination, "SOURCE: ", source, "POLICY: ", policy, "BYSCORE BOUNDS: ",
-		scoreStart, scoreStop, "BYLEX BOUNDS: ", lexStart, lexStop, "OFFSET: ", offset, "COUNT: ", count,
-		"WITHSCORES: ", withscores, "REVERSED: ", reverse)
+	if !server.KeyExists(source) {
+		return []byte("_\r\n\r\n"), nil
+	}
 
-	return []byte("+OK\r\n\r\n"), nil
+	_, err := server.KeyRLock(ctx, source)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(source)
+
+	set, ok := server.GetValue(source).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", source)
+	}
+
+	if offset > set.Cardinality() {
+		return []byte("*0\r\n\r\n"), nil
+	}
+	if count < 0 {
+		count = set.Cardinality() - offset
+	}
+
+	members := set.GetAll()
+	if strings.EqualFold(policy, "byscore") {
+		slices.SortFunc(members, func(a, b MemberParam) int {
+			// Do a score sort
+			if reverse {
+				return cmp.Compare(b.score, a.score)
+			}
+			return cmp.Compare(a.score, b.score)
+		})
+	}
+	if strings.EqualFold(policy, "bylex") {
+		// If policy is BYLEX, all the elements must have the same score
+		for i := 0; i < len(members)-1; i++ {
+			if members[i].score != members[i+1].score {
+				return []byte("*0\r\n\r\n"), nil
+			}
+		}
+		slices.SortFunc(members, func(a, b MemberParam) int {
+			if reverse {
+				return compareLex(string(b.value), string(a.value))
+			}
+			return compareLex(string(a.value), string(b.value))
+		})
+	}
+
+	var resultMembers []MemberParam
+
+	for i := offset; i <= count; i++ {
+		if i >= len(members) {
+			break
+		}
+		if strings.EqualFold(policy, "byscore") {
+			if members[i].score >= Score(scoreStart) && members[i].score <= Score(scoreStop) {
+				resultMembers = append(resultMembers, members[i])
+			}
+			continue
+		}
+		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
+			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+			resultMembers = append(resultMembers, members[i])
+		}
+	}
+
+	newSortedSet := NewSortedSet(resultMembers)
+
+	if server.KeyExists(destination) {
+		_, err := server.KeyLock(ctx, destination)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		_, err := server.CreateKeyAndLock(ctx, destination)
+		if err != nil {
+			return nil, err
+		}
+	}
+	defer server.KeyUnlock(destination)
+
+	server.SetValue(ctx, destination, newSortedSet)
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", newSortedSet.Cardinality())), nil
 }
 
 func handleZUNION(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
