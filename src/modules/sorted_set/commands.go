@@ -42,6 +42,8 @@ func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Se
 		return handleZCARD(ctx, cmd, server)
 	case "zcount":
 		return handleZCOUNT(ctx, cmd, server)
+	case "zlexcount":
+		return handleZLEXCOUNT(ctx, cmd, server)
 	case "zdiff":
 		return handleZDIFF(ctx, cmd, server)
 	case "zdiffstore":
@@ -313,6 +315,50 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	}
 
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(members))), nil
+}
+
+func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+	if len(cmd) != 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	minimum := cmd[2]
+	maximum := cmd[3]
+
+	if !server.KeyExists(key) {
+		return []byte("_\r\n\r\n"), nil
+	}
+
+	if _, err := server.KeyRLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+
+	members := set.GetAll()
+
+	// Check if all members has the same score
+	for i := 0; i < len(members)-2; i++ {
+		if members[i].score != members[i+1].score {
+			return []byte("_\r\n\r\n"), nil
+		}
+	}
+
+	count := 0
+
+	for _, m := range members {
+		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
+				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+			count += 1
+		}
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
 }
 
 func handleZDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -1126,18 +1172,6 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 
 	members := set.GetAll()
 
-	if len(members) == 0 {
-		return []byte(":0\r\n\r\n"), nil
-	}
-	if len(members) == 1 {
-		// Remove the single member if it's within the range
-		if slices.Contains([]int{1, 0}, compareLex(string(members[0].value), minimum)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(members[0].value), maximum)) {
-			set.Remove(members[0].value)
-			return []byte(":1\r\n\r\n"), nil
-		}
-	}
-
 	// Check if all the members have the same score. If not, return nil
 	for i := 0; i < len(members)-1; i++ {
 		if members[i].score != members[i+1].score {
@@ -1150,7 +1184,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	// All the members have the same score
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			set.Remove(m.value)
 			deletedCount += 1
 		}
@@ -1310,7 +1344,7 @@ func NewModule() Plugin {
 		commands: []utils.Command{
 			{
 				Command:    "zadd",
-				Categories: []string{utils.SortedSetCategory, utils.WriteCategory},
+				Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
 				Description: `(ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member...])
 Adds all the specified members with the specified scores to the sorted set at the key`,
 				Sync: true,
@@ -1323,7 +1357,7 @@ Adds all the specified members with the specified scores to the sorted set at th
 			},
 			{
 				Command:     "zcard",
-				Categories:  []string{utils.SortedSetCategory, utils.ReadCategory},
+				Categories:  []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: `(ZCARD key) Returns the set cardinality of the sorted set at key.`,
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -1335,7 +1369,7 @@ Adds all the specified members with the specified scores to the sorted set at th
 			},
 			{
 				Command:    "zcount",
-				Categories: []string{utils.SortedSetCategory, utils.ReadCategory},
+				Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: `(ZCOUNT key min max) 
 Returns the number of elements in the sorted set key with scores in the range of min and max.`,
 				Sync: false,
@@ -1348,7 +1382,7 @@ Returns the number of elements in the sorted set key with scores in the range of
 			},
 			{
 				Command:    "zdiff",
-				Categories: []string{utils.SortedSetCategory, utils.ReadCategory},
+				Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: `(ZDIFF key [key...] [WITHSCORES]) 
 Computes the difference between all the sorted sets specifies in the list of keys and returns the result.`,
 				Sync: false,
@@ -1364,7 +1398,7 @@ Computes the difference between all the sorted sets specifies in the list of key
 			},
 			{
 				Command:    "zdiffstore",
-				Categories: []string{utils.SortedSetCategory, utils.WriteCategory},
+				Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: `(ZDIFFSTORE destination key [key...]). 
 Computes the difference between all the sorted sets specifies in the list of keys. Stores the result in destination.`,
 				Sync: true,
@@ -1377,7 +1411,7 @@ Computes the difference between all the sorted sets specifies in the list of key
 			},
 			{
 				Command:    "zincrby",
-				Categories: []string{utils.SortedSetCategory, utils.WriteCategory},
+				Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
 				Description: `(ZINCRBY key increment member). 
 Increments the score of the specified sorted set's member by the increment. If the member does not exist, it is created.
 If the key does not exist, it is created with new sorted set and the member added with the increment as its score.`,
@@ -1391,7 +1425,7 @@ If the key does not exist, it is created with new sorted set and the member adde
 			},
 			{
 				Command:    "zinter",
-				Categories: []string{utils.SortedSetCategory, utils.ReadCategory},
+				Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: `(ZINTER key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]).
 Computes the intersection of the sets in the keys, with weights, aggregate and scores`,
 				Sync: false,
@@ -1401,8 +1435,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-							strings.EqualFold(s, "AGGREGATE") ||
-							strings.EqualFold(s, "WITHSCORES") {
+								strings.EqualFold(s, "AGGREGATE") ||
+								strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
@@ -1413,13 +1447,12 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					if endIdx >= 1 {
 						return cmd[1 : endIdx+1], nil
 					}
-					// TODO: Change this to syntax error
 					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 				},
 			},
 			{
 				Command:    "zinterstore",
-				Categories: []string{utils.SortedSetCategory, utils.WriteCategory},
+				Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: `
 (ZINTERSTORE destination key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]).
 Computes the intersection of the sets in the keys, with weights, aggregate and scores. The result is stored in destination.`,
@@ -1430,8 +1463,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-							strings.EqualFold(s, "AGGREGATE") ||
-							strings.EqualFold(s, "WITHSCORES") {
+								strings.EqualFold(s, "AGGREGATE") ||
+								strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
@@ -1447,7 +1480,7 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 			},
 			{
 				Command:    "zmpop",
-				Categories: []string{utils.SortedSetCategory, utils.WriteCategory},
+				Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: `(ZMPOP key [key ...] <MIN | MAX> [COUNT count])
 Pop a 'count' elements from sorted set. MIN or MAX determines whether to pop elements with the lowest or highest scores
 respectively.`,
@@ -1470,7 +1503,7 @@ respectively.`,
 			},
 			{
 				Command:    "zmscore",
-				Categories: []string{utils.SortedSetCategory, utils.ReadCategory},
+				Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.FastCategory},
 				Description: `(ZMSCORE key member [member ...])
 Returns the associated scores of the specified member in the sorted set. 
 Returns nil for members that do not exist in the set`,
@@ -1484,7 +1517,7 @@ Returns nil for members that do not exist in the set`,
 			},
 			{
 				Command:    "zpopmax",
-				Categories: []string{utils.SortedSetCategory, utils.WriteCategory},
+				Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: `(ZPOPMAX key [count])
 Removes and returns 'count' number of members in the sorted set with the highest scores. Default count is 1.`,
 				Sync: true,
@@ -1497,7 +1530,7 @@ Removes and returns 'count' number of members in the sorted set with the highest
 			},
 			{
 				Command:    "zpopmin",
-				Categories: []string{utils.SortedSetCategory, utils.WriteCategory},
+				Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: `(ZPOPMIN key [count])
 Removes and returns 'count' number of members in the sorted set with the lowest scores. Default count is 1.`,
 				Sync: true,
@@ -1510,7 +1543,7 @@ Removes and returns 'count' number of members in the sorted set with the lowest 
 			},
 			{
 				Command:    "zrandmember",
-				Categories: []string{utils.SortedSetCategory, utils.ReadCategory},
+				Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: `(ZRANDMEMBER key [count [WITHSCORES]])
 Return a list of length equivalent to count containing random members of the sorted set.
 If count is negative, repeated elements are allowed. If count is positive, the returned elements will be distinct.
@@ -1525,7 +1558,7 @@ WITHSCORES modifies the result to include scores in the result.`,
 			},
 			{
 				Command:    "zrank",
-				Categories: []string{utils.SortedSetCategory, utils.ReadCategory},
+				Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: `(ZRANK key member [WITHSCORE])
 Returns the rank of the specified member in the sorted set. WITHSCORE modifies the result to also return the score.`,
 				Sync: false,
@@ -1538,7 +1571,7 @@ Returns the rank of the specified member in the sorted set. WITHSCORE modifies t
 			},
 			{
 				Command:     "zrem",
-				Categories:  []string{utils.SortedSetCategory, utils.WriteCategory},
+				Categories:  []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
 				Description: `(ZREM key member [member ...]) Removes the listed members from the sorted set.`,
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -1550,7 +1583,7 @@ Returns the rank of the specified member in the sorted set. WITHSCORE modifies t
 			},
 			{
 				Command:    "zrevrank",
-				Categories: []string{utils.SortedSetCategory, utils.ReadCategory},
+				Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: `(ZREVRANK key member [WITHSCORE])
 Returns the rank of the member in the sorted set. WITHSCORE modifies the result to include the score.`,
 				Sync: false,
@@ -1575,79 +1608,57 @@ Returns the rank of the member in the sorted set. WITHSCORE modifies the result 
 			},
 			{
 				Command:     "zremrangebylex",
-				Categories:  []string{utils.SortedSetCategory, utils.WriteCategory},
-				Description: ``,
+				Categories:  []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+				Description: `(ZREMRANGEBYLEX key min max) Removes the elements in the lexicographical range between min and max`,
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
+					if len(cmd) != 4 {
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+					}
+					return cmd[1:2], nil
 				},
 			},
 			{
-				Command:     "zremrangebyrank",
-				Categories:  []string{utils.SortedSetCategory, utils.WriteCategory},
-				Description: ``,
-				Sync:        true,
+				Command:    "zremrangebyrank",
+				Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+				Description: `(ZREMRANGEBYRANK key start stop) Removes the elements in the rank range between start and stop.
+The elements are ordered from lowest score to highest score`,
+				Sync: true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
+					if len(cmd) != 4 {
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+					}
+					return cmd[1:2], nil
 				},
 			},
 			{
 				Command:     "zremrangebyscore",
-				Categories:  []string{utils.SortedSetCategory, utils.WriteCategory},
-				Description: ``,
+				Categories:  []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+				Description: `(ZREMRANGEBYSCORE key min max) Removes the elements whose scores are in the range between min and max`,
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
+					if len(cmd) != 4 {
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+					}
+					return cmd[1:2], nil
 				},
 			},
 			{
-				Command:     "zlexcount",
-				Categories:  []string{},
-				Description: ``,
-				Sync:        true,
+				Command:    "zlexcount",
+				Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+				Description: `(ZLEXCOUNT key min max) Returns the number of elements in within the sorted set within the 
+lexicographical range between min and max`,
+				Sync: false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
+					if len(cmd) != 4 {
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+					}
+					return cmd[1:2], nil
 				},
 			},
 			{
 				Command:     "zrange",
-				Categories:  []string{},
-				Description: ``,
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
-				},
-			},
-			{
-				Command:     "zrangebylex",
-				Categories:  []string{},
-				Description: ``,
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
-				},
-			},
-			{
-				Command:     "zrangebyscore",
-				Categories:  []string{},
-				Description: ``,
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
-				},
-			},
-			{
-				Command:     "zrangestore",
-				Categories:  []string{},
-				Description: ``,
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
-				},
-			},
-			{
-				Command:     "zunion",
-				Categories:  []string{utils.SortedSetCategory, utils.ReadCategory},
+				Categories:  []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 				Description: ``,
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -1655,12 +1666,44 @@ Returns the rank of the member in the sorted set. WITHSCORE modifies the result 
 				},
 			},
 			{
-				Command:     "zunionstore",
-				Categories:  []string{utils.SortedSetCategory, utils.WriteCategory},
+				Command:     "zrangestore",
+				Categories:  []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 				Description: ``,
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					return []string{}, nil
+				},
+			},
+			{
+				Command:    "zunion",
+				Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+				Description: `(ZUNION key [key ...] [WEIGHTS weight [weight ...]]
+[AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]) Return the union of the sorted sets in keys. The scores of each member of 
+a sorted set are multiplied by the corresponding weight in WEIGHTS. Aggregate determines how the scores are combined.
+WITHSCORES option determines wether to return the result with scores included`,
+				Sync: false,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					keys, _, _, _, err := extractKeysWeightsAggregateWithScores(cmd)
+					if err != nil {
+						return nil, err
+					}
+					return keys, nil
+				},
+			},
+			{
+				Command:    "zunionstore",
+				Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+				Description: `(ZUNION destination key [key ...] [WEIGHTS weight [weight ...]]
+[AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]) Return the union of the sorted sets in keys. The scores of each member of 
+a sorted set are multiplied by the corresponding weight in WEIGHTS. Aggregate determines how the scores are combined.
+The resulting union is stores at destination`,
+				Sync: true,
+				KeyExtractionFunc: func(cmd []string) ([]string, error) {
+					keys, _, _, _, err := extractKeysWeightsAggregateWithScores(cmd)
+					if err != nil {
+						return nil, err
+					}
+					return keys, nil
 				},
 			},
 		},

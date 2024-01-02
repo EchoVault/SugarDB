@@ -161,6 +161,8 @@ func compareScores(old Score, new Score, comp string) Score {
 	}
 }
 
+// compareLex returns -1 when s2 is lexicographically greater than s1,
+// 0 if they're equal and 1 if s2 is lexicographically less than s1.
 func compareLex(s1 string, s2 string) int {
 	if s1 == s2 {
 		return 0
