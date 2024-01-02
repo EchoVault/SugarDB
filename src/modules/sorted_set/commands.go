@@ -353,7 +353,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server) ([]
 
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			count += 1
 		}
 	}
@@ -766,7 +766,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte
 			}
 			server.KeyUnlock(key)
 			if popped.Cardinality() == 0 {
-				return []byte("+(nil)\r\n\r\n"), nil
+				return []byte("_\r\n\r\n"), nil
 			}
 
 			res := fmt.Sprintf("*%d", popped.Cardinality())
@@ -782,7 +782,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte
 		}
 	}
 
-	return []byte("+(nil)\r\n\r\n"), nil
+	return []byte("_\r\n\r\n"), nil
 }
 
 func handleZPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -807,7 +807,7 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte("_\r\n\r\n"), nil
 	}
 
 	_, err := server.KeyLock(ctx, key)
@@ -865,7 +865,7 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server) ([]by
 	for i, m := range cmd[2:] {
 		member = set.Get(Value(m))
 		if !member.exists {
-			res = fmt.Sprintf("%s\r\n+(nil)", res)
+			res = fmt.Sprintf("%s\r\n_", res)
 		} else {
 			res = fmt.Sprintf("%s\r\n+%f", res, member.score)
 		}
@@ -1022,7 +1022,7 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	}
 	key := cmd[1]
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte("_\r\n\r\n"), nil
 	}
 	_, err := server.KeyRLock(ctx, key)
 	if err != nil {
@@ -1035,7 +1035,7 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	}
 	member := set.Get(Value(cmd[2]))
 	if !member.exists {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte("_\r\n\r\n"), nil
 	}
 	return []byte(fmt.Sprintf("+%f\r\n\r\n", member.score)), nil
 }
@@ -1184,7 +1184,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	// All the members have the same score
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			set.Remove(m.value)
 			deletedCount += 1
 		}
@@ -1435,8 +1435,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-								strings.EqualFold(s, "AGGREGATE") ||
-								strings.EqualFold(s, "WITHSCORES") {
+							strings.EqualFold(s, "AGGREGATE") ||
+							strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
@@ -1463,8 +1463,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 						if strings.EqualFold(s, "WEIGHTS") ||
-								strings.EqualFold(s, "AGGREGATE") ||
-								strings.EqualFold(s, "WITHSCORES") {
+							strings.EqualFold(s, "AGGREGATE") ||
+							strings.EqualFold(s, "WITHSCORES") {
 							return true
 						}
 						return false
