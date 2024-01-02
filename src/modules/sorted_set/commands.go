@@ -1194,11 +1194,221 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 }
 
 func handleZRANGE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZRANGE not implemented")
+	if len(cmd) < 4 || len(cmd) > 10 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	policy := "byscore"
+	scoreStart := math.Inf(-1) // Lower bound if policy is "byscore"
+	scoreStop := math.Inf(1)   // Upper bound if policy is "byfloat"
+	lexStart := cmd[2]         // Lower bound if policy is "bylex"
+	lexStop := cmd[3]          // Upper bound if policy is "bylex"
+	offset := 0
+	count := -1
+
+	withscores := slices.ContainsFunc(cmd[4:], func(s string) bool {
+		return strings.EqualFold(s, "withscores")
+	})
+
+	reverse := slices.ContainsFunc(cmd[4:], func(s string) bool {
+		return strings.EqualFold(s, "rev")
+	})
+
+	if slices.ContainsFunc(cmd[4:], func(s string) bool {
+		return strings.EqualFold(s, "bylex")
+	}) {
+		policy = "bylex"
+	} else {
+		// policy is "byscore" make sure start and stop are valid float values
+		fStart, err := strconv.ParseFloat(cmd[2], 64)
+		if err != nil {
+			return nil, err
+		}
+		scoreStart = fStart
+		fStop, err := strconv.ParseFloat(cmd[3], 64)
+		if err != nil {
+			return nil, err
+		}
+		scoreStop = fStop
+	}
+
+	if slices.ContainsFunc(cmd[4:], func(s string) bool {
+		return strings.EqualFold(s, "limit")
+	}) {
+		limitIdx := slices.IndexFunc(cmd[4:], func(s string) bool {
+			return strings.EqualFold(s, "limit")
+		})
+		if limitIdx != -1 && limitIdx > len(cmd[4:])-3 {
+			return nil, errors.New("limit should contain offset and count as integers")
+		}
+		o, err := strconv.Atoi(cmd[4:][limitIdx+1])
+		if err != nil {
+			return nil, err
+		}
+		if o < 0 {
+			return nil, errors.New("offset must be >= 0")
+		}
+		offset = o
+		c, err := strconv.Atoi(cmd[4:][limitIdx+2])
+		if err != nil {
+			return nil, err
+		}
+		count = c
+	}
+
+	if !server.KeyExists(key) {
+		return []byte("_\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+
+	if offset > set.Cardinality() {
+		return []byte("*0\r\n\r\n"), nil
+	}
+	if count < 0 {
+		count = set.Cardinality() - offset
+	}
+
+	members := set.GetAll()
+	if strings.EqualFold(policy, "byscore") {
+		slices.SortFunc(members, func(a, b MemberParam) int {
+			// Do a score sort
+			if reverse {
+				return cmp.Compare(b.score, a.score)
+			}
+			return cmp.Compare(a.score, b.score)
+		})
+	}
+	if strings.EqualFold(policy, "bylex") {
+		// If policy is BYLEX, all the elements must have the same score
+		for i := 0; i < len(members)-1; i++ {
+			if members[i].score != members[i+1].score {
+				return []byte("*0\r\n\r\n"), nil
+			}
+		}
+		slices.SortFunc(members, func(a, b MemberParam) int {
+			if reverse {
+				return compareLex(string(b.value), string(a.value))
+			}
+			return compareLex(string(a.value), string(b.value))
+		})
+	}
+
+	var resultMembers []MemberParam
+
+	for i := offset; i <= count; i++ {
+		if i >= len(members) {
+			break
+		}
+		if strings.EqualFold(policy, "byscore") {
+			if members[i].score >= Score(scoreStart) && members[i].score <= Score(scoreStop) {
+				resultMembers = append(resultMembers, members[i])
+			}
+			continue
+		}
+		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
+			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+			resultMembers = append(resultMembers, members[i])
+		}
+	}
+
+	res := fmt.Sprintf("*%d", len(resultMembers))
+	if len(resultMembers) == 0 {
+		res += "\r\n\r\n"
+	}
+	for i, m := range resultMembers {
+		if withscores {
+			score := strconv.FormatFloat(float64(m.score), 'f', -1, 64)
+			s := fmt.Sprintf("%s %s", m.value, score)
+			res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+		} else {
+			res += fmt.Sprintf("\r\n$%d\r\n%s", len(m.value), m.value)
+		}
+		if i == len(resultMembers)-1 {
+			res += "\r\n\r\n"
+		}
+	}
+
+	return []byte(res), nil
 }
 
 func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	return nil, errors.New("ZRANGESTORE not implemented")
+	if len(cmd) < 5 || len(cmd) > 11 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	destination := cmd[1]
+	source := cmd[2]
+	policy := "byscore"
+	scoreStart := math.Inf(-1) // Lower bound if policy is "byscore"
+	scoreStop := math.Inf(1)   // Upper bound if policy is "byfloat"
+	lexStart := cmd[3]         // Lower bound if policy is "bylex"
+	lexStop := cmd[4]          // Upper bound if policy is "bylex"
+	offset := 0
+	count := -1
+
+	withscores := slices.ContainsFunc(cmd[5:], func(s string) bool {
+		return strings.EqualFold(s, "withscores")
+	})
+
+	reverse := slices.ContainsFunc(cmd[5:], func(s string) bool {
+		return strings.EqualFold(s, "rev")
+	})
+
+	if slices.ContainsFunc(cmd[5:], func(s string) bool {
+		return strings.EqualFold(s, "bylex")
+	}) {
+		policy = "bylex"
+	} else {
+		// policy is "byscore" make sure start and stop are valid float values
+		fStart, err := strconv.ParseFloat(cmd[3], 64)
+		if err != nil {
+			return nil, err
+		}
+		scoreStart = fStart
+		fStop, err := strconv.ParseFloat(cmd[4], 64)
+		if err != nil {
+			return nil, err
+		}
+		scoreStop = fStop
+	}
+
+	if slices.ContainsFunc(cmd[5:], func(s string) bool {
+		return strings.EqualFold(s, "limit")
+	}) {
+		limitIdx := slices.IndexFunc(cmd[5:], func(s string) bool {
+			return strings.EqualFold(s, "limit")
+		})
+		if limitIdx != -1 && limitIdx > len(cmd[5:])-3 {
+			return nil, errors.New("limit should contain offset and count as integers")
+		}
+		o, err := strconv.Atoi(cmd[5:][limitIdx+1])
+		if err != nil {
+			return nil, err
+		}
+		offset = o
+		c, err := strconv.Atoi(cmd[5:][limitIdx+2])
+		if err != nil {
+			return nil, err
+		}
+		count = c
+	}
+
+	fmt.Println("DESTINATION: ", destination, "SOURCE: ", source, "POLICY: ", policy, "BYSCORE BOUNDS: ",
+		scoreStart, scoreStop, "BYLEX BOUNDS: ", lexStart, lexStop, "OFFSET: ", offset, "COUNT: ", count,
+		"WITHSCORES: ", withscores, "REVERSED: ", reverse)
+
+	return []byte("+OK\r\n\r\n"), nil
 }
 
 func handleZUNION(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
@@ -1657,21 +1867,29 @@ lexicographical range between min and max`,
 				},
 			},
 			{
-				Command:     "zrange",
-				Categories:  []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: ``,
-				Sync:        false,
+				Command:    "zrange",
+				Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+				Description: `(ZRANGE key start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count]
+  [WITHSCORES]) Returns the range of elements in the sorted set`,
+				Sync: false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
+					if len(cmd) < 4 || len(cmd) > 10 {
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+					}
+					return cmd[1:2], nil
 				},
 			},
 			{
-				Command:     "zrangestore",
-				Categories:  []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
-				Description: ``,
-				Sync:        true,
+				Command:    "zrangestore",
+				Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+				Description: `ZRANGE destination source start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count]
+  [WITHSCORES] Retrieve the range of elements in the sorted set and store it in destination`,
+				Sync: true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
+					if len(cmd) < 5 || len(cmd) > 11 {
+						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+					}
+					return cmd[1:3], nil
 				},
 			},
 			{
