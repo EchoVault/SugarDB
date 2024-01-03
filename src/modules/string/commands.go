@@ -235,7 +235,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
-				HandlerFunc: handleGetRange,
+				HandlerFunc: handleSubStr,
 			},
 		},
 		description: "Handle basic STRING commands",
