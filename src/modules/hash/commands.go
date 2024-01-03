@@ -77,8 +77,8 @@ func NewModule() Plugin {
 			{
 				Command:    "hstrlen",
 				Categories: []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-				Description: `(HSTRLEN key field) Return the string length of the value stored at field. 
-0 if the value does not exist`,
+				Description: `(HSTRLEN key field) Return the string length of the value stored at field.
+			0 if the value does not exist`,
 				Sync: false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) != 3 {

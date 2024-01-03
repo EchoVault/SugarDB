@@ -16,7 +16,6 @@ import (
 type Plugin struct {
 	name        string
 	commands    []utils.Command
-	categories  []string
 	description string
 	acl         *ACL
 }
