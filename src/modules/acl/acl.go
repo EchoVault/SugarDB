@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -236,7 +237,7 @@ func (acl *ACL) AuthenticateConnection(ctx context.Context, conn *net.Conn, cmd 
 	return errors.New("could not authenticate user")
 }
 
-func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.Command, subCommand interface{}) error {
+func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.Command, subCommand utils.SubCommand) error {
 	// Extract command, categories, and keys
 	comm := command.Command
 	categories := command.Categories
@@ -246,10 +247,10 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return err
 	}
 
-	if sub, ok := subCommand.(utils.SubCommand); ok {
-		comm = fmt.Sprintf("%s|%s", comm, sub.Command)
-		categories = append(categories, sub.Categories...)
-		keys, err = sub.KeyExtractionFunc(cmd)
+	if !reflect.DeepEqual(subCommand, utils.SubCommand{}) {
+		comm = fmt.Sprintf("%s|%s", comm, subCommand.Command)
+		categories = append(categories, subCommand.Categories...)
+		keys, err = subCommand.KeyExtractionFunc(cmd)
 		if err != nil {
 			return err
 		}

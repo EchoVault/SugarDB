@@ -29,45 +29,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	c := strings.ToLower(cmd[0])
-
-	switch {
-	default:
-		return nil, errors.New("command unknown")
-	case c == "llen":
-		return handleLLen(ctx, cmd, server)
-
-	case c == "lindex":
-		return handleLIndex(ctx, cmd, server)
-
-	case c == "lrange":
-		return handleLRange(ctx, cmd, server)
-
-	case c == "lset":
-		return handleLSet(ctx, cmd, server)
-
-	case c == "ltrim":
-		return handleLTrim(ctx, cmd, server)
-
-	case c == "lrem":
-		return handleLRem(ctx, cmd, server)
-
-	case c == "lmove":
-		return handleLMove(ctx, cmd, server)
-
-	case utils.Contains[string]([]string{"lpush", "lpushx"}, c):
-		return handleLPush(ctx, cmd, server)
-
-	case utils.Contains[string]([]string{"rpush", "rpushx"}, c):
-		return handleRPush(ctx, cmd, server)
-
-	case utils.Contains[string]([]string{"lpop", "rpop"}, c):
-		return handlePop(ctx, cmd, server)
-	}
-}
-
-func handleLLen(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleLLen(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -93,7 +55,7 @@ func handleLLen(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(list))), nil
 }
 
-func handleLIndex(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleLIndex(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -127,7 +89,7 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return []byte(fmt.Sprintf("+%s\r\n\r\n", list[index])), nil
 }
 
-func handleLRange(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -210,7 +172,7 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return bytes, nil
 }
 
-func handleLSet(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleLSet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -251,7 +213,7 @@ func handleLSet(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func handleLTrim(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleLTrim(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -294,7 +256,7 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func handleLRem(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -361,7 +323,7 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func handleLMove(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 5 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -418,7 +380,7 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func handleLPush(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -461,7 +423,7 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func handleRPush(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -507,7 +469,7 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func handlePop(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handlePop(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -559,6 +521,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleLPush,
 			},
 			{
 				Command:     "lpushx",
@@ -571,6 +534,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleLPush,
 			},
 			{
 				Command:     "lpop",
@@ -583,6 +547,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handlePop,
 			},
 			{
 				Command:     "llen",
@@ -595,6 +560,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleLLen,
 			},
 			{
 				Command:     "lrange",
@@ -607,6 +573,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleLRange,
 			},
 			{
 				Command:     "lindex",
@@ -619,6 +586,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleLIndex,
 			},
 			{
 				Command:     "lset",
@@ -631,6 +599,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleLSet,
 			},
 			{
 				Command:     "ltrim",
@@ -643,6 +612,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleLTrim,
 			},
 			{
 				Command:     "lrem",
@@ -655,6 +625,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleLRem,
 			},
 			{
 				Command:     "lmove",
@@ -667,6 +638,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1], cmd[2]}, nil
 				},
+				HandlerFunc: handleLMove,
 			},
 			{
 				Command:     "rpop",
@@ -679,6 +651,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handlePop,
 			},
 			{
 				Command:     "rpush",
@@ -691,6 +664,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleRPush,
 			},
 			{
 				Command:     "rpushx",
@@ -703,6 +677,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleRPush,
 			},
 		},
 		description: "Handle List commands",

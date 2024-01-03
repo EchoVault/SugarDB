@@ -27,22 +27,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	switch strings.ToLower(cmd[0]) {
-	default:
-		return nil, errors.New("command unknown")
-	case "setrange":
-		return handleSetRange(ctx, cmd, server)
-	case "strlen":
-		return handleStrLen(ctx, cmd, server)
-	case "substr":
-		return handleSubStr(ctx, cmd, server)
-	case "getrange":
-		return handleSubStr(ctx, cmd, server)
-	}
-}
-
-func handleSetRange(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd[1:]) != 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -108,7 +93,7 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server) ([]b
 	return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
 }
 
-func handleStrLen(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd[1:]) != 1 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -133,7 +118,7 @@ func handleStrLen(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return []byte(fmt.Sprintf(":%d\r\n\n", len(value))), nil
 }
 
-func handleSubStr(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd[1:]) != 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -211,6 +196,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSetRange,
 			},
 			{
 				Command:     "strlen",
@@ -223,6 +209,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleStrLen,
 			},
 			{
 				Command:     "substr",
@@ -235,6 +222,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSubStr,
 			},
 			{
 				Command:     "getrange",
@@ -247,6 +235,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleGetRange,
 			},
 		},
 		description: "Handle basic STRING commands",

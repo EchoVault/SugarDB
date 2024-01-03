@@ -33,55 +33,33 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if strings.EqualFold(cmd[0], "auth") {
-		return p.handleAuth(ctx, cmd, server, conn)
-	}
-	if strings.EqualFold(cmd[0], "acl") {
-		switch strings.ToLower(cmd[1]) {
-		default:
-			return nil, errors.New("not implemented")
-		case "getuser":
-			return p.handleGetUser(ctx, cmd, server, conn)
-		case "cat":
-			return p.handleCat(ctx, cmd, server)
-		case "users":
-			return p.handleUsers(ctx, cmd, server)
-		case "setuser":
-			return p.handleSetUser(ctx, cmd, server)
-		case "deluser":
-			return p.handleDelUser(ctx, cmd, server)
-		case "whoami":
-			return p.handleWhoAmI(ctx, cmd, server, conn)
-		case "list":
-			return p.handleList(ctx, cmd, server)
-		case "load":
-			return p.handleLoad(ctx, cmd, server)
-		case "save":
-			return p.handleSave(ctx, cmd, server)
-		}
-	}
-	return nil, errors.New("not implemented")
-}
-
-func (p Plugin) handleAuth(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleAuth(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
-	if err := p.acl.AuthenticateConnection(ctx, conn, cmd); err != nil {
+	acl, ok := server.GetACL().(*ACL)
+	if !ok {
+		return nil, errors.New("could not load ACL")
+	}
+	if err := acl.AuthenticateConnection(ctx, conn, cmd); err != nil {
 		return nil, err
 	}
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func (p Plugin) handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
+	acl, ok := server.GetACL().(*ACL)
+	if !ok {
+		return nil, errors.New("could not load ACL")
+	}
+
 	var user *User
 	userFound := false
-	for _, u := range p.acl.Users {
+	for _, u := range acl.Users {
 		if u.Username == cmd[2] {
 			user = u
 			userFound = true
@@ -177,7 +155,7 @@ func (p Plugin) handleGetUser(ctx context.Context, cmd []string, server utils.Se
 	return []byte(res), nil
 }
 
-func (p Plugin) handleCat(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleCat(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -237,44 +215,64 @@ func (p Plugin) handleCat(ctx context.Context, cmd []string, server utils.Server
 	return nil, errors.New("category not found")
 }
 
-func (p Plugin) handleUsers(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	res := fmt.Sprintf("*%d", len(p.acl.Users))
-	for _, user := range p.acl.Users {
+func handleUsers(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	acl, ok := server.GetACL().(*ACL)
+	if !ok {
+		return nil, errors.New("could not load ACL")
+	}
+	res := fmt.Sprintf("*%d", len(acl.Users))
+	for _, user := range acl.Users {
 		res += fmt.Sprintf("\r\n$%d\r\n%s", len(user.Username), user.Username)
 	}
 	res += "\r\n\n"
 	return []byte(res), nil
 }
 
-func (p Plugin) handleSetUser(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
-	if err := p.acl.SetUser(ctx, cmd[2:]); err != nil {
+func handleSetUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	acl, ok := server.GetACL().(*ACL)
+	if !ok {
+		return nil, errors.New("could not load ACL")
+	}
+	if err := acl.SetUser(ctx, cmd[2:]); err != nil {
 		return nil, err
 	}
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func (p Plugin) handleDelUser(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleDelUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
-	if err := p.acl.DeleteUser(ctx, cmd[2:]); err != nil {
+	acl, ok := server.GetACL().(*ACL)
+	if !ok {
+		return nil, errors.New("could not load ACL")
+	}
+	if err := acl.DeleteUser(ctx, cmd[2:]); err != nil {
 		return nil, err
 	}
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func (p Plugin) handleWhoAmI(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	connectionInfo := p.acl.Connections[conn]
+func handleWhoAmI(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	acl, ok := server.GetACL().(*ACL)
+	if !ok {
+		return nil, errors.New("could not load ACL")
+	}
+	connectionInfo := acl.Connections[conn]
 	return []byte(fmt.Sprintf("+%s\r\n\n", connectionInfo.User.Username)), nil
 }
 
-func (p Plugin) handleList(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleList(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) > 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
-	res := fmt.Sprintf("*%d", len(p.acl.Users))
+	acl, ok := server.GetACL().(*ACL)
+	if !ok {
+		return nil, errors.New("could not load ACL")
+	}
+	res := fmt.Sprintf("*%d", len(acl.Users))
 	s := ""
-	for _, user := range p.acl.Users {
+	for _, user := range acl.Users {
 		s = user.Username
 		// User enabled
 		if user.Enabled {
@@ -358,12 +356,17 @@ func (p Plugin) handleList(ctx context.Context, cmd []string, server utils.Serve
 	return []byte(res), nil
 }
 
-func (p Plugin) handleLoad(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleLoad(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	f, err := os.Open(p.acl.Config.AclConfig)
+	acl, ok := server.GetACL().(*ACL)
+	if !ok {
+		return nil, errors.New("could not load ACL")
+	}
+
+	f, err := os.Open(acl.Config.AclConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +399,7 @@ func (p Plugin) handleLoad(ctx context.Context, cmd []string, server utils.Serve
 		user.Normalise()
 		// Traverse the list of users.
 		userFound := false
-		for _, u := range p.acl.Users {
+		for _, u := range acl.Users {
 			if u.Username == user.Username {
 				userFound = true
 				// If we have a user with the current username and are in merge mode, merge the two users.
@@ -411,19 +414,24 @@ func (p Plugin) handleLoad(ctx context.Context, cmd []string, server utils.Serve
 		}
 		// If the no user with current loaded username is already in acl list, then append the user to the list
 		if !userFound {
-			p.acl.Users = append(p.acl.Users, user)
+			acl.Users = append(acl.Users, user)
 		}
 	}
 
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func (p Plugin) handleSave(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSave(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) > 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	f, err := os.OpenFile(p.acl.Config.AclConfig, os.O_WRONLY|os.O_CREATE, os.ModeAppend)
+	acl, ok := server.GetACL().(*ACL)
+	if !ok {
+		return nil, errors.New("could not load ACL")
+	}
+
+	f, err := os.OpenFile(acl.Config.AclConfig, os.O_WRONLY|os.O_CREATE, os.ModeAppend)
 	if err != nil {
 		return nil, err
 	}
@@ -439,7 +447,7 @@ func (p Plugin) handleSave(ctx context.Context, cmd []string, server utils.Serve
 
 	if ext == ".json" {
 		// Write to JSON config file
-		out, err := json.Marshal(p.acl.Users)
+		out, err := json.Marshal(acl.Users)
 		if err != nil {
 			return nil, err
 		}
@@ -451,7 +459,7 @@ func (p Plugin) handleSave(ctx context.Context, cmd []string, server utils.Serve
 
 	if ext == ".yaml" || ext == ".yml" {
 		// Write to yaml file
-		out, err := yaml.Marshal(p.acl.Users)
+		out, err := yaml.Marshal(acl.Users)
 		if err != nil {
 			return nil, err
 		}
@@ -469,9 +477,8 @@ func (p Plugin) handleSave(ctx context.Context, cmd []string, server utils.Serve
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func NewModule(acl *ACL) Plugin {
+func NewModule() Plugin {
 	ACLPlugin := Plugin{
-		acl:  acl,
 		name: "ACLCommands",
 		commands: []utils.Command{
 			{
@@ -482,6 +489,7 @@ func NewModule(acl *ACL) Plugin {
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					return []string{}, nil
 				},
+				HandlerFunc: handleAuth,
 			},
 			{
 				Command:     "acl",
@@ -500,6 +508,7 @@ func NewModule(acl *ACL) Plugin {
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
 						},
+						HandlerFunc: handleCat,
 					},
 					{
 						Command:     "users",
@@ -509,6 +518,7 @@ func NewModule(acl *ACL) Plugin {
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
 						},
+						HandlerFunc: handleUsers,
 					},
 					{
 						Command:     "setuser",
@@ -518,6 +528,7 @@ func NewModule(acl *ACL) Plugin {
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
 						},
+						HandlerFunc: handleSetUser,
 					},
 					{
 						Command:     "getuser",
@@ -527,6 +538,7 @@ func NewModule(acl *ACL) Plugin {
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
 						},
+						HandlerFunc: handleGetUser,
 					},
 					{
 						Command:     "deluser",
@@ -536,6 +548,7 @@ func NewModule(acl *ACL) Plugin {
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
 						},
+						HandlerFunc: handleDelUser,
 					},
 					{
 						Command:     "whoami",
@@ -545,6 +558,7 @@ func NewModule(acl *ACL) Plugin {
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
 						},
+						HandlerFunc: handleWhoAmI,
 					},
 					{
 						Command:     "list",
@@ -554,6 +568,7 @@ func NewModule(acl *ACL) Plugin {
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
 						},
+						HandlerFunc: handleList,
 					},
 					{
 						Command:    "load",
@@ -566,6 +581,7 @@ When 'REPLACED' is passed, users from config file who share a username with user
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
 						},
+						HandlerFunc: handleLoad,
 					},
 					{
 						Command:     "save",
@@ -575,6 +591,7 @@ When 'REPLACED' is passed, users from config file who share a username with user
 						KeyExtractionFunc: func(cmd []string) ([]string, error) {
 							return []string{}, nil
 						},
+						HandlerFunc: handleSave,
 					},
 				},
 			},

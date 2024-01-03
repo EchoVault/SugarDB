@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
-	"strings"
 )
 
 type Plugin struct {
@@ -27,63 +26,61 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	switch strings.ToLower(cmd[0]) {
-	default:
-		return nil, errors.New("command unknown")
-	case "publish":
-		return handlePublish(ctx, p, cmd, server)
-	case "subscribe":
-		return handleSubscribe(ctx, p, cmd, server, conn)
-	case "unsubscribe":
-		return handleUnsubscribe(ctx, p, cmd, server, conn)
+func handleSubscribe(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	pubsub, ok := server.GetPubSub().(*PubSub)
+	if !ok {
+		return nil, errors.New("could not load pubsub")
 	}
-}
-
-func handleSubscribe(ctx context.Context, p Plugin, cmd []string, s utils.Server, conn *net.Conn) ([]byte, error) {
 	switch len(cmd) {
 	case 1:
 		// Subscribe to all channels
-		p.pubSub.Subscribe(ctx, conn, nil, nil)
+		pubsub.Subscribe(ctx, conn, nil, nil)
 	case 2:
 		// Subscribe to specified channel
-		p.pubSub.Subscribe(ctx, conn, cmd[1], nil)
+		pubsub.Subscribe(ctx, conn, cmd[1], nil)
 	case 3:
 		// Subscribe to specified channel and specified consumer group
-		p.pubSub.Subscribe(ctx, conn, cmd[1], cmd[2])
+		pubsub.Subscribe(ctx, conn, cmd[1], cmd[2])
 	default:
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 	return []byte("+SUBSCRIBE_OK\r\n\n"), nil
 }
 
-func handleUnsubscribe(ctx context.Context, p Plugin, cmd []string, s utils.Server, conn *net.Conn) ([]byte, error) {
+func handleUnsubscribe(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	pubsub, ok := server.GetPubSub().(*PubSub)
+	if !ok {
+		return nil, errors.New("could not load pubsub")
+	}
 	switch len(cmd) {
 	case 1:
-		p.pubSub.Unsubscribe(ctx, conn, nil)
+		pubsub.Unsubscribe(ctx, conn, nil)
 	case 2:
-		p.pubSub.Unsubscribe(ctx, conn, cmd[1])
+		pubsub.Unsubscribe(ctx, conn, cmd[1])
 	default:
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func handlePublish(ctx context.Context, p Plugin, cmd []string, s utils.Server) ([]byte, error) {
+func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	pubsub, ok := server.GetPubSub().(*PubSub)
+	if !ok {
+		return nil, errors.New("could not load pubsub")
+	}
 	if len(cmd) == 3 {
-		p.pubSub.Publish(ctx, cmd[2], cmd[1])
+		pubsub.Publish(ctx, cmd[2], cmd[1])
 	} else if len(cmd) == 2 {
-		p.pubSub.Publish(ctx, cmd[1], nil)
+		pubsub.Publish(ctx, cmd[1], nil)
 	} else {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func NewModule(pubsub *PubSub) Plugin {
+func NewModule() Plugin {
 	PubSubModule := Plugin{
-		pubSub: pubsub,
-		name:   "PubSubCommands",
+		name: "PubSubCommands",
 		commands: []utils.Command{
 			{
 				Command:     "publish",
@@ -97,6 +94,7 @@ func NewModule(pubsub *PubSub) Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handlePublish,
 			},
 			{
 				Command:     "subscribe",
@@ -110,6 +108,7 @@ func NewModule(pubsub *PubSub) Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSubscribe,
 			},
 			{
 				Command:     "unsubscribe",
@@ -123,6 +122,7 @@ func NewModule(pubsub *PubSub) Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleUnsubscribe,
 			},
 		},
 		description: "Handle PUBSUB feature",

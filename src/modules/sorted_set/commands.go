@@ -32,64 +32,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	switch strings.ToLower(cmd[0]) {
-	default:
-		return nil, errors.New("command unknown")
-	case "zadd":
-		return handleZADD(ctx, cmd, server)
-	case "zcard":
-		return handleZCARD(ctx, cmd, server)
-	case "zcount":
-		return handleZCOUNT(ctx, cmd, server)
-	case "zlexcount":
-		return handleZLEXCOUNT(ctx, cmd, server)
-	case "zdiff":
-		return handleZDIFF(ctx, cmd, server)
-	case "zdiffstore":
-		return handleZDIFFSTORE(ctx, cmd, server)
-	case "zincrby":
-		return handleZINCRBY(ctx, cmd, server)
-	case "zinter":
-		return handleZINTER(ctx, cmd, server)
-	case "zinterstore":
-		return handleZINTERSTORE(ctx, cmd, server)
-	case "zmpop":
-		return handleZMPOP(ctx, cmd, server)
-	case "zpopmax":
-		return handleZPOP(ctx, cmd, server)
-	case "zpopmin":
-		return handleZPOP(ctx, cmd, server)
-	case "zmscore":
-		return handleZMSCORE(ctx, cmd, server)
-	case "zscore":
-		return handleZSCORE(ctx, cmd, server)
-	case "zrank":
-		return handleZRANK(ctx, cmd, server)
-	case "zrevrank":
-		return handleZRANK(ctx, cmd, server)
-	case "zrem":
-		return handleZREM(ctx, cmd, server)
-	case "zrandmember":
-		return handleZRANDMEMBER(ctx, cmd, server)
-	case "zremrangebylex":
-		return handleZREMRANGEBYLEX(ctx, cmd, server)
-	case "zremrangebyscore":
-		return handleZREMRANGEBYSCORE(ctx, cmd, server)
-	case "zremrangebyrank":
-		return handleZREMRANGEBYRANK(ctx, cmd, server)
-	case "zrange":
-		return handleZRANGE(ctx, cmd, server)
-	case "zrangestore":
-		return handleZRANGESTORE(ctx, cmd, server)
-	case "zunion":
-		return handleZUNION(ctx, cmd, server)
-	case "zunionstore":
-		return handleZUNIONSTORE(ctx, cmd, server)
-	}
-}
-
-func handleZADD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -225,7 +168,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", set.Cardinality())), nil
 }
 
-func handleZCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -249,7 +192,7 @@ func handleZCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", set.Cardinality())), nil
 }
 
-func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -317,7 +260,7 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(members))), nil
 }
 
-func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -361,7 +304,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server) ([]
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
 }
 
-func handleZDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -435,7 +378,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte(res), nil
 }
 
-func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -496,7 +439,7 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server) ([
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", diff.Cardinality())), nil
 }
 
-func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -559,7 +502,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server) ([]by
 	return []byte(fmt.Sprintf("+%f\r\n\r\n", set.Get(member).score)), nil
 }
 
-func handleZINTER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -628,7 +571,7 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return []byte(res), nil
 }
 
-func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -696,7 +639,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server) (
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", intersect.Cardinality())), nil
 }
 
-func handleZMPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -785,7 +728,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte("_\r\n\r\n"), nil
 }
 
-func handleZPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -838,7 +781,7 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	return []byte(res), nil
 }
 
-func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -877,7 +820,7 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server) ([]by
 	return []byte(res), nil
 }
 
-func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 || len(cmd) > 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -935,7 +878,7 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server) (
 	return []byte(res), nil
 }
 
-func handleZRANK(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 || len(cmd) > 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -984,7 +927,7 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte("_\r\n\r\n"), nil
 }
 
-func handleZREM(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -1016,7 +959,7 @@ func handleZREM(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
 }
 
-func handleZSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -1040,7 +983,7 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return []byte(fmt.Sprintf("+%f\r\n\r\n", member.score)), nil
 }
 
-func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -1082,7 +1025,7 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Serv
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
 }
 
-func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -1146,7 +1089,7 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
 }
 
-func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -1193,7 +1136,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
 }
 
-func handleZRANGE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 4 || len(cmd) > 10 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -1342,7 +1285,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return []byte(res), nil
 }
 
-func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 5 || len(cmd) > 11 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -1485,7 +1428,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server) (
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", newSortedSet.Cardinality())), nil
 }
 
-func handleZUNION(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -1550,7 +1493,7 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return []byte(res), nil
 }
 
-func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -1638,6 +1581,7 @@ Adds all the specified members with the specified scores to the sorted set at th
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZADD,
 			},
 			{
 				Command:     "zcard",
@@ -1650,6 +1594,7 @@ Adds all the specified members with the specified scores to the sorted set at th
 					}
 					return cmd[1:], nil
 				},
+				HandlerFunc: handleZCARD,
 			},
 			{
 				Command:    "zcount",
@@ -1663,6 +1608,7 @@ Returns the number of elements in the sorted set key with scores in the range of
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZCOUNT,
 			},
 			{
 				Command:    "zdiff",
@@ -1679,6 +1625,7 @@ Computes the difference between all the sorted sets specifies in the list of key
 					})
 					return keys, nil
 				},
+				HandlerFunc: handleZDIFF,
 			},
 			{
 				Command:    "zdiffstore",
@@ -1692,6 +1639,7 @@ Computes the difference between all the sorted sets specifies in the list of key
 					}
 					return cmd[2:], nil
 				},
+				HandlerFunc: handleZDIFFSTORE,
 			},
 			{
 				Command:    "zincrby",
@@ -1706,6 +1654,7 @@ If the key does not exist, it is created with new sorted set and the member adde
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZINCRBY,
 			},
 			{
 				Command:    "zinter",
@@ -1733,6 +1682,7 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 				},
+				HandlerFunc: handleZINTER,
 			},
 			{
 				Command:    "zinterstore",
@@ -1761,6 +1711,7 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 					}
 					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 				},
+				HandlerFunc: handleZINTERSTORE,
 			},
 			{
 				Command:    "zmpop",
@@ -1784,6 +1735,7 @@ respectively.`,
 					}
 					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 				},
+				HandlerFunc: handleZMPOP,
 			},
 			{
 				Command:    "zmscore",
@@ -1798,6 +1750,7 @@ Returns nil for members that do not exist in the set`,
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZMSCORE,
 			},
 			{
 				Command:    "zpopmax",
@@ -1811,6 +1764,7 @@ Removes and returns 'count' number of members in the sorted set with the highest
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZPOP,
 			},
 			{
 				Command:    "zpopmin",
@@ -1824,6 +1778,7 @@ Removes and returns 'count' number of members in the sorted set with the lowest 
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleZPOP,
 			},
 			{
 				Command:    "zrandmember",
@@ -1839,6 +1794,7 @@ WITHSCORES modifies the result to include scores in the result.`,
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZRANDMEMBER,
 			},
 			{
 				Command:    "zrank",
@@ -1852,6 +1808,7 @@ Returns the rank of the specified member in the sorted set. WITHSCORE modifies t
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZRANK,
 			},
 			{
 				Command:     "zrem",
@@ -1864,6 +1821,7 @@ Returns the rank of the specified member in the sorted set. WITHSCORE modifies t
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZREM,
 			},
 			{
 				Command:    "zrevrank",
@@ -1877,6 +1835,7 @@ Returns the rank of the member in the sorted set. WITHSCORE modifies the result 
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZRANK,
 			},
 			{
 				Command:     "zscore",
@@ -1889,6 +1848,7 @@ Returns the rank of the member in the sorted set. WITHSCORE modifies the result 
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZSCORE,
 			},
 			{
 				Command:     "zremrangebylex",
@@ -1901,6 +1861,7 @@ Returns the rank of the member in the sorted set. WITHSCORE modifies the result 
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZREMRANGEBYLEX,
 			},
 			{
 				Command:    "zremrangebyrank",
@@ -1914,6 +1875,7 @@ The elements are ordered from lowest score to highest score`,
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZREMRANGEBYRANK,
 			},
 			{
 				Command:     "zremrangebyscore",
@@ -1926,6 +1888,7 @@ The elements are ordered from lowest score to highest score`,
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZREMRANGEBYSCORE,
 			},
 			{
 				Command:    "zlexcount",
@@ -1939,6 +1902,7 @@ lexicographical range between min and max`,
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZLEXCOUNT,
 			},
 			{
 				Command:    "zrange",
@@ -1952,6 +1916,7 @@ lexicographical range between min and max`,
 					}
 					return cmd[1:2], nil
 				},
+				HandlerFunc: handleZRANGE,
 			},
 			{
 				Command:    "zrangestore",
@@ -1965,6 +1930,7 @@ lexicographical range between min and max`,
 					}
 					return cmd[1:3], nil
 				},
+				HandlerFunc: handleZRANGESTORE,
 			},
 			{
 				Command:    "zunion",
@@ -1981,6 +1947,7 @@ WITHSCORES option determines wether to return the result with scores included`,
 					}
 					return keys, nil
 				},
+				HandlerFunc: handleZUNION,
 			},
 			{
 				Command:    "zunionstore",
@@ -1997,6 +1964,7 @@ The resulting union is stores at destination`,
 					}
 					return keys, nil
 				},
+				HandlerFunc: handleZUNIONSTORE,
 			},
 		},
 		description: "Handle commands on sorted set data type",

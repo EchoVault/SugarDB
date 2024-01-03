@@ -120,8 +120,23 @@ func (server *Server) Apply(log *raft.Log) interface{} {
 		ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), request.ServerID)
 		ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"), request.ConnectionID)
 
-		// Handle command using plugins
-		if res, err := server.handlePluginCommand(ctx, request.CMD, nil); err != nil {
+		// Handle command
+		command, err := server.getCommand(request.CMD[0])
+		if err != nil {
+			return utils.ApplyResponse{
+				Error:    err,
+				Response: nil,
+			}
+		}
+
+		handler := command.HandlerFunc
+
+		subCommand, ok := utils.GetSubCommand(command, request.CMD).(utils.SubCommand)
+		if ok {
+			handler = subCommand.HandlerFunc
+		}
+
+		if res, err := handler(ctx, request.CMD, server, nil); err != nil {
 			return utils.ApplyResponse{
 				Error:    err,
 				Response: nil,

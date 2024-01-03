@@ -5,11 +5,6 @@ import (
 	"net"
 )
 
-type ServerCommand struct {
-	Command Command
-	Plugin  Plugin
-}
-
 type Server interface {
 	KeyLock(ctx context.Context, key string) (bool, error)
 	KeyUnlock(key string)
@@ -20,6 +15,8 @@ type Server interface {
 	GetValue(key string) interface{}
 	SetValue(ctx context.Context, key string, value interface{})
 	GetAllCommands(ctx context.Context) []Command
+	GetACL() interface{}
+	GetPubSub() interface{}
 }
 
 type ContextServerID string
@@ -37,6 +34,7 @@ type ApplyResponse struct {
 }
 
 type KeyExtractionFunc func(cmd []string) ([]string, error)
+type HandlerFunc func(ctx context.Context, cmd []string, server Server, conn *net.Conn) ([]byte, error)
 
 type SubCommand struct {
 	Command     string
@@ -44,6 +42,7 @@ type SubCommand struct {
 	Description string
 	Sync        bool // Specifies if sub-command should be synced across cluster
 	KeyExtractionFunc
+	HandlerFunc
 }
 
 type Command struct {
@@ -53,11 +52,11 @@ type Command struct {
 	SubCommands []SubCommand
 	Sync        bool // Specifies if command should be synced across cluster
 	KeyExtractionFunc
+	HandlerFunc
 }
 
 type Plugin interface {
 	Name() string
 	Commands() []Command
 	Description() string
-	HandleCommand(ctx context.Context, cmd []string, server Server, conn *net.Conn) ([]byte, error)
 }

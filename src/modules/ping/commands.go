@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
-	"strings"
 )
 
 type Plugin struct {
@@ -28,25 +27,14 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	switch strings.ToLower(cmd[0]) {
-	default:
-		return nil, errors.New("not implemented")
-	case "ping":
-		return handlePing(ctx, cmd, server)
-	case "ack":
-		return []byte("$-1\r\n\n"), nil
-	}
-}
-
-func handlePing(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
+func handlePing(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	switch len(cmd) {
 	default:
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	case 1:
-		return []byte("+PONG\r\n\n"), nil
+		return []byte("+PONG\r\n\r\n"), nil
 	case 2:
-		return []byte("+" + cmd[1] + "\r\n\n"), nil
+		return []byte("+" + cmd[1] + "\r\n\r\n"), nil
 	}
 }
 
@@ -62,6 +50,7 @@ func NewModule() Plugin {
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					return []string{}, nil
 				},
+				HandlerFunc: handlePing,
 			},
 			{
 				Command:     "ack",
@@ -70,6 +59,9 @@ func NewModule() Plugin {
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					return []string{}, nil
+				},
+				HandlerFunc: func(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+					return []byte("_\r\n\r\n"), nil
 				},
 			},
 		},

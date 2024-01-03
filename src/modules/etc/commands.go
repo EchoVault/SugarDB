@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
-	"strings"
 	"time"
 )
 
@@ -33,20 +32,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	switch strings.ToLower(cmd[0]) {
-	default:
-		return nil, errors.New("command unknown")
-	case "set":
-		return handleSet(ctx, cmd, server)
-	case "setnx":
-		return handleSetNX(ctx, cmd, server)
-	case "mset":
-		return handleMSet(ctx, cmd, server)
-	}
-}
-
-func handleSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
+func handleSet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -56,42 +42,48 @@ func handleSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error
 	case x == 3:
 		key := cmd[1]
 
-		if !s.KeyExists(key) {
+		if !server.KeyExists(key) {
 			// TODO: Retry CreateKeyAndLock until we manage to obtain the key
-			s.CreateKeyAndLock(ctx, key)
-			s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
-			s.KeyUnlock(key)
+			_, err := server.CreateKeyAndLock(ctx, key)
+			if err != nil {
+				return nil, err
+			}
+			server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+			server.KeyUnlock(key)
 			return []byte(utils.OK_RESPONSE), nil
 		}
 
-		if _, err := s.KeyLock(ctx, key); err != nil {
+		if _, err := server.KeyLock(ctx, key); err != nil {
 			return nil, err
 		}
 
-		s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
-		s.KeyUnlock(key)
+		server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+		server.KeyUnlock(key)
 		return []byte(utils.OK_RESPONSE), nil
 	}
 }
 
-func handleSetNX(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
+func handleSetNX(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	switch x := len(cmd); {
 	default:
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	case x == 3:
 		key := cmd[1]
-		if s.KeyExists(key) {
+		if server.KeyExists(key) {
 			return nil, fmt.Errorf("key %s already exists", cmd[1])
 		}
 		// TODO: Retry CreateKeyAndLock until we manage to obtain the key
-		s.CreateKeyAndLock(ctx, key)
-		s.SetValue(ctx, key, utils.AdaptType(cmd[2]))
-		s.KeyUnlock(key)
+		_, err := server.CreateKeyAndLock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+		server.KeyUnlock(key)
 	}
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func handleMSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
+func handleMSet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
 	defer cancel()
 
@@ -106,7 +98,7 @@ func handleMSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, erro
 	defer func() {
 		for k, v := range entries {
 			if v.locked {
-				s.KeyUnlock(k)
+				server.KeyUnlock(k)
 				entries[k] = KeyObject{
 					value:  v.value,
 					locked: false,
@@ -128,14 +120,14 @@ func handleMSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, erro
 	// Acquire all the locks for each key first
 	// If any key cannot be acquired, abandon transaction and release all currently held keys
 	for k, v := range entries {
-		if s.KeyExists(k) {
-			if _, err := s.KeyLock(ctx, k); err != nil {
+		if server.KeyExists(k) {
+			if _, err := server.KeyLock(ctx, k); err != nil {
 				return nil, err
 			}
 			entries[k] = KeyObject{value: v.value, locked: true}
 			continue
 		}
-		if _, err := s.CreateKeyAndLock(ctx, k); err != nil {
+		if _, err := server.CreateKeyAndLock(ctx, k); err != nil {
 			return nil, err
 		}
 		entries[k] = KeyObject{value: v.value, locked: true}
@@ -143,7 +135,7 @@ func handleMSet(ctx context.Context, cmd []string, s utils.Server) ([]byte, erro
 
 	// Set all the values
 	for k, v := range entries {
-		s.SetValue(ctx, k, v.value)
+		server.SetValue(ctx, k, v.value)
 	}
 
 	return []byte(utils.OK_RESPONSE), nil
@@ -164,6 +156,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSet,
 			},
 			{
 				Command:     "setnx",
@@ -176,6 +169,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSetNX,
 			},
 			{
 				Command:     "mset",
@@ -194,6 +188,7 @@ func NewModule() Plugin {
 					}
 					return keys, nil
 				},
+				HandlerFunc: handleMSet,
 			},
 		},
 		description: "Handle basic SET commands",

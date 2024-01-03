@@ -29,46 +29,7 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	switch strings.ToLower(cmd[0]) {
-	default:
-		return nil, errors.New("command unknown")
-	case "sadd":
-		return handleSADD(ctx, cmd, server)
-	case "scard":
-		return handleSCARD(ctx, cmd, server)
-	case "sdiff":
-		return handleSDIFF(ctx, cmd, server)
-	case "sdiffstore":
-		return handleSDIFFSTORE(ctx, cmd, server)
-	case "sinter":
-		return handleSINTER(ctx, cmd, server)
-	case "sintercard":
-		return handleSINTERCARD(ctx, cmd, server)
-	case "sinterstore":
-		return handleSINTERSTORE(ctx, cmd, server)
-	case "sismember":
-		return handleSISMEMBER(ctx, cmd, server)
-	case "smembers":
-		return handleSMEMBERS(ctx, cmd, server)
-	case "smismember":
-		return handleSMISMEMBER(ctx, cmd, server)
-	case "smove":
-		return handleSMOVE(ctx, cmd, server)
-	case "spop":
-		return handleSPOP(ctx, cmd, server)
-	case "srandmember":
-		return handleSRANDMEMBER(ctx, cmd, server)
-	case "srem":
-		return handleSREM(ctx, cmd, server)
-	case "sunion":
-		return handleSUNION(ctx, cmd, server)
-	case "sunionstore":
-		return handleSUNIONSTORE(ctx, cmd, server)
-	}
-}
-
-func handleSADD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -103,7 +64,7 @@ func handleSADD(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	return []byte(fmt.Sprintf(":%d\r\n\n", count)), nil
 }
 
-func handleSCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -130,7 +91,7 @@ func handleSCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", cardinality)), nil
 }
 
-func handleSDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -182,7 +143,7 @@ func handleSDIFF(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte(res), nil
 }
 
-func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -245,7 +206,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server) ([
 	return []byte(res), nil
 }
 
-func handleSINTER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -300,7 +261,7 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return []byte(res), nil
 }
 
-func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -374,7 +335,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server) ([
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", intersect.Cardinality())), nil
 }
 
-func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -434,7 +395,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server) (
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", intersect.Cardinality())), nil
 }
 
-func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -463,7 +424,7 @@ func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]
 	return []byte(":1\r\n\r\n"), nil
 }
 
-func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -498,7 +459,7 @@ func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server) ([]b
 	return []byte(res), nil
 }
 
-func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -543,7 +504,7 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server) ([
 	return []byte(res), nil
 }
 
-func handleSMOVE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -597,7 +558,7 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server) ([]byte
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", res)), nil
 }
 
-func handleSPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -641,7 +602,7 @@ func handleSPOP(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	return []byte(res), nil
 }
 
-func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -685,7 +646,7 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server) (
 	return []byte(res), nil
 }
 
-func handleSREM(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSREM(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -713,7 +674,7 @@ func handleSREM(ctx context.Context, cmd []string, server utils.Server) ([]byte,
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
 }
 
-func handleSUNION(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSUNION(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -764,7 +725,7 @@ func handleSUNION(ctx context.Context, cmd []string, server utils.Server) ([]byt
 	return []byte(res), nil
 }
 
-func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server) ([]byte, error) {
+func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -838,6 +799,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSADD,
 			},
 			{
 				Command:     "scard",
@@ -850,6 +812,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSCARD,
 			},
 			{
 				Command:     "sdiff",
@@ -862,6 +825,7 @@ func NewModule() Plugin {
 					}
 					return cmd[1:], nil
 				},
+				HandlerFunc: handleSDIFF,
 			},
 			{
 				Command:     "sdiffstore",
@@ -874,6 +838,7 @@ func NewModule() Plugin {
 					}
 					return cmd[1:], nil
 				},
+				HandlerFunc: handleSDIFFSTORE,
 			},
 			{
 				Command:     "sinter",
@@ -886,6 +851,7 @@ func NewModule() Plugin {
 					}
 					return cmd[1:], nil
 				},
+				HandlerFunc: handleSINTER,
 			},
 			{
 				Command:     "sintercard",
@@ -898,6 +864,7 @@ func NewModule() Plugin {
 					}
 					return cmd[1:], nil
 				},
+				HandlerFunc: handleSINTERCARD,
 			},
 			{
 				Command:     "sinterstore",
@@ -910,6 +877,7 @@ func NewModule() Plugin {
 					}
 					return cmd[1:], nil
 				},
+				HandlerFunc: handleSINTERSTORE,
 			},
 			{
 				Command:     "sismember",
@@ -922,6 +890,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSISMEMBER,
 			},
 			{
 				Command:     "smembers",
@@ -934,6 +903,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSMEMBERS,
 			},
 			{
 				Command:     "smismember",
@@ -946,6 +916,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSMISMEMBER,
 			},
 
 			{
@@ -959,6 +930,7 @@ func NewModule() Plugin {
 					}
 					return cmd[1:3], nil
 				},
+				HandlerFunc: handleSMOVE,
 			},
 			{
 				Command:     "spop",
@@ -971,6 +943,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSPOP,
 			},
 			{
 				Command:     "srandmember",
@@ -983,6 +956,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSRANDMEMBER,
 			},
 			{
 				Command:     "srem",
@@ -995,6 +969,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleSREM,
 			},
 			{
 				Command:     "sunion",
@@ -1007,6 +982,7 @@ func NewModule() Plugin {
 					}
 					return cmd[1:], nil
 				},
+				HandlerFunc: handleSUNION,
 			},
 			{
 				Command:     "sunionstore",
@@ -1019,6 +995,7 @@ func NewModule() Plugin {
 					}
 					return cmd[1:], nil
 				},
+				HandlerFunc: handleSUNIONSTORE,
 			},
 		},
 		description: "Handle commands for sets",

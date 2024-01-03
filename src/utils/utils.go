@@ -129,11 +129,11 @@ func GetIPAddress() (string, error) {
 	return localAddr, nil
 }
 
-func GetSubCommand(command ServerCommand, cmd []string) interface{} {
-	if len(command.Command.SubCommands) == 0 || len(cmd) < 2 {
+func GetSubCommand(command Command, cmd []string) interface{} {
+	if len(command.SubCommands) == 0 || len(cmd) < 2 {
 		return nil
 	}
-	for _, subCommand := range command.Command.SubCommands {
+	for _, subCommand := range command.SubCommands {
 		if strings.EqualFold(subCommand.Command, cmd[1]) {
 			return subCommand
 		}

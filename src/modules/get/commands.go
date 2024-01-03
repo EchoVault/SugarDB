@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"net"
-	"strings"
 )
 
 type Plugin struct {
@@ -28,31 +27,23 @@ func (p Plugin) Description() string {
 	return p.description
 }
 
-func (p Plugin) HandleCommand(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	switch strings.ToLower(cmd[0]) {
-	default:
-		return nil, errors.New("command unknown")
-	case "get":
-		return handleGet(ctx, cmd, server)
-	case "mget":
-		return handleMGet(ctx, cmd, server)
-	}
-}
-
-func handleGet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
+func handleGet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
 	key := cmd[1]
 
-	if !s.KeyExists(key) {
+	if !server.KeyExists(key) {
 		return []byte("+nil\r\n\n"), nil
 	}
 
-	s.KeyRLock(ctx, key)
-	value := s.GetValue(key)
-	s.KeyRUnlock(key)
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	value := server.GetValue(key)
+	server.KeyRUnlock(key)
 
 	switch value.(type) {
 	default:
@@ -62,7 +53,7 @@ func handleGet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error
 	}
 }
 
-func handleMGet(ctx context.Context, cmd []string, s utils.Server) ([]byte, error) {
+func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -71,18 +62,18 @@ func handleMGet(ctx context.Context, cmd []string, s utils.Server) ([]byte, erro
 
 	for _, key := range cmd[1:] {
 		func(key string) {
-			if !s.KeyExists(key) {
+			if !server.KeyExists(key) {
 				vals = append(vals, "nil")
 				return
 			}
-			s.KeyRLock(ctx, key)
-			switch s.GetValue(key).(type) {
+			server.KeyRLock(ctx, key)
+			switch server.GetValue(key).(type) {
 			default:
-				vals = append(vals, fmt.Sprintf("%v", s.GetValue(key)))
+				vals = append(vals, fmt.Sprintf("%v", server.GetValue(key)))
 			case nil:
 				vals = append(vals, "nil")
 			}
-			s.KeyRUnlock(key)
+			server.KeyRUnlock(key)
 
 		}(key)
 	}
@@ -113,6 +104,7 @@ func NewModule() Plugin {
 					}
 					return []string{cmd[1]}, nil
 				},
+				HandlerFunc: handleGet,
 			},
 			{
 				Command:     "mget",
@@ -125,6 +117,7 @@ func NewModule() Plugin {
 					}
 					return cmd[1:], nil
 				},
+				HandlerFunc: handleMGet,
 			},
 		},
 		description: "Handle basic GET and MGET commands",

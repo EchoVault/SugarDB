@@ -42,7 +42,7 @@ type Server struct {
 	keyLocks        map[string]*sync.RWMutex
 	keyCreationLock *sync.Mutex
 
-	commands map[string]utils.ServerCommand
+	commands []utils.Command
 
 	raft *raft.Raft
 
@@ -123,28 +123,24 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 }
 
 func (server *Server) GetAllCommands(ctx context.Context) []utils.Command {
-	var commands []utils.Command
-	for _, serverCommand := range server.commands {
-		commands = append(commands, serverCommand.Command)
-	}
-	return commands
+	return server.commands
 }
 
-func (server *Server) getCommand(cmd string) (utils.ServerCommand, error) {
-	for key, command := range server.commands {
-		if strings.EqualFold(key, cmd) {
+func (server *Server) GetACL() interface{} {
+	return server.ACL
+}
+
+func (server *Server) GetPubSub() interface{} {
+	return server.PubSub
+}
+
+func (server *Server) getCommand(cmd string) (utils.Command, error) {
+	for _, command := range server.commands {
+		if strings.EqualFold(command.Command, cmd) {
 			return command, nil
 		}
 	}
-	return utils.ServerCommand{}, fmt.Errorf("command %s not supported", cmd)
-}
-
-func (server *Server) handlePluginCommand(ctx context.Context, cmd []string, conn *net.Conn) ([]byte, error) {
-	command, err := server.getCommand(cmd[0])
-	if err != nil {
-		return nil, err
-	}
-	return command.Plugin.HandleCommand(ctx, cmd, server, conn)
+	return utils.Command{}, fmt.Errorf("command %s not supported", cmd)
 }
 
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
@@ -192,25 +188,24 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 				continue
 			}
 
-			synchronize := command.Command.Sync
+			synchronize := command.Sync
+			handler := command.HandlerFunc
 
 			subCommand, ok := utils.GetSubCommand(command, cmd).(utils.SubCommand)
 
 			if ok {
 				synchronize = subCommand.Sync
-				err = server.ACL.AuthorizeConnection(&conn, cmd, command.Command, subCommand)
-			} else {
-				err = server.ACL.AuthorizeConnection(&conn, cmd, command.Command, nil)
+				handler = subCommand.HandlerFunc
 			}
 
-			if err != nil {
+			if err := server.ACL.AuthorizeConnection(&conn, cmd, command, subCommand); err != nil {
 				connRW.WriteString(fmt.Sprintf("-%s\r\n\n", err.Error()))
 				connRW.Flush()
 				continue
 			}
 
 			if !server.IsInCluster() || !synchronize {
-				if res, err := server.handlePluginCommand(ctx, cmd, &conn); err != nil {
+				if res, err := handler(ctx, cmd, server, &conn); err != nil {
 					connRW.Write([]byte(fmt.Sprintf("-%s\r\n\n", err.Error())))
 				} else {
 					connRW.Write(res)
@@ -343,16 +338,13 @@ func (server *Server) StartHTTP(ctx context.Context) {
 func (server *Server) LoadCommands(plugin utils.Plugin) {
 	commands := plugin.Commands()
 	for _, command := range commands {
-		server.commands[command.Command] = utils.ServerCommand{
-			Command: command,
-			Plugin:  plugin,
-		}
+		server.commands = append(server.commands, command)
 	}
 }
 
 func (server *Server) LoadModules(ctx context.Context) {
-	server.LoadCommands(acl.NewModule(server.ACL))
-	server.LoadCommands(pubsub.NewModule(server.PubSub))
+	server.LoadCommands(acl.NewModule())
+	server.LoadCommands(pubsub.NewModule())
 	server.LoadCommands(ping.NewModule())
 	server.LoadCommands(get.NewModule())
 	server.LoadCommands(list.NewModule())
@@ -431,8 +423,6 @@ func main() {
 
 		ACL:    acl.NewACL(config),
 		PubSub: pubsub.NewPubSub(),
-
-		commands: make(map[string]utils.ServerCommand),
 
 		cancelCh: &cancelCh,
 	}
