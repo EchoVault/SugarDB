@@ -270,7 +270,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 	maximum := cmd[3]
 
 	if !server.KeyExists(key) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 
 	if _, err := server.KeyRLock(ctx, key); err != nil {
@@ -288,7 +288,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 	// Check if all members has the same score
 	for i := 0; i < len(members)-2; i++ {
 		if members[i].score != members[i+1].score {
-			return []byte("_\r\n\r\n"), nil
+			return []byte("+(nil)\r\n\r\n"), nil
 		}
 	}
 
@@ -709,7 +709,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *n
 			}
 			server.KeyUnlock(key)
 			if popped.Cardinality() == 0 {
-				return []byte("_\r\n\r\n"), nil
+				return []byte("+(nil)\r\n\r\n"), nil
 			}
 
 			res := fmt.Sprintf("*%d", popped.Cardinality())
@@ -725,7 +725,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *n
 		}
 	}
 
-	return []byte("_\r\n\r\n"), nil
+	return []byte("+(nil)\r\n\r\n"), nil
 }
 
 func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -750,7 +750,7 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 
 	_, err := server.KeyLock(ctx, key)
@@ -846,7 +846,7 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 
 	_, err := server.KeyRLock(ctx, key)
@@ -892,7 +892,7 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 
 	if _, err := server.KeyRLock(ctx, key); err != nil {
@@ -924,7 +924,7 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *n
 		}
 	}
 
-	return []byte("_\r\n\r\n"), nil
+	return []byte("+(nil)\r\n\r\n"), nil
 }
 
 func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -965,7 +965,7 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 	key := cmd[1]
 	if !server.KeyExists(key) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 	_, err := server.KeyRLock(ctx, key)
 	if err != nil {
@@ -978,7 +978,7 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 	member := set.Get(Value(cmd[2]))
 	if !member.exists {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 	return []byte(fmt.Sprintf("+%f\r\n\r\n", member.score)), nil
 }
@@ -1002,7 +1002,7 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Serv
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 
 	if _, err := server.KeyLock(ctx, key); err != nil {
@@ -1043,7 +1043,7 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 
 	if _, err := server.KeyLock(ctx, key); err != nil {
@@ -1099,7 +1099,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	maximum := cmd[3]
 
 	if !server.KeyExists(key) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 
 	_, err := server.KeyLock(ctx, key)
@@ -1118,7 +1118,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	// Check if all the members have the same score. If not, return nil
 	for i := 0; i < len(members)-1; i++ {
 		if members[i].score != members[i+1].score {
-			return []byte("_\r\n\r\n"), nil
+			return []byte("+(nil)\r\n\r\n"), nil
 		}
 	}
 
@@ -1201,7 +1201,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 
 	_, err := server.KeyRLock(ctx, key)
@@ -1344,7 +1344,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 	}
 
 	if !server.KeyExists(source) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("+(nil)\r\n\r\n"), nil
 	}
 
 	_, err := server.KeyRLock(ctx, source)
