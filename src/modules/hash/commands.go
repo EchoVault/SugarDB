@@ -363,7 +363,39 @@ func handleHEXISTS(ctx context.Context, cmd []string, server utils.Server, conn 
 }
 
 func handleHDEL(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("hdel command not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	fields := cmd[2:]
+
+	if !server.KeyExists(key) {
+		return []byte(":0\r\n\r\n"), nil
+	}
+
+	if _, err := server.KeyLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	hash, ok := server.GetValue(key).(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	count := 0
+
+	for _, field := range fields {
+		if hash[field] != nil {
+			delete(hash, field)
+			count += 1
+		}
+	}
+
+	server.SetValue(ctx, key, hash)
+
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
 }
 
 func NewModule() Plugin {
@@ -533,7 +565,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 				Description: `(HDEL key field [field ...]) Deletes the specified fields from the hash`,
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 3 {
+					if len(cmd) < 3 {
 						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return cmd[1:2], nil
