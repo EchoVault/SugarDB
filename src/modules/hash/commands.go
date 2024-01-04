@@ -135,7 +135,55 @@ func handleHGET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleHSTRLEN(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("hstrlen command not implemented")
+	if len(cmd) < 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	fields := cmd[2:]
+
+	if !server.KeyExists(key) {
+		return []byte("+(nil)\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	hash, ok := server.GetValue(key).(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	var value interface{}
+
+	res := fmt.Sprintf("*%d\r\n", len(fields))
+	for _, field := range fields {
+		value = hash[field]
+		if value == nil {
+			res += ":0\r\n"
+			continue
+		}
+		if s, ok := value.(string); ok {
+			res += fmt.Sprintf(":%d\r\n", len(s))
+			continue
+		}
+		if f, ok := value.(float64); ok {
+			fs := strconv.FormatFloat(f, 'f', -1, 64)
+			res += fmt.Sprintf(":%d\r\n", len(fs))
+			continue
+		}
+		if d, ok := value.(int); ok {
+			res += fmt.Sprintf(":%d\r\n", d)
+			continue
+		}
+		res += ":0\r\n"
+	}
+	res += "\r\n"
+
+	return []byte(res), nil
 }
 
 func handleHVALS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -220,11 +268,11 @@ func NewModule() Plugin {
 			{
 				Command:    "hstrlen",
 				Categories: []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-				Description: `(HSTRLEN key field) Return the string length of the value stored at field.
-			0 if the value does not exist`,
+				Description: `(HSTRLEN key field [field ...]) 
+Return the string length of the values stored at the specified fields. 0 if the value does not exist`,
 				Sync: false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 3 {
+					if len(cmd) < 3 {
 						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					return cmd[1:2], nil
