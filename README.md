@@ -10,9 +10,9 @@
 - [x] Integer support
 - [x] Float support
 - [x] List support
-- [ ] Set support
-- [ ] Sorted set support
-- [ ] Hash support
+- [x] Set support
+- [x] Sorted set support
+- [x] Hash support
 - [ ] Stream support
 - [ ] Search support
 - [ ] JSON support
