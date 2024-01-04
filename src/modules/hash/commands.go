@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
+	"math/rand"
 	"net"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -228,7 +230,120 @@ func handleHVALS(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("hrandfield command not implemented")
+	if len(cmd) < 2 || len(cmd) > 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+
+	count := 1
+	if len(cmd) >= 3 {
+		c, err := strconv.Atoi(cmd[2])
+		if err != nil {
+			return nil, errors.New("count must be an integer")
+		}
+		if c == 0 {
+			return []byte("*0\r\n\r\n"), nil
+		}
+		count = c
+	}
+
+	withvalues := false
+	if len(cmd) == 4 {
+		if strings.EqualFold(cmd[3], "withvalues") {
+			withvalues = true
+		} else {
+			return nil, errors.New("result modifier must be withvalues")
+		}
+	}
+
+	if !server.KeyExists(key) {
+		return []byte("*0\r\n\r\n"), nil
+	}
+
+	if _, err := server.KeyRLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	hash, ok := server.GetValue(key).(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	// If count is the >= hash length, then return the entire hash
+	if count >= len(hash) {
+		res := fmt.Sprintf("*%d\r\n", len(hash))
+		if withvalues {
+			res = fmt.Sprintf("*%d\r\n", len(hash)*2)
+		}
+		for field, value := range hash {
+			res += fmt.Sprintf("$%d\r\n%s\r\n", len(field), field)
+			if withvalues {
+				if s, ok := value.(string); ok {
+					res += fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)
+					continue
+				}
+				if f, ok := value.(float64); ok {
+					fs := strconv.FormatFloat(f, 'f', -1, 64)
+					res += fmt.Sprintf("$%d\r\n%s\r\n", len(fs), fs)
+					continue
+				}
+				if d, ok := value.(int); ok {
+					res += fmt.Sprintf(":%d\r\n", d)
+					continue
+				}
+			}
+		}
+		res += "\r\n"
+		return []byte(res), nil
+	}
+
+	// Get all the fields
+	var fields []string
+	for field, _ := range hash {
+		fields = append(fields, field)
+	}
+
+	// Pluck fields and return them
+	var pluckedFields []string
+	var n int
+	for i := 0; i < utils.AbsInt(count); i++ {
+		n = rand.Intn(len(fields))
+		pluckedFields = append(pluckedFields, fields[n])
+		// If count is positive, remove the current field from list of fields
+		if count > 0 {
+			fields = slices.DeleteFunc(fields, func(s string) bool {
+				return s == fields[n]
+			})
+		}
+	}
+
+	res := fmt.Sprintf("*%d\r\n", len(pluckedFields))
+	if withvalues {
+		res = fmt.Sprintf("*%d\r\n", len(pluckedFields)*2)
+	}
+	for _, field := range pluckedFields {
+		res += fmt.Sprintf("$%d\r\n%s\r\n", len(field), field)
+		if withvalues {
+			if s, ok := hash[field].(string); ok {
+				res += fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)
+				continue
+			}
+			if f, ok := hash[field].(float64); ok {
+				fs := strconv.FormatFloat(f, 'f', -1, 64)
+				res += fmt.Sprintf("$%d\r\n%s\r\n", len(fs), fs)
+				continue
+			}
+			if d, ok := hash[field].(int); ok {
+				res += fmt.Sprintf(":%d\r\n", d)
+				continue
+			}
+		}
+	}
+	res += "\r\n"
+
+	return []byte(res), nil
 }
 
 func handleHLEN(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -471,13 +586,16 @@ Return the string length of the values stored at the specified fields. 0 if the 
 			{
 				Command:     "hrandfield",
 				Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: `(HRANDFIELD key [count] [WITHVALUES]) Returns one or more random fields from the hash`,
+				Description: `(HRANDFIELD key [count [WITHVALUES]]) Returns one or more random fields from the hash`,
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					if len(cmd) < 2 || len(cmd) > 4 {
 						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
-					return cmd[1:], nil
+					if len(cmd) == 2 {
+						return cmd[1:], nil
+					}
+					return cmd[1:2], nil
 				},
 				HandlerFunc: handleHRANDFIELD,
 			},
