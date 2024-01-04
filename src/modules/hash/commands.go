@@ -334,7 +334,32 @@ func handleHGETALL(ctx context.Context, cmd []string, server utils.Server, conn 
 }
 
 func handleHEXISTS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("hexists command not implemented")
+	if len(cmd) != 3 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	field := cmd[2]
+
+	if !server.KeyExists(key) {
+		return []byte(":0\r\n\r\n"), nil
+	}
+
+	if _, err := server.KeyRLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	hash, ok := server.GetValue(key).(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	if hash[field] != nil {
+		return []byte(":1\r\n\r\n"), nil
+	}
+
+	return []byte(":0\r\n\r\n"), nil
 }
 
 func handleHDEL(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
