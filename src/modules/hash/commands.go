@@ -187,7 +187,44 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server utils.Server, conn 
 }
 
 func handleHVALS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("hvals command not implemented")
+	if len(cmd) != 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
+		return []byte("*0\r\n\r\n"), nil
+	}
+
+	_, err := server.KeyRLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	hash, ok := server.GetValue(key).(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	res := fmt.Sprintf("*%d\r\n", len(hash))
+	for _, val := range hash {
+		if s, ok := val.(string); ok {
+			res += fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)
+			continue
+		}
+		if f, ok := val.(float64); ok {
+			fs := strconv.FormatFloat(f, 'f', -1, 64)
+			res += fmt.Sprintf("$%d\r\n%s\r\n", len(fs), fs)
+			continue
+		}
+		if d, ok := val.(int); ok {
+			res += fmt.Sprintf(":%d\r\n", d)
+		}
+	}
+	res += "\r\n"
+
+	return []byte(res), nil
 }
 
 func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
