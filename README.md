@@ -19,7 +19,6 @@
 - [ ] Graph support
 - [ ] Geospatial support
 - [ ] Bitmap support
-- [ ] Bitfield support
 - [ ] Support for multiple root CAs on client side
 - [ ] Append-Only File & reload from AOF
 - [ ] Periodic snapshots & reload state from snapshot
