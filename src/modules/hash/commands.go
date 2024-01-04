@@ -400,12 +400,88 @@ func handleHKEYS(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(res), nil
 }
 
-func handleINCRBYFLOAT(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("hincrbyfloat command not implemented")
-}
-
 func handleINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("hincrby command not implemented")
+	if len(cmd) != 4 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+	field := cmd[2]
+
+	var intIncrement int
+	var floatIncrement float64
+	if strings.EqualFold(cmd[0], "hincrbyfloat") {
+		f, err := strconv.ParseFloat(cmd[3], 64)
+		if err != nil {
+			return nil, errors.New("increment must be a float")
+		}
+		floatIncrement = f
+	} else {
+		i, err := strconv.Atoi(cmd[3])
+		if err != nil {
+			return nil, errors.New("increment must be an integer")
+		}
+		intIncrement = i
+	}
+
+	if !server.KeyExists(key) {
+		if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+			return nil, err
+		}
+		defer server.KeyUnlock(key)
+		hash := make(map[string]interface{})
+		if strings.EqualFold(cmd[0], "hincrbyfloat") {
+			hash[field] = floatIncrement
+			server.SetValue(ctx, key, hash)
+			return []byte(fmt.Sprintf("+%s\r\n\r\n", strconv.FormatFloat(floatIncrement, 'f', -1, 64))), nil
+		} else {
+			hash[field] = intIncrement
+			server.SetValue(ctx, key, hash)
+			return []byte(fmt.Sprintf(":%d\r\n\r\n", intIncrement)), nil
+		}
+	}
+
+	if _, err := server.KeyLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	hash, ok := server.GetValue(key).(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	if hash[field] == nil {
+		hash[field] = 0
+	}
+
+	switch hash[field].(type) {
+	default:
+		return nil, errors.New("hash value is not an integer")
+	case int:
+		i, _ := hash[field].(int)
+		if strings.EqualFold(cmd[0], "hincrbyfloat") {
+			hash[field] = float64(i) + floatIncrement
+		} else {
+			hash[field] = i + intIncrement
+		}
+	case float64:
+		f, _ := hash[field].(float64)
+		if strings.EqualFold(cmd[0], "hincrbyfloat") {
+			hash[field] = f + floatIncrement
+		} else {
+			hash[field] = f + float64(intIncrement)
+		}
+	}
+
+	server.SetValue(ctx, key, hash)
+
+	if f, ok := hash[field].(float64); ok {
+		return []byte(fmt.Sprintf("+%s\r\n\r\n", strconv.FormatFloat(f, 'f', -1, 64))), nil
+	}
+
+	i, _ := hash[field].(int)
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", i)), nil
 }
 
 func handleHGETALL(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -636,7 +712,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 					}
 					return cmd[1:2], nil
 				},
-				HandlerFunc: handleINCRBYFLOAT,
+				HandlerFunc: handleINCRBY,
 			},
 			{
 				Command:     "hincrby",
