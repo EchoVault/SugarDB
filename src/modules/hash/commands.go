@@ -294,7 +294,43 @@ func handleINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleHGETALL(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	return nil, errors.New("hgetall command not implemented")
+	if len(cmd) != 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
+
+	key := cmd[1]
+
+	if !server.KeyExists(key) {
+		return []byte("*0\r\n\r\n"), nil
+	}
+
+	if _, err := server.KeyRLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	hash, ok := server.GetValue(key).(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	res := fmt.Sprintf("*%d\r\n", len(hash)*2)
+	for field, value := range hash {
+		res += fmt.Sprintf("$%d\r\n%s\r\n", len(field), field)
+		if s, ok := value.(string); ok {
+			res += fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)
+		}
+		if f, ok := value.(float64); ok {
+			fs := strconv.FormatFloat(f, 'f', -1, 64)
+			res += fmt.Sprintf("$%d\r\n%s\r\n", len(fs), fs)
+		}
+		if d, ok := value.(int); ok {
+			res += fmt.Sprintf(":%d\r\n", d)
+		}
+	}
+	res += "\r\n"
+
+	return []byte(res), nil
 }
 
 func handleHEXISTS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
