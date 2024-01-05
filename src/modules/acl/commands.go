@@ -149,7 +149,10 @@ func handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn 
 		res = res + fmt.Sprintf("\r\n+-&%s", channel)
 	}
 
-	res += "\r\n\n"
+	// Test arrays to remove later
+	res = res + fmt.Sprintf("\r\n")
+
+	res += "\r\n\r\n"
 
 	return []byte(res), nil
 }

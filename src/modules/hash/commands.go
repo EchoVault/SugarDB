@@ -93,7 +93,7 @@ func handleHGET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	fields := cmd[2:]
 
 	if !server.KeyExists(key) {
-		return []byte("_\r\n\r\n"), nil
+		return []byte("$-1\r\n\r\n"), nil
 	}
 
 	_, err := server.KeyRLock(ctx, key)
@@ -113,7 +113,7 @@ func handleHGET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	for _, field := range fields {
 		value = hash[field]
 		if value == nil {
-			res += "+(nil)\r\n"
+			res += "$-1\r\n"
 			continue
 		}
 		if s, ok := value.(string); ok {
@@ -129,7 +129,7 @@ func handleHGET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 			res += fmt.Sprintf("$%d\r\n%s\r\n", len(fs), fs)
 			continue
 		}
-		res += fmt.Sprintf("+(nil)\r\n")
+		res += fmt.Sprintf("$-1\r\n")
 	}
 	res += "\r\n"
 
@@ -145,7 +145,7 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server utils.Server, conn 
 	fields := cmd[2:]
 
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte("$-1\r\n\r\n"), nil
 	}
 
 	_, err := server.KeyRLock(ctx, key)
