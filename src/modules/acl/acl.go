@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 )
@@ -270,150 +271,119 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return errors.New("user must be authenticated")
 	}
 
-	// 2. PUBSUB authorisation comes first because it has slightly different handling.
-	if utils.Contains(categories, utils.PubSubCategory) {
-		// In PUBSUB, KeyExtractionFunc returns channels so "keys" is aliased to "channels" for clarity
-		channels := keys
+	// 2. Check if all categories are in IncludedCategories
+	var notAllowed []string
+	if !slices.ContainsFunc(categories, func(category string) bool {
+		return slices.ContainsFunc(connection.User.IncludedCategories, func(includedCategory string) bool {
+			if includedCategory == "*" || includedCategory == category {
+				return true
+			}
+			// TODO: Implement glob pattern matching to determine allowed category
+			notAllowed = append(notAllowed, fmt.Sprintf("@%s", category))
+			return false
+		})
+	}) {
+		if len(notAllowed) == 0 {
+			notAllowed = []string{"@all"}
+		}
+		return fmt.Errorf("unauthorized access to the following categories: %+v", notAllowed)
+	}
+
+	// 3. Check if commands category is in ExcludedCategories
+	if slices.ContainsFunc(categories, func(category string) bool {
+		return slices.ContainsFunc(connection.User.ExcludedCategories, func(excludedCategory string) bool {
+			if excludedCategory == "*" || excludedCategory == category {
+				notAllowed = []string{fmt.Sprintf("@%s", category)}
+				return true
+			}
+			// TODO: Implement glob pattern matching to determine forbidden category
+			return false
+		})
+	}) {
+		return fmt.Errorf("unauthorized access to the following categories: %+v", notAllowed)
+	}
+
+	// 4. Check if commands are in IncludedCommands
+	if !slices.ContainsFunc(connection.User.IncludedCommands, func(includedCommand string) bool {
+		return includedCommand == "*" || includedCommand == comm
+	}) {
+		return fmt.Errorf("not authorised to run %s command", comm)
+	}
+
+	// 5. Check if command are in ExcludedCommands
+	if slices.ContainsFunc(connection.User.ExcludedCommands, func(excludedCommand string) bool {
+		return excludedCommand == "*" || excludedCommand == comm
+	}) {
+		return fmt.Errorf("not authorised to run %s command", comm)
+	}
+
+	// 6. PUBSUB authorisation comes first because it has slightly different handling.
+	if slices.Contains(categories, utils.PubSubCategory) {
+		// In PUBSUB, KeyExtractionFunc returns channels so keys[0] is aliased to channel
+		channel := keys[0]
 		// 2.1) Check if the channel is in IncludedPubSubChannels
-		if !utils.Contains(connection.User.IncludedPubSubChannels, "*") {
-			includedCount := make(map[string]int)
-			for _, channel := range channels {
-				includedCount[channel] = 0
+		if allowed := slices.ContainsFunc(connection.User.IncludedPubSubChannels, func(includedChannel string) bool {
+			if slices.Contains([]string{"*", channel}, includedChannel) {
+				return true
 			}
-			for _, channel := range connection.User.IncludedPubSubChannels {
-				includedCount[channel] += 1
-			}
-			for channel, count := range includedCount {
-				if count == 0 {
-					return fmt.Errorf("not authorised to access pubsub channel &%s", channel)
-				}
-			}
+			// TODO: Implement glob pattern matching to determine if the channel is authorised
+			return false
+		}); !allowed {
+			return fmt.Errorf("not authorised to access channel &%s", channel)
 		}
 		// 2.2) Check if the channel is in ExcludedPubSubChannels
-		if utils.Contains(connection.User.ExcludedPubSubChannels, "*") {
-			return errors.New("not authorised to access any pusub channels")
-		} else {
-			excludedChannels := make(map[string]int)
-			for _, channel := range channels {
-				excludedChannels[channel] = 0
+		if forbidden := slices.ContainsFunc(connection.User.ExcludedPubSubChannels, func(excludedChannel string) bool {
+			if slices.Contains([]string{"*", channel}, excludedChannel) {
+				return true
 			}
-			for _, channel := range connection.User.ExcludedPubSubChannels {
-				excludedChannels[channel] += 1
-			}
-			for channel, count := range excludedChannels {
-				if count > 0 {
-					return fmt.Errorf("not authorised to access pubsub channel &%s", channel)
-				}
-			}
+			// TODO: Implement glob pattern matching to determine if the channel is forbidden
+			return false
+		}); forbidden {
+			return fmt.Errorf("not authorised to access channel &%s", channel)
 		}
 		return nil
 	}
 
-	// 3. Check if all categories are in IncludedCategories
-	if !utils.Contains(connection.User.IncludedCategories, "*") {
-		includedCount := make(map[string]int)
-		for _, cat := range categories {
-			includedCount[strings.ToLower(cat)] = 0
-		}
-		for _, cat := range connection.User.IncludedCategories {
-			includedCount[strings.ToLower(cat)] += 1
-		}
-		for cat, count := range includedCount {
-			if count == 0 {
-				return fmt.Errorf("unauthorized to run @%s commands", cat)
-			}
-		}
-	}
-
-	// 4. Check if commands category is in ExcludedCategories
-	if utils.Contains(connection.User.ExcludedCategories, "*") {
-		return errors.New("not authorized to run @all commands")
-	} else {
-		excludedCount := make(map[string]int)
-		for _, cat := range categories {
-			excludedCount[strings.ToLower(cat)] = 0
-		}
-		for _, cat := range connection.User.ExcludedCategories {
-			excludedCount[strings.ToLower(cat)] += 1
-		}
-		for cat, count := range excludedCount {
-			if count > 0 {
-				return fmt.Errorf("not authorized to run @%s commands", cat)
-			}
-		}
-	}
-
-	// 5. Check if commands are in IncludedCommands
-	if !utils.Contains(connection.User.IncludedCommands, "*") {
-		included := false
-		for _, includedCommand := range connection.User.IncludedCommands {
-			if strings.EqualFold(includedCommand, comm) {
-				included = true
-				break
-			}
-		}
-		if !included {
-			return fmt.Errorf("not authorised to run %s command", comm)
-		}
-	}
-
-	// 6. Check if command are in ExcludedCommands
-	if utils.Contains(connection.User.ExcludedCommands, "*") {
-		return errors.New("not authorised to run any commands")
-	} else {
-		for _, excludedCommand := range connection.User.ExcludedCommands {
-			if strings.EqualFold(excludedCommand, comm) {
-				return fmt.Errorf("not authorised to run %s command", comm)
-			}
-		}
-	}
-
 	// 7. Check if keys are in IncludedKeys
-	if !utils.Contains(connection.User.IncludedKeys, "*") {
-		includedCount := make(map[string]int)
-		for _, key := range keys {
-			includedCount[key] = 0
-		}
-		for _, key := range connection.User.IncludedKeys {
-			includedCount[key] += 1
-		}
-		for key, count := range includedCount {
-			if count == 0 {
-				return fmt.Errorf("not authorized to access key %s~%s", "%RW", key)
+	if len(keys) > 0 && !slices.ContainsFunc(keys, func(key string) bool {
+		return slices.ContainsFunc(connection.User.IncludedKeys, func(includedKey string) bool {
+			if includedKey == "*" || includedKey == key {
+				return true
 			}
-		}
+			// TODO: Implemented glob pattern matching to determine if key is allowed
+			notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%RW", key))
+			return false
+		})
+	}) {
+		return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
 	}
 
 	// 8. If @read is in the list of categories, check if keys are in IncludedReadKeys
-	if utils.Contains(categories, utils.ReadCategory) && !utils.Contains(connection.User.IncludedReadKeys, "*") {
-		includedCount := make(map[string]int)
-		for _, key := range keys {
-			includedCount[key] = 0
-		}
-		for _, key := range connection.User.IncludedReadKeys {
-			includedCount[key] += 1
-		}
-		for key, count := range includedCount {
-			if count == 0 {
-				return fmt.Errorf("not authorised to acces key %s~%s", "%R", key)
+	if len(keys) > 0 && slices.Contains(categories, utils.ReadCategory) && !slices.ContainsFunc(keys, func(key string) bool {
+		return slices.ContainsFunc(connection.User.IncludedReadKeys, func(readKey string) bool {
+			if readKey == "*" || readKey == key {
+				return true
 			}
-		}
+			// TODO: Implement glob pattern matching to determine if read key is allowed
+			notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%R", key))
+			return false
+		})
+	}) {
+		return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
 	}
 
 	// 9. If @write is in the list of categories, check if keys are in IncludedWriteKeys
-	if utils.Contains(categories, utils.WriteCategory) && !utils.Contains(connection.User.IncludedWriteKeys, "*") {
-		includedCount := make(map[string]int)
-		for _, key := range keys {
-			includedCount[key] = 0
-		}
-		for _, key := range connection.User.IncludedWriteKeys {
-			includedCount[key] += 1
-		}
-		for key, count := range includedCount {
-			if count == 0 {
-				return fmt.Errorf("not authorised to acces key %s~%s", "%W", key)
+	if len(keys) > 0 && slices.Contains(categories, utils.WriteCategory) && !slices.ContainsFunc(keys, func(key string) bool {
+		return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKey string) bool {
+			if writeKey == "*" || writeKey == key {
+				return true
 			}
-		}
+			// TODO: Implement glob pattern matching to determine if write key is allowed
+			notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%W", key))
+			return false
+		})
+	}) {
+		return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
 	}
 
 	return nil
