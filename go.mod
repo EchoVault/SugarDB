@@ -3,12 +3,14 @@ module github.com/kelvinmwinuka/memstore
 go 1.21.4
 
 require (
+	github.com/gobwas/glob v0.2.3
 	github.com/hashicorp/memberlist v0.5.0
 	github.com/hashicorp/raft v1.5.0
 	github.com/hashicorp/raft-boltdb v0.0.0-20230125174641-2a8082862702
 	github.com/sethvargo/go-retry v0.2.4
 	github.com/tidwall/resp v0.1.1
 	gopkg.in/yaml.v3 v3.0.1
+
 )
 
 require (

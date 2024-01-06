@@ -278,7 +278,6 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 			if includedCategory == "*" || includedCategory == category {
 				return true
 			}
-			// TODO: Implement glob pattern matching to determine allowed category
 			notAllowed = append(notAllowed, fmt.Sprintf("@%s", category))
 			return false
 		})
@@ -296,7 +295,6 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 				notAllowed = []string{fmt.Sprintf("@%s", category)}
 				return true
 			}
-			// TODO: Implement glob pattern matching to determine forbidden category
 			return false
 		})
 	}) {
@@ -322,23 +320,15 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		// In PUBSUB, KeyExtractionFunc returns channels so keys[0] is aliased to channel
 		channel := keys[0]
 		// 2.1) Check if the channel is in IncludedPubSubChannels
-		if allowed := slices.ContainsFunc(connection.User.IncludedPubSubChannels, func(includedChannel string) bool {
-			if slices.Contains([]string{"*", channel}, includedChannel) {
-				return true
-			}
-			// TODO: Implement glob pattern matching to determine if the channel is authorised
-			return false
-		}); !allowed {
+		if !slices.ContainsFunc(connection.User.IncludedPubSubChannels, func(includedChannel string) bool {
+			return utils.GlobMatches(includedChannel, channel)
+		}) {
 			return fmt.Errorf("not authorised to access channel &%s", channel)
 		}
 		// 2.2) Check if the channel is in ExcludedPubSubChannels
-		if forbidden := slices.ContainsFunc(connection.User.ExcludedPubSubChannels, func(excludedChannel string) bool {
-			if slices.Contains([]string{"*", channel}, excludedChannel) {
-				return true
-			}
-			// TODO: Implement glob pattern matching to determine if the channel is forbidden
-			return false
-		}); forbidden {
+		if slices.ContainsFunc(connection.User.ExcludedPubSubChannels, func(excludedChannel string) bool {
+			return utils.GlobMatches(excludedChannel, channel)
+		}) {
 			return fmt.Errorf("not authorised to access channel &%s", channel)
 		}
 		return nil
@@ -347,10 +337,9 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 	// 7. Check if keys are in IncludedKeys
 	if len(keys) > 0 && !slices.ContainsFunc(keys, func(key string) bool {
 		return slices.ContainsFunc(connection.User.IncludedKeys, func(includedKey string) bool {
-			if includedKey == "*" || includedKey == key {
+			if utils.GlobMatches(includedKey, key) {
 				return true
 			}
-			// TODO: Implemented glob pattern matching to determine if key is allowed
 			notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%RW", key))
 			return false
 		})
@@ -361,10 +350,9 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 	// 8. If @read is in the list of categories, check if keys are in IncludedReadKeys
 	if len(keys) > 0 && slices.Contains(categories, utils.ReadCategory) && !slices.ContainsFunc(keys, func(key string) bool {
 		return slices.ContainsFunc(connection.User.IncludedReadKeys, func(readKey string) bool {
-			if readKey == "*" || readKey == key {
+			if utils.GlobMatches(readKey, key) {
 				return true
 			}
-			// TODO: Implement glob pattern matching to determine if read key is allowed
 			notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%R", key))
 			return false
 		})
@@ -375,10 +363,9 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 	// 9. If @write is in the list of categories, check if keys are in IncludedWriteKeys
 	if len(keys) > 0 && slices.Contains(categories, utils.WriteCategory) && !slices.ContainsFunc(keys, func(key string) bool {
 		return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKey string) bool {
-			if writeKey == "*" || writeKey == key {
+			if utils.GlobMatches(writeKey, key) {
 				return true
 			}
-			// TODO: Implement glob pattern matching to determine if write key is allowed
 			notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%W", key))
 			return false
 		})
