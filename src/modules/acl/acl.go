@@ -341,7 +341,12 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return nil
 	}
 
-	// 7. Check if keys are in IncludedKeys
+	// 7. Check if nokeys is true
+	if connection.User.NoKeys {
+		return errors.New("not authorised to access any keys")
+	}
+
+	// 8. Check if keys are in IncludedKeys
 	if len(keys) > 0 && !slices.ContainsFunc(keys, func(key string) bool {
 		return slices.ContainsFunc(connection.User.IncludedKeys, func(includedKeyGlob string) bool {
 			if acl.GlobPatterns[includedKeyGlob].Match(key) {
@@ -354,7 +359,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
 	}
 
-	// 8. If @read is in the list of categories, check if keys are in IncludedReadKeys
+	// 9. If @read is in the list of categories, check if keys are in IncludedReadKeys
 	if len(keys) > 0 && slices.Contains(categories, utils.ReadCategory) && !slices.ContainsFunc(keys, func(key string) bool {
 		return slices.ContainsFunc(connection.User.IncludedReadKeys, func(readKeyGlob string) bool {
 			if acl.GlobPatterns[readKeyGlob].Match(key) {
@@ -367,7 +372,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
 	}
 
-	// 9. If @write is in the list of categories, check if keys are in IncludedWriteKeys
+	// 10. If @write is in the list of categories, check if keys are in IncludedWriteKeys
 	if len(keys) > 0 && slices.Contains(categories, utils.WriteCategory) && !slices.ContainsFunc(keys, func(key string) bool {
 		return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKeyGlob string) bool {
 			if acl.GlobPatterns[writeKeyGlob].Match(key) {
@@ -403,10 +408,7 @@ func (acl *ACL) CompileGlobs() {
 	// Compile the globs that have not been compiled yet
 	for _, g := range allGlobs {
 		if acl.GlobPatterns[g] == nil {
-			fmt.Println("COMPILING GLOB ", g)
 			acl.GlobPatterns[g] = glob.MustCompile(g)
-		} else {
-			fmt.Println("GLOB ", g, "ALREADY COMPILED, SKIPPING...")
 		}
 	}
 }

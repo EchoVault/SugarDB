@@ -152,22 +152,27 @@ func (user *User) UpdateUser(cmd []string) error {
 			user.IncludedKeys = []string{"*"}
 			user.IncludedReadKeys = []string{"*"}
 			user.IncludedWriteKeys = []string{"*"}
+			user.NoKeys = false
 			continue
 		}
 		if len(str) > 1 && str[0] == '~' {
 			user.IncludedKeys = append(user.IncludedKeys, str[1:])
+			user.NoKeys = false
 			continue
 		}
 		if len(str) > 4 && strings.EqualFold(str[0:4], "%RW~") {
 			user.IncludedKeys = append(user.IncludedKeys, str[4:])
+			user.NoKeys = false
 			continue
 		}
 		if len(str) > 3 && strings.EqualFold(str[0:3], "%R~") {
 			user.IncludedReadKeys = append(user.IncludedReadKeys, str[3:])
+			user.NoKeys = false
 			continue
 		}
 		if len(str) > 3 && strings.EqualFold(str[0:3], "%W~") {
 			user.IncludedWriteKeys = append(user.IncludedWriteKeys, str[3:])
+			user.NoKeys = false
 			continue
 		}
 		// Parse channels
