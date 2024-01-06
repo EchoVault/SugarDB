@@ -2,6 +2,7 @@ package acl
 
 import (
 	"github.com/kelvinmwinuka/memstore/src/utils"
+	"slices"
 	"strings"
 )
 
@@ -30,7 +31,7 @@ type User struct {
 func (user *User) Normalise() {
 	user.IncludedCategories = RemoveDuplicateEntries(user.IncludedCategories, "allCategories")
 	user.ExcludedCategories = RemoveDuplicateEntries(user.ExcludedCategories, "allCategories")
-	if utils.Contains(user.ExcludedCategories, "*") {
+	if slices.Contains(user.ExcludedCategories, "*") {
 		user.IncludedCategories = []string{}
 	}
 
@@ -39,7 +40,7 @@ func (user *User) Normalise() {
 		user.IncludedCommands = []string{"*"}
 	}
 	user.ExcludedCommands = RemoveDuplicateEntries(user.ExcludedCommands, "allCommands")
-	if utils.Contains(user.ExcludedCommands, "*") {
+	if slices.Contains(user.ExcludedCommands, "*") {
 		user.IncludedCommands = []string{}
 	}
 
@@ -61,7 +62,7 @@ func (user *User) Normalise() {
 		user.IncludedPubSubChannels = []string{"*"}
 	}
 	user.ExcludedPubSubChannels = RemoveDuplicateEntries(user.ExcludedPubSubChannels, "allChannels")
-	if utils.Contains(user.ExcludedPubSubChannels, "*") {
+	if slices.Contains(user.ExcludedPubSubChannels, "*") {
 		user.IncludedPubSubChannels = []string{}
 	}
 }
@@ -183,7 +184,7 @@ func (user *User) UpdateUser(cmd []string) error {
 			user.IncludedCommands = []string{"*"}
 			continue
 		}
-		if len(str) > 2 && !utils.Contains([]uint8{'&', '@'}, str[1]) {
+		if len(str) > 2 && !slices.Contains([]uint8{'&', '@'}, str[1]) {
 			if str[0] == '+' {
 				user.IncludedCommands = append(user.IncludedCommands, str[1:])
 				continue
