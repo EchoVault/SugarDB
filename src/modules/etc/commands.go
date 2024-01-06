@@ -43,7 +43,6 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, conn *net
 		key := cmd[1]
 
 		if !server.KeyExists(key) {
-			// TODO: Retry CreateKeyAndLock until we manage to obtain the key
 			_, err := server.CreateKeyAndLock(ctx, key)
 			if err != nil {
 				return nil, err

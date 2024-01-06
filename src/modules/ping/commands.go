@@ -13,8 +13,6 @@ type Plugin struct {
 	description string
 }
 
-var PingModule Plugin
-
 func (p Plugin) Name() string {
 	return p.name
 }
