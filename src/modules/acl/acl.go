@@ -342,7 +342,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 	}
 
 	// 7. Check if nokeys is true
-	if connection.User.NoKeys {
+	if len(keys) > 0 && connection.User.NoKeys {
 		return errors.New("not authorised to access any keys")
 	}
 
