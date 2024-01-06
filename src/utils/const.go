@@ -25,6 +25,6 @@ const (
 )
 
 const (
-	OK_RESPONSE         = "+OK\r\n\n"
+	OK_RESPONSE         = "+OK\r\n\r\n"
 	WRONG_ARGS_RESPONSE = "wrong number of arguments"
 )

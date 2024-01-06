@@ -25,7 +25,6 @@ type User struct {
 	IncludedCommands []string `json:"IncludedCommands" yaml:"IncludedCommands"`
 	ExcludedCommands []string `json:"ExcludedCommands" yaml:"ExcludedCommands"`
 
-	IncludedKeys      []string `json:"IncludedKeys" yaml:"IncludedKeys"`
 	IncludedReadKeys  []string `json:"IncludedReadKeys" yaml:"IncludedReadKeys"`
 	IncludedWriteKeys []string `json:"IncludedWriteKeys" yaml:"IncludedWriteKeys"`
 
@@ -49,10 +48,6 @@ func (user *User) Normalise() {
 		user.IncludedCommands = []string{}
 	}
 
-	user.IncludedKeys = RemoveDuplicateEntries(user.IncludedKeys, "allKeys")
-	if len(user.IncludedKeys) == 0 && !user.NoKeys {
-		user.IncludedKeys = []string{"*"}
-	}
 	user.IncludedReadKeys = RemoveDuplicateEntries(user.IncludedReadKeys, "allKeys")
 	if len(user.IncludedReadKeys) == 0 && !user.NoKeys {
 		user.IncludedReadKeys = []string{"*"}
@@ -149,19 +144,15 @@ func (user *User) UpdateUser(cmd []string) error {
 		}
 		// Parse keys
 		if strings.EqualFold(str, "allKeys") {
-			user.IncludedKeys = []string{"*"}
 			user.IncludedReadKeys = []string{"*"}
 			user.IncludedWriteKeys = []string{"*"}
 			user.NoKeys = false
 			continue
 		}
-		if len(str) > 1 && str[0] == '~' {
-			user.IncludedKeys = append(user.IncludedKeys, str[1:])
-			user.NoKeys = false
-			continue
-		}
-		if len(str) > 4 && strings.EqualFold(str[0:4], "%RW~") {
-			user.IncludedKeys = append(user.IncludedKeys, str[4:])
+		if (len(str) > 1 && str[0] == '~') || len(str) > 4 && strings.EqualFold(str[0:4], "%RW~") {
+			startIndex := strings.Index(str, "~") + 1
+			user.IncludedReadKeys = append(user.IncludedReadKeys, str[startIndex:])
+			user.IncludedWriteKeys = append(user.IncludedWriteKeys, str[startIndex:])
 			user.NoKeys = false
 			continue
 		}
@@ -226,7 +217,6 @@ func (user *User) UpdateUser(cmd []string) error {
 		}
 		// If resetkeys is provided, reset all keys that the user can access
 		if strings.EqualFold(str, "resetkeys") {
-			user.IncludedKeys = []string{}
 			user.IncludedReadKeys = []string{}
 			user.IncludedWriteKeys = []string{}
 			user.NoKeys = true
@@ -248,7 +238,6 @@ func (user *User) Merge(new *User) {
 	user.ExcludedCategories = append(user.ExcludedCategories, new.ExcludedCategories...)
 	user.IncludedCommands = append(user.IncludedCommands, new.IncludedCommands...)
 	user.ExcludedCommands = append(user.ExcludedCommands, new.ExcludedCommands...)
-	user.IncludedKeys = append(user.IncludedKeys, new.IncludedKeys...)
 	user.IncludedReadKeys = append(user.IncludedReadKeys, new.IncludedReadKeys...)
 	user.IncludedWriteKeys = append(user.IncludedWriteKeys, new.IncludedWriteKeys...)
 	user.IncludedPubSubChannels = append(user.IncludedPubSubChannels, new.IncludedPubSubChannels...)
@@ -265,7 +254,6 @@ func (user *User) Replace(new *User) {
 	user.ExcludedCategories = new.ExcludedCategories
 	user.IncludedCommands = new.IncludedCommands
 	user.ExcludedCommands = new.ExcludedCommands
-	user.IncludedKeys = new.IncludedKeys
 	user.IncludedReadKeys = new.IncludedReadKeys
 	user.IncludedWriteKeys = new.IncludedWriteKeys
 	user.IncludedPubSubChannels = new.IncludedPubSubChannels
@@ -282,7 +270,6 @@ func CreateUser(username string) *User {
 		ExcludedCategories:     []string{},
 		IncludedCommands:       []string{},
 		ExcludedCommands:       []string{},
-		IncludedKeys:           []string{},
 		IncludedReadKeys:       []string{},
 		IncludedWriteKeys:      []string{},
 		IncludedPubSubChannels: []string{},

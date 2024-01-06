@@ -341,48 +341,41 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return nil
 	}
 
-	// 7. Check if nokeys is true
-	if len(keys) > 0 && connection.User.NoKeys {
-		return errors.New("not authorised to access any keys")
-	}
+	if len(keys) > 0 {
+		// 7. Check if nokeys is true
+		if connection.User.NoKeys {
+			return errors.New("not authorised to access any keys")
+		}
 
-	// 8. Check if keys are in IncludedKeys
-	if len(keys) > 0 && !slices.ContainsFunc(keys, func(key string) bool {
-		return slices.ContainsFunc(connection.User.IncludedKeys, func(includedKeyGlob string) bool {
-			if acl.GlobPatterns[includedKeyGlob].Match(key) {
-				return true
+		// 8. If @read is in the list of categories, check if keys are in IncludedReadKeys
+		if slices.Contains(categories, utils.ReadCategory) {
+			if !slices.ContainsFunc(keys, func(key string) bool {
+				return slices.ContainsFunc(connection.User.IncludedReadKeys, func(readKeyGlob string) bool {
+					if acl.GlobPatterns[readKeyGlob].Match(key) {
+						return true
+					}
+					notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%R", key))
+					return false
+				})
+			}) {
+				return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
 			}
-			notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%RW", key))
-			return false
-		})
-	}) {
-		return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
-	}
+		}
 
-	// 9. If @read is in the list of categories, check if keys are in IncludedReadKeys
-	if len(keys) > 0 && slices.Contains(categories, utils.ReadCategory) && !slices.ContainsFunc(keys, func(key string) bool {
-		return slices.ContainsFunc(connection.User.IncludedReadKeys, func(readKeyGlob string) bool {
-			if acl.GlobPatterns[readKeyGlob].Match(key) {
-				return true
+		// 9. If @write is in the list of categories, check if keys are in IncludedWriteKeys
+		if slices.Contains(categories, utils.WriteCategory) {
+			if !slices.ContainsFunc(keys, func(key string) bool {
+				return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKeyGlob string) bool {
+					if acl.GlobPatterns[writeKeyGlob].Match(key) {
+						return true
+					}
+					notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%W", key))
+					return false
+				})
+			}) {
+				return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
 			}
-			notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%R", key))
-			return false
-		})
-	}) {
-		return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
-	}
-
-	// 10. If @write is in the list of categories, check if keys are in IncludedWriteKeys
-	if len(keys) > 0 && slices.Contains(categories, utils.WriteCategory) && !slices.ContainsFunc(keys, func(key string) bool {
-		return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKeyGlob string) bool {
-			if acl.GlobPatterns[writeKeyGlob].Match(key) {
-				return true
-			}
-			notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%W", key))
-			return false
-		})
-	}) {
-		return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
+		}
 	}
 
 	return nil
@@ -395,7 +388,6 @@ func (acl *ACL) CompileGlobs() {
 	for _, user := range acl.Users {
 		userGlobs = append(userGlobs, user.IncludedPubSubChannels...)
 		userGlobs = append(userGlobs, user.ExcludedPubSubChannels...)
-		userGlobs = append(userGlobs, user.IncludedKeys...)
 		userGlobs = append(userGlobs, user.IncludedReadKeys...)
 		userGlobs = append(userGlobs, user.IncludedWriteKeys...)
 		for _, g := range userGlobs {

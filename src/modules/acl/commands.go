@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"slices"
 	"strings"
 )
 
@@ -127,16 +128,24 @@ func handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn 
 	}
 
 	// keys
-	res = res + fmt.Sprintf("\r\n+keys\r\n*%d",
-		len(user.IncludedKeys)+len(user.IncludedReadKeys)+len(user.IncludedWriteKeys))
-	for _, key := range user.IncludedKeys {
-		res = res + fmt.Sprintf("\r\n+%s~%s", "%RW", key)
+	allKeys := user.IncludedReadKeys
+	for _, key := range user.IncludedWriteKeys {
+		if !slices.Contains(allKeys, key) {
+			allKeys = append(allKeys, key)
+		}
 	}
+	res = res + fmt.Sprintf("\r\n+keys\r\n*%d", len(allKeys))
 	for _, key := range user.IncludedReadKeys {
+		if slices.Contains(user.IncludedWriteKeys, key) {
+			res = res + fmt.Sprintf("\r\n+%s~%s", "%RW", key)
+			continue
+		}
 		res = res + fmt.Sprintf("\r\n+%s~%s", "%R", key)
 	}
 	for _, key := range user.IncludedWriteKeys {
-		res = res + fmt.Sprintf("\r\n+%s~%s", "%W", key)
+		if !slices.Contains(user.IncludedReadKeys, key) {
+			res = res + fmt.Sprintf("\r\n+%s~%s", "%W", key)
+		}
 	}
 
 	// channels
@@ -148,9 +157,6 @@ func handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn 
 	for _, channel := range user.ExcludedPubSubChannels {
 		res = res + fmt.Sprintf("\r\n+-&%s", channel)
 	}
-
-	// Test arrays to remove later
-	res = res + fmt.Sprintf("\r\n")
 
 	res += "\r\n\r\n"
 
@@ -331,17 +337,19 @@ func handleList(ctx context.Context, cmd []string, server utils.Server, conn *ne
 			}
 			s += fmt.Sprintf(" -%s", command)
 		}
-		// Included keys
-		for _, key := range user.IncludedKeys {
-			s += fmt.Sprintf(" %s~%s", "%RW", key)
-		}
 		// Included read keys
 		for _, key := range user.IncludedReadKeys {
+			if slices.Contains(user.IncludedWriteKeys, key) {
+				s += fmt.Sprintf(" %s~%s", "%RW", key)
+				continue
+			}
 			s += fmt.Sprintf(" %s~%s", "%R", key)
 		}
 		// Included write keys
 		for _, key := range user.IncludedReadKeys {
-			s += fmt.Sprintf(" %s~%s", "%W", key)
+			if !slices.Contains(user.IncludedReadKeys, key) {
+				s += fmt.Sprintf(" %s~%s", "%W", key)
+			}
 		}
 		// Included Pub/Sub channels
 		for _, channel := range user.IncludedPubSubChannels {
