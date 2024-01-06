@@ -354,7 +354,7 @@ func handleList(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		res = res + fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
 	}
 
-	res = res + "\r\n\n"
+	res = res + "\r\n\r\n"
 	return []byte(res), nil
 }
 

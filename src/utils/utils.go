@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gobwas/glob"
 	"github.com/sethvargo/go-retry"
 	"github.com/tidwall/resp"
 )
@@ -147,9 +146,4 @@ func AbsInt(n int) int {
 		return -n
 	}
 	return n
-}
-
-func GlobMatches(pattern, s string) bool {
-	g := glob.MustCompile(pattern)
-	return g.Match(s)
 }

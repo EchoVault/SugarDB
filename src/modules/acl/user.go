@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+type Password struct {
+	PasswordType  string `json:"PasswordType" yaml:"PasswordType"` // plaintext, SHA256
+	PasswordValue string `json:"PasswordValue" yaml:"PasswordValue"`
+}
+
 type User struct {
 	Username   string `json:"Username" yaml:"Username"`
 	Enabled    bool   `json:"Enabled" yaml:"Enabled"`
