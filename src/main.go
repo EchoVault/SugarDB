@@ -6,16 +6,18 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/kelvinmwinuka/memstore/src/modules/acl"
-	"github.com/kelvinmwinuka/memstore/src/modules/etc"
-	"github.com/kelvinmwinuka/memstore/src/modules/get"
-	"github.com/kelvinmwinuka/memstore/src/modules/hash"
-	"github.com/kelvinmwinuka/memstore/src/modules/list"
-	"github.com/kelvinmwinuka/memstore/src/modules/ping"
-	"github.com/kelvinmwinuka/memstore/src/modules/pubsub"
-	"github.com/kelvinmwinuka/memstore/src/modules/set"
-	"github.com/kelvinmwinuka/memstore/src/modules/sorted_set"
-	str "github.com/kelvinmwinuka/memstore/src/modules/string"
+	"github.com/kelvinmwinuka/memstore/src/command_modules/acl"
+	"github.com/kelvinmwinuka/memstore/src/command_modules/etc"
+	"github.com/kelvinmwinuka/memstore/src/command_modules/get"
+	"github.com/kelvinmwinuka/memstore/src/command_modules/hash"
+	"github.com/kelvinmwinuka/memstore/src/command_modules/list"
+	"github.com/kelvinmwinuka/memstore/src/command_modules/ping"
+	"github.com/kelvinmwinuka/memstore/src/command_modules/pubsub"
+	"github.com/kelvinmwinuka/memstore/src/command_modules/set"
+	"github.com/kelvinmwinuka/memstore/src/command_modules/sorted_set"
+	str "github.com/kelvinmwinuka/memstore/src/command_modules/string"
+	ml "github.com/kelvinmwinuka/memstore/src/memberlist_layer"
+	rl "github.com/kelvinmwinuka/memstore/src/raft_layer"
 	"io"
 	"log"
 	"net"
@@ -28,8 +30,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/raft"
 	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
@@ -44,11 +44,8 @@ type Server struct {
 
 	commands []utils.Command
 
-	raft *raft.Raft
-
-	memberList     *memberlist.Memberlist
-	broadcastQueue *memberlist.TransmitLimitedQueue
-	numOfNodes     int
+	raft       *rl.Raft
+	memberList *ml.MemberList
 
 	cancelCh *chan os.Signal
 
@@ -232,7 +229,7 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 				continue
 			}
 
-			if server.isRaftLeader() {
+			if server.raft.IsRaftLeader() {
 				applyFuture := server.raft.Apply(b, 500*time.Millisecond)
 
 				if err := applyFuture.Error(); err != nil {
@@ -370,8 +367,20 @@ func (server *Server) Start(ctx context.Context) {
 	}
 
 	if server.IsInCluster() {
-		server.RaftInit(ctx)
-		server.MemberListInit(ctx)
+		// Initialise raft and memberlist
+		server.raft = rl.NewRaft(rl.RaftOpts{
+			Config:     conf,
+			Server:     server,
+			GetCommand: server.getCommand,
+		})
+		server.memberList = ml.NewMemberList(ml.MemberlistOpts{
+			Config:           conf,
+			HasJoinedCluster: server.raft.HasJoinedCluster,
+			AddVoter:         server.raft.AddVoter,
+			RemoveRaftServer: server.raft.RemoveServer,
+		})
+		server.raft.RaftInit(ctx)
+		server.memberList.MemberListInit(ctx)
 	}
 
 	if conf.HTTP {
@@ -387,8 +396,8 @@ func (server *Server) IsInCluster() bool {
 
 func (server *Server) ShutDown(ctx context.Context) {
 	if server.IsInCluster() {
-		server.RaftShutdown(ctx)
-		server.MemberListShutdown(ctx)
+		server.raft.RaftShutdown(ctx)
+		server.memberList.MemberListShutdown(ctx)
 	}
 }
 
@@ -417,9 +426,6 @@ func main() {
 		config: config,
 
 		connID: atomic.Uint64{},
-
-		broadcastQueue: new(memberlist.TransmitLimitedQueue),
-		numOfNodes:     0,
 
 		ACL:    acl.NewACL(config),
 		PubSub: pubsub.NewPubSub(),
