@@ -154,8 +154,6 @@ func (server *Server) NotifyMsg(msgBytes []byte) {
 		}
 	case "MutateData":
 		// Mutate the value at a given key
-	case "FetchData":
-		// Fetch the value at a given key
 	}
 }
 
