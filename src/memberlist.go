@@ -117,7 +117,7 @@ func (server *Server) broadcastRaftAddress(ctx context.Context) {
 	}
 }
 
-// Implements Delegate interface
+// NodeMeta implements Delegate interface
 func (server *Server) NodeMeta(limit int) []byte {
 	meta := NodeMeta{
 		ServerID:       raft.ServerID(server.config.ServerID),
@@ -134,7 +134,7 @@ func (server *Server) NodeMeta(limit int) []byte {
 	return b
 }
 
-// Implements Delegate interface
+// NotifyMsg implements Delegate interface
 func (server *Server) NotifyMsg(msgBytes []byte) {
 	var msg BroadcastMessage
 
@@ -159,28 +159,28 @@ func (server *Server) NotifyMsg(msgBytes []byte) {
 	}
 }
 
-// Implements Delegate interface
+// GetBroadcasts implements Delegate interface
 func (server *Server) GetBroadcasts(overhead, limit int) [][]byte {
 	return server.broadcastQueue.GetBroadcasts(overhead, limit)
 }
 
-// Implements Delegate interface
+// LocalState implements Delegate interface
 func (server *Server) LocalState(join bool) []byte {
 	// No-Op
 	return []byte("")
 }
 
-// Implements Delegate interface
+// MergeRemoteState implements Delegate interface
 func (server *Server) MergeRemoteState(buf []byte, join bool) {
 	// No-Op
 }
 
-// Implements EventDelegate interface
+// NotifyJoin implements EventDelegate interface
 func (server *Server) NotifyJoin(node *memberlist.Node) {
 	server.numOfNodes += 1
 }
 
-// Implements EventDelegate interface
+// NotifyLeave implements EventDelegate interface
 func (server *Server) NotifyLeave(node *memberlist.Node) {
 	server.numOfNodes -= 1
 
@@ -200,7 +200,7 @@ func (server *Server) NotifyLeave(node *memberlist.Node) {
 	}
 }
 
-// Implements EventDelegate interface
+// NotifyUpdate implements EventDelegate interface
 func (server *Server) NotifyUpdate(node *memberlist.Node) {
 	// No-Op
 }
