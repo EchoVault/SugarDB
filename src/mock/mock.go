@@ -4,27 +4,27 @@ import (
 	"sync"
 )
 
-type MockData struct {
+type Data struct {
 	Mu   sync.Mutex
 	Data map[string]interface{}
 }
 
-type MockServer struct {
-	Data MockData
+type Server struct {
+	Data Data
 }
 
-func (server *MockServer) Lock() {
+func (server *Server) Lock() {
 	server.Data.Mu.Lock()
 }
 
-func (server *MockServer) Unlock() {
+func (server *Server) Unlock() {
 	server.Data.Mu.Unlock()
 }
 
-func (server *MockServer) GetData(key string) interface{} {
+func (server *Server) GetData(key string) interface{} {
 	return server.Data.Data[key]
 }
 
-func (server *MockServer) SetData(key string, value interface{}) {
+func (server *Server) SetData(key string, value interface{}) {
 	server.Data.Data[key] = value
 }
