@@ -3,6 +3,7 @@ package ping
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"net"
 )
@@ -32,7 +33,7 @@ func handlePing(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	case 1:
 		return []byte("+PONG\r\n\r\n"), nil
 	case 2:
-		return []byte("+" + cmd[1] + "\r\n\r\n"), nil
+		return []byte(fmt.Sprintf("%s\r\n%d\r\n%s\r\n\r\n", "$", len(cmd[1]), cmd[1])), nil
 	}
 }
 
