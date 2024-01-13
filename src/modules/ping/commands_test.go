@@ -6,8 +6,31 @@ import (
 	"fmt"
 	server "github.com/echovault/echovault/src/mock/server"
 	"github.com/echovault/echovault/src/utils"
+	"github.com/tidwall/resp"
+	"slices"
 	"testing"
 )
+
+func Decode(raw []byte) (resp.Value, error) {
+	rd := resp.NewReader(bytes.NewBuffer(raw))
+	var res resp.Value
+
+	v, _, err := rd.ReadValue()
+
+	if err != nil {
+		return resp.Value{}, err
+	}
+
+	if slices.Contains([]string{"SimpleString", "BulkString", "Integer", "Error"}, v.Type().String()) {
+		return v, nil
+	}
+
+	if v.Type().String() == "Array" {
+		res = v
+	}
+
+	return res, nil
+}
 
 func Test_HandlePing(t *testing.T) {
 	ctx := context.Background()
@@ -18,6 +41,10 @@ func Test_HandlePing(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	_, err = Decode(res)
+	if err != nil {
+		t.Error(err)
+	}
 	if !bytes.Equal(res, []byte("+PONG\r\n\r\n")) {
 		t.Errorf("expected %+v, got: %+v", "+PONG\r\n\r\n", res)
 	}
@@ -25,6 +52,10 @@ func Test_HandlePing(t *testing.T) {
 	// Test PING with string arg
 	testString := "Test String"
 	res, err = handlePing(ctx, []string{"PING", testString}, mockServer, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = Decode(res)
 	if err != nil {
 		t.Error(err)
 	}
