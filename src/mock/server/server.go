@@ -10,6 +10,14 @@ type Server struct {
 	keyCreationLock *sync.Mutex
 }
 
+func NewMockServer() *Server {
+	return &Server{
+		store:           make(map[string]interface{}),
+		keyLocks:        make(map[string]*sync.RWMutex),
+		keyCreationLock: &sync.Mutex{},
+	}
+}
+
 func (server *Server) TakeSnapshot() error {
 	return nil
 }
