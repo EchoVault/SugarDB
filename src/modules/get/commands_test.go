@@ -3,6 +3,7 @@ package get
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/echovault/echovault/src/mock/server"
 	"github.com/echovault/echovault/src/utils"
@@ -89,22 +90,32 @@ func Test_HandleMGET(t *testing.T) {
 	mockServer := server.NewMockServer()
 
 	tests := []struct {
-		presetKeys   []string
-		presetValues []string
-		command      []string
-		expected     []string
+		presetKeys    []string
+		presetValues  []string
+		command       []string
+		expected      []string
+		expectedError error
 	}{
 		{
-			presetKeys:   []string{"test1", "test2", "test3", "test4"},
-			presetValues: []string{"value1", "value2", "value3", "value4"},
-			command:      []string{"MGET", "test1", "test4", "test2", "test3", "test1"},
-			expected:     []string{"value1", "value4", "value2", "value3", "value1"},
+			presetKeys:    []string{"test1", "test2", "test3", "test4"},
+			presetValues:  []string{"value1", "value2", "value3", "value4"},
+			command:       []string{"MGET", "test1", "test4", "test2", "test3", "test1"},
+			expected:      []string{"value1", "value4", "value2", "value3", "value1"},
+			expectedError: nil,
 		},
 		{
-			presetKeys:   []string{"test5", "test6", "test7"},
-			presetValues: []string{"value5", "value6", "value7"},
-			command:      []string{"MGET", "test5", "test6", "non-existent", "non-existent", "test7", "non-existent"},
-			expected:     []string{"value5", "value6", "nil", "nil", "value7", "nil"},
+			presetKeys:    []string{"test5", "test6", "test7"},
+			presetValues:  []string{"value5", "value6", "value7"},
+			command:       []string{"MGET", "test5", "test6", "non-existent", "non-existent", "test7", "non-existent"},
+			expected:      []string{"value5", "value6", "nil", "nil", "value7", "nil"},
+			expectedError: nil,
+		},
+		{
+			presetKeys:    []string{"test5"},
+			presetValues:  []string{"value5"},
+			command:       []string{"MGET"},
+			expected:      nil,
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
 	}
 
@@ -120,6 +131,13 @@ func Test_HandleMGET(t *testing.T) {
 		}
 		// Test the command and its results
 		res, err := handleMGet(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			// If we expect and error, branch out and check error
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error %+v, got: %+v", test.expectedError, err)
+			}
+			continue
+		}
 		if err != nil {
 			t.Error(err)
 		}
@@ -136,14 +154,5 @@ func Test_HandleMGET(t *testing.T) {
 				t.Errorf("expected value %s, got: %s", test.expected[i], value.String())
 			}
 		}
-	}
-
-	// Test too few args
-	res, err := handleMGet(context.Background(), []string{"MGET"}, mockServer, nil)
-	if res != nil {
-		t.Errorf("expected nil response, got: %+v", res)
-	}
-	if err.Error() != utils.WRONG_ARGS_RESPONSE {
-		t.Errorf("expected error %s, got %s", utils.WRONG_ARGS_RESPONSE, err.Error())
 	}
 }
