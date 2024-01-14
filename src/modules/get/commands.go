@@ -42,15 +42,11 @@ func handleGet(ctx context.Context, cmd []string, server utils.Server, conn *net
 	if err != nil {
 		return nil, err
 	}
-	value := server.GetValue(key)
-	server.KeyRUnlock(key)
+	defer server.KeyRUnlock(key)
 
-	switch value.(type) {
-	default:
-		return []byte(fmt.Sprintf("+%v\r\n\r\n", value)), nil
-	case nil:
-		return []byte("+nil\r\n\r\n"), nil
-	}
+	value := server.GetValue(key)
+
+	return []byte(fmt.Sprintf("+%v\r\n\r\n", value)), nil
 }
 
 func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
