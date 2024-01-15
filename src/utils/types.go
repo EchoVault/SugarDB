@@ -73,8 +73,7 @@ type ACL interface {
 	AuthorizeConnection(conn *net.Conn, cmd []string, command Command, subCommand SubCommand) error
 }
 
-type PubSub interface {
-}
+type PubSub interface{}
 
 type SnapshotObject struct {
 	State                      map[string]interface{}
