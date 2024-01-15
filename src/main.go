@@ -3,15 +3,39 @@ package main
 import (
 	"context"
 	"github.com/echovault/echovault/src/modules/acl"
+	"github.com/echovault/echovault/src/modules/admin"
+	"github.com/echovault/echovault/src/modules/etc"
+	"github.com/echovault/echovault/src/modules/get"
+	"github.com/echovault/echovault/src/modules/hash"
+	"github.com/echovault/echovault/src/modules/list"
+	"github.com/echovault/echovault/src/modules/ping"
 	"github.com/echovault/echovault/src/modules/pubsub"
+	"github.com/echovault/echovault/src/modules/set"
+	"github.com/echovault/echovault/src/modules/sorted_set"
+	str "github.com/echovault/echovault/src/modules/string"
 	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"log"
 	"os"
 	"os/signal"
-	"sync/atomic"
 	"syscall"
 )
+
+func GetCommands() []utils.Command {
+	var commands []utils.Command
+	commands = append(commands, acl.Commands()...)
+	commands = append(commands, admin.Commands()...)
+	commands = append(commands, etc.Commands()...)
+	commands = append(commands, get.Commands()...)
+	commands = append(commands, hash.Commands()...)
+	commands = append(commands, list.Commands()...)
+	commands = append(commands, ping.Commands()...)
+	commands = append(commands, pubsub.Commands()...)
+	commands = append(commands, set.Commands()...)
+	commands = append(commands, sorted_set.Commands()...)
+	commands = append(commands, str.Commands()...)
+	return commands
+}
 
 func main() {
 	config, err := utils.GetConfig()
@@ -34,13 +58,13 @@ func main() {
 	cancelCh := make(chan os.Signal, 1)
 	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
-	s := &server.Server{
+	s := server.NewServer(server.Opts{
 		Config:   config,
-		ConnID:   atomic.Uint64{},
 		ACL:      acl.NewACL(config),
 		PubSub:   pubsub.NewPubSub(),
 		CancelCh: &cancelCh,
-	}
+		Commands: GetCommands(),
+	})
 
 	go s.Start(ctx)
 
