@@ -96,38 +96,33 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return bytes, nil
 }
 
-func NewModule() Plugin {
-	GetModule := Plugin{
-		name: "GetCommands",
-		commands: []utils.Command{
-			{
-				Command:     "get",
-				Categories:  []string{utils.ReadCategory, utils.FastCategory},
-				Description: "(GET key) Get the value at the specified key.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleGet,
+func Commands() []utils.Command {
+	return []utils.Command{
+		{
+			Command:     "get",
+			Categories:  []string{utils.ReadCategory, utils.FastCategory},
+			Description: "(GET key) Get the value at the specified key.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
 			},
-			{
-				Command:     "mget",
-				Categories:  []string{utils.ReadCategory, utils.FastCategory},
-				Description: "(MGET key1 [key2]) Get multiple values from the specified keys.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleMGet,
-			},
+			HandlerFunc: handleGet,
 		},
-		description: "Handle basic GET and MGET commands",
+		{
+			Command:     "mget",
+			Categories:  []string{utils.ReadCategory, utils.FastCategory},
+			Description: "(MGET key1 [key2]) Get multiple values from the specified keys.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleMGet,
+		},
 	}
-	return GetModule
 }
