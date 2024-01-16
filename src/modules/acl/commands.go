@@ -487,126 +487,121 @@ func handleSave(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func NewModule() Plugin {
-	ACLPlugin := Plugin{
-		name: "ACLCommands",
-		commands: []utils.Command{
-			{
-				Command:     "auth",
-				Categories:  []string{utils.ConnectionCategory, utils.SlowCategory},
-				Description: "(AUTH [username] password) Authenticates the connection",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
-				},
-				HandlerFunc: handleAuth,
+func Commands() []utils.Command {
+	return []utils.Command{
+		{
+			Command:     "auth",
+			Categories:  []string{utils.ConnectionCategory, utils.SlowCategory},
+			Description: "(AUTH [username] password) Authenticates the connection",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				return []string{}, nil
 			},
-			{
-				Command:     "acl",
-				Categories:  []string{},
-				Description: "Access-Control-List commands",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					return []string{}, nil
+			HandlerFunc: handleAuth,
+		},
+		{
+			Command:     "acl",
+			Categories:  []string{},
+			Description: "Access-Control-List commands",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				return []string{}, nil
+			},
+			SubCommands: []utils.SubCommand{
+				{
+					Command:     "cat",
+					Categories:  []string{utils.SlowCategory},
+					Description: "(ACL CAT [category]) List all the categories and commands inside a category.",
+					Sync:        false,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) {
+						return []string{}, nil
+					},
+					HandlerFunc: handleCat,
 				},
-				SubCommands: []utils.SubCommand{
-					{
-						Command:     "cat",
-						Categories:  []string{utils.SlowCategory},
-						Description: "(ACL CAT [category]) List all the categories and commands inside a category.",
-						Sync:        false,
-						KeyExtractionFunc: func(cmd []string) ([]string, error) {
-							return []string{}, nil
-						},
-						HandlerFunc: handleCat,
+				{
+					Command:     "users",
+					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Description: "(ACL USERS) List all usersnames of the configured ACL users",
+					Sync:        false,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) {
+						return []string{}, nil
 					},
-					{
-						Command:     "users",
-						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-						Description: "(ACL USERS) List all usersnames of the configured ACL users",
-						Sync:        false,
-						KeyExtractionFunc: func(cmd []string) ([]string, error) {
-							return []string{}, nil
-						},
-						HandlerFunc: handleUsers,
+					HandlerFunc: handleUsers,
+				},
+				{
+					Command:     "setuser",
+					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Description: "(ACL SETUSER) Configure a new or existing user",
+					Sync:        true,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) {
+						return []string{}, nil
 					},
-					{
-						Command:     "setuser",
-						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-						Description: "(ACL SETUSER) Configure a new or existing user",
-						Sync:        true,
-						KeyExtractionFunc: func(cmd []string) ([]string, error) {
-							return []string{}, nil
-						},
-						HandlerFunc: handleSetUser,
+					HandlerFunc: handleSetUser,
+				},
+				{
+					Command:     "getuser",
+					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Description: "(ACL GETUSER) List the ACL rules of a user",
+					Sync:        false,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) {
+						return []string{}, nil
 					},
-					{
-						Command:     "getuser",
-						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-						Description: "(ACL GETUSER) List the ACL rules of a user",
-						Sync:        false,
-						KeyExtractionFunc: func(cmd []string) ([]string, error) {
-							return []string{}, nil
-						},
-						HandlerFunc: handleGetUser,
+					HandlerFunc: handleGetUser,
+				},
+				{
+					Command:     "deluser",
+					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Description: "(ACL DELUSER) Deletes users and terminates their connections. Cannot delete default user",
+					Sync:        true,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) {
+						return []string{}, nil
 					},
-					{
-						Command:     "deluser",
-						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-						Description: "(ACL DELUSER) Deletes users and terminates their connections. Cannot delete default user",
-						Sync:        true,
-						KeyExtractionFunc: func(cmd []string) ([]string, error) {
-							return []string{}, nil
-						},
-						HandlerFunc: handleDelUser,
+					HandlerFunc: handleDelUser,
+				},
+				{
+					Command:     "whoami",
+					Categories:  []string{utils.FastCategory},
+					Description: "(ACL WHOAMI) Returns the authenticated user of the current connection",
+					Sync:        true,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) {
+						return []string{}, nil
 					},
-					{
-						Command:     "whoami",
-						Categories:  []string{utils.FastCategory},
-						Description: "(ACL WHOAMI) Returns the authenticated user of the current connection",
-						Sync:        true,
-						KeyExtractionFunc: func(cmd []string) ([]string, error) {
-							return []string{}, nil
-						},
-						HandlerFunc: handleWhoAmI,
+					HandlerFunc: handleWhoAmI,
+				},
+				{
+					Command:     "list",
+					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Description: "(ACL LIST) Dumps effective acl rules in acl config file format",
+					Sync:        true,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) {
+						return []string{}, nil
 					},
-					{
-						Command:     "list",
-						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-						Description: "(ACL LIST) Dumps effective acl rules in acl config file format",
-						Sync:        true,
-						KeyExtractionFunc: func(cmd []string) ([]string, error) {
-							return []string{}, nil
-						},
-						HandlerFunc: handleList,
-					},
-					{
-						Command:    "load",
-						Categories: []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-						Description: `
+					HandlerFunc: handleList,
+				},
+				{
+					Command:    "load",
+					Categories: []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Description: `
 (ACL LOAD <MERGE | REPLACE>) Reloads the rules from the configured ACL config file.
 When 'MERGE' is passed, users from config file who share a username with users in memory will be merged.
 When 'REPLACED' is passed, users from config file who share a username with users in memory will replace the user in memory.`,
-						Sync: true,
-						KeyExtractionFunc: func(cmd []string) ([]string, error) {
-							return []string{}, nil
-						},
-						HandlerFunc: handleLoad,
+					Sync: true,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) {
+						return []string{}, nil
 					},
-					{
-						Command:     "save",
-						Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-						Description: "(ACL SAVE) Saves the effective ACL rules the configured ACL config file",
-						Sync:        true,
-						KeyExtractionFunc: func(cmd []string) ([]string, error) {
-							return []string{}, nil
-						},
-						HandlerFunc: handleSave,
+					HandlerFunc: handleLoad,
+				},
+				{
+					Command:     "save",
+					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Description: "(ACL SAVE) Saves the effective ACL rules the configured ACL config file",
+					Sync:        true,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) {
+						return []string{}, nil
 					},
+					HandlerFunc: handleSave,
 				},
 			},
 		},
-		description: "Internal plugin to handle ACL commands",
 	}
-	return ACLPlugin
 }
