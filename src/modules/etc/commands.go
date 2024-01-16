@@ -140,58 +140,52 @@ func handleMSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func NewModule() Plugin {
-	SetModule := Plugin{
-		name:        "OtherCommands",
-		description: "Handle basic SET commands",
-		commands: []utils.Command{
-			{
-				Command:     "set",
-				Categories:  []string{utils.WriteCategory, utils.SlowCategory},
-				Description: "(SET key value) Set the value of a key, considering the value's type.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSet,
+func Commands() []utils.Command {
+	return []utils.Command{
+		{
+			Command:     "set",
+			Categories:  []string{utils.WriteCategory, utils.SlowCategory},
+			Description: "(SET key value) Set the value of a key, considering the value's type.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
 			},
-			{
-				Command:     "setnx",
-				Categories:  []string{utils.WriteCategory, utils.SlowCategory},
-				Description: "(SETNX key value) Set the key/value only if the key doesn't exist.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSetNX,
+			HandlerFunc: handleSet,
+		},
+		{
+			Command:     "setnx",
+			Categories:  []string{utils.WriteCategory, utils.SlowCategory},
+			Description: "(SETNX key value) Set the key/value only if the key doesn't exist.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
 			},
-			{
-				Command:     "mset",
-				Categories:  []string{utils.WriteCategory, utils.SlowCategory},
-				Description: "(MSET key value [key value ...]) Automatically etc or modify multiple key/value pairs.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd[1:])%2 != 0 {
-						return nil, errors.New("each key must be paired with a value")
+			HandlerFunc: handleSetNX,
+		},
+		{
+			Command:     "mset",
+			Categories:  []string{utils.WriteCategory, utils.SlowCategory},
+			Description: "(MSET key value [key value ...]) Automatically etc or modify multiple key/value pairs.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd[1:])%2 != 0 {
+					return nil, errors.New("each key must be paired with a value")
+				}
+				var keys []string
+				for i, key := range cmd[1:] {
+					if i%2 == 0 {
+						keys = append(keys, key)
 					}
-					var keys []string
-					for i, key := range cmd[1:] {
-						if i%2 == 0 {
-							keys = append(keys, key)
-						}
-					}
-					return keys, nil
-				},
-				HandlerFunc: handleMSet,
+				}
+				return keys, nil
 			},
+			HandlerFunc: handleMSet,
 		},
 	}
-
-	return SetModule
 }
