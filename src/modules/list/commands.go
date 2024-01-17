@@ -507,181 +507,176 @@ func handlePop(ctx context.Context, cmd []string, server utils.Server, conn *net
 	}
 }
 
-func NewModule() Plugin {
-	ListModule := Plugin{
-		name: "ListCommands",
-		commands: []utils.Command{
-			{
-				Command:     "lpush",
-				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-				Description: "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleLPush,
+func Commands() []utils.Command {
+	return []utils.Command{
+		{
+			Command:     "lpush",
+			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description: "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
 			},
-			{
-				Command:     "lpushx",
-				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-				Description: "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleLPush,
-			},
-			{
-				Command:     "lpop",
-				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-				Description: "(LPOP key) Removes and returns the first element of a list.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handlePop,
-			},
-			{
-				Command:     "llen",
-				Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.FastCategory},
-				Description: "(LLEN key) Return the length of a list.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleLLen,
-			},
-			{
-				Command:     "lrange",
-				Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: "(LRANGE key start end) Return a range of elements between the given indices.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 4 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleLRange,
-			},
-			{
-				Command:     "lindex",
-				Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: "(LINDEX key index) Gets list element by index.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleLIndex,
-			},
-			{
-				Command:     "lset",
-				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
-				Description: "(LSET key index value) Sets the value of an element in a list by its index.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 4 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleLSet,
-			},
-			{
-				Command:     "ltrim",
-				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
-				Description: "(LTRIM key start end) Trims a list to the specified range.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 4 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleLTrim,
-			},
-			{
-				Command:     "lrem",
-				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
-				Description: "(LREM key count value) Remove elements from list.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 4 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleLRem,
-			},
-			{
-				Command:     "lmove",
-				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
-				Description: "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>) Move element from one list to the other specifying left/right for both lists.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 5 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1], cmd[2]}, nil
-				},
-				HandlerFunc: handleLMove,
-			},
-			{
-				Command:     "rpop",
-				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-				Description: "(RPOP key) Removes and gets the last element in a list.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handlePop,
-			},
-			{
-				Command:     "rpush",
-				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-				Description: "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleRPush,
-			},
-			{
-				Command:     "rpushx",
-				Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-				Description: "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleRPush,
-			},
+			HandlerFunc: handleLPush,
 		},
-		description: "Handle List commands",
+		{
+			Command:     "lpushx",
+			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description: "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleLPush,
+		},
+		{
+			Command:     "lpop",
+			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description: "(LPOP key) Removes and returns the first element of a list.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handlePop,
+		},
+		{
+			Command:     "llen",
+			Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.FastCategory},
+			Description: "(LLEN key) Return the length of a list.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleLLen,
+		},
+		{
+			Command:     "lrange",
+			Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: "(LRANGE key start end) Return a range of elements between the given indices.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 4 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleLRange,
+		},
+		{
+			Command:     "lindex",
+			Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: "(LINDEX key index) Gets list element by index.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleLIndex,
+		},
+		{
+			Command:     "lset",
+			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Description: "(LSET key index value) Sets the value of an element in a list by its index.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 4 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleLSet,
+		},
+		{
+			Command:     "ltrim",
+			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Description: "(LTRIM key start end) Trims a list to the specified range.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 4 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleLTrim,
+		},
+		{
+			Command:     "lrem",
+			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Description: "(LREM key count value) Remove elements from list.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 4 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleLRem,
+		},
+		{
+			Command:     "lmove",
+			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Description: "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>) Move element from one list to the other specifying left/right for both lists.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 5 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1], cmd[2]}, nil
+			},
+			HandlerFunc: handleLMove,
+		},
+		{
+			Command:     "rpop",
+			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description: "(RPOP key) Removes and gets the last element in a list.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handlePop,
+		},
+		{
+			Command:     "rpush",
+			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description: "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleRPush,
+		},
+		{
+			Command:     "rpushx",
+			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description: "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleRPush,
+		},
 	}
-	return ListModule
 }
