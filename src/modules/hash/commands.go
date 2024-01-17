@@ -589,186 +589,180 @@ func handleHDEL(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
 }
 
-func NewModule() Plugin {
-	SetModule := Plugin{
-		name: "HashCommands",
-		commands: []utils.Command{
-			{
-				Command:     "hset",
-				Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
-				Description: `(HSET key field value [field value ...]) Set update each field of the hash with the corresponding value`,
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 4 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:2], nil
-				},
-				HandlerFunc: handleHSET,
+func Commands() []utils.Command {
+	return []utils.Command{
+		{
+			Command:     "hset",
+			Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Description: `(HSET key field value [field value ...]) Set update each field of the hash with the corresponding value`,
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 4 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:2], nil
 			},
-			{
-				Command:     "hsetnx",
-				Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
-				Description: `(HSETNX key field value [field value ...]) Set hash field value only if the field does not exist`,
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 4 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:2], nil
-				},
-				HandlerFunc: handleHSET,
-			},
-			{
-				Command:     "hget",
-				Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-				Description: `(HGET key field [field ...]) Retrieve the of each of the listed fields from the hash`,
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:2], nil
-				},
-				HandlerFunc: handleHGET,
-			},
-			{
-				Command:    "hstrlen",
-				Categories: []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-				Description: `(HSTRLEN key field [field ...]) 
-Return the string length of the values stored at the specified fields. 0 if the value does not exist`,
-				Sync: false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:2], nil
-				},
-				HandlerFunc: handleHSTRLEN,
-			},
-			{
-				Command:     "hvals",
-				Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: `(HVALS key) Returns all the values of the hash at key.`,
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleHVALS,
-			},
-			{
-				Command:     "hrandfield",
-				Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: `(HRANDFIELD key [count [WITHVALUES]]) Returns one or more random fields from the hash`,
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 2 || len(cmd) > 4 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					if len(cmd) == 2 {
-						return cmd[1:], nil
-					}
-					return cmd[1:2], nil
-				},
-				HandlerFunc: handleHRANDFIELD,
-			},
-			{
-				Command:     "hlen",
-				Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-				Description: `(HLEN key) Returns the number of fields in the hash`,
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleHLEN,
-			},
-			{
-				Command:     "hkeys",
-				Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: `(HKEYS key) Returns all the fields in a hash`,
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleHKEYS,
-			},
-			{
-				Command:     "hincrbyfloat",
-				Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
-				Description: `(HINCRBYFLOAT key field increment) Increment the hash value by the float increment`,
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 4 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:2], nil
-				},
-				HandlerFunc: handleINCRBY,
-			},
-			{
-				Command:     "hincrby",
-				Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
-				Description: `(HINCRBY key field increment) Increment the hash value by the integer increment`,
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 4 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:2], nil
-				},
-				HandlerFunc: handleINCRBY,
-			},
-			{
-				Command:     "hgetall",
-				Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: `(HGETALL key) Get all fields and values of a hash`,
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleHGETALL,
-			},
-			{
-				Command:     "hexists",
-				Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-				Description: `(HEXISTS key field) Returns if field is an existing field in the hash`,
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:2], nil
-				},
-				HandlerFunc: handleHEXISTS,
-			},
-			{
-				Command:     "hdel",
-				Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-				Description: `(HDEL key field [field ...]) Deletes the specified fields from the hash`,
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:2], nil
-				},
-				HandlerFunc: handleHDEL,
-			},
+			HandlerFunc: handleHSET,
 		},
-		description: "Handle HASH commands",
+		{
+			Command:     "hsetnx",
+			Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Description: `(HSETNX key field value [field value ...]) Set hash field value only if the field does not exist`,
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 4 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:2], nil
+			},
+			HandlerFunc: handleHSET,
+		},
+		{
+			Command:     "hget",
+			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Description: `(HGET key field [field ...]) Retrieve the of each of the listed fields from the hash`,
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:2], nil
+			},
+			HandlerFunc: handleHGET,
+		},
+		{
+			Command:    "hstrlen",
+			Categories: []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Description: `(HSTRLEN key field [field ...]) 
+Return the string length of the values stored at the specified fields. 0 if the value does not exist`,
+			Sync: false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:2], nil
+			},
+			HandlerFunc: handleHSTRLEN,
+		},
+		{
+			Command:     "hvals",
+			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: `(HVALS key) Returns all the values of the hash at key.`,
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleHVALS,
+		},
+		{
+			Command:     "hrandfield",
+			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: `(HRANDFIELD key [count [WITHVALUES]]) Returns one or more random fields from the hash`,
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 2 || len(cmd) > 4 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				if len(cmd) == 2 {
+					return cmd[1:], nil
+				}
+				return cmd[1:2], nil
+			},
+			HandlerFunc: handleHRANDFIELD,
+		},
+		{
+			Command:     "hlen",
+			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Description: `(HLEN key) Returns the number of fields in the hash`,
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleHLEN,
+		},
+		{
+			Command:     "hkeys",
+			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: `(HKEYS key) Returns all the fields in a hash`,
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleHKEYS,
+		},
+		{
+			Command:     "hincrbyfloat",
+			Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Description: `(HINCRBYFLOAT key field increment) Increment the hash value by the float increment`,
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 4 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:2], nil
+			},
+			HandlerFunc: handleINCRBY,
+		},
+		{
+			Command:     "hincrby",
+			Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Description: `(HINCRBY key field increment) Increment the hash value by the integer increment`,
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 4 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:2], nil
+			},
+			HandlerFunc: handleINCRBY,
+		},
+		{
+			Command:     "hgetall",
+			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: `(HGETALL key) Get all fields and values of a hash`,
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleHGETALL,
+		},
+		{
+			Command:     "hexists",
+			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Description: `(HEXISTS key field) Returns if field is an existing field in the hash`,
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:2], nil
+			},
+			HandlerFunc: handleHEXISTS,
+		},
+		{
+			Command:     "hdel",
+			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Description: `(HDEL key field [field ...]) Deletes the specified fields from the hash`,
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:2], nil
+			},
+			HandlerFunc: handleHDEL,
+		},
 	}
-
-	return SetModule
 }
