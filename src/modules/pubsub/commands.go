@@ -72,54 +72,49 @@ func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn 
 	return []byte(utils.OK_RESPONSE), nil
 }
 
-func NewModule() Plugin {
-	PubSubModule := Plugin{
-		name: "PubSubCommands",
-		commands: []utils.Command{
-			{
-				Command:     "publish",
-				Categories:  []string{utils.PubSubCategory, utils.FastCategory},
-				Description: "(PUBLISH channel message) Publish a message to the specified channel.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					// Treat the channel as a key
-					if len(cmd) != 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handlePublish,
+func Commands() []utils.Command {
+	return []utils.Command{
+		{
+			Command:     "publish",
+			Categories:  []string{utils.PubSubCategory, utils.FastCategory},
+			Description: "(PUBLISH channel message) Publish a message to the specified channel.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				// Treat the channel as a key
+				if len(cmd) != 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
 			},
-			{
-				Command:     "subscribe",
-				Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
-				Description: "(SUBSCRIBE channel [consumer_group]) Subscribe to a channel with an option to join a consumer group on the channel.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					// Treat the channel as a key
-					if len(cmd) < 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSubscribe,
-			},
-			{
-				Command:     "unsubscribe",
-				Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
-				Description: "(UNSUBSCRIBE channel) Unsubscribe from a channel.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					// Treat the channel as a key
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleUnsubscribe,
-			},
+			HandlerFunc: handlePublish,
 		},
-		description: "Handle PUBSUB feature",
+		{
+			Command:     "subscribe",
+			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
+			Description: "(SUBSCRIBE channel [consumer_group]) Subscribe to a channel with an option to join a consumer group on the channel.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				// Treat the channel as a key
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleSubscribe,
+		},
+		{
+			Command:     "unsubscribe",
+			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
+			Description: "(UNSUBSCRIBE channel) Unsubscribe from a channel.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				// Treat the channel as a key
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleUnsubscribe,
+		},
 	}
-	return PubSubModule
 }
