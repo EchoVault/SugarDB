@@ -784,220 +784,216 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", union.Cardinality())), nil
 }
 
-func NewModule() Plugin {
-	return Plugin{
-		name: "SetCommands",
-		commands: []utils.Command{
-			{
-				Command:     "sadd",
-				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
-				Description: "(SADD key member [member...]) Add one or more members to the set.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSADD,
+func Commands() []utils.Command {
+	return []utils.Command{
+		{
+			Command:     "sadd",
+			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Description: "(SADD key member [member...]) Add one or more members to the set.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
 			},
-			{
-				Command:     "scard",
-				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
-				Description: "(SCARD key) Returns the cardinality of the set.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSCARD,
-			},
-			{
-				Command:     "sdiff",
-				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: "(SDIFF key [key...]) Returns the difference between all the sets in the given keys.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleSDIFF,
-			},
-			{
-				Command:     "sdiffstore",
-				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
-				Description: "(SDIFFSTORE destination key [key...]) Stores the difference between all the sets at the destination key.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleSDIFFSTORE,
-			},
-			{
-				Command:     "sinter",
-				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
-				Description: "(SINTER key [key...]) Returns the intersection of multiple sets.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleSINTER,
-			},
-			{
-				Command:     "sintercard",
-				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleSINTERCARD,
-			},
-			{
-				Command:     "sinterstore",
-				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
-				Description: "(SINTERSTORE destination key [key...]) Stores the intersection of multiple sets at the destination key.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleSINTERSTORE,
-			},
-			{
-				Command:     "sismember",
-				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
-				Description: "(SISMEMBER key member) Returns if member is contained in the set.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSISMEMBER,
-			},
-			{
-				Command:     "smembers",
-				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: "(SMEMBERS key) Returns all members of a set.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSMEMBERS,
-			},
-			{
-				Command:     "smismember",
-				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
-				Description: "(SMISMEMBER key member [member...]) Returns if multiple members are in the set.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSMISMEMBER,
-			},
-
-			{
-				Command:     "smove",
-				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
-				Description: "(SMOVE source destination member) Moves a member from source set to destination set.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) != 4 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:3], nil
-				},
-				HandlerFunc: handleSMOVE,
-			},
-			{
-				Command:     "spop",
-				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
-				Description: "(SPOP key [count]) Returns and removes one or more random members from the set.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSPOP,
-			},
-			{
-				Command:     "srandmember",
-				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: "(SRANDMEMBER key [count]) Returns one or more random members from the set without removing them.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSRANDMEMBER,
-			},
-			{
-				Command:     "srem",
-				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
-				Description: "(SREM key member [member...]) Remove one or more members from a set.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return []string{cmd[1]}, nil
-				},
-				HandlerFunc: handleSREM,
-			},
-			{
-				Command:     "sunion",
-				Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-				Description: "(SUNION key [key...]) Returns the members of the set resulting from the union of the provided sets.",
-				Sync:        false,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 2 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleSUNION,
-			},
-			{
-				Command:     "sunionstore",
-				Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
-				Description: "(SUNIONSTORE destination key [key...]) Stores the union of the given sets into destination.",
-				Sync:        true,
-				KeyExtractionFunc: func(cmd []string) ([]string, error) {
-					if len(cmd) < 3 {
-						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-					}
-					return cmd[1:], nil
-				},
-				HandlerFunc: handleSUNIONSTORE,
-			},
+			HandlerFunc: handleSADD,
 		},
-		description: "Handle commands for sets",
+		{
+			Command:     "scard",
+			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Description: "(SCARD key) Returns the cardinality of the set.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleSCARD,
+		},
+		{
+			Command:     "sdiff",
+			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: "(SDIFF key [key...]) Returns the difference between all the sets in the given keys.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleSDIFF,
+		},
+		{
+			Command:     "sdiffstore",
+			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Description: "(SDIFFSTORE destination key [key...]) Stores the difference between all the sets at the destination key.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleSDIFFSTORE,
+		},
+		{
+			Command:     "sinter",
+			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Description: "(SINTER key [key...]) Returns the intersection of multiple sets.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleSINTER,
+		},
+		{
+			Command:     "sintercard",
+			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleSINTERCARD,
+		},
+		{
+			Command:     "sinterstore",
+			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Description: "(SINTERSTORE destination key [key...]) Stores the intersection of multiple sets at the destination key.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleSINTERSTORE,
+		},
+		{
+			Command:     "sismember",
+			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
+			Description: "(SISMEMBER key member) Returns if member is contained in the set.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleSISMEMBER,
+		},
+		{
+			Command:     "smembers",
+			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: "(SMEMBERS key) Returns all members of a set.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleSMEMBERS,
+		},
+		{
+			Command:     "smismember",
+			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
+			Description: "(SMISMEMBER key member [member...]) Returns if multiple members are in the set.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleSMISMEMBER,
+		},
+
+		{
+			Command:     "smove",
+			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Description: "(SMOVE source destination member) Moves a member from source set to destination set.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) != 4 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:3], nil
+			},
+			HandlerFunc: handleSMOVE,
+		},
+		{
+			Command:     "spop",
+			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Description: "(SPOP key [count]) Returns and removes one or more random members from the set.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleSPOP,
+		},
+		{
+			Command:     "srandmember",
+			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: "(SRANDMEMBER key [count]) Returns one or more random members from the set without removing them.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleSRANDMEMBER,
+		},
+		{
+			Command:     "srem",
+			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Description: "(SREM key member [member...]) Remove one or more members from a set.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return []string{cmd[1]}, nil
+			},
+			HandlerFunc: handleSREM,
+		},
+		{
+			Command:     "sunion",
+			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: "(SUNION key [key...]) Returns the members of the set resulting from the union of the provided sets.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleSUNION,
+		},
+		{
+			Command:     "sunionstore",
+			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Description: "(SUNIONSTORE destination key [key...]) Stores the union of the given sets into destination.",
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 3 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleSUNIONSTORE,
+		},
 	}
 }
