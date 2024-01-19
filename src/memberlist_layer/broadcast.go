@@ -8,23 +8,27 @@ import (
 
 type BroadcastMessage struct {
 	NodeMeta
-	Action  string `json:"Action"`
-	Content string `json:"Content"`
+	Action      string `json:"Action"`
+	Content     string `json:"Content"`
+	ContentHash string `json:"ContentHash"`
 }
 
 // Invalidates Implements Broadcast interface
 func (broadcastMessage *BroadcastMessage) Invalidates(other memberlist.Broadcast) bool {
-	mb, ok := other.(*BroadcastMessage)
+	otherBroadcast, ok := other.(*BroadcastMessage)
 
 	if !ok {
 		return false
 	}
 
-	if mb.ServerID == broadcastMessage.ServerID && mb.Action == "RaftJoin" {
-		return true
+	switch broadcastMessage.Action {
+	case "RaftJoin":
+		return broadcastMessage.Action == otherBroadcast.Action && broadcastMessage.ServerID == otherBroadcast.ServerID
+	case "MutateData":
+		return broadcastMessage.Action == otherBroadcast.Action && broadcastMessage.ContentHash == otherBroadcast.ContentHash
+	default:
+		return false
 	}
-
-	return false
 }
 
 // Message Implements Broadcast interface

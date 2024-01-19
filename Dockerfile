@@ -27,3 +27,4 @@ CMD "./server" \
   "--aclConfig=${ACL_CONFIG}" \
   "--requirePass=${REQUIRE_PASS}" \
   "--password=${PASSWORD}" \
+  "--forwardCommand=${FORWARD_COMMAND}" \

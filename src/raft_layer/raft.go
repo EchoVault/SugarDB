@@ -153,24 +153,23 @@ func (r *Raft) AddVoter(
 	prevIndex uint64,
 	timeout time.Duration,
 ) error {
-	if !r.IsRaftLeader() {
-		return errors.New("not leader, cannot add voter")
-	}
-	raftConfig := r.raft.GetConfiguration()
-	if err := raftConfig.Error(); err != nil {
-		return errors.New("could not retrieve raft config")
-	}
-
-	for _, s := range raftConfig.Configuration().Servers {
-		// Check if a server already exists with the current attributes
-		if s.ID == id && s.Address == address {
-			return fmt.Errorf("server with id %s and address %s already exists", id, address)
+	if r.IsRaftLeader() {
+		raftConfig := r.raft.GetConfiguration()
+		if err := raftConfig.Error(); err != nil {
+			return errors.New("could not retrieve raft config")
 		}
-	}
 
-	err := r.raft.AddVoter(id, address, prevIndex, timeout).Error()
-	if err != nil {
-		return err
+		for _, s := range raftConfig.Configuration().Servers {
+			// Check if a server already exists with the current attributes
+			if s.ID == id && s.Address == address {
+				return fmt.Errorf("server with id %s and address %s already exists", id, address)
+			}
+		}
+
+		err := r.raft.AddVoter(id, address, prevIndex, timeout).Error()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

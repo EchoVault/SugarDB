@@ -26,6 +26,7 @@ type Config struct {
 	DataDir            string `json:"dataDir" yaml:"dataDir"`
 	BootstrapCluster   bool   `json:"BootstrapCluster" yaml:"bootstrapCluster"`
 	AclConfig          string `json:"AclConfig" yaml:"AclConfig"`
+	ForwardCommand     bool   `json:"forwardCommand" yaml:"forwardCommand"`
 	RequirePass        bool   `json:"requirePass" yaml:"requirePass"`
 	Password           string `json:"password" yaml:"password"`
 }
@@ -42,10 +43,14 @@ func GetConfig() (Config, error) {
 	bindAddr := flag.String("bindAddr", "", "Address to bind the server to.")
 	raftBindPort := flag.Int("raftPort", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	mlBindPort := flag.Int("mlPort", 7946, "Port to use for memberlist communication.")
-	inMemory := flag.Bool("inMemory", false, "Whether to use memory or persisten storage for raft logs and snapshots.")
+	inMemory := flag.Bool("inMemory", false, "Whether to use memory or persistent storage for raft logs and snapshots.")
 	dataDir := flag.String("dataDir", "/var/lib/memstore", "Directory to store raft snapshots and logs.")
 	bootstrapCluster := flag.Bool("bootstrapCluster", false, "Whether this instance should bootstrap a new cluster.")
 	aclConfig := flag.String("aclConfig", "", "ACL config file path.")
+	forwardCommand := flag.Bool(
+		"forwardCommand",
+		false,
+		"If the node is a follower, this flag forwards mutation command to the leader when set to true")
 	requirePass := flag.Bool(
 		"requirePass",
 		false,
@@ -82,6 +87,7 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		DataDir:            *dataDir,
 		BootstrapCluster:   *bootstrapCluster,
 		AclConfig:          *aclConfig,
+		ForwardCommand:     *forwardCommand,
 		RequirePass:        *requirePass,
 		Password:           *password,
 	}

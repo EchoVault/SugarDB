@@ -254,11 +254,13 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 
 				connRW.Write(r.Response)
 				connRW.Flush()
-
-				// TODO: Add command to AOF
+			} else if server.config.ForwardCommand {
+				// Forward message to leader and return immediate OK response
+				server.memberList.ForwardDataMutation(ctx, message)
+				connRW.Write([]byte(utils.OK_RESPONSE))
+				connRW.Flush()
 			} else {
-				// TODO: Forward message to leader and wait for a response
-				connRW.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\n"))
+				connRW.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\r\n"))
 				connRW.Flush()
 			}
 		}
@@ -378,6 +380,7 @@ func (server *Server) Start(ctx context.Context) {
 			HasJoinedCluster: server.raft.HasJoinedCluster,
 			AddVoter:         server.raft.AddVoter,
 			RemoveRaftServer: server.raft.RemoveServer,
+			IsRaftLeader:     server.raft.IsRaftLeader,
 		})
 		server.raft.RaftInit(ctx)
 		server.memberList.MemberListInit(ctx)

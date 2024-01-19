@@ -17,6 +17,7 @@ type DelegateOpts struct {
 	config         utils.Config
 	broadcastQueue *memberlist.TransmitLimitedQueue
 	addVoter       func(id raft.ServerID, address raft.ServerAddress, prevIndex uint64, timeout time.Duration) error
+	isRaftLeader   func() bool
 }
 
 func NewDelegate(opts DelegateOpts) *Delegate {
@@ -54,11 +55,23 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 
 	switch msg.Action {
 	case "RaftJoin":
-		if err := delegate.options.addVoter(msg.NodeMeta.ServerID, msg.NodeMeta.RaftAddr, 0, 0); err != nil {
+		// If the current node is not the cluster leader, re-broadcast the message
+		if !delegate.options.isRaftLeader() {
+			delegate.options.broadcastQueue.QueueBroadcast(&msg)
+			return
+		}
+		err := delegate.options.addVoter(msg.NodeMeta.ServerID, msg.NodeMeta.RaftAddr, 0, 0)
+		if err != nil {
 			fmt.Println(err)
 		}
 	case "MutateData":
-		// Mutate the value at a given key
+		// If the current node is not a cluster leader, re-broadcast the message
+		if !delegate.options.isRaftLeader() {
+			delegate.options.broadcastQueue.QueueBroadcast(&msg)
+			return
+		}
+		// Current node is the cluster leader, handle the mutation
+		fmt.Println(msg)
 	}
 }
 

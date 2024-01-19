@@ -23,6 +23,7 @@ type MemberlistOpts struct {
 	HasJoinedCluster func() bool
 	AddVoter         func(id raft.ServerID, address raft.ServerAddress, prevIndex uint64, timeout time.Duration) error
 	RemoveRaftServer func(meta NodeMeta) error
+	IsRaftLeader     func() bool
 }
 
 type MemberList struct {
@@ -48,11 +49,12 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 		config:         m.options.Config,
 		broadcastQueue: m.broadcastQueue,
 		addVoter:       m.options.AddVoter,
+		isRaftLeader:   m.options.IsRaftLeader,
 	})
 	cfg.Events = NewEventDelegate(EventDelegateOpts{
-		IncrementNodes:   func() { m.numOfNodes += 1 },
-		DecrementNodes:   func() { m.numOfNodes -= 1 },
-		RemoveRaftServer: m.options.RemoveRaftServer,
+		incrementNodes:   func() { m.numOfNodes += 1 },
+		decrementNodes:   func() { m.numOfNodes -= 1 },
+		removeRaftServer: m.options.RemoveRaftServer,
 	})
 
 	m.broadcastQueue.RetransmitMult = 1
@@ -82,31 +84,29 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 			log.Fatal(err)
 		}
 
-		go m.broadcastRaftAddress(ctx)
+		m.broadcastRaftAddress(ctx)
 	}
 }
 
 func (m *MemberList) broadcastRaftAddress(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Second)
-
-	for {
-		msg := BroadcastMessage{
-			Action: "RaftJoin",
-			NodeMeta: NodeMeta{
-				ServerID: raft.ServerID(m.options.Config.ServerID),
-				RaftAddr: raft.ServerAddress(fmt.Sprintf("%s:%d",
-					m.options.Config.BindAddr, m.options.Config.RaftBindPort)),
-			},
-		}
-
-		if m.options.HasJoinedCluster() {
-			return
-		}
-
-		m.broadcastQueue.QueueBroadcast(&msg)
-
-		<-ticker.C
+	msg := BroadcastMessage{
+		Action: "RaftJoin",
+		NodeMeta: NodeMeta{
+			ServerID: raft.ServerID(m.options.Config.ServerID),
+			RaftAddr: raft.ServerAddress(fmt.Sprintf("%s:%d",
+				m.options.Config.BindAddr, m.options.Config.RaftBindPort)),
+		},
 	}
+	m.broadcastQueue.QueueBroadcast(&msg)
+}
+
+func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd string) {
+	// This function is only called by non-leaders
+	// It uses the broadcast queue to forward a data mutation within the cluster
+	m.broadcastQueue.QueueBroadcast(&BroadcastMessage{
+		Action:  "MutateData",
+		Content: cmd,
+	})
 }
 
 func (m *MemberList) MemberListShutdown(ctx context.Context) {

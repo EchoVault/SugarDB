@@ -11,9 +11,9 @@ type EventDelegate struct {
 }
 
 type EventDelegateOpts struct {
-	IncrementNodes   func()
-	DecrementNodes   func()
-	RemoveRaftServer func(meta NodeMeta) error
+	incrementNodes   func()
+	decrementNodes   func()
+	removeRaftServer func(meta NodeMeta) error
 }
 
 func NewEventDelegate(opts EventDelegateOpts) *EventDelegate {
@@ -24,12 +24,12 @@ func NewEventDelegate(opts EventDelegateOpts) *EventDelegate {
 
 // NotifyJoin implements EventDelegate interface
 func (eventDelegate *EventDelegate) NotifyJoin(node *memberlist.Node) {
-	eventDelegate.options.IncrementNodes()
+	eventDelegate.options.incrementNodes()
 }
 
 // NotifyLeave implements EventDelegate interface
 func (eventDelegate *EventDelegate) NotifyLeave(node *memberlist.Node) {
-	eventDelegate.options.DecrementNodes()
+	eventDelegate.options.decrementNodes()
 
 	var meta NodeMeta
 
@@ -40,7 +40,7 @@ func (eventDelegate *EventDelegate) NotifyLeave(node *memberlist.Node) {
 		return
 	}
 
-	err = eventDelegate.options.RemoveRaftServer(meta)
+	err = eventDelegate.options.removeRaftServer(meta)
 
 	if err != nil {
 		fmt.Println(err)
