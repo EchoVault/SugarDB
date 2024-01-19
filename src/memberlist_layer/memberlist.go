@@ -2,6 +2,7 @@ package memberlist_layer
 
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
 	"log"
 	"time"
@@ -100,12 +101,19 @@ func (m *MemberList) broadcastRaftAddress(ctx context.Context) {
 	m.broadcastQueue.QueueBroadcast(&msg)
 }
 
-func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd string) {
+func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd string, connId string) {
 	// This function is only called by non-leaders
 	// It uses the broadcast queue to forward a data mutation within the cluster
 	m.broadcastQueue.QueueBroadcast(&BroadcastMessage{
-		Action:  "MutateData",
-		Content: cmd,
+		Action:      "MutateData",
+		Content:     cmd,
+		ContentHash: fmt.Sprintf("%x", md5.Sum([]byte(cmd))),
+		ConnId:      connId,
+		NodeMeta: NodeMeta{
+			ServerID: raft.ServerID(m.options.Config.ServerID),
+			RaftAddr: raft.ServerAddress(fmt.Sprintf("%s:%d",
+				m.options.Config.BindAddr, m.options.Config.RaftBindPort)),
+		},
 	})
 }
 

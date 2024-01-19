@@ -11,6 +11,7 @@ type BroadcastMessage struct {
 	Action      string `json:"Action"`
 	Content     string `json:"Content"`
 	ContentHash string `json:"ContentHash"`
+	ConnId      string `json:"ConnId"`
 }
 
 // Invalidates Implements Broadcast interface
@@ -23,9 +24,11 @@ func (broadcastMessage *BroadcastMessage) Invalidates(other memberlist.Broadcast
 
 	switch broadcastMessage.Action {
 	case "RaftJoin":
-		return broadcastMessage.Action == otherBroadcast.Action && broadcastMessage.ServerID == otherBroadcast.ServerID
+		return broadcastMessage.Action == otherBroadcast.Action &&
+			broadcastMessage.ServerID == otherBroadcast.ServerID
 	case "MutateData":
-		return broadcastMessage.Action == otherBroadcast.Action && broadcastMessage.ContentHash == otherBroadcast.ContentHash
+		return broadcastMessage.Action == otherBroadcast.Action &&
+			broadcastMessage.ContentHash == otherBroadcast.ContentHash
 	default:
 		return false
 	}

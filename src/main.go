@@ -256,7 +256,7 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 				connRW.Flush()
 			} else if server.config.ForwardCommand {
 				// Forward message to leader and return immediate OK response
-				server.memberList.ForwardDataMutation(ctx, message)
+				server.memberList.ForwardDataMutation(ctx, message, connectionId)
 				connRW.Write([]byte(utils.OK_RESPONSE))
 				connRW.Flush()
 			} else {
