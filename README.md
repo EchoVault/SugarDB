@@ -21,6 +21,9 @@
 - [ ] Geospatial support
 - [ ] Bitmap support
 - [ ] Support for multiple root CAs on client side
-- [ ] Append-Only File & reload from AOF
-- [ ] Periodic snapshots & reload state from snapshot
+- [ ] Append-Only File & reload from AOF (Cluster)
+- [ ] Periodic snapshots & reload state from snapshot (Cluster)
+- [ ] Append-Only File & reload from AOF (Standalone)
+- [ ] Periodic snapshots & reload state from snapshot (Standalone)
 - [ ] mTLS for client verification
+- [ ] Transactions
