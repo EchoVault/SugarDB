@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/command_modules/acl"
 	"github.com/kelvinmwinuka/memstore/src/command_modules/etc"
@@ -140,6 +141,41 @@ func (server *Server) getCommand(cmd string) (utils.Command, error) {
 	return utils.Command{}, fmt.Errorf("command %s not supported", cmd)
 }
 
+func (server *Server) raftApply(ctx context.Context, cmd []string) ([]byte, error) {
+	serverId, _ := ctx.Value(utils.ContextServerID("ServerID")).(string)
+	connectionId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
+
+	applyRequest := utils.ApplyRequest{
+		ServerID:     serverId,
+		ConnectionID: connectionId,
+		CMD:          cmd,
+	}
+
+	b, err := json.Marshal(applyRequest)
+
+	if err != nil {
+		return nil, errors.New("could not parse request")
+	}
+
+	applyFuture := server.raft.Apply(b, 500*time.Millisecond)
+
+	if err := applyFuture.Error(); err != nil {
+		return nil, err
+	}
+
+	r, ok := applyFuture.Response().(utils.ApplyResponse)
+
+	if !ok {
+		return nil, fmt.Errorf("unprocessable entity %v", r)
+	}
+
+	if r.Error != nil {
+		return nil, r.Error
+	}
+
+	return r.Response, nil
+}
+
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	server.ACL.RegisterConnection(&conn)
 
@@ -212,57 +248,26 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 			}
 
 			// Handle other commands that need to be synced across the cluster
-			serverId, _ := ctx.Value(utils.ContextServerID("ServerID")).(string)
-			connectionId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
-
-			applyRequest := utils.ApplyRequest{
-				ServerID:     serverId,
-				ConnectionID: connectionId,
-				CMD:          cmd,
-			}
-
-			b, err := json.Marshal(applyRequest)
-
-			if err != nil {
-				connRW.Write([]byte("-Error could not parse request\r\n\n"))
+			if server.raft.IsRaftLeader() {
+				if res, err := server.raftApply(ctx, cmd); err != nil {
+					connRW.Write([]byte(fmt.Sprintf("-Error %s\r\n\r\n", err.Error())))
+				} else {
+					connRW.Write(res)
+				}
 				connRW.Flush()
 				continue
 			}
 
-			if server.raft.IsRaftLeader() {
-				applyFuture := server.raft.Apply(b, 500*time.Millisecond)
-
-				if err := applyFuture.Error(); err != nil {
-					connRW.WriteString(fmt.Sprintf("-Error %s\r\n\n", err.Error()))
-					connRW.Flush()
-					continue
-				}
-
-				r, ok := applyFuture.Response().(utils.ApplyResponse)
-
-				if !ok {
-					connRW.WriteString(fmt.Sprintf("-Error unprocessable entity %v\r\n\n", r))
-					connRW.Flush()
-					continue
-				}
-
-				if r.Error != nil {
-					connRW.WriteString(fmt.Sprintf("-Error %s\r\n\n", r.Error.Error()))
-					connRW.Flush()
-					continue
-				}
-
-				connRW.Write(r.Response)
-				connRW.Flush()
-			} else if server.config.ForwardCommand {
-				// Forward message to leader and return immediate OK response
-				server.memberList.ForwardDataMutation(ctx, message, connectionId)
+			// Forward message to leader and return immediate OK response
+			if server.config.ForwardCommand {
+				server.memberList.ForwardDataMutation(ctx, message)
 				connRW.Write([]byte(utils.OK_RESPONSE))
 				connRW.Flush()
-			} else {
-				connRW.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\r\n"))
-				connRW.Flush()
+				continue
 			}
+
+			connRW.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\r\n"))
+			connRW.Flush()
 		}
 	}
 
