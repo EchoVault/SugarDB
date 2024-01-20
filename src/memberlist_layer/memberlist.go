@@ -25,6 +25,7 @@ type MemberlistOpts struct {
 	AddVoter         func(id raft.ServerID, address raft.ServerAddress, prevIndex uint64, timeout time.Duration) error
 	RemoveRaftServer func(meta NodeMeta) error
 	IsRaftLeader     func() bool
+	ApplyMutate      func(ctx context.Context, cmd []string) ([]byte, error)
 }
 
 type MemberList struct {
@@ -51,6 +52,7 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 		broadcastQueue: m.broadcastQueue,
 		addVoter:       m.options.AddVoter,
 		isRaftLeader:   m.options.IsRaftLeader,
+		applyMutate:    m.options.ApplyMutate,
 	})
 	cfg.Events = NewEventDelegate(EventDelegateOpts{
 		incrementNodes:   func() { m.numOfNodes += 1 },
@@ -104,11 +106,12 @@ func (m *MemberList) broadcastRaftAddress(ctx context.Context) {
 func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd string) {
 	// This function is only called by non-leaders
 	// It uses the broadcast queue to forward a data mutation within the cluster
+	connId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
 	m.broadcastQueue.QueueBroadcast(&BroadcastMessage{
 		Action:      "MutateData",
 		Content:     cmd,
 		ContentHash: fmt.Sprintf("%x", md5.Sum([]byte(cmd))),
-		ConnId:      "",
+		ConnId:      connId,
 		NodeMeta: NodeMeta{
 			ServerID: raft.ServerID(m.options.Config.ServerID),
 			RaftAddr: raft.ServerAddress(fmt.Sprintf("%s:%d",

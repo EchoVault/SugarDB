@@ -1,6 +1,7 @@
 package memberlist_layer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/memberlist"
@@ -18,6 +19,7 @@ type DelegateOpts struct {
 	broadcastQueue *memberlist.TransmitLimitedQueue
 	addVoter       func(id raft.ServerID, address raft.ServerAddress, prevIndex uint64, timeout time.Duration) error
 	isRaftLeader   func() bool
+	applyMutate    func(ctx context.Context, cmd []string) ([]byte, error)
 }
 
 func NewDelegate(opts DelegateOpts) *Delegate {
@@ -71,7 +73,21 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 			return
 		}
 		// Current node is the cluster leader, handle the mutation
-		fmt.Println(msg)
+		ctx := context.WithValue(
+			context.WithValue(context.Background(), utils.ContextServerID("ServerID"), string(msg.ServerID)),
+			utils.ContextConnID("ConnectionID"), msg.ConnId)
+
+		cmd, err := utils.Decode(msg.Content)
+		if err != nil {
+			// TODO: Log error to configured logger
+			fmt.Println(err)
+			return
+		}
+
+		if _, err := delegate.options.applyMutate(ctx, cmd); err != nil {
+			// TODO: Log error to configured logger
+			fmt.Println(err)
+		}
 	}
 }
 

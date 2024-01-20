@@ -386,6 +386,7 @@ func (server *Server) Start(ctx context.Context) {
 			AddVoter:         server.raft.AddVoter,
 			RemoveRaftServer: server.raft.RemoveServer,
 			IsRaftLeader:     server.raft.IsRaftLeader,
+			ApplyMutate:      server.raftApply,
 		})
 		server.raft.RaftInit(ctx)
 		server.memberList.MemberListInit(ctx)
