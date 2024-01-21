@@ -7,18 +7,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kelvinmwinuka/memstore/src/command_modules/acl"
-	"github.com/kelvinmwinuka/memstore/src/command_modules/etc"
-	"github.com/kelvinmwinuka/memstore/src/command_modules/get"
-	"github.com/kelvinmwinuka/memstore/src/command_modules/hash"
-	"github.com/kelvinmwinuka/memstore/src/command_modules/list"
-	"github.com/kelvinmwinuka/memstore/src/command_modules/ping"
-	"github.com/kelvinmwinuka/memstore/src/command_modules/pubsub"
-	"github.com/kelvinmwinuka/memstore/src/command_modules/set"
-	"github.com/kelvinmwinuka/memstore/src/command_modules/sorted_set"
-	str "github.com/kelvinmwinuka/memstore/src/command_modules/string"
-	ml "github.com/kelvinmwinuka/memstore/src/memberlist_layer"
-	rl "github.com/kelvinmwinuka/memstore/src/raft_layer"
+	ml "github.com/kelvinmwinuka/memstore/src/memberlist"
+	"github.com/kelvinmwinuka/memstore/src/modules/acl"
+	"github.com/kelvinmwinuka/memstore/src/modules/etc"
+	"github.com/kelvinmwinuka/memstore/src/modules/get"
+	"github.com/kelvinmwinuka/memstore/src/modules/hash"
+	"github.com/kelvinmwinuka/memstore/src/modules/list"
+	"github.com/kelvinmwinuka/memstore/src/modules/ping"
+	"github.com/kelvinmwinuka/memstore/src/modules/pubsub"
+	"github.com/kelvinmwinuka/memstore/src/modules/set"
+	"github.com/kelvinmwinuka/memstore/src/modules/sorted_set"
+	str "github.com/kelvinmwinuka/memstore/src/modules/string"
+	rl "github.com/kelvinmwinuka/memstore/src/raft"
 	"io"
 	"log"
 	"net"
@@ -242,6 +242,7 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 					connRW.Write([]byte(fmt.Sprintf("-%s\r\n\n", err.Error())))
 				} else {
 					connRW.Write(res)
+					// TODO: Write successful, add entry to AOF
 				}
 				connRW.Flush()
 				continue

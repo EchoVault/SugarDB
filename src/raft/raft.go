@@ -1,10 +1,10 @@
-package raft_layer
+package raft
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kelvinmwinuka/memstore/src/memberlist_layer"
+	"github.com/kelvinmwinuka/memstore/src/memberlist"
 	"log"
 	"net"
 	"os"
@@ -175,7 +175,7 @@ func (r *Raft) AddVoter(
 	return nil
 }
 
-func (r *Raft) RemoveServer(meta memberlist_layer.NodeMeta) error {
+func (r *Raft) RemoveServer(meta memberlist.NodeMeta) error {
 	if !r.IsRaftLeader() {
 		return errors.New("not leader, could not remove server")
 	}

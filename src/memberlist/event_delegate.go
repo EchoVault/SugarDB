@@ -1,4 +1,4 @@
-package memberlist_layer
+package memberlist
 
 import (
 	"encoding/json"
