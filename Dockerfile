@@ -20,7 +20,6 @@ CMD "./server" \
   "--cert" "${CERT}" \
   "--pluginDir" "${PLUGIN_DIR}" \
   "--dataDir" "${DATA_DIR}" \
-  "--http=${HTTP}" \
   "--tls=${TLS}" \
   "--inMemory=${IN_MEMORY}" \
   "--bootstrapCluster=${BOOTSTRAP_CLUSTER}" \
