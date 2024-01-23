@@ -3,6 +3,7 @@ package set
 import (
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"math/rand"
+	"slices"
 )
 
 type Set struct {
@@ -72,7 +73,7 @@ func (set *Set) GetRandom(count int) []string {
 		// Count is positive, do not allow repeat elements
 		for i := 0; i < utils.AbsInt(count); {
 			n = rand.Intn(len(keys))
-			if !utils.Contains(res, keys[n]) {
+			if !slices.Contains(res, keys[n]) {
 				res = append(res, keys[n])
 				keys = utils.Filter(keys, func(elem string) bool {
 					return elem != keys[n]

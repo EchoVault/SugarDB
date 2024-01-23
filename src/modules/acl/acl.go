@@ -264,6 +264,11 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		}
 	}
 
+	// Skip ack
+	if strings.EqualFold(comm, "ack") {
+		return nil
+	}
+
 	// If the command is 'auth', then return early and allow it
 	if strings.EqualFold(comm, "auth") {
 		// TODO: Add rate limiting to prevent auth spamming

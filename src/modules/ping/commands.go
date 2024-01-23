@@ -59,7 +59,7 @@ func NewModule() Plugin {
 					return []string{}, nil
 				},
 				HandlerFunc: func(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-					return []byte("_\r\n\r\n"), nil
+					return []byte("$-1\r\n\r\n"), nil
 				},
 			},
 		},

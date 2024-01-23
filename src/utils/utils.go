@@ -1,11 +1,11 @@
 package utils
 
 import (
-	"bufio"
 	"bytes"
-	"fmt"
+	"io"
 	"math/big"
 	"net"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,15 +31,6 @@ func AdaptType(s string) interface{} {
 	return f
 }
 
-func Contains[T comparable](arr []T, elem T) bool {
-	for _, v := range arr {
-		if v == elem {
-			return true
-		}
-	}
-	return false
-}
-
 func Filter[T any](arr []T, test func(elem T) bool) (res []T) {
 	for _, e := range arr {
 		if test(e) {
@@ -49,9 +40,9 @@ func Filter[T any](arr []T, test func(elem T) bool) (res []T) {
 	return
 }
 
-func Decode(raw string) ([]string, error) {
-	rd := resp.NewReader(bytes.NewBufferString(raw))
-	res := []string{}
+func Decode(raw []byte) ([]string, error) {
+	rd := resp.NewReader(bytes.NewBuffer(raw))
+	var res []string
 
 	v, _, err := rd.ReadValue()
 
@@ -59,7 +50,7 @@ func Decode(raw string) ([]string, error) {
 		return nil, err
 	}
 
-	if Contains[string]([]string{"SimpleString", "Integer", "Error"}, v.Type().String()) {
+	if slices.Contains([]string{"SimpleString", "Integer", "Error"}, v.Type().String()) {
 		return []string{v.String()}, nil
 	}
 
@@ -72,25 +63,28 @@ func Decode(raw string) ([]string, error) {
 	return res, nil
 }
 
-func ReadMessage(r *bufio.ReadWriter) (message string, err error) {
-	var line [][]byte
+func ReadMessage(r io.Reader) ([]byte, error) {
+	delim := []byte{'\r', '\n', '\r', '\n'}
+	buffSize := 8
+	buff := make([]byte, buffSize)
+
+	var n int
+	var err error
+	var res []byte
 
 	for {
-		b, _, err := r.ReadLine()
-
-		if err != nil {
-			return "", err
-		}
-
-		if bytes.Equal(b, []byte("")) {
-			// End of message
+		n, err = r.Read(buff)
+		res = append(res, buff...)
+		if n < buffSize || err != nil {
 			break
 		}
-
-		line = append(line, b)
+		if bytes.Equal(buff[len(buff)-4:], delim) {
+			break
+		}
+		clear(buff)
 	}
 
-	return fmt.Sprintf("%s\r\n", string(bytes.Join(line, []byte("\r\n")))), nil
+	return res, err
 }
 
 func RetryBackoff(b retry.Backoff, maxRetries uint64, jitter, cappedDuration, maxDuration time.Duration) retry.Backoff {

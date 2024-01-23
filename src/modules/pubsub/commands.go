@@ -32,9 +32,6 @@ func handleSubscribe(ctx context.Context, cmd []string, server utils.Server, con
 		return nil, errors.New("could not load pubsub")
 	}
 	switch len(cmd) {
-	case 1:
-		// Subscribe to all channels
-		pubsub.Subscribe(ctx, conn, nil, nil)
 	case 2:
 		// Subscribe to specified channel
 		pubsub.Subscribe(ctx, conn, cmd[1], nil)
@@ -44,7 +41,7 @@ func handleSubscribe(ctx context.Context, cmd []string, server utils.Server, con
 	default:
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
-	return []byte("+SUBSCRIBE_OK\r\n\n"), nil
+	return []byte("+SUBSCRIBE_OK\r\n\r\n"), nil
 }
 
 func handleUnsubscribe(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -68,13 +65,10 @@ func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn 
 	if !ok {
 		return nil, errors.New("could not load pubsub")
 	}
-	if len(cmd) == 3 {
-		pubsub.Publish(ctx, cmd[2], cmd[1])
-	} else if len(cmd) == 2 {
-		pubsub.Publish(ctx, cmd[1], nil)
-	} else {
+	if len(cmd) != 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
+	pubsub.Publish(ctx, cmd[2], cmd[1])
 	return []byte(utils.OK_RESPONSE), nil
 }
 

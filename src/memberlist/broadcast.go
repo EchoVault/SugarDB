@@ -8,10 +8,10 @@ import (
 
 type BroadcastMessage struct {
 	NodeMeta
-	Action      string `json:"Action"`
-	Content     string `json:"Content"`
-	ContentHash string `json:"ContentHash"`
-	ConnId      string `json:"ConnId"`
+	Action      string   `json:"Action"`
+	Content     []byte   `json:"Content"`
+	ContentHash [16]byte `json:"ContentHash"`
+	ConnId      string   `json:"ConnId"`
 }
 
 // Invalidates Implements Broadcast interface

@@ -103,14 +103,14 @@ func (m *MemberList) broadcastRaftAddress(ctx context.Context) {
 	m.broadcastQueue.QueueBroadcast(&msg)
 }
 
-func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd string) {
+func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd []byte) {
 	// This function is only called by non-leaders
 	// It uses the broadcast queue to forward a data mutation within the cluster
 	connId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
 	m.broadcastQueue.QueueBroadcast(&BroadcastMessage{
 		Action:      "MutateData",
 		Content:     cmd,
-		ContentHash: fmt.Sprintf("%x", md5.Sum([]byte(cmd))),
+		ContentHash: md5.Sum(cmd),
 		ConnId:      connId,
 		NodeMeta: NodeMeta{
 			ServerID: raft.ServerID(m.options.Config.ServerID),

@@ -3,7 +3,6 @@ package sorted_set
 import (
 	"cmp"
 	"errors"
-	"github.com/kelvinmwinuka/memstore/src/utils"
 	"slices"
 	"strconv"
 	"strings"
@@ -19,7 +18,7 @@ func extractKeysWeightsAggregateWithScores(cmd []string) ([]string, []int, strin
 	if weightsIndex != -1 {
 		firstModifierIndex = weightsIndex
 		for i := weightsIndex + 1; i < len(cmd); i++ {
-			if utils.Contains([]string{"aggregate", "withscores"}, cmd[i]) {
+			if slices.Contains([]string{"aggregate", "withscores"}, cmd[i]) {
 				break
 			}
 			w, err := strconv.Atoi(cmd[i])
@@ -43,7 +42,7 @@ func extractKeysWeightsAggregateWithScores(cmd []string) ([]string, []int, strin
 		if aggregateIndex >= len(cmd)-1 {
 			return []string{}, []int{}, "", false, errors.New("aggregate must be SUM, MIN, or MAX")
 		}
-		if !utils.Contains([]string{"sum", "min", "max"}, strings.ToLower(cmd[aggregateIndex+1])) {
+		if !slices.Contains([]string{"sum", "min", "max"}, strings.ToLower(cmd[aggregateIndex+1])) {
 			return []string{}, []int{}, "", false, errors.New("aggregate must be SUM, MIN, or MAX")
 		}
 		aggregate = strings.ToLower(cmd[aggregateIndex+1])
@@ -93,7 +92,7 @@ func validateUpdatePolicy(updatePolicy interface{}) (string, error) {
 	if !ok {
 		return "", err
 	}
-	if !utils.Contains([]string{"nx", "xx"}, strings.ToLower(policy)) {
+	if !slices.Contains([]string{"nx", "xx"}, strings.ToLower(policy)) {
 		return "", err
 	}
 	return policy, nil
@@ -108,7 +107,7 @@ func validateComparison(comparison interface{}) (string, error) {
 	if !ok {
 		return "", err
 	}
-	if !utils.Contains([]string{"lt", "gt"}, strings.ToLower(comp)) {
+	if !slices.Contains([]string{"lt", "gt"}, strings.ToLower(comp)) {
 		return "", err
 	}
 	return comp, nil

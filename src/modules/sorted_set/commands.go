@@ -52,7 +52,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		}
 		switch utils.AdaptType(cmd[i]).(type) {
 		case string:
-			if utils.Contains([]string{"-inf", "+inf"}, strings.ToLower(cmd[i])) {
+			if slices.Contains([]string{"-inf", "+inf"}, strings.ToLower(cmd[i])) {
 				membersStartIndex = i
 			}
 		case float64:
@@ -111,11 +111,11 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	if membersStartIndex > 2 {
 		options := cmd[2:membersStartIndex]
 		for _, option := range options {
-			if utils.Contains([]string{"xx", "nx"}, strings.ToLower(option)) {
+			if slices.Contains([]string{"xx", "nx"}, strings.ToLower(option)) {
 				updatePolicy = option
 				continue
 			}
-			if utils.Contains([]string{"gt", "lt"}, strings.ToLower(option)) {
+			if slices.Contains([]string{"gt", "lt"}, strings.ToLower(option)) {
 				comparison = option
 				continue
 			}
@@ -1725,7 +1725,7 @@ respectively.`,
 						return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 					}
 					endIdx := slices.IndexFunc(cmd, func(s string) bool {
-						return utils.Contains([]string{"MIN", "MAX", "COUNT"}, strings.ToUpper(s))
+						return slices.Contains([]string{"MIN", "MAX", "COUNT"}, strings.ToUpper(s))
 					})
 					if endIdx == -1 {
 						return cmd[1:], nil

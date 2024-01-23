@@ -7,6 +7,7 @@ import (
 	"github.com/kelvinmwinuka/memstore/src/utils"
 	"math"
 	"net"
+	"slices"
 	"strings"
 )
 
@@ -333,7 +334,7 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *n
 	whereFrom := strings.ToLower(cmd[3])
 	whereTo := strings.ToLower(cmd[4])
 
-	if !utils.Contains[string]([]string{"left", "right"}, whereFrom) || !utils.Contains[string]([]string{"left", "right"}, whereTo) {
+	if !slices.Contains([]string{"left", "right"}, whereFrom) || !slices.Contains([]string{"left", "right"}, whereTo) {
 		return nil, errors.New("wherefrom and whereto arguments must be either LEFT or RIGHT")
 	}
 

@@ -1,13 +1,14 @@
 package pubsub
 
 import (
-	"bufio"
+	"bytes"
 	"container/ring"
 	"context"
 	"fmt"
 	"github.com/kelvinmwinuka/memstore/src/utils"
+	"io"
 	"net"
-	"strings"
+	"slices"
 	"sync"
 	"time"
 )
@@ -39,29 +40,44 @@ func (cg *ConsumerGroup) SendMessage(message string) {
 
 	cg.subscribersRWMut.RUnlock()
 
-	rw := bufio.NewReadWriter(bufio.NewReader(*conn), bufio.NewWriter(*conn))
-	rw.WriteString(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message), message))
-	rw.Flush()
+	w := io.Writer(*conn)
+	r := io.Reader(*conn)
 
+	if _, err := w.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message), message))); err != nil {
+		// TODO: Log error at configured logger
+		fmt.Println(err)
+	}
 	// Wait for an ACK
 	// If no ACK is received within a time limit, remove this connection from subscribers and retry
-	(*conn).SetReadDeadline(time.Now().Add(250 * time.Millisecond))
-	if msg, err := utils.ReadMessage(rw); err != nil {
+	if err := (*conn).SetReadDeadline(time.Now().Add(250 * time.Millisecond)); err != nil {
+		// TODO: Log error at configured logger
+		fmt.Println(err)
+	}
+	if msg, err := utils.ReadMessage(r); err != nil {
 		// Remove the connection from subscribers list
 		cg.Unsubscribe(conn)
 		// Reset the deadline
-		(*conn).SetReadDeadline(time.Time{})
+		if err := (*conn).SetReadDeadline(time.Time{}); err != nil {
+			// TODO: Log error at configured logger
+			fmt.Println(err)
+		}
 		// Retry sending the message
 		cg.SendMessage(message)
 	} else {
-		if strings.TrimSpace(msg) != "+ACK" {
+		if !bytes.Equal(bytes.TrimSpace(msg), []byte("+ACK")) {
 			cg.Unsubscribe(conn)
-			(*conn).SetReadDeadline(time.Time{})
+			if err := (*conn).SetReadDeadline(time.Time{}); err != nil {
+				// TODO: Log error at configured logger
+				fmt.Println(err)
+			}
 			cg.SendMessage(message)
 		}
 	}
 
-	(*conn).SetDeadline(time.Time{})
+	if err := (*conn).SetDeadline(time.Time{}); err != nil {
+		// TODO: Log error at configured logger
+		fmt.Println(err)
+	}
 	cg.subscribers = cg.subscribers.Next()
 }
 
@@ -152,19 +168,31 @@ func (ch *Channel) Start() {
 
 			for _, conn := range ch.subscribers {
 				go func(conn *net.Conn) {
-					rw := bufio.NewReadWriter(bufio.NewReader(*conn), bufio.NewWriter(*conn))
-					rw.WriteString(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message), message))
-					rw.Flush()
+					w := io.Writer(*conn)
+					r := io.Reader(*conn)
 
-					(*conn).SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+					if _, err := w.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(message), message))); err != nil {
+						// TODO: Log error at configured logger
+						fmt.Println(err)
+					}
+
+					if err := (*conn).SetReadDeadline(time.Now().Add(200 * time.Millisecond)); err != nil {
+						// TODO: Log error at configured logger
+						fmt.Println(err)
+						ch.Unsubscribe(conn)
+					}
 					defer func() {
-						(*conn).SetReadDeadline(time.Time{})
+						if err := (*conn).SetReadDeadline(time.Time{}); err != nil {
+							// TODO: Log error at configured logger
+							fmt.Println(err)
+							ch.Unsubscribe(conn)
+						}
 					}()
 
-					if msg, err := utils.ReadMessage(rw); err != nil {
+					if msg, err := utils.ReadMessage(r); err != nil {
 						ch.Unsubscribe(conn)
 					} else {
-						if strings.TrimSpace(msg) != "+ACK" {
+						if !bytes.EqualFold(bytes.TrimSpace(msg), []byte("+ACK")) {
 							ch.Unsubscribe(conn)
 						}
 					}
@@ -177,7 +205,7 @@ func (ch *Channel) Start() {
 }
 
 func (ch *Channel) Subscribe(conn *net.Conn, consumerGroupName interface{}) {
-	if consumerGroupName == nil && !utils.Contains[*net.Conn](ch.subscribers, conn) {
+	if consumerGroupName == nil && !slices.Contains(ch.subscribers, conn) {
 		ch.subscribersRWMut.Lock()
 		defer ch.subscribersRWMut.Unlock()
 		ch.subscribers = append(ch.subscribers, conn)
@@ -230,31 +258,21 @@ type PubSub struct {
 
 func NewPubSub() *PubSub {
 	return &PubSub{
-		channels: []*Channel{
-			NewChannel("chan"),
-		},
+		channels: []*Channel{},
 	}
 }
 
-func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channelName interface{}, consumerGroup interface{}) {
-	// If no channel name is given, subscribe to all channels
-	if channelName == nil {
-		for _, channel := range ps.channels {
-			go channel.Subscribe(conn, nil)
-		}
-		return
-	}
-
+func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channelName string, consumerGroup interface{}) {
 	// Check if channel with given name exists
 	// If it does, subscribe the connection to the channel
 	// If it does not, create the channel and subscribe to it
-	channels := utils.Filter[*Channel](ps.channels, func(c *Channel) bool {
-		return c.name == channelName
+	channelIdx := slices.IndexFunc(ps.channels, func(channel *Channel) bool {
+		return channel.name == channelName
 	})
 
-	if len(channels) <= 0 {
+	if channelIdx == -1 {
 		go func() {
-			newChan := NewChannel(channelName.(string))
+			newChan := NewChannel(channelName)
 			newChan.Start()
 			newChan.Subscribe(conn, consumerGroup)
 			ps.channels = append(ps.channels, newChan)
@@ -262,9 +280,7 @@ func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channelName int
 		return
 	}
 
-	for _, channel := range channels {
-		go channel.Subscribe(conn, consumerGroup)
-	}
+	go ps.channels[channelIdx].Subscribe(conn, consumerGroup)
 }
 
 func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channelName interface{}) {
@@ -284,18 +300,10 @@ func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channelName i
 	}
 }
 
-func (ps *PubSub) Publish(ctx context.Context, message string, channelName interface{}) {
-	if channelName == nil {
-		for _, channel := range ps.channels {
-			go channel.Publish(message)
-		}
-		return
-	}
-
+func (ps *PubSub) Publish(ctx context.Context, message string, channelName string) {
 	channels := utils.Filter[*Channel](ps.channels, func(c *Channel) bool {
 		return c.name == channelName
 	})
-
 	for _, channel := range channels {
 		go channel.Publish(message)
 	}

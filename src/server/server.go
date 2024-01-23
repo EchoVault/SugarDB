@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bufio"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -85,18 +84,20 @@ func (server *Server) StartTCP(ctx context.Context) {
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	server.ACL.RegisterConnection(&conn)
 
-	connRW := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+	w := io.Writer(conn)
+	r := io.Reader(conn)
 
 	cid := server.ConnID.Add(1)
 	ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"),
 		fmt.Sprintf("%s-%d", ctx.Value(utils.ContextServerID("ServerID")), cid))
 
 	for {
-		message, err := utils.ReadMessage(connRW)
+		message, err := utils.ReadMessage(r)
 
 		if err != nil {
 			if err == io.EOF {
 				// Connection closed
+				// TODO: Remove this connection from channel subscriptions
 				break
 			}
 			if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -115,15 +116,19 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 
 		if cmd, err := utils.Decode(message); err != nil {
 			// Return error to client
-			connRW.Write([]byte(fmt.Sprintf("-Error %s\r\n\n", err.Error())))
-			connRW.Flush()
+			if _, err := w.Write([]byte(fmt.Sprintf("-Error %s\r\n\r\n", err.Error()))); err != nil {
+				// TODO: Log error at configured logger
+				fmt.Println(err)
+			}
 			continue
 		} else {
 			command, err := server.getCommand(cmd[0])
 
 			if err != nil {
-				connRW.WriteString(fmt.Sprintf("-%s\r\n\n", err.Error()))
-				connRW.Flush()
+				if _, err := w.Write([]byte(fmt.Sprintf("-%s\r\n\r\n", err.Error()))); err != nil {
+					// TODO: Log error at configured logger
+					fmt.Println(err)
+				}
 				continue
 			}
 
@@ -138,47 +143,69 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 			}
 
 			if err := server.ACL.AuthorizeConnection(&conn, cmd, command, subCommand); err != nil {
-				connRW.WriteString(fmt.Sprintf("-%s\r\n\n", err.Error()))
-				connRW.Flush()
+				if _, err := w.Write([]byte(fmt.Sprintf("-%s\r\n\r\n", err.Error()))); err != nil {
+					// TODO: Log error at configured logger
+					fmt.Println(err)
+				}
 				continue
 			}
 
 			if !server.IsInCluster() || !synchronize {
 				if res, err := handler(ctx, cmd, server, &conn); err != nil {
-					connRW.Write([]byte(fmt.Sprintf("-%s\r\n\n", err.Error())))
+					if _, err := w.Write([]byte(fmt.Sprintf("-%s\r\n\r\n", err.Error()))); err != nil {
+						// TODO: Log error at configured logger
+						fmt.Println(err)
+					}
 				} else {
-					connRW.Write(res)
+					if command.Command == "ack" {
+						continue
+					}
+					if _, err := w.Write(res); err != nil {
+						// TODO: Log error at configured logger
+						fmt.Println(err)
+					}
 					// TODO: Write successful, add entry to AOF
 				}
-				connRW.Flush()
 				continue
 			}
 
 			// Handle other commands that need to be synced across the cluster
 			if server.raft.IsRaftLeader() {
 				if res, err := server.raftApply(ctx, cmd); err != nil {
-					connRW.Write([]byte(fmt.Sprintf("-Error %s\r\n\r\n", err.Error())))
+					if _, err := w.Write([]byte(fmt.Sprintf("-Error %s\r\n\r\n", err.Error()))); err != nil {
+						// TODO: Log error at configured logger
+						fmt.Println(err)
+					}
 				} else {
-					connRW.Write(res)
+					if _, err := w.Write(res); err != nil {
+						// TODO: Log error at configured logger
+						fmt.Println(err)
+					}
 				}
-				connRW.Flush()
 				continue
 			}
 
 			// Forward message to leader and return immediate OK response
 			if server.Config.ForwardCommand {
 				server.memberList.ForwardDataMutation(ctx, message)
-				connRW.Write([]byte(utils.OK_RESPONSE))
-				connRW.Flush()
+				if _, err := w.Write([]byte(utils.OK_RESPONSE)); err != nil {
+					// TODO: Log error at configured logger
+					fmt.Println(err)
+				}
 				continue
 			}
 
-			connRW.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\r\n"))
-			connRW.Flush()
+			if _, err := w.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\r\n")); err != nil {
+				// TODO: Log error at configured logger
+				fmt.Println(err)
+			}
 		}
 	}
 
-	conn.Close()
+	if err := conn.Close(); err != nil {
+		// TODO: Log error at configured logger
+		fmt.Println(err)
+	}
 }
 
 func (server *Server) Start(ctx context.Context) {
