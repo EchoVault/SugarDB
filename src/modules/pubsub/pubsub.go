@@ -40,8 +40,7 @@ func (cg *ConsumerGroup) SendMessage(message string) {
 
 	cg.subscribersRWMut.RUnlock()
 
-	w := io.Writer(*conn)
-	r := io.Reader(*conn)
+	w, r := io.Writer(*conn), io.Reader(*conn)
 
 	if _, err := w.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message), message))); err != nil {
 		// TODO: Log error at configured logger
@@ -168,8 +167,7 @@ func (ch *Channel) Start() {
 
 			for _, conn := range ch.subscribers {
 				go func(conn *net.Conn) {
-					w := io.Writer(*conn)
-					r := io.Reader(*conn)
+					w, r := io.Writer(*conn), io.Reader(*conn)
 
 					if _, err := w.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(message), message))); err != nil {
 						// TODO: Log error at configured logger

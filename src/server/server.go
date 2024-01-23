@@ -84,8 +84,7 @@ func (server *Server) StartTCP(ctx context.Context) {
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	server.ACL.RegisterConnection(&conn)
 
-	w := io.Writer(conn)
-	r := io.Reader(conn)
+	w, r := io.Writer(conn), io.Reader(conn)
 
 	cid := server.ConnID.Add(1)
 	ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"),
