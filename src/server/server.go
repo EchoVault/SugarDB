@@ -157,9 +157,6 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 						fmt.Println(err)
 					}
 				} else {
-					if command.Command == "ack" {
-						continue
-					}
 					if _, err := w.Write(res); err != nil {
 						// TODO: Log error at configured logger
 						fmt.Println(err)
