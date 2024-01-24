@@ -3,7 +3,7 @@ package pubsub
 import (
 	"context"
 	"errors"
-	"github.com/kelvinmwinuka/memstore/src/utils"
+	"github.com/echovault/echovault/src/utils"
 	"net"
 )
 

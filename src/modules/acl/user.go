@@ -1,7 +1,7 @@
 package acl
 
 import (
-	"github.com/kelvinmwinuka/memstore/src/utils"
+	"github.com/echovault/echovault/src/utils"
 	"slices"
 	"strings"
 )

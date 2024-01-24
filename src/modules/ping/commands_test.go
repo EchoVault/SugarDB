@@ -2,7 +2,7 @@ package ping
 
 import (
 	"context"
-	"github.com/kelvinmwinuka/memstore/src/utils"
+	"github.com/echovault/echovault/src/utils"
 	"net"
 	"reflect"
 	"testing"

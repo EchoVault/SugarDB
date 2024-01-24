@@ -3,8 +3,8 @@ package raft
 import (
 	"context"
 	"encoding/json"
+	"github.com/echovault/echovault/src/utils"
 	"github.com/hashicorp/raft"
-	"github.com/kelvinmwinuka/memstore/src/utils"
 	"io"
 )
 

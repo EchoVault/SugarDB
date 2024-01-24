@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kelvinmwinuka/memstore/src/utils"
+	"github.com/echovault/echovault/src/utils"
 	"gopkg.in/yaml.v3"
 	"net"
 	"os"

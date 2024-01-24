@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kelvinmwinuka/memstore/src/utils"
+	"github.com/echovault/echovault/src/utils"
 	"math"
 	"net"
 	"slices"

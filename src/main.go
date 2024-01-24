@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"github.com/kelvinmwinuka/memstore/src/modules/acl"
-	"github.com/kelvinmwinuka/memstore/src/modules/pubsub"
-	"github.com/kelvinmwinuka/memstore/src/server"
-	"github.com/kelvinmwinuka/memstore/src/utils"
+	"github.com/echovault/echovault/src/modules/acl"
+	"github.com/echovault/echovault/src/modules/pubsub"
+	"github.com/echovault/echovault/src/server"
+	"github.com/echovault/echovault/src/utils"
 	"log"
 	"os"
 	"os/signal"

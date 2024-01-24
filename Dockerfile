@@ -1,13 +1,13 @@
 FROM --platform=linux/amd64 alpine:latest
 
-RUN mkdir -p /usr/local/lib/memstore
-RUN mkdir -p /opt/memstore/bin
-RUN mkdir -p /etc/ssl/certs/memstore
+RUN mkdir -p /usr/local/lib/echovault
+RUN mkdir -p /opt/echovault/bin
+RUN mkdir -p /etc/ssl/certs/echovault
 
-COPY ./bin/linux/x86_64/server /opt/memstore/bin
-COPY ./openssl/server /etc/ssl/certs/memstore
+COPY ./bin/linux/x86_64/server /opt/echovault/bin
+COPY ./openssl/server /etc/ssl/certs/echovault
 
-WORKDIR /opt/memstore/bin
+WORKDIR /opt/echovault/bin
 
 CMD "./server" \ 
   "--bindAddr" "${BIND_ADDR}" \

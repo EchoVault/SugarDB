@@ -7,9 +7,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/echovault/echovault/src/utils"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-	"github.com/kelvinmwinuka/memstore/src/utils"
 	"github.com/sethvargo/go-retry"
 )
 

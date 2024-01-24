@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/echovault/echovault/src/utils"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-	"github.com/kelvinmwinuka/memstore/src/utils"
 	"time"
 )
 

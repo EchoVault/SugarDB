@@ -5,7 +5,7 @@ import (
 	"container/ring"
 	"context"
 	"fmt"
-	"github.com/kelvinmwinuka/memstore/src/utils"
+	"github.com/echovault/echovault/src/utils"
 	"io"
 	"net"
 	"slices"

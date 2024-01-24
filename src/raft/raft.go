@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kelvinmwinuka/memstore/src/memberlist"
+	"github.com/echovault/echovault/src/memberlist"
 	"log"
 	"net"
 	"os"
@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/echovault/echovault/src/utils"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
-	"github.com/kelvinmwinuka/memstore/src/utils"
 )
 
 type RaftOpts struct {

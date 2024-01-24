@@ -1,7 +1,7 @@
 package set
 
 import (
-	"github.com/kelvinmwinuka/memstore/src/utils"
+	"github.com/echovault/echovault/src/utils"
 	"math/rand"
 	"slices"
 )
