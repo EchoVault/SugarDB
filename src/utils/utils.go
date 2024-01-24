@@ -89,33 +89,26 @@ func ReadMessage(r io.Reader) ([]byte, error) {
 
 func RetryBackoff(b retry.Backoff, maxRetries uint64, jitter, cappedDuration, maxDuration time.Duration) retry.Backoff {
 	backoff := b
-
 	if maxRetries > 0 {
 		backoff = retry.WithMaxRetries(maxRetries, backoff)
 	}
-
 	if jitter > 0 {
 		backoff = retry.WithJitter(jitter, backoff)
 	}
-
 	if cappedDuration > 0 {
 		backoff = retry.WithCappedDuration(cappedDuration, backoff)
 	}
-
 	if maxDuration > 0 {
 		backoff = retry.WithMaxDuration(maxDuration, backoff)
 	}
-
 	return backoff
 }
 
 func GetIPAddress() (string, error) {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
-
 	if err != nil {
 		return "", err
 	}
-
 	defer conn.Close()
 
 	localAddr := strings.Split(conn.LocalAddr().String(), ":")[0]
