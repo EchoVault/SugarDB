@@ -7,7 +7,8 @@ import (
 )
 
 type SnapshotOpts struct {
-	Config utils.Config
+	config utils.Config
+	data   map[string]interface{}
 }
 
 type Snapshot struct {
@@ -22,10 +23,7 @@ func NewFSMSnapshot(opts SnapshotOpts) *Snapshot {
 
 // Persist implements FSMSnapshot interface
 func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
-	data := map[string]interface{}{}
-
-	// TODO: Copy current store contents
-	o, err := json.Marshal(data)
+	o, err := json.Marshal(s.options.data)
 
 	if err != nil {
 		sink.Cancel()
@@ -36,8 +34,6 @@ func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
 		sink.Cancel()
 		return err
 	}
-
-	// TODO: Store data in separate snapshot file
 
 	return nil
 }

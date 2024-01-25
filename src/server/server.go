@@ -220,7 +220,7 @@ func (server *Server) Start(ctx context.Context) {
 
 	if server.IsInCluster() {
 		// Initialise raft and memberlist
-		server.raft = raft.NewRaft(raft.RaftOpts{
+		server.raft = raft.NewRaft(raft.Opts{
 			Config:     conf,
 			Server:     server,
 			GetCommand: server.getCommand,

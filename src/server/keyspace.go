@@ -71,3 +71,7 @@ func (server *Server) GetValue(key string) interface{} {
 func (server *Server) SetValue(ctx context.Context, key string, value interface{}) {
 	server.store[key] = value
 }
+
+func (server *Server) GetState() map[string]interface{} {
+	return server.store
+}

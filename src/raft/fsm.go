@@ -6,12 +6,12 @@ import (
 	"github.com/echovault/echovault/src/utils"
 	"github.com/hashicorp/raft"
 	"io"
+	"log"
 )
 
 type FSMOpts struct {
 	Config     utils.Config
 	Server     utils.Server
-	Snapshot   raft.FSMSnapshot
 	GetCommand func(command string) (utils.Command, error)
 }
 
@@ -75,7 +75,10 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 
 // Snapshot implements raft.FSM interface
 func (fsm *FSM) Snapshot() (raft.FSMSnapshot, error) {
-	return fsm.options.Snapshot, nil
+	return NewFSMSnapshot(SnapshotOpts{
+		config: fsm.options.Config,
+		data:   fsm.options.Server.GetState(),
+	}), nil
 }
 
 // Restore implements raft.FSM interface
@@ -83,20 +86,25 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 	b, err := io.ReadAll(snapshot)
 
 	if err != nil {
+		log.Fatal(err)
 		return err
 	}
 
 	data := make(map[string]interface{})
 
 	if err := json.Unmarshal(b, &data); err != nil {
+		log.Fatal(err)
 		return err
 	}
 
-	// for k, v := range data {
-	// 	server.keyLocks[k].Lock()
-	// 	server.SetValue(context.Background(), k, v)
-	// 	server.keyLocks[k].Unlock()
-	// }
+	for k, v := range data {
+		_, err := fsm.options.Server.CreateKeyAndLock(context.Background(), k)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fsm.options.Server.SetValue(context.Background(), k, v)
+		fsm.options.Server.KeyUnlock(k)
+	}
 
 	return nil
 }

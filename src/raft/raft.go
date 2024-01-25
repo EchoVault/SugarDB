@@ -17,18 +17,18 @@ import (
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 )
 
-type RaftOpts struct {
+type Opts struct {
 	Config     utils.Config
 	Server     utils.Server
 	GetCommand func(command string) (utils.Command, error)
 }
 
 type Raft struct {
-	options RaftOpts
+	options Opts
 	raft    *raft.Raft
 }
 
-func NewRaft(opts RaftOpts) *Raft {
+func NewRaft(opts Opts) *Raft {
 	return &Raft{
 		options: opts,
 	}
@@ -91,11 +91,8 @@ func (r *Raft) RaftInit(ctx context.Context) {
 	raftServer, err := raft.NewRaft(
 		raftConfig,
 		NewFSM(FSMOpts{
-			Config: r.options.Config,
-			Server: r.options.Server,
-			Snapshot: NewFSMSnapshot(SnapshotOpts{
-				Config: r.options.Config,
-			}),
+			Config:     r.options.Config,
+			Server:     r.options.Server,
 			GetCommand: r.options.GetCommand,
 		}),
 		logStore,
@@ -108,11 +105,9 @@ func (r *Raft) RaftInit(ctx context.Context) {
 		log.Fatalf("Could not start node with error; %s", err)
 	}
 
-	r.raft = raftServer
-
 	if conf.BootstrapCluster {
-		// Bootstrap raft cluster
-		if err := r.raft.BootstrapCluster(raft.Configuration{
+		// Error can be safely ignored if we're already leader
+		_ = raftServer.BootstrapCluster(raft.Configuration{
 			Servers: []raft.Server{
 				{
 					Suffrage: raft.Voter,
@@ -120,10 +115,10 @@ func (r *Raft) RaftInit(ctx context.Context) {
 					Address:  raft.ServerAddress(addr),
 				},
 			},
-		}).Error(); err != nil {
-			log.Fatal(err)
-		}
+		}).Error()
 	}
+
+	r.raft = raftServer
 }
 
 func (r *Raft) Apply(cmd []byte, timeout time.Duration) raft.ApplyFuture {

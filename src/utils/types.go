@@ -14,6 +14,7 @@ type Server interface {
 	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
 	GetValue(key string) interface{}
 	SetValue(ctx context.Context, key string, value interface{})
+	GetState() map[string]interface{}
 	GetAllCommands(ctx context.Context) []Command
 	GetACL() interface{}
 	GetPubSub() interface{}
