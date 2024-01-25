@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/echovault/echovault/src/modules/acl"
+	"github.com/echovault/echovault/src/modules/admin"
 	"github.com/echovault/echovault/src/modules/etc"
 	"github.com/echovault/echovault/src/modules/get"
 	"github.com/echovault/echovault/src/modules/hash"
@@ -25,6 +26,7 @@ func (server *Server) LoadCommands(plugin utils.Plugin) {
 }
 
 func (server *Server) LoadModules(ctx context.Context) {
+	server.LoadCommands(admin.NewModule())
 	server.LoadCommands(acl.NewModule())
 	server.LoadCommands(pubsub.NewModule())
 	server.LoadCommands(ping.NewModule())

@@ -16,8 +16,8 @@ type KeyObject struct {
 
 type Plugin struct {
 	name        string
-	commands    []utils.Command
 	description string
+	commands    []utils.Command
 }
 
 func (p Plugin) Name() string {
@@ -142,7 +142,8 @@ func handleMSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 func NewModule() Plugin {
 	SetModule := Plugin{
-		name: "OtherCommands",
+		name:        "OtherCommands",
+		description: "Handle basic SET commands",
 		commands: []utils.Command{
 			{
 				Command:     "set",
@@ -190,7 +191,6 @@ func NewModule() Plugin {
 				HandlerFunc: handleMSet,
 			},
 		},
-		description: "Handle basic SET commands",
 	}
 
 	return SetModule
