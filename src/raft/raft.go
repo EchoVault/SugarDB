@@ -183,6 +183,10 @@ func (r *Raft) RemoveServer(meta memberlist.NodeMeta) error {
 	return nil
 }
 
+func (r *Raft) TakeSnapshot() error {
+	return r.raft.Snapshot().Error()
+}
+
 func (r *Raft) RaftShutdown(ctx context.Context) {
 	// Leadership transfer if current node is the leader
 	if r.IsRaftLeader() {

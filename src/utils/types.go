@@ -18,6 +18,7 @@ type Server interface {
 	GetAllCommands(ctx context.Context) []Command
 	GetACL() interface{}
 	GetPubSub() interface{}
+	TakeSnapshot() error
 }
 
 type ContextServerID string

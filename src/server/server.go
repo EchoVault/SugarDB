@@ -240,6 +240,15 @@ func (server *Server) Start(ctx context.Context) {
 	server.StartTCP(ctx)
 }
 
+func (server *Server) TakeSnapshot() error {
+	// TODO: Check if there's a snapshot currently in progress
+	go func() {
+		err := server.raft.TakeSnapshot()
+		log.Println(err)
+	}()
+	return nil
+}
+
 func (server *Server) ShutDown(ctx context.Context) {
 	if server.IsInCluster() {
 		server.raft.RaftShutdown(ctx)

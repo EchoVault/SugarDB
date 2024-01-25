@@ -23,6 +23,7 @@ func NewFSMSnapshot(opts SnapshotOpts) *Snapshot {
 
 // Persist implements FSMSnapshot interface
 func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
+	// TODO: Turn on snapshot in-progress flag
 	o, err := json.Marshal(s.options.data)
 
 	if err != nil {
@@ -39,4 +40,6 @@ func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
 }
 
 // Release implements FSMSnapshot interface
-func (s *Snapshot) Release() {}
+func (s *Snapshot) Release() {
+	// TODO: Turn off snapshot in-progress flag
+}
