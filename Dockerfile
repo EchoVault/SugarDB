@@ -20,6 +20,8 @@ CMD "./server" \
   "--cert" "${CERT}" \
   "--pluginDir" "${PLUGIN_DIR}" \
   "--dataDir" "${DATA_DIR}" \
+  "--snapshotThreshold" "${SNAPSHOT_THRESHOLD}" \
+  "--snapshotInterval" "${SNAPSHOT_INTERVAL}" \
   "--tls=${TLS}" \
   "--inMemory=${IN_MEMORY}" \
   "--bootstrapCluster=${BOOTSTRAP_CLUSTER}" \

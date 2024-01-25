@@ -28,6 +28,8 @@ type Config struct {
 	ForwardCommand     bool   `json:"forwardCommand" yaml:"forwardCommand"`
 	RequirePass        bool   `json:"requirePass" yaml:"requirePass"`
 	Password           string `json:"password" yaml:"password"`
+	SnapShotThreshold  uint64 `json:"snapshotThreshold" yaml:"snapshotThreshold"`
+	SnapshotInterval   uint   `json:"snapshotInterval" yaml:"snapshotInterval"`
 }
 
 func GetConfig() (Config, error) {
@@ -39,12 +41,14 @@ func GetConfig() (Config, error) {
 	serverId := flag.String("serverId", "1", "Server ID in raft cluster. Leave empty for client.")
 	joinAddr := flag.String("joinAddr", "", "Address of cluster member in a cluster to you want to join.")
 	bindAddr := flag.String("bindAddr", "", "Address to bind the server to.")
-	raftBindPort := flag.Int("raftPort", 7481, "Port to use for intra-cluster communication. Leave on the client.")
-	mlBindPort := flag.Int("mlPort", 7946, "Port to use for memberlist communication.")
+	raftBindPort := flag.Uint("raftPort", 7481, "Port to use for intra-cluster communication. Leave on the client.")
+	mlBindPort := flag.Uint("mlPort", 7946, "Port to use for memberlist communication.")
 	inMemory := flag.Bool("inMemory", false, "Whether to use memory or persistent storage for raft logs and snapshots.")
 	dataDir := flag.String("dataDir", "/var/lib/memstore", "Directory to store raft snapshots and logs.")
 	bootstrapCluster := flag.Bool("bootstrapCluster", false, "Whether this instance should bootstrap a new cluster.")
 	aclConfig := flag.String("aclConfig", "", "ACL config file path.")
+	snapshotThreshold := flag.Uint64("snapshotThreshold", 1000, "The number of entries that trigger a snapshot. Default is 1000.")
+	snapshotInterval := flag.Uint("snapshotInterval", 60*5, "The time interval between snapshots (in seconds). Default is 5 minutes.")
 	forwardCommand := flag.Bool(
 		"forwardCommand",
 		false,
@@ -87,6 +91,8 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		ForwardCommand:     *forwardCommand,
 		RequirePass:        *requirePass,
 		Password:           *password,
+		SnapShotThreshold:  *snapshotThreshold,
+		SnapshotInterval:   *snapshotInterval,
 	}
 
 	if len(*config) > 0 {
