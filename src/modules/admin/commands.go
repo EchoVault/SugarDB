@@ -34,7 +34,7 @@ func NewModule() Plugin {
 				Command:     "bgsave",
 				Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 				Description: "(BGSAVE) Trigger a snapshot save",
-				Sync:        false,
+				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					return []string{}, nil
 				},
