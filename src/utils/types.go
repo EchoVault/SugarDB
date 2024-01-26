@@ -19,6 +19,8 @@ type Server interface {
 	GetACL() interface{}
 	GetPubSub() interface{}
 	TakeSnapshot() error
+	StartSnapshot()
+	FinishSnapshot()
 }
 
 type ContextServerID string

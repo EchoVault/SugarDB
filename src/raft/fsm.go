@@ -76,8 +76,10 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 // Snapshot implements raft.FSM interface
 func (fsm *FSM) Snapshot() (raft.FSMSnapshot, error) {
 	return NewFSMSnapshot(SnapshotOpts{
-		config: fsm.options.Config,
-		data:   fsm.options.Server.GetState(),
+		config:         fsm.options.Config,
+		data:           fsm.options.Server.GetState(),
+		startSnapshot:  fsm.options.Server.StartSnapshot,
+		finishSnapshot: fsm.options.Server.FinishSnapshot,
 	}), nil
 }
 

@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/hashicorp/raft"
+	"time"
 )
 
 type SnapshotOpts struct {
-	config utils.Config
-	data   map[string]interface{}
+	config         utils.Config
+	data           map[string]interface{}
+	startSnapshot  func()
+	finishSnapshot func()
 }
 
 type Snapshot struct {
@@ -23,7 +26,8 @@ func NewFSMSnapshot(opts SnapshotOpts) *Snapshot {
 
 // Persist implements FSMSnapshot interface
 func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
-	// TODO: Turn on snapshot in-progress flag
+	s.options.startSnapshot()
+
 	o, err := json.Marshal(s.options.data)
 
 	if err != nil {
@@ -36,10 +40,12 @@ func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
 		return err
 	}
 
+	<-time.After(5 * time.Second)
+
 	return nil
 }
 
 // Release implements FSMSnapshot interface
 func (s *Snapshot) Release() {
-	// TODO: Turn off snapshot in-progress flag
+	s.options.finishSnapshot()
 }

@@ -47,3 +47,11 @@ func (server *Server) raftApply(ctx context.Context, cmd []string) ([]byte, erro
 
 	return r.Response, nil
 }
+
+func (server *Server) StartSnapshot() {
+	server.SnapshotInProgress.Store(true)
+}
+
+func (server *Server) FinishSnapshot() {
+	server.SnapshotInProgress.Store(false)
+}

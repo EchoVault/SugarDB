@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"github.com/echovault/echovault/src/memberlist"
 	"github.com/echovault/echovault/src/modules/acl"
@@ -36,6 +37,8 @@ type Server struct {
 
 	ACL    *acl.ACL
 	PubSub *pubsub.PubSub
+
+	SnapshotInProgress atomic.Bool
 }
 
 func (server *Server) StartTCP(ctx context.Context) {
@@ -241,11 +244,17 @@ func (server *Server) Start(ctx context.Context) {
 }
 
 func (server *Server) TakeSnapshot() error {
-	// TODO: Check if there's a snapshot currently in progress
-	go func() {
-		err := server.raft.TakeSnapshot()
-		log.Println(err)
-	}()
+	if server.SnapshotInProgress.Load() {
+		return errors.New("snapshot already in progress")
+	}
+	if server.IsInCluster() {
+		// Handle snapshot in cluster mode
+		go func() {
+			err := server.raft.TakeSnapshot()
+			log.Println(err)
+		}()
+	}
+	// Handle snapshot in standalone mode
 	return nil
 }
 
