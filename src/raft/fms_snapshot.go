@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/hashicorp/raft"
-	"time"
 )
 
 type SnapshotOpts struct {
@@ -39,8 +38,6 @@ func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
 		sink.Cancel()
 		return err
 	}
-
-	<-time.After(5 * time.Second)
 
 	return nil
 }
