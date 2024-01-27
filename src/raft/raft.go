@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"path"
 	"path/filepath"
 	"time"
 
@@ -63,7 +62,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 
 		stableStore = raft.StableStore(boltdb)
 
-		snapshotStore, err = raft.NewFileSnapshotStore(path.Join(conf.DataDir, "snapshots"), 2, os.Stdout)
+		snapshotStore, err = raft.NewFileSnapshotStore(conf.DataDir, 2, os.Stdout)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -144,10 +143,10 @@ func (r *Raft) HasJoinedCluster() bool {
 }
 
 func (r *Raft) AddVoter(
-		id raft.ServerID,
-		address raft.ServerAddress,
-		prevIndex uint64,
-		timeout time.Duration,
+	id raft.ServerID,
+	address raft.ServerAddress,
+	prevIndex uint64,
+	timeout time.Duration,
 ) error {
 	if r.IsRaftLeader() {
 		raftConfig := r.raft.GetConfiguration()

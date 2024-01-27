@@ -76,10 +76,11 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 // Snapshot implements raft.FSM interface
 func (fsm *FSM) Snapshot() (raft.FSMSnapshot, error) {
 	return NewFSMSnapshot(SnapshotOpts{
-		config:         fsm.options.Config,
-		data:           fsm.options.Server.GetState(),
-		startSnapshot:  fsm.options.Server.StartSnapshot,
-		finishSnapshot: fsm.options.Server.FinishSnapshot,
+		config:            fsm.options.Config,
+		data:              fsm.options.Server.GetState(),
+		startSnapshot:     fsm.options.Server.StartSnapshot,
+		finishSnapshot:    fsm.options.Server.FinishSnapshot,
+		setLatestSnapshot: fsm.options.Server.SetLatestSnapshot,
 	}), nil
 }
 
@@ -92,14 +93,18 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 		return err
 	}
 
-	data := make(map[string]interface{})
+	data := utils.SnapshotObject{
+		State:                      make(map[string]interface{}),
+		LatestSnapshotMilliseconds: 0,
+	}
 
 	if err := json.Unmarshal(b, &data); err != nil {
 		log.Fatal(err)
 		return err
 	}
 
-	for k, v := range data {
+	// Set state
+	for k, v := range data.State {
 		_, err := fsm.options.Server.CreateKeyAndLock(context.Background(), k)
 		if err != nil {
 			log.Fatal(err)
@@ -107,6 +112,8 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 		fsm.options.Server.SetValue(context.Background(), k, v)
 		fsm.options.Server.KeyUnlock(k)
 	}
+	// Set latest snapshot milliseconds
+	fsm.options.Server.SetLatestSnapshot(data.LatestSnapshotMilliseconds)
 
 	return nil
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/echovault/echovault/src/modules/acl"
 	"github.com/echovault/echovault/src/modules/pubsub"
 	"github.com/echovault/echovault/src/raft"
+	"github.com/echovault/echovault/src/server/aof"
+	"github.com/echovault/echovault/src/server/snapshot"
 	"github.com/echovault/echovault/src/utils"
 	"io"
 	"log"
@@ -38,7 +40,10 @@ type Server struct {
 	ACL    *acl.ACL
 	PubSub *pubsub.PubSub
 
-	SnapshotInProgress atomic.Bool
+	SnapshotInProgress         atomic.Bool
+	LatestSnapshotMilliseconds atomic.Int64 // Unix epoch in milliseconds
+	SnapshotEngine             *snapshot.Engine
+	AOFEngine                  *aof.Engine
 }
 
 func (server *Server) StartTCP(ctx context.Context) {
@@ -99,28 +104,26 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 		if err != nil {
 			if err == io.EOF {
 				// Connection closed
-				// TODO: Remove this connection from channel subscriptions
 				break
 			}
 			if err, ok := err.(net.Error); ok && err.Timeout() {
 				// Connection timeout
-				fmt.Println(err)
+				log.Println(err)
 				break
 			}
 			if err, ok := err.(tls.RecordHeaderError); ok {
 				// TLS verification error
-				fmt.Println(err)
+				log.Println(err)
 				break
 			}
-			fmt.Println(err)
+			log.Println(err)
 			break
 		}
 
 		if cmd, err := utils.Decode(message); err != nil {
 			// Return error to client
 			if _, err := w.Write([]byte(fmt.Sprintf("-Error %s\r\n\r\n", err.Error()))); err != nil {
-				// TODO: Log error at configured logger
-				fmt.Println(err)
+				log.Println(err)
 			}
 			continue
 		} else {
@@ -128,8 +131,7 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 
 			if err != nil {
 				if _, err := w.Write([]byte(fmt.Sprintf("-%s\r\n\r\n", err.Error()))); err != nil {
-					// TODO: Log error at configured logger
-					fmt.Println(err)
+					log.Println(err)
 				}
 				continue
 			}
@@ -146,8 +148,7 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 
 			if err := server.ACL.AuthorizeConnection(&conn, cmd, command, subCommand); err != nil {
 				if _, err := w.Write([]byte(fmt.Sprintf("-%s\r\n\r\n", err.Error()))); err != nil {
-					// TODO: Log error at configured logger
-					fmt.Println(err)
+					log.Println(err)
 				}
 				continue
 			}
@@ -155,13 +156,11 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 			if !server.IsInCluster() || !synchronize {
 				if res, err := handler(ctx, cmd, server, &conn); err != nil {
 					if _, err := w.Write([]byte(fmt.Sprintf("-%s\r\n\r\n", err.Error()))); err != nil {
-						// TODO: Log error at configured logger
-						fmt.Println(err)
+						log.Println(err)
 					}
 				} else {
 					if _, err := w.Write(res); err != nil {
-						// TODO: Log error at configured logger
-						fmt.Println(err)
+						log.Println(err)
 					}
 					// TODO: Write successful, add entry to AOF
 				}
@@ -172,13 +171,11 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 			if server.raft.IsRaftLeader() {
 				if res, err := server.raftApply(ctx, cmd); err != nil {
 					if _, err := w.Write([]byte(fmt.Sprintf("-Error %s\r\n\r\n", err.Error()))); err != nil {
-						// TODO: Log error at configured logger
-						fmt.Println(err)
+						log.Println(err)
 					}
 				} else {
 					if _, err := w.Write(res); err != nil {
-						// TODO: Log error at configured logger
-						fmt.Println(err)
+						log.Println(err)
 					}
 				}
 				continue
@@ -188,22 +185,19 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 			if server.Config.ForwardCommand {
 				server.memberList.ForwardDataMutation(ctx, message)
 				if _, err := w.Write([]byte(utils.OK_RESPONSE)); err != nil {
-					// TODO: Log error at configured logger
-					fmt.Println(err)
+					log.Println(err)
 				}
 				continue
 			}
 
 			if _, err := w.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\r\n")); err != nil {
-				// TODO: Log error at configured logger
-				fmt.Println(err)
+				log.Println(err)
 			}
 		}
 	}
 
 	if err := conn.Close(); err != nil {
-		// TODO: Log error at configured logger
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
@@ -238,6 +232,21 @@ func (server *Server) Start(ctx context.Context) {
 		})
 		server.raft.RaftInit(ctx)
 		server.memberList.MemberListInit(ctx)
+	} else {
+		// Initialize standalone AOF engine
+		server.AOFEngine = aof.NewAOFEngine(aof.Opts{
+			Config: conf,
+		})
+		// Initialize and start standalone snapshot engine
+		server.SnapshotEngine = snapshot.NewSnapshotEngine(snapshot.Opts{
+			Config:                        conf,
+			StartSnapshot:                 server.StartSnapshot,
+			FinishSnapshot:                server.FinishSnapshot,
+			GetState:                      server.GetState,
+			SetLatestSnapshotMilliseconds: server.SetLatestSnapshot,
+			GetLatestSnapshotMilliseconds: server.GetLatestSnapshot,
+		})
+		server.SnapshotEngine.Start()
 	}
 
 	server.StartTCP(ctx)
@@ -247,15 +256,30 @@ func (server *Server) TakeSnapshot() error {
 	if server.SnapshotInProgress.Load() {
 		return errors.New("snapshot already in progress")
 	}
-	if server.IsInCluster() {
-		// Handle snapshot in cluster mode
-		go func() {
-			err := server.raft.TakeSnapshot()
+
+	go func() {
+		if server.IsInCluster() {
+			// Handle snapshot in cluster mode
+			if err := server.raft.TakeSnapshot(); err != nil {
+				log.Println(err)
+			}
+			return
+		}
+		// Handle snapshot in standalone mode
+		if err := server.SnapshotEngine.TakeSnapshot(); err != nil {
 			log.Println(err)
-		}()
-	}
-	// Handle snapshot in standalone mode
+		}
+	}()
+
 	return nil
+}
+
+func (server *Server) SetLatestSnapshot(msec int64) {
+	server.LatestSnapshotMilliseconds.Store(msec)
+}
+
+func (server *Server) GetLatestSnapshot() int64 {
+	return server.LatestSnapshotMilliseconds.Load()
 }
 
 func (server *Server) ShutDown(ctx context.Context) {

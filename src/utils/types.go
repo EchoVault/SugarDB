@@ -21,6 +21,8 @@ type Server interface {
 	TakeSnapshot() error
 	StartSnapshot()
 	FinishSnapshot()
+	SetLatestSnapshot(msec int64)
+	GetLatestSnapshot() int64
 }
 
 type ContextServerID string
@@ -63,4 +65,9 @@ type Plugin interface {
 	Name() string
 	Commands() []Command
 	Description() string
+}
+
+type SnapshotObject struct {
+	State                      map[string]interface{}
+	LatestSnapshotMilliseconds int64
 }

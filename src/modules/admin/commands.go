@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"net"
 )
@@ -48,13 +49,17 @@ func NewModule() Plugin {
 			{
 				Command:     "lastsave",
 				Categories:  []string{utils.AdminCategory, utils.FastCategory, utils.DangerousCategory},
-				Description: "(LASTSAVE) Get timestamp for the latest snapshot",
+				Description: "(LASTSAVE) Get unix timestamp for the latest snapshot in milliseconds.",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					return []string{}, nil
 				},
 				HandlerFunc: func(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-					return nil, errors.New("LASTSAVE command not implemented")
+					msec := server.GetLatestSnapshot()
+					if msec == 0 {
+						return nil, errors.New("no snapshot")
+					}
+					return []byte(fmt.Sprintf(":%d\r\n\r\n", msec)), nil
 				},
 			},
 			{
