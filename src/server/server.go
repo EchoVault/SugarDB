@@ -245,8 +245,14 @@ func (server *Server) Start(ctx context.Context) {
 			GetState:                      server.GetState,
 			SetLatestSnapshotMilliseconds: server.SetLatestSnapshot,
 			GetLatestSnapshotMilliseconds: server.GetLatestSnapshot,
+			CreateKeyAndLock:              server.CreateKeyAndLock,
+			KeyUnlock:                     server.KeyUnlock,
+			SetValue:                      server.SetValue,
 		})
-		server.SnapshotEngine.Start()
+		if err := server.SnapshotEngine.Restore(ctx); err != nil {
+			log.Println(err)
+		}
+		server.SnapshotEngine.Start(ctx)
 	}
 
 	server.StartTCP(ctx)
