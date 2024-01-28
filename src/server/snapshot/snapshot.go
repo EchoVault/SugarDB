@@ -247,5 +247,7 @@ func (engine *Engine) Restore(ctx context.Context) error {
 		engine.options.KeyUnlock(key)
 	}
 
+	log.Println("successfully restored latest snapshot")
+
 	return nil
 }
