@@ -36,7 +36,8 @@ type Opts struct {
 }
 
 type Engine struct {
-	options Opts
+	options     Opts
+	changeCount uint64
 }
 
 func NewSnapshotEngine(opts Opts) *Engine {
@@ -46,7 +47,20 @@ func NewSnapshotEngine(opts Opts) *Engine {
 }
 
 func (engine *Engine) Start(ctx context.Context) {
-	// TODO: Start goroutine for periodic snapshots
+	if engine.options.Config.SnapshotInterval != 0 {
+		go func() {
+			for {
+				<-time.After(time.Duration(engine.options.Config.SnapshotInterval) * time.Second)
+				if engine.changeCount == engine.options.Config.SnapShotThreshold {
+					if err := engine.TakeSnapshot(); err != nil {
+						log.Println(err)
+					}
+				}
+			}
+		}()
+		// Reset change count at startup
+		engine.resetChangeCount()
+	}
 }
 
 func (engine *Engine) TakeSnapshot() error {
@@ -187,6 +201,9 @@ func (engine *Engine) TakeSnapshot() error {
 	// Set the latest snapshot in unix milliseconds
 	engine.options.SetLatestSnapshotMilliseconds(msec)
 
+	// Reset the change count
+	engine.resetChangeCount()
+
 	return nil
 }
 
@@ -250,4 +267,12 @@ func (engine *Engine) Restore(ctx context.Context) error {
 	log.Println("successfully restored latest snapshot")
 
 	return nil
+}
+
+func (engine *Engine) IncrementChangeCount() {
+	engine.changeCount += 1
+}
+
+func (engine *Engine) resetChangeCount() {
+	engine.changeCount = 0
 }

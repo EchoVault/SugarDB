@@ -70,6 +70,9 @@ func (server *Server) GetValue(key string) interface{} {
 
 func (server *Server) SetValue(ctx context.Context, key string, value interface{}) {
 	server.store[key] = value
+	if !server.IsInCluster() {
+		server.SnapshotEngine.IncrementChangeCount()
+	}
 }
 
 func (server *Server) GetState() map[string]interface{} {
