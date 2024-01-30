@@ -76,5 +76,16 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 }
 
 func (server *Server) GetState() map[string]interface{} {
-	return server.store
+	for {
+		if !server.StateCopyInProgress.Load() && !server.StateMutationInProgress.Load() {
+			server.StateCopyInProgress.Store(true)
+			break
+		}
+	}
+	data := make(map[string]interface{})
+	for k, v := range server.store {
+		data[k] = v
+	}
+	server.StateCopyInProgress.Store(false)
+	return data
 }

@@ -13,8 +13,10 @@ import (
 // Logging in clusters is handled in the raft layer.
 
 type Opts struct {
-	Config   utils.Config
-	GetState func() map[string]interface{}
+	Config           utils.Config
+	GetState         func() map[string]interface{}
+	StartRewriteAOF  func()
+	FinishRewriteAOF func()
 }
 
 type Engine struct {
@@ -64,6 +66,9 @@ func (engine *Engine) LogCommand(command []byte) error {
 func (engine *Engine) RewriteLog() error {
 	engine.mut.Lock()
 	defer engine.mut.Unlock()
+
+	engine.options.StartRewriteAOF()
+	defer engine.options.FinishRewriteAOF()
 
 	// Get current state.
 	state := engine.options.GetState()

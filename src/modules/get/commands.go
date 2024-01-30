@@ -35,7 +35,7 @@ func handleGet(ctx context.Context, cmd []string, server utils.Server, conn *net
 	key := cmd[1]
 
 	if !server.KeyExists(key) {
-		return []byte("+nil\r\n\n"), nil
+		return []byte("+nil\r\n\r\n"), nil
 	}
 
 	_, err := server.KeyRLock(ctx, key)
@@ -47,9 +47,9 @@ func handleGet(ctx context.Context, cmd []string, server utils.Server, conn *net
 
 	switch value.(type) {
 	default:
-		return []byte(fmt.Sprintf("+%v\r\n\n", value)), nil
+		return []byte(fmt.Sprintf("+%v\r\n\r\n", value)), nil
 	case nil:
-		return []byte("+nil\r\n\n"), nil
+		return []byte("+nil\r\n\r\n"), nil
 	}
 }
 
@@ -84,7 +84,7 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		bytes = append(bytes, []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(val), val))...)
 	}
 
-	bytes = append(bytes, []byte("\n")...)
+	bytes = append(bytes, []byte("\r\n")...)
 
 	return bytes, nil
 }

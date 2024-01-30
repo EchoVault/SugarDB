@@ -128,6 +128,10 @@ func GetSubCommand(command Command, cmd []string) interface{} {
 	return nil
 }
 
+func IsWriteCommand(command Command, subCommand SubCommand) bool {
+	return slices.Contains(append(command.Categories, subCommand.Categories...), WriteCategory)
+}
+
 func AbsInt(n int) int {
 	if n < 0 {
 		return -n
