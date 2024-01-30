@@ -32,9 +32,9 @@ func NewModule() Plugin {
 		description: "Handle admin/server management commands",
 		commands: []utils.Command{
 			{
-				Command:     "bgsave",
+				Command:     "save",
 				Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-				Description: "(BGSAVE) Trigger a snapshot save",
+				Description: "(SAVE) Trigger a snapshot save",
 				Sync:        true,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					return []string{}, nil
@@ -63,9 +63,9 @@ func NewModule() Plugin {
 				},
 			},
 			{
-				Command:     "bgrewriteaof",
+				Command:     "rewriteaof",
 				Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-				Description: "(BGREWRITEAOF) Trigger re-writing of append process",
+				Description: "(REWRITEAOF) Trigger re-writing of append process",
 				Sync:        false,
 				KeyExtractionFunc: func(cmd []string) ([]string, error) {
 					return []string{}, nil

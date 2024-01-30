@@ -16,6 +16,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -162,7 +163,13 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 					if _, err := w.Write(res); err != nil {
 						log.Println(err)
 					}
-					// TODO: Write successful, add entry to AOF
+					if slices.Contains(append(command.Categories, subCommand.Categories...), utils.WriteCategory) {
+						// Log successful write command
+						err := server.AOFEngine.LogCommand(message) // TODO: Handle error
+						if err != nil {
+							log.Println(err)
+						}
+					}
 				}
 				continue
 			}
