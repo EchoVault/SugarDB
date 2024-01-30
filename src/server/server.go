@@ -242,7 +242,8 @@ func (server *Server) Start(ctx context.Context) {
 	} else {
 		// Initialize standalone AOF engine
 		server.AOFEngine = aof.NewAOFEngine(aof.Opts{
-			Config: conf,
+			Config:   conf,
+			GetState: server.GetState,
 		})
 		// Initialize and start standalone snapshot engine
 		server.SnapshotEngine = snapshot.NewSnapshotEngine(snapshot.Opts{
@@ -293,6 +294,11 @@ func (server *Server) SetLatestSnapshot(msec int64) {
 
 func (server *Server) GetLatestSnapshot() int64 {
 	return server.LatestSnapshotMilliseconds.Load()
+}
+
+func (server *Server) RewriteAOF() error {
+	// TODO: Make this concurrent
+	return server.AOFEngine.RewriteLog()
 }
 
 func (server *Server) ShutDown(ctx context.Context) {

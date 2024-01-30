@@ -71,7 +71,10 @@ func NewModule() Plugin {
 					return []string{}, nil
 				},
 				HandlerFunc: func(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-					return nil, errors.New("BGREWRITEAOF command not implemented")
+					if err := server.RewriteAOF(); err != nil {
+						return nil, err
+					}
+					return []byte(utils.OK_RESPONSE), nil
 				},
 			},
 		},

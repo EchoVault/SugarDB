@@ -1,6 +1,7 @@
 package aof
 
 import (
+	"encoding/json"
 	"github.com/echovault/echovault/src/utils"
 	"log"
 	"os"
@@ -12,7 +13,8 @@ import (
 // Logging in clusters is handled in the raft layer.
 
 type Opts struct {
-	Config utils.Config
+	Config   utils.Config
+	GetState func() map[string]interface{}
 }
 
 type Engine struct {
@@ -60,10 +62,41 @@ func (engine *Engine) LogCommand(command []byte) error {
 }
 
 func (engine *Engine) RewriteLog() error {
+	engine.mut.Lock()
+	defer engine.mut.Unlock()
+
 	// Get current state.
+	state := engine.options.GetState()
+	o, err := json.Marshal(state)
+	if err != nil {
+		return err
+	}
+
 	// Replace snapshot contents file with current state.
-	// Close snapshot file.
+	sf, err := os.Create(path.Join(engine.options.Config.DataDir, "aof", "snapshot.bin"))
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err = sf.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
+	if _, err = sf.Write(o); err != nil {
+		return err
+	}
+
 	// Replace aof file with empty file.
+	aof, err := os.Create(path.Join(engine.options.Config.DataDir, "aof", "log.aof"))
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err = aof.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
+
 	return nil
 }
 

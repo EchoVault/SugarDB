@@ -23,6 +23,7 @@ type Server interface {
 	FinishSnapshot()
 	SetLatestSnapshot(msec int64)
 	GetLatestSnapshot() int64
+	RewriteAOF() error
 }
 
 type ContextServerID string
