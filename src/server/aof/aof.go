@@ -31,7 +31,7 @@ func NewAOFEngine(opts Opts) *Engine {
 	}
 }
 
-func (engine *Engine) LogCommand(command []byte) error {
+func (engine *Engine) LogCommand(command []byte, sync bool) error {
 	engine.mut.Lock()
 	defer engine.mut.Unlock()
 
@@ -58,6 +58,12 @@ func (engine *Engine) LogCommand(command []byte) error {
 	// Append command to aof file.
 	if _, err := f.Write(command); err != nil {
 		return err
+	}
+
+	if sync {
+		if err = f.Sync(); err != nil {
+			log.Println(err)
+		}
 	}
 
 	return nil
@@ -89,6 +95,9 @@ func (engine *Engine) RewriteLog() error {
 	}()
 	if _, err = sf.Write(o); err != nil {
 		return err
+	}
+	if err = sf.Sync(); err != nil {
+		log.Println(err)
 	}
 
 	// Replace aof file with empty file.

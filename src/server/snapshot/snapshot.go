@@ -87,6 +87,7 @@ func (engine *Engine) TakeSnapshot() error {
 		log.Println(err)
 		return err
 	}
+
 	// Open manifest file
 	var mf *os.File
 	mf, err := os.Open(path.Join(dirname, "manifest.bin"))
@@ -170,6 +171,9 @@ func (engine *Engine) TakeSnapshot() error {
 		log.Println(err)
 		return err
 	}
+	if err = mf.Sync(); err != nil {
+		log.Println(err)
+	}
 	if err = mf.Close(); err != nil {
 		log.Println(err)
 		return err
@@ -196,6 +200,9 @@ func (engine *Engine) TakeSnapshot() error {
 	// Write state to file
 	if _, err = f.Write(out); err != nil {
 		return err
+	}
+	if err = f.Sync(); err != nil {
+		log.Println(err)
 	}
 
 	// Set the latest snapshot in unix milliseconds
