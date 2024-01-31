@@ -256,8 +256,11 @@ func (server *Server) Start(ctx context.Context) {
 			StartRewriteAOF:  server.StartRewriteAOF,
 			FinishRewriteAOF: server.FinishRewriteAOF,
 		})
-		if err := server.AOFEngine.Restore(ctx); err != nil {
-			log.Println(err)
+		if conf.RestoreAOF && !conf.RestoreSnapshot {
+			err := server.AOFEngine.Restore(ctx)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 		server.AOFEngine.Start(ctx)
 		// Initialize and start standalone snapshot engine
@@ -272,8 +275,11 @@ func (server *Server) Start(ctx context.Context) {
 			KeyUnlock:                     server.KeyUnlock,
 			SetValue:                      server.SetValue,
 		})
-		if err := server.SnapshotEngine.Restore(ctx); err != nil {
-			log.Println(err)
+		if conf.RestoreSnapshot {
+			err := server.SnapshotEngine.Restore(ctx)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 		server.SnapshotEngine.Start(ctx)
 	}

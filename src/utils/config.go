@@ -30,6 +30,8 @@ type Config struct {
 	Password           string `json:"password" yaml:"password"`
 	SnapShotThreshold  uint64 `json:"snapshotThreshold" yaml:"snapshotThreshold"`
 	SnapshotInterval   uint   `json:"snapshotInterval" yaml:"snapshotInterval"`
+	RestoreSnapshot    bool   `json:"restoreSnapshot" yaml:"restoreSnapshot"`
+	RestoreAOF         bool   `json:"restoreAOF" yaml:"restoreAOF"`
 }
 
 func GetConfig() (Config, error) {
@@ -49,6 +51,8 @@ func GetConfig() (Config, error) {
 	aclConfig := flag.String("aclConfig", "", "ACL config file path.")
 	snapshotThreshold := flag.Uint64("snapshotThreshold", 1000, "The number of entries that trigger a snapshot. Default is 1000.")
 	snapshotInterval := flag.Uint("snapshotInterval", 60*5, "The time interval between snapshots (in seconds). Default is 5 minutes.")
+	restoreSnapshot := flag.Bool("restoreSnapshot", false, "This flag prompts the server to restore state from snapshot when set to true. Only works in standalone mode. Higher priority than restoreAOF.")
+	restoreAOF := flag.Bool("restoreAOF", false, "This flag prompts the server to restore state from append-only logs. Only works in standalone mode. Lower priority than restoreSnapshot.")
 	forwardCommand := flag.Bool(
 		"forwardCommand",
 		false,
@@ -93,6 +97,8 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		Password:           *password,
 		SnapShotThreshold:  *snapshotThreshold,
 		SnapshotInterval:   *snapshotInterval,
+		RestoreSnapshot:    *restoreSnapshot,
+		RestoreAOF:         *restoreAOF,
 	}
 
 	if len(*config) > 0 {
