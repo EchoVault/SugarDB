@@ -47,7 +47,7 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 		}
 		server.SetValue(ctx, key, newStr)
 		server.KeyUnlock(key)
-		return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
 	}
 
 	str, ok := server.GetValue(key).(string)
@@ -63,25 +63,25 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 	if offset >= int64(len(str)) {
 		newStr = str + newStr
 		server.SetValue(ctx, key, newStr)
-		return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
 	}
 
 	if offset < 0 {
 		newStr = newStr + str
 		server.SetValue(ctx, key, newStr)
-		return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
 	}
 
 	if offset == 0 {
 		newStr = newStr + strings.Join(strings.Split(str, "")[1:], "")
 		server.SetValue(ctx, key, newStr)
-		return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
 	}
 
 	if offset == int64(len(str))-1 {
 		newStr = strings.Join(strings.Split(str, "")[0:len(str)-1], "") + newStr
 		server.SetValue(ctx, key, newStr)
-		return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
 	}
 
 	strArr := strings.Split(str, "")
@@ -90,7 +90,7 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 	newStr = strings.Join(newStrArr, "")
 	server.SetValue(ctx, key, newStr)
 
-	return []byte(fmt.Sprintf(":%d\r\n\n", len(newStr))), nil
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
 }
 
 func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -101,7 +101,7 @@ func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *
 	key := cmd[1]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\n"), nil
+		return []byte(":0\r\n\r\n"), nil
 	}
 
 	if _, err := server.KeyRLock(ctx, key); err != nil {
@@ -115,7 +115,7 @@ func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, fmt.Errorf("value at key %s is not a string", key)
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\n", len(value))), nil
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(value))), nil
 }
 
 func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -178,7 +178,7 @@ func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *
 		str = res
 	}
 
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n\n", len(str), str)), nil
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(str), str)), nil
 }
 
 func NewModule() Plugin {

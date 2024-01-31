@@ -61,7 +61,7 @@ func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	count := set.Add(cmd[2:])
 
-	return []byte(fmt.Sprintf(":%d\r\n\n", count)), nil
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
 }
 
 func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {

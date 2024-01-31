@@ -198,7 +198,7 @@ func handleCat(ctx context.Context, cmd []string, server utils.Server, conn *net
 		for i, cat := range cats {
 			res = fmt.Sprintf("%s\r\n+%s", res, cat)
 			if i == len(cats)-1 {
-				res = res + "\r\n\n"
+				res = res + "\r\n\r\n"
 			}
 		}
 		return []byte(res), nil
@@ -212,7 +212,7 @@ func handleCat(ctx context.Context, cmd []string, server utils.Server, conn *net
 				for i, command := range commands {
 					res = fmt.Sprintf("%s\r\n+%s", res, command)
 					if i == len(commands)-1 {
-						res = res + "\r\n\n"
+						res = res + "\r\n\r\n"
 					}
 				}
 				return []byte(res), nil
@@ -232,7 +232,7 @@ func handleUsers(ctx context.Context, cmd []string, server utils.Server, conn *n
 	for _, user := range acl.Users {
 		res += fmt.Sprintf("\r\n$%d\r\n%s", len(user.Username), user.Username)
 	}
-	res += "\r\n\n"
+	res += "\r\n\r\n"
 	return []byte(res), nil
 }
 
@@ -267,7 +267,7 @@ func handleWhoAmI(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, errors.New("could not load ACL")
 	}
 	connectionInfo := acl.Connections[conn]
-	return []byte(fmt.Sprintf("+%s\r\n\n", connectionInfo.User.Username)), nil
+	return []byte(fmt.Sprintf("+%s\r\n\r\n", connectionInfo.User.Username)), nil
 }
 
 func handleList(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
