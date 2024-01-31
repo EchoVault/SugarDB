@@ -176,7 +176,7 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 						log.Println(err)
 					}
 					if utils.IsWriteCommand(command, subCommand) {
-						// TODO: Queue successful write command instead of logging it directly
+						go server.AOFEngine.QueueCommand(message)
 					}
 				}
 				server.StateMutationInProgress.Store(false)
@@ -256,6 +256,10 @@ func (server *Server) Start(ctx context.Context) {
 			StartRewriteAOF:  server.StartRewriteAOF,
 			FinishRewriteAOF: server.FinishRewriteAOF,
 		})
+		if err := server.AOFEngine.Restore(ctx); err != nil {
+			log.Println(err)
+		}
+		server.AOFEngine.Start(ctx)
 		// Initialize and start standalone snapshot engine
 		server.SnapshotEngine = snapshot.NewSnapshotEngine(snapshot.Opts{
 			Config:                        conf,

@@ -1,6 +1,7 @@
 package aof
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/echovault/echovault/src/utils"
 	"log"
@@ -20,18 +21,38 @@ type Opts struct {
 }
 
 type Engine struct {
-	options Opts
-	mut     sync.Mutex
+	options  Opts
+	mut      sync.Mutex
+	logChan  chan []byte
+	logCount uint64
 }
 
 func NewAOFEngine(opts Opts) *Engine {
 	return &Engine{
-		options: opts,
-		mut:     sync.Mutex{},
+		options:  opts,
+		mut:      sync.Mutex{},
+		logChan:  make(chan []byte, 4096),
+		logCount: 0,
 	}
 }
 
-func (engine *Engine) LogCommand(command []byte, sync bool) error {
+func (engine *Engine) Start(ctx context.Context) {
+	go func() {
+		for {
+			c := <-engine.logChan
+			if err := engine.LogCommand(c); err != nil {
+				log.Println(err)
+				continue
+			}
+		}
+	}()
+}
+
+func (engine *Engine) QueueCommand(command []byte) {
+	engine.logChan <- command
+}
+
+func (engine *Engine) LogCommand(command []byte) error {
 	engine.mut.Lock()
 	defer engine.mut.Unlock()
 
@@ -60,10 +81,8 @@ func (engine *Engine) LogCommand(command []byte, sync bool) error {
 		return err
 	}
 
-	if sync {
-		if err = f.Sync(); err != nil {
-			log.Println(err)
-		}
+	if err = f.Sync(); err != nil {
+		log.Println(err)
 	}
 
 	return nil
@@ -114,7 +133,7 @@ func (engine *Engine) RewriteLog() error {
 	return nil
 }
 
-func (engine *Engine) Restore() error {
+func (engine *Engine) Restore(ctx context.Context) error {
 	// Open snapshot file.
 	// If snapshot file exists, set current state to the state in snapshot file.
 	// Open AOF file.
