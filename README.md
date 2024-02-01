@@ -14,6 +14,10 @@
 - [x] Set support
 - [x] Sorted set support
 - [x] Hash support
+- [x] Append-Only File & reload from AOF (Cluster)
+- [x] Periodic snapshots & reload state from snapshot (Cluster)
+- [x] Append-Only File & reload from AOF (Standalone)
+- [x] Periodic snapshots & reload state from snapshot (Standalone)
 - [ ] Stream support
 - [ ] Search support
 - [ ] JSON support
@@ -21,9 +25,6 @@
 - [ ] Geospatial support
 - [ ] Bitmap support
 - [ ] Support for multiple root CAs on client side
-- [ ] Append-Only File & reload from AOF (Cluster)
-- [ ] Periodic snapshots & reload state from snapshot (Cluster)
-- [ ] Append-Only File & reload from AOF (Standalone)
-- [ ] Periodic snapshots & reload state from snapshot (Standalone)
 - [ ] mTLS for client verification
 - [ ] Transactions
+- [ ] Encrypted Snapshot & AOF files
