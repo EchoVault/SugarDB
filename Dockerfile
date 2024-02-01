@@ -29,3 +29,5 @@ CMD "./server" \
   "--requirePass=${REQUIRE_PASS}" \
   "--password=${PASSWORD}" \
   "--forwardCommand=${FORWARD_COMMAND}" \
+  "--restoreSnapshot=${RESTORE_SNAPSHOT}" \
+  "--restoreAOF=${RESTORE_AOF}" \

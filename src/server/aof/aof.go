@@ -1,10 +1,15 @@
 package aof
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/echovault/echovault/src/utils"
+	"io"
 	"log"
+	"net"
 	"os"
 	"path"
 	"sync"
@@ -18,6 +23,10 @@ type Opts struct {
 	GetState         func() map[string]interface{}
 	StartRewriteAOF  func()
 	FinishRewriteAOF func()
+	CreateKeyAndLock func(ctx context.Context, key string) (bool, error)
+	KeyUnlock        func(key string)
+	SetValue         func(ctx context.Context, key string, value interface{})
+	HandleCommand    func(ctx context.Context, command []byte, conn *net.Conn, replay bool) ([]byte, error)
 }
 
 type Engine struct {
@@ -133,10 +142,80 @@ func (engine *Engine) RewriteLog() error {
 	return nil
 }
 
+func (engine *Engine) RestoreSnapshot(ctx context.Context) error {
+	sf, err := os.Open(path.Join(engine.options.Config.DataDir, "aof", "snapshot.bin"))
+	if err != nil {
+		return err
+	}
+
+	b, err := io.ReadAll(sf)
+	if err != nil {
+		return err
+	}
+
+	state := make(map[string]interface{})
+
+	if err = json.Unmarshal(b, &state); err != nil {
+		return err
+	}
+
+	for key, value := range state {
+		if _, err = engine.options.CreateKeyAndLock(ctx, key); err != nil {
+			log.Println(err)
+		}
+		engine.options.SetValue(ctx, key, value)
+		engine.options.KeyUnlock(key)
+	}
+
+	return nil
+}
+
+func (engine *Engine) RestoreAOF(ctx context.Context) error {
+	aof, err := os.Open(path.Join(engine.options.Config.DataDir, "aof", "log.aof"))
+	if err != nil {
+		log.Println(err)
+	}
+
+	buf := bufio.NewReader(aof)
+
+	var commands [][]byte
+	var line []byte
+
+	for {
+		b, _, err := buf.ReadLine()
+		if err != nil && errors.Is(err, io.EOF) {
+			break
+		} else if err != nil {
+			return err
+		}
+		if len(b) <= 0 {
+			line = append(line, []byte("\r\n\r\n")...)
+			commands = append(commands, line)
+			line = []byte{}
+			continue
+		}
+		if len(line) > 0 {
+			line = append(line, append([]byte("\r\n"), bytes.TrimLeft(b, "\x00")...)...)
+			continue
+		}
+		line = append(line, bytes.TrimLeft(b, "\x00")...)
+	}
+
+	for _, c := range commands {
+		if _, err = engine.options.HandleCommand(ctx, c, nil, true); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (engine *Engine) Restore(ctx context.Context) error {
-	// Open snapshot file.
-	// If snapshot file exists, set current state to the state in snapshot file.
-	// Open AOF file.
-	// If AOF file exists, replay all the commands in the aof file.
+	if err := engine.RestoreSnapshot(ctx); err != nil {
+		log.Println(err)
+	}
+	if err := engine.RestoreAOF(ctx); err != nil {
+		log.Println(err)
+	}
 	return nil
 }

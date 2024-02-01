@@ -104,111 +104,41 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	for {
 		message, err := utils.ReadMessage(r)
 
-		if err != nil {
-			if err == io.EOF {
-				// Connection closed
-				break
-			}
-			if err, ok := err.(net.Error); ok && err.Timeout() {
-				// Connection timeout
-				log.Println(err)
-				break
-			}
-			if err, ok := err.(tls.RecordHeaderError); ok {
-				// TLS verification error
-				log.Println(err)
-				break
-			}
+		if err != nil && errors.Is(err, io.EOF) {
+			// Connection closed
+			break
+		}
+
+		var netErr net.Error
+
+		if err != nil && errors.As(err, &netErr) && netErr.Timeout() {
+			// Connection timeout
 			log.Println(err)
 			break
 		}
 
-		if cmd, err := utils.Decode(message); err != nil {
-			// Return error to client
-			if _, err := w.Write([]byte(fmt.Sprintf("-Error %s\r\n\r\n", err.Error()))); err != nil {
+		if err != nil && errors.Is(err, tls.RecordHeaderError{}) {
+			// TLS verification error
+			log.Println(err)
+			break
+		}
+
+		if err != nil {
+			log.Println(err)
+			break
+		}
+
+		res, err := server.handleCommand(ctx, message, &conn, false)
+
+		if err != nil {
+			if _, err = w.Write([]byte(fmt.Sprintf("-Error %s", err.Error()))); err != nil {
 				log.Println(err)
 			}
 			continue
-		} else {
-			command, err := server.getCommand(cmd[0])
+		}
 
-			if err != nil {
-				if _, err := w.Write([]byte(fmt.Sprintf("-%s\r\n\r\n", err.Error()))); err != nil {
-					log.Println(err)
-				}
-				continue
-			}
-
-			synchronize := command.Sync
-			handler := command.HandlerFunc
-
-			subCommand, ok := utils.GetSubCommand(command, cmd).(utils.SubCommand)
-
-			if ok {
-				synchronize = subCommand.Sync
-				handler = subCommand.HandlerFunc
-			}
-
-			if err := server.ACL.AuthorizeConnection(&conn, cmd, command, subCommand); err != nil {
-				if _, err := w.Write([]byte(fmt.Sprintf("-%s\r\n\r\n", err.Error()))); err != nil {
-					log.Println(err)
-				}
-				continue
-			}
-
-			// If we're not in cluster mode and command/subcommand is a write command, wait for state copy to finish.
-			if utils.IsWriteCommand(command, subCommand) {
-				for {
-					if !server.StateCopyInProgress.Load() {
-						server.StateMutationInProgress.Store(true)
-						break
-					}
-				}
-			}
-
-			if !server.IsInCluster() || !synchronize {
-				if res, err := handler(ctx, cmd, server, &conn); err != nil {
-					if _, err := w.Write([]byte(fmt.Sprintf("-%s\r\n\r\n", err.Error()))); err != nil {
-						log.Println(err)
-					}
-				} else {
-					if _, err := w.Write(res); err != nil {
-						log.Println(err)
-					}
-					if utils.IsWriteCommand(command, subCommand) {
-						go server.AOFEngine.QueueCommand(message)
-					}
-				}
-				server.StateMutationInProgress.Store(false)
-				continue
-			}
-
-			// Handle other commands that need to be synced across the cluster
-			if server.raft.IsRaftLeader() {
-				if res, err := server.raftApply(ctx, cmd); err != nil {
-					if _, err := w.Write([]byte(fmt.Sprintf("-Error %s\r\n\r\n", err.Error()))); err != nil {
-						log.Println(err)
-					}
-				} else {
-					if _, err := w.Write(res); err != nil {
-						log.Println(err)
-					}
-				}
-				continue
-			}
-
-			// Forward message to leader and return immediate OK response
-			if server.Config.ForwardCommand {
-				server.memberList.ForwardDataMutation(ctx, message)
-				if _, err := w.Write([]byte(utils.OK_RESPONSE)); err != nil {
-					log.Println(err)
-				}
-				continue
-			}
-
-			if _, err := w.Write([]byte("-Error not cluster leader, cannot carry out command\r\n\r\n")); err != nil {
-				log.Println(err)
-			}
+		if _, err = w.Write(res); err != nil {
+			log.Println(err)
 		}
 	}
 
@@ -249,20 +179,6 @@ func (server *Server) Start(ctx context.Context) {
 		server.raft.RaftInit(ctx)
 		server.memberList.MemberListInit(ctx)
 	} else {
-		// Initialize standalone AOF engine
-		server.AOFEngine = aof.NewAOFEngine(aof.Opts{
-			Config:           conf,
-			GetState:         server.GetState,
-			StartRewriteAOF:  server.StartRewriteAOF,
-			FinishRewriteAOF: server.FinishRewriteAOF,
-		})
-		if conf.RestoreAOF && !conf.RestoreSnapshot {
-			err := server.AOFEngine.Restore(ctx)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-		server.AOFEngine.Start(ctx)
 		// Initialize and start standalone snapshot engine
 		server.SnapshotEngine = snapshot.NewSnapshotEngine(snapshot.Opts{
 			Config:                        conf,
@@ -282,6 +198,25 @@ func (server *Server) Start(ctx context.Context) {
 			}
 		}
 		server.SnapshotEngine.Start(ctx)
+
+		// Initialize standalone AOF engine
+		server.AOFEngine = aof.NewAOFEngine(aof.Opts{
+			Config:           conf,
+			GetState:         server.GetState,
+			StartRewriteAOF:  server.StartRewriteAOF,
+			FinishRewriteAOF: server.FinishRewriteAOF,
+			CreateKeyAndLock: server.CreateKeyAndLock,
+			KeyUnlock:        server.KeyUnlock,
+			SetValue:         server.SetValue,
+			HandleCommand:    server.handleCommand,
+		})
+		if conf.RestoreAOF && !conf.RestoreSnapshot {
+			err := server.AOFEngine.Restore(ctx)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+		server.AOFEngine.Start(ctx)
 	}
 
 	server.StartTCP(ctx)
