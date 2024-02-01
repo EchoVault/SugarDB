@@ -28,3 +28,4 @@
 - [ ] mTLS for client verification
 - [ ] Transactions
 - [ ] Encrypted Snapshot & AOF files
+- [ ] Structured logging
