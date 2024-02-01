@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"log"
 	"os"
 	"path"
 
@@ -106,7 +107,11 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		if f, err := os.Open(*config); err != nil {
 			panic(err)
 		} else {
-			defer f.Close()
+			defer func() {
+				if err = f.Close(); err != nil {
+					log.Println(err)
+				}
+			}()
 
 			ext := path.Ext(f.Name())
 
@@ -127,7 +132,7 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 
 	}
 
-	// If requirePass is etc to true, then password must be provided as well
+	// If requirePass is set to true, then password must be provided as well
 	var err error = nil
 
 	if conf.RequirePass && conf.Password == "" {
