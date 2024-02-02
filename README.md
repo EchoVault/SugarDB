@@ -2,7 +2,6 @@
 
 - [x] Config file support
 - [x] TCP support w/ TLS
-- [x] HTTP support w/ TLS
 - [x] Replication Cluster support
 - [x] ACL Authentication Layer
 - [x] Pub/Sub support
@@ -19,13 +18,15 @@
 - [x] Append-Only File & reload from AOF (Standalone)
 - [x] Periodic snapshots & reload state from snapshot (Standalone)
 - [x] mTLS for client verification
+- [x] Support for multiple client CAs on server side
+- [x] Support for multiple server CAs on client side
+- [ ] Encrypted Snapshot & AOF files
+- [ ] Structured logging & Observability
 - [ ] Stream support
+- [ ] Transactions
 - [ ] Search support
 - [ ] JSON support
 - [ ] Graph support
 - [ ] Geospatial support
 - [ ] Bitmap support
-- [ ] Support for multiple root CAs on client side
-- [ ] Transactions
-- [ ] Encrypted Snapshot & AOF files
-- [ ] Structured logging & Observability
+- [ ] HyperLogLog support
