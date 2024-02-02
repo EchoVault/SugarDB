@@ -16,7 +16,6 @@ import (
 type Config struct {
 	TLS                bool          `json:"tls" yaml:"tls"`
 	MTLS               bool          `json:"mtls" yaml:"mtls"`
-	Key                string        `json:"key" yaml:"key"`
 	CertKeyPairs       [][]string    `json:"certKeyPairs" yaml:"certKeyPairs"`
 	ClientCerts        []string      `json:"clientCerts" yaml:"clientCerts"`
 	Port               uint16        `json:"port" yaml:"port"`
@@ -61,7 +60,6 @@ func GetConfig() (Config, error) {
 
 	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false")
 	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
-	key := flag.String("key", "", "The private key file path.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
 	pluginDir := flag.String("pluginDir", "", "Directory where plugins are located.")
 	serverId := flag.String("serverId", "1", "Server ID in raft cluster. Leave empty for client.")
@@ -106,7 +104,6 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		ClientCerts:        clientCerts,
 		TLS:                *tls,
 		MTLS:               *mtls,
-		Key:                *key,
 		PluginDir:          *pluginDir,
 		Port:               uint16(*port),
 		ServerID:           *serverId,
