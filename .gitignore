@@ -1,6 +1,4 @@
 .idea
 bin
-openssl
-docker-compose.y*ml
 volumes
 /config/

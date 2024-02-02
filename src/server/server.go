@@ -86,12 +86,12 @@ func (server *Server) StartTCP(ctx context.Context) {
 
 		if conf.MTLS {
 			clientAuth = tls.RequireAndVerifyClientCert
-			for _, c := range conf.ClientCerts {
-				certFile, err := os.Open(c)
+			for _, c := range conf.ClientCAs {
+				ca, err := os.Open(c)
 				if err != nil {
 					log.Fatal(err)
 				}
-				certBytes, err := io.ReadAll(certFile)
+				certBytes, err := io.ReadAll(ca)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -105,6 +105,7 @@ func (server *Server) StartTCP(ctx context.Context) {
 			Certificates: certificates,
 			ClientAuth:   clientAuth,
 			ClientCAs:    clientCerts,
+			MinVersion:   tls.VersionTLS13,
 		})
 	}
 
@@ -134,20 +135,6 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 
 		if err != nil && errors.Is(err, io.EOF) {
 			// Connection closed
-			break
-		}
-
-		var netErr net.Error
-
-		if err != nil && errors.As(err, &netErr) && netErr.Timeout() {
-			// Connection timeout
-			log.Println(err)
-			break
-		}
-
-		if err != nil && errors.Is(err, tls.RecordHeaderError{}) {
-			// TLS verification error
-			log.Println(err)
 			break
 		}
 

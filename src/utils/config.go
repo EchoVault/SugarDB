@@ -17,7 +17,7 @@ type Config struct {
 	TLS                bool          `json:"tls" yaml:"tls"`
 	MTLS               bool          `json:"mtls" yaml:"mtls"`
 	CertKeyPairs       [][]string    `json:"certKeyPairs" yaml:"certKeyPairs"`
-	ClientCerts        []string      `json:"clientCerts" yaml:"clientCerts"`
+	ClientCAs          []string      `json:"ClientCAs" yaml:"ClientCAs"`
 	Port               uint16        `json:"port" yaml:"port"`
 	PluginDir          string        `json:"plugins" yaml:"plugins"`
 	ServerID           string        `json:"serverId" yaml:"serverId"`
@@ -40,21 +40,24 @@ type Config struct {
 
 func GetConfig() (Config, error) {
 	var certKeyPairs [][]string
-	var clientCerts []string
+	var clientCAs []string
 
 	flag.Func("certKeyPair",
 		"A pair of file paths representing the signed certificate and it's corresponding key separated by a comma.",
 		func(s string) error {
 			pair := strings.Split(strings.TrimSpace(s), ",")
+			for i := 0; i < len(pair); i++ {
+				pair[i] = strings.TrimSpace(pair[i])
+			}
 			if len(pair) != 2 {
-				return errors.New("certKeyPair must be 2 comma separated strings in the format")
+				return errors.New("certKeyPair must be 2 comma separated strings")
 			}
 			certKeyPairs = append(certKeyPairs, pair)
 			return nil
 		})
 
-	flag.Func("clientCert", "Certificate file used to verify the client. ", func(s string) error {
-		clientCerts = append(clientCerts, s)
+	flag.Func("clientCA", "Path to certificate authority used to verify client certificates.", func(s string) error {
+		clientCAs = append(clientCAs, s)
 		return nil
 	})
 
@@ -101,7 +104,7 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 
 	conf := Config{
 		CertKeyPairs:       certKeyPairs,
-		ClientCerts:        clientCerts,
+		ClientCAs:          clientCAs,
 		TLS:                *tls,
 		MTLS:               *mtls,
 		PluginDir:          *pluginDir,

@@ -23,6 +23,7 @@ CMD "./server" \
   "--snapshotThreshold" "${SNAPSHOT_THRESHOLD}" \
   "--snapshotInterval" "${SNAPSHOT_INTERVAL}" \
   "--tls=${TLS}" \
+  "--mtls=${MTLS}" \
   "--inMemory=${IN_MEMORY}" \
   "--bootstrapCluster=${BOOTSTRAP_CLUSTER}" \
   "--aclConfig=${ACL_CONFIG}" \
@@ -31,5 +32,8 @@ CMD "./server" \
   "--forwardCommand=${FORWARD_COMMAND}" \
   "--restoreSnapshot=${RESTORE_SNAPSHOT}" \
   "--restoreAOF=${RESTORE_AOF}" \
-  "--certKeyPair=${CERT_KEY_PAIR}" \
-  "--clientCert=${CLIENT_CERT}" \
+  # List of server cert/key pairs
+  "--certKeyPair=${CERT_KEY_PAIR_1}" \
+  "--certKeyPair=${CERT_KEY_PAIR_2}" \
+  # List of client certs
+  "--clientCA=${CLIENT_CA_1}" \
