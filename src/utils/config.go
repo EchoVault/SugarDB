@@ -14,28 +14,28 @@ import (
 )
 
 type Config struct {
-	TLS                bool          `json:"tls" yaml:"tls"`
-	MTLS               bool          `json:"mtls" yaml:"mtls"`
-	CertKeyPairs       [][]string    `json:"certKeyPairs" yaml:"certKeyPairs"`
+	TLS                bool          `json:"TLS" yaml:"TLS"`
+	MTLS               bool          `json:"MTLS" yaml:"MTLS"`
+	CertKeyPairs       [][]string    `json:"CertKeyPairs" yaml:"CertKeyPairs"`
 	ClientCAs          []string      `json:"ClientCAs" yaml:"ClientCAs"`
-	Port               uint16        `json:"port" yaml:"port"`
-	PluginDir          string        `json:"plugins" yaml:"plugins"`
-	ServerID           string        `json:"serverId" yaml:"serverId"`
-	JoinAddr           string        `json:"joinAddr" yaml:"joinAddr"`
-	BindAddr           string        `json:"bindAddr" yaml:"bindAddr"`
-	RaftBindPort       uint16        `json:"raftPort" yaml:"raftPort"`
-	MemberListBindPort uint16        `json:"mlPort" yaml:"mlPort"`
-	InMemory           bool          `json:"inMemory" yaml:"inMemory"`
-	DataDir            string        `json:"dataDir" yaml:"dataDir"`
-	BootstrapCluster   bool          `json:"BootstrapCluster" yaml:"bootstrapCluster"`
+	Port               uint16        `json:"Port" yaml:"Port"`
+	PluginDir          string        `json:"Plugins" yaml:"Plugins"`
+	ServerID           string        `json:"ServerId" yaml:"ServerId"`
+	JoinAddr           string        `json:"JoinAddr" yaml:"JoinAddr"`
+	BindAddr           string        `json:"BindAddr" yaml:"BindAddr"`
+	RaftBindPort       uint16        `json:"RaftPort" yaml:"RaftPort"`
+	MemberListBindPort uint16        `json:"MlPort" yaml:"MlPort"`
+	InMemory           bool          `json:"InMemory" yaml:"InMemory"`
+	DataDir            string        `json:"DataDir" yaml:"DataDir"`
+	BootstrapCluster   bool          `json:"BootstrapCluster" yaml:"BootstrapCluster"`
 	AclConfig          string        `json:"AclConfig" yaml:"AclConfig"`
-	ForwardCommand     bool          `json:"forwardCommand" yaml:"forwardCommand"`
-	RequirePass        bool          `json:"requirePass" yaml:"requirePass"`
-	Password           string        `json:"password" yaml:"password"`
-	SnapShotThreshold  uint64        `json:"snapshotThreshold" yaml:"snapshotThreshold"`
-	SnapshotInterval   time.Duration `json:"snapshotInterval" yaml:"snapshotInterval"`
-	RestoreSnapshot    bool          `json:"restoreSnapshot" yaml:"restoreSnapshot"`
-	RestoreAOF         bool          `json:"restoreAOF" yaml:"restoreAOF"`
+	ForwardCommand     bool          `json:"ForwardCommand" yaml:"ForwardCommand"`
+	RequirePass        bool          `json:"RequirePass" yaml:"RequirePass"`
+	Password           string        `json:"Password" yaml:"Password"`
+	SnapShotThreshold  uint64        `json:"SnapshotThreshold" yaml:"SnapshotThreshold"`
+	SnapshotInterval   time.Duration `json:"SnapshotInterval" yaml:"SnapshotInterval"`
+	RestoreSnapshot    bool          `json:"RestoreSnapshot" yaml:"RestoreSnapshot"`
+	RestoreAOF         bool          `json:"RestoreAOF" yaml:"RestoreAOF"`
 }
 
 func GetConfig() (Config, error) {
