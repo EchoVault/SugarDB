@@ -18,6 +18,7 @@
 - [x] Periodic snapshots & reload state from snapshot (Cluster)
 - [x] Append-Only File & reload from AOF (Standalone)
 - [x] Periodic snapshots & reload state from snapshot (Standalone)
+- [x] mTLS for client verification
 - [ ] Stream support
 - [ ] Search support
 - [ ] JSON support
@@ -25,7 +26,6 @@
 - [ ] Geospatial support
 - [ ] Bitmap support
 - [ ] Support for multiple root CAs on client side
-- [ ] mTLS for client verification
 - [ ] Transactions
 - [ ] Encrypted Snapshot & AOF files
-- [ ] Structured logging
+- [ ] Structured logging & Observability
