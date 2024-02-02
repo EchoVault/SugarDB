@@ -50,7 +50,7 @@ func (engine *Engine) Start(ctx context.Context) {
 	if engine.options.Config.SnapshotInterval != 0 {
 		go func() {
 			for {
-				<-time.After(time.Duration(engine.options.Config.SnapshotInterval) * time.Second)
+				<-time.After(engine.options.Config.SnapshotInterval)
 				if engine.changeCount == engine.options.Config.SnapShotThreshold {
 					if err := engine.TakeSnapshot(); err != nil {
 						log.Println(err)

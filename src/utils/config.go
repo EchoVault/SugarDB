@@ -7,38 +7,61 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	TLS                bool   `json:"tls" yaml:"tls"`
-	Key                string `json:"key" yaml:"key"`
-	Cert               string `json:"cert" yaml:"cert"`
-	Port               uint16 `json:"port" yaml:"port"`
-	PluginDir          string `json:"plugins" yaml:"plugins"`
-	ServerID           string `json:"serverId" yaml:"serverId"`
-	JoinAddr           string `json:"joinAddr" yaml:"joinAddr"`
-	BindAddr           string `json:"bindAddr" yaml:"bindAddr"`
-	RaftBindPort       uint16 `json:"raftPort" yaml:"raftPort"`
-	MemberListBindPort uint16 `json:"mlPort" yaml:"mlPort"`
-	InMemory           bool   `json:"inMemory" yaml:"inMemory"`
-	DataDir            string `json:"dataDir" yaml:"dataDir"`
-	BootstrapCluster   bool   `json:"BootstrapCluster" yaml:"bootstrapCluster"`
-	AclConfig          string `json:"AclConfig" yaml:"AclConfig"`
-	ForwardCommand     bool   `json:"forwardCommand" yaml:"forwardCommand"`
-	RequirePass        bool   `json:"requirePass" yaml:"requirePass"`
-	Password           string `json:"password" yaml:"password"`
-	SnapShotThreshold  uint64 `json:"snapshotThreshold" yaml:"snapshotThreshold"`
-	SnapshotInterval   uint   `json:"snapshotInterval" yaml:"snapshotInterval"`
-	RestoreSnapshot    bool   `json:"restoreSnapshot" yaml:"restoreSnapshot"`
-	RestoreAOF         bool   `json:"restoreAOF" yaml:"restoreAOF"`
+	TLS                bool          `json:"tls" yaml:"tls"`
+	MTLS               bool          `json:"mtls" yaml:"mtls"`
+	Key                string        `json:"key" yaml:"key"`
+	CertKeyPairs       [][]string    `json:"certKeyPairs" yaml:"certKeyPairs"`
+	ClientCerts        []string      `json:"clientCerts" yaml:"clientCerts"`
+	Port               uint16        `json:"port" yaml:"port"`
+	PluginDir          string        `json:"plugins" yaml:"plugins"`
+	ServerID           string        `json:"serverId" yaml:"serverId"`
+	JoinAddr           string        `json:"joinAddr" yaml:"joinAddr"`
+	BindAddr           string        `json:"bindAddr" yaml:"bindAddr"`
+	RaftBindPort       uint16        `json:"raftPort" yaml:"raftPort"`
+	MemberListBindPort uint16        `json:"mlPort" yaml:"mlPort"`
+	InMemory           bool          `json:"inMemory" yaml:"inMemory"`
+	DataDir            string        `json:"dataDir" yaml:"dataDir"`
+	BootstrapCluster   bool          `json:"BootstrapCluster" yaml:"bootstrapCluster"`
+	AclConfig          string        `json:"AclConfig" yaml:"AclConfig"`
+	ForwardCommand     bool          `json:"forwardCommand" yaml:"forwardCommand"`
+	RequirePass        bool          `json:"requirePass" yaml:"requirePass"`
+	Password           string        `json:"password" yaml:"password"`
+	SnapShotThreshold  uint64        `json:"snapshotThreshold" yaml:"snapshotThreshold"`
+	SnapshotInterval   time.Duration `json:"snapshotInterval" yaml:"snapshotInterval"`
+	RestoreSnapshot    bool          `json:"restoreSnapshot" yaml:"restoreSnapshot"`
+	RestoreAOF         bool          `json:"restoreAOF" yaml:"restoreAOF"`
 }
 
 func GetConfig() (Config, error) {
+	var certKeyPairs [][]string
+	var clientCerts []string
+
+	flag.Func("certKeyPair",
+		"A pair of file paths representing the signed certificate and it's corresponding key separated by a comma.",
+		func(s string) error {
+			pair := strings.Split(strings.TrimSpace(s), ",")
+			if len(pair) != 2 {
+				return errors.New("certKeyPair must be 2 comma separated strings in the format")
+			}
+			certKeyPairs = append(certKeyPairs, pair)
+			return nil
+		})
+
+	flag.Func("clientCert", "Certificate file used to verify the client. ", func(s string) error {
+		clientCerts = append(clientCerts, s)
+		return nil
+	})
+
 	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false")
+	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
 	key := flag.String("key", "", "The private key file path.")
-	cert := flag.String("cert", "", "The signed certificate file path.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
 	pluginDir := flag.String("pluginDir", "", "Directory where plugins are located.")
 	serverId := flag.String("serverId", "1", "Server ID in raft cluster. Leave empty for client.")
@@ -51,7 +74,7 @@ func GetConfig() (Config, error) {
 	bootstrapCluster := flag.Bool("bootstrapCluster", false, "Whether this instance should bootstrap a new cluster.")
 	aclConfig := flag.String("aclConfig", "", "ACL config file path.")
 	snapshotThreshold := flag.Uint64("snapshotThreshold", 1000, "The number of entries that trigger a snapshot. Default is 1000.")
-	snapshotInterval := flag.Uint("snapshotInterval", 60*5, "The time interval between snapshots (in seconds). Default is 5 minutes.")
+	snapshotInterval := flag.Duration("snapshotInterval", 5*time.Minute, "The time interval between snapshots (in seconds). Default is 5 minutes.")
 	restoreSnapshot := flag.Bool("restoreSnapshot", false, "This flag prompts the server to restore state from snapshot when set to true. Only works in standalone mode. Higher priority than restoreAOF.")
 	restoreAOF := flag.Bool("restoreAOF", false, "This flag prompts the server to restore state from append-only logs. Only works in standalone mode. Lower priority than restoreSnapshot.")
 	forwardCommand := flag.Bool(
@@ -79,9 +102,11 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 	flag.Parse()
 
 	conf := Config{
+		CertKeyPairs:       certKeyPairs,
+		ClientCerts:        clientCerts,
 		TLS:                *tls,
+		MTLS:               *mtls,
 		Key:                *key,
-		Cert:               *cert,
 		PluginDir:          *pluginDir,
 		Port:               uint16(*port),
 		ServerID:           *serverId,

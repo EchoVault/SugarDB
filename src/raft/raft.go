@@ -39,7 +39,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 	raftConfig := raft.DefaultConfig()
 	raftConfig.LocalID = raft.ServerID(conf.ServerID)
 	raftConfig.SnapshotThreshold = conf.SnapShotThreshold
-	raftConfig.SnapshotInterval = time.Duration(conf.SnapshotInterval) * time.Second
+	raftConfig.SnapshotInterval = conf.SnapshotInterval
 
 	var logStore raft.LogStore
 	var stableStore raft.StableStore

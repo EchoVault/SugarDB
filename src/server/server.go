@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/src/memberlist"
@@ -67,16 +68,43 @@ func (server *Server) StartTCP(ctx context.Context) {
 		fmt.Printf("Starting TCP server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 	}
 
-	if conf.TLS {
+	if conf.TLS || conf.MTLS {
 		// TLS
 		fmt.Printf("Starting TLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
-		cer, err := tls.LoadX509KeyPair(conf.Cert, conf.Key)
-		if err != nil {
-			log.Fatal(err)
+
+		var certificates []tls.Certificate
+		for _, certKeyPair := range conf.CertKeyPairs {
+			c, err := tls.LoadX509KeyPair(certKeyPair[0], certKeyPair[1])
+			if err != nil {
+				log.Fatal(err)
+			}
+			certificates = append(certificates, c)
+		}
+
+		clientAuth := tls.NoClientCert
+		clientCerts := x509.NewCertPool()
+
+		if conf.MTLS {
+			clientAuth = tls.RequireAndVerifyClientCert
+			for _, c := range conf.ClientCerts {
+				certFile, err := os.Open(c)
+				if err != nil {
+					log.Fatal(err)
+				}
+				certBytes, err := io.ReadAll(certFile)
+				if err != nil {
+					log.Fatal(err)
+				}
+				if ok := clientCerts.AppendCertsFromPEM(certBytes); !ok {
+					log.Fatal(err)
+				}
+			}
 		}
 
 		listener = tls.NewListener(listener, &tls.Config{
-			Certificates: []tls.Certificate{cer},
+			Certificates: certificates,
+			ClientAuth:   clientAuth,
+			ClientCAs:    clientCerts,
 		})
 	}
 
@@ -156,8 +184,8 @@ func (server *Server) Start(ctx context.Context) {
 
 	server.LoadModules(ctx)
 
-	if conf.TLS && (len(conf.Key) <= 0 || len(conf.Cert) <= 0) {
-		fmt.Println("Must provide key and certificate file paths for TLS mode.")
+	if conf.TLS && len(conf.CertKeyPairs) <= 0 {
+		log.Fatal("must provide certificate and key file paths for TLS mode")
 		return
 	}
 
