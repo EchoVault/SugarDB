@@ -140,7 +140,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		defer server.KeyUnlock(key)
 		set, ok := server.GetValue(key).(*SortedSet)
 		if !ok {
-			return nil, fmt.Errorf("value at %s is not a sorted set")
+			return nil, fmt.Errorf("value at %s is not a sorted set", key)
 		}
 		count, err := set.AddOrUpdate(members, updatePolicy, comparison, changed, incr)
 		if err != nil {
