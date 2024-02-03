@@ -1,6 +1,6 @@
 ![example workflow](https://github.com/github/docs/actions/workflows/main.yml/badge.svg)
 
-![CodeQL Workflow](https://github.com/EchoVault/EchoVault/blob/main/.github/workflows/codeql.yml)
+![CodeQL Workflow](https://github.com/EchoVault/EchoVault/workflows/CodeQL/badge.svg)
 
 # Features
 
