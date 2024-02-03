@@ -1,5 +1,7 @@
 ![example workflow](https://github.com/github/docs/actions/workflows/main.yml/badge.svg)
 
+![CodeQL Workflow](https://github.com/EchoVault/EchoVault/blob/main/.github/workflows/codeql.yml)
+
 # Features
 
 - [x] Config file support
