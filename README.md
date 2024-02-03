@@ -1,4 +1,4 @@
-![CodeQL](https://github.com/EchoVault/EchoVault/workflows/CodeQL/badge.svg)
+![CodeQL](https://github.com/EchoVault/EchoVault/workflows/CodeQL/badge.svg) ![CodeQL](https://github.com/EchoVault/EchoVault/workflows/Go/badge.svg)
 
 # Features
 
