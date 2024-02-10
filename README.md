@@ -1,5 +1,9 @@
 ![Go](https://github.com/EchoVault/EchoVault/workflows/Go/badge.svg)
 
+<center>
+    <img src="./images/EchoVault GitHub Cover.png" width="1000" />
+</center>
+
 # Features
 
 - [x] Config file support
