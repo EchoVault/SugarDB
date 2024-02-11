@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	server "github.com/echovault/echovault/src/mock/server"
+	"github.com/echovault/echovault/src/mock/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
 	"slices"
