@@ -70,7 +70,11 @@ func (server *Server) StartTCP(ctx context.Context) {
 
 	if conf.TLS || conf.MTLS {
 		// TLS
-		fmt.Printf("Starting TLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		if conf.TLS {
+			fmt.Printf("Starting mTLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		} else {
+			fmt.Printf("Starting TLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		}
 
 		var certificates []tls.Certificate
 		for _, certKeyPair := range conf.CertKeyPairs {
@@ -105,7 +109,6 @@ func (server *Server) StartTCP(ctx context.Context) {
 			Certificates: certificates,
 			ClientAuth:   clientAuth,
 			ClientCAs:    clientCerts,
-			MinVersion:   tls.VersionTLS13,
 		})
 	}
 
