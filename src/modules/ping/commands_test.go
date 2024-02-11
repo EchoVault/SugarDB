@@ -28,8 +28,8 @@ func Test_HandlePing(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(res, []byte(fmt.Sprintf("%s\r\n%d\r\n%s\r\n\r\n", "$", len(testString), testString))) {
-		t.Errorf("expected: %+v, got: %+v", fmt.Sprintf("%s\r\n%d\r\n%s\r\n\r\n", "$", len(testString), testString), res)
+	if !bytes.Equal(res, []byte(fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(testString), testString))) {
+		t.Errorf("expected: %+v, got: %+v", fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(testString), testString), res)
 	}
 
 	// Test PING with more than 1 arg
