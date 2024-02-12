@@ -58,11 +58,11 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	vals := make(map[string]string)
+	values := make(map[string]string)
 
 	locks := make(map[string]bool)
 	for _, key := range cmd[1:] {
-		if _, ok := vals[key]; ok {
+		if _, ok := values[key]; ok {
 			// Skip if we have already locked this key
 			continue
 		}
@@ -74,7 +74,7 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 			locks[key] = true
 			continue
 		}
-		vals[key] = "nil"
+		values[key] = "nil"
 	}
 	defer func() {
 		for key, locked := range locks {
@@ -86,13 +86,13 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}()
 
 	for key, _ := range locks {
-		vals[key] = fmt.Sprintf("%v", server.GetValue(key))
+		values[key] = fmt.Sprintf("%v", server.GetValue(key))
 	}
 
 	bytes := []byte(fmt.Sprintf("*%d\r\n", len(cmd[1:])))
 
 	for _, key := range cmd[1:] {
-		bytes = append(bytes, []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(vals[key]), vals[key]))...)
+		bytes = append(bytes, []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(values[key]), values[key]))...)
 	}
 
 	bytes = append(bytes, []byte("\r\n")...)
