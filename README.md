@@ -1,6 +1,6 @@
 ![Go](https://github.com/EchoVault/EchoVault/workflows/Go/badge.svg) 
 [![Go Report Card](https://goreportcard.com/badge/github.com/echovault/echovault)](https://goreportcard.com/report/github.com/echovault/echovault)
-[![Go Coverage](https://github.com/EchoVault/EchoVault/wiki/coverage.svg)](https://raw.githack.com/wiki/EchoVault/EchoVault/coverage.html)
+[![Go Coverage](https://github.com/EchoVault/EchoVault/coverage.svg)](https://raw.githack.com/wiki/EchoVault/EchoVault/coverage.html)
 
 <img alt="echovault_logo" src="./images/EchoVault GitHub Cover.png" width="5062" />
 
