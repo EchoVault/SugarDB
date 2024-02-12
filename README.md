@@ -1,8 +1,6 @@
-![Go](https://github.com/EchoVault/EchoVault/workflows/Go/badge.svg)
-
-<center>
-    <img src="./images/EchoVault GitHub Cover.png" width="1000" />
-</center>
+![Go](https://github.com/EchoVault/EchoVault/workflows/Go/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/echovault/echovault)](https://goreportcard.com/report/github.com/echovault/echovault)
+ 
+<img alt="echovault_logo" src="./images/EchoVault GitHub Cover.png" width="5062" />
 
 # Features
 
