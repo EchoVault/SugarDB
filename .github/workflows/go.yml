@@ -26,3 +26,7 @@ jobs:
 
     - name: Test
       run: go test -v ./src/...
+
+    - name: Go report card
+      uses: creekorful/goreportcard-action@v1.0
+
