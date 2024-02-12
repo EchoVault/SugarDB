@@ -32,7 +32,6 @@ jobs:
       with:
         report: true
         chart: true
-        output-dir: ./.github/coverage
 
     - name: Go report card
       uses: creekorful/goreportcard-action@v1.0
