@@ -131,7 +131,7 @@ func (m *MemberList) MemberListShutdown(ctx context.Context) {
 	err = m.memberList.Shutdown()
 
 	if err != nil {
-		log.Fatal("Could not gracefully shutdown memberlist background maintanance")
+		log.Fatal("Could not gracefully shutdown memberlist background maintenance")
 	}
 
 	fmt.Println("Successfully shutdown memberlist")
