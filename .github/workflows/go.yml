@@ -27,6 +27,9 @@ jobs:
     - name: Test
       run: go test -v ./src/...
 
+    - name: Update coverage report
+      uses: ncruces/go-coverage-report@main
+
     - name: Go report card
       uses: creekorful/goreportcard-action@v1.0
 
