@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/src/memberlist"
-	"github.com/echovault/echovault/src/modules/acl"
-	"github.com/echovault/echovault/src/modules/pubsub"
 	"github.com/echovault/echovault/src/raft"
 	"github.com/echovault/echovault/src/server/aof"
 	"github.com/echovault/echovault/src/server/snapshot"
@@ -38,8 +36,8 @@ type Server struct {
 
 	CancelCh *chan os.Signal
 
-	ACL    *acl.ACL
-	PubSub *pubsub.PubSub
+	ACL    utils.ACL
+	PubSub utils.PubSub
 
 	SnapshotInProgress         atomic.Bool
 	RewriteAOFInProgress       atomic.Bool

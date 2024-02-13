@@ -68,6 +68,14 @@ type Plugin interface {
 	Description() string
 }
 
+type ACL interface {
+	RegisterConnection(conn *net.Conn)
+	AuthorizeConnection(conn *net.Conn, cmd []string, command Command, subCommand SubCommand) error
+}
+
+type PubSub interface {
+}
+
 type SnapshotObject struct {
 	State                      map[string]interface{}
 	LatestSnapshotMilliseconds int64
