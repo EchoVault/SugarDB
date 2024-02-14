@@ -149,6 +149,76 @@ func Test_HandleSetRange(t *testing.T) {
 	}
 }
 
-func Test_HandleStrLen(t *testing.T) {}
+func Test_HandleStrLen(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      string
+		command          []string
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // Return the correct string length for an existing string
+			preset:           true,
+			key:              "test1",
+			presetValue:      "Test String",
+			command:          []string{"STRLEN", "test1"},
+			expectedResponse: len("Test String"),
+			expectedError:    nil,
+		},
+		{ // If the string does not exist, return 0
+			preset:           false,
+			key:              "test2",
+			presetValue:      "",
+			command:          []string{"STRLEN", "test2"},
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // Too few args
+			preset:           false,
+			key:              "test3",
+			presetValue:      "",
+			command:          []string{"STRLEN"},
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Too many args
+			preset:           false,
+			key:              "test4",
+			presetValue:      "",
+			command:          []string{"STRLEN", "test4", "test5"},
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			_, err := mockServer.CreateKeyAndLock(context.Background(), test.key)
+			if err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleStrLen(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected respons \"%d\", got \"%d\"", test.expectedResponse, rv.Integer())
+		}
+	}
+}
 
 func Test_HandleSubStr(t *testing.T) {}
