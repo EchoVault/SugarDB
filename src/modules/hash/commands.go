@@ -382,7 +382,7 @@ func handleHKEYS(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(res), nil
 }
 
-func handleINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleHINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
@@ -392,6 +392,7 @@ func handleINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *
 
 	var intIncrement int
 	var floatIncrement float64
+
 	if strings.EqualFold(cmd[0], "hincrbyfloat") {
 		f, err := strconv.ParseFloat(cmd[3], 64)
 		if err != nil {
@@ -439,7 +440,7 @@ func handleINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *
 
 	switch hash[field].(type) {
 	default:
-		return nil, errors.New("hash value is not an integer")
+		return nil, fmt.Errorf("value at field %s is not a number", field)
 	case int:
 		i, _ := hash[field].(int)
 		if strings.EqualFold(cmd[0], "hincrbyfloat") {
@@ -692,7 +693,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 				}
 				return cmd[1:2], nil
 			},
-			HandlerFunc: handleINCRBY,
+			HandlerFunc: handleHINCRBY,
 		},
 		{
 			Command:     "hincrby",
@@ -705,7 +706,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 				}
 				return cmd[1:2], nil
 			},
-			HandlerFunc: handleINCRBY,
+			HandlerFunc: handleHINCRBY,
 		},
 		{
 			Command:     "hgetall",
