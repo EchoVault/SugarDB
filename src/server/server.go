@@ -208,7 +208,7 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 		res, err := server.handleCommand(ctx, message, &conn, false)
 
 		if err != nil {
-			if _, err = w.Write([]byte(fmt.Sprintf("-Error %s", err.Error()))); err != nil {
+			if _, err = w.Write([]byte(fmt.Sprintf("-Error %s\r\n\r\n", err.Error()))); err != nil {
 				log.Println(err)
 			}
 			continue
