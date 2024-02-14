@@ -221,4 +221,115 @@ func Test_HandleStrLen(t *testing.T) {
 	}
 }
 
-func Test_HandleSubStr(t *testing.T) {}
+func Test_HandleSubStr(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      string
+		command          []string
+		expectedResponse string
+		expectedError    error
+	}{
+		{ // Return substring within the range of the string
+			preset:           true,
+			key:              "test1",
+			presetValue:      "Test String One",
+			command:          []string{"SUBSTR", "test1", "5", "10"},
+			expectedResponse: "String",
+			expectedError:    nil,
+		},
+		{ // Return substring at the end of the string with exact end index
+			preset:           true,
+			key:              "test2",
+			presetValue:      "Test String Two",
+			command:          []string{"SUBSTR", "test2", "12", "14"},
+			expectedResponse: "Two",
+			expectedError:    nil,
+		},
+		{ // Return substring at the end of the string with end index greater than length
+			preset:           true,
+			key:              "test3",
+			presetValue:      "Test String Three",
+			command:          []string{"SUBSTR", "test3", "12", "75"},
+			expectedResponse: "Three",
+			expectedError:    nil,
+		},
+		{ // Return the substring at the start of the string with 0 start index
+			preset:           true,
+			key:              "test4",
+			presetValue:      "Test String Four",
+			command:          []string{"SUBSTR", "test4", "0", "3"},
+			expectedResponse: "Test",
+			expectedError:    nil,
+		},
+		{
+			// Return the substring with negative start index.
+			// Substring should begin abs(start) from the end of the string when start is negative.
+			preset:           true,
+			key:              "test5",
+			presetValue:      "Test String Five",
+			command:          []string{"SUBSTR", "test5", "-11", "10"},
+			expectedResponse: "String",
+			expectedError:    nil,
+		},
+		{
+			// Return reverse substring with end index smaller than start index.
+			// When end index is smaller than start index, the 2 indices are reversed.
+			preset:           true,
+			key:              "test6",
+			presetValue:      "Test String Six",
+			command:          []string{"SUBSTR", "test6", "4", "0"},
+			expectedResponse: "tseT",
+			expectedError:    nil,
+		},
+		{ // Command too short
+			command:       []string{"SUBSTR", "key", "10"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{
+			// Command too long
+			command:       []string{"SUBSTR", "key", "10", "15", "20"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Start index is not an integer
+			command:       []string{"SUBSTR", "key", "start", "10"},
+			expectedError: errors.New("start and end indices must be integers"),
+		},
+		{ // End index is not an integer
+			command:       []string{"SUBSTR", "key", "0", "end"},
+			expectedError: errors.New("start and end indices must be integers"),
+		},
+		{ // Non-existent key
+			command:       []string{"SUBSTR", "non-existent-key", "0", "10"},
+			expectedError: errors.New("key non-existent-key does not exist"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			_, err := mockServer.CreateKeyAndLock(context.Background(), test.key)
+			if err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleSubStr(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.String() != test.expectedResponse {
+			t.Errorf("expected response \"%s\", got \"%s\"", test.expectedResponse, rv.String())
+		}
+	}
+}

@@ -124,8 +124,8 @@ func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *
 
 	key := cmd[1]
 
-	start, startOk := utils.AdaptType(cmd[2]).(int64)
-	end, endOk := utils.AdaptType(cmd[3]).(int64)
+	start, startOk := utils.AdaptType(cmd[2]).(int)
+	end, endOk := utils.AdaptType(cmd[3]).(int)
 	reversed := false
 
 	if !startOk || !endOk {
@@ -142,24 +142,23 @@ func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *
 	defer server.KeyRUnlock(key)
 
 	value, ok := server.GetValue(key).(string)
-
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a string", key)
 	}
 
-	if end >= 0 {
+	if start < 0 {
+		start = len(value) - utils.AbsInt(start)
+	}
+	if end < 0 {
+		end = len(value) - utils.AbsInt(end)
+	}
+
+	if end >= 0 && end >= start {
 		end += 1
 	}
 
-	if start < 0 {
-		start = int64(len(value)) + start
-	}
-	if end < 0 {
-		end = int64(len(value)) + end
-	}
-
-	if end > int64(len(value)) {
-		end = int64(len(value))
+	if end > len(value) {
+		end = len(value)
 	}
 
 	if start > end {
