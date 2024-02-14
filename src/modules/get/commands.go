@@ -8,25 +8,6 @@ import (
 	"net"
 )
 
-type Plugin struct {
-	name        string
-	commands    []utils.Command
-	categories  []string
-	description string
-}
-
-func (p Plugin) Name() string {
-	return p.name
-}
-
-func (p Plugin) Commands() []utils.Command {
-	return p.commands
-}
-
-func (p Plugin) Description() string {
-	return p.description
-}
-
 func handleGet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)

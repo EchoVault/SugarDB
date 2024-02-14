@@ -8,24 +8,6 @@ import (
 	"net"
 )
 
-type Plugin struct {
-	name        string
-	commands    []utils.Command
-	description string
-}
-
-func (p Plugin) Name() string {
-	return p.name
-}
-
-func (p Plugin) Commands() []utils.Command {
-	return p.commands
-}
-
-func (p Plugin) Description() string {
-	return p.description
-}
-
 func handlePing(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	switch len(cmd) {
 	default:
