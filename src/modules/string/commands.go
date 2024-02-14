@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"net"
-	"strings"
 )
 
 type Plugin struct {
@@ -34,9 +33,9 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 
 	key := cmd[1]
 
-	offset, ok := utils.AdaptType(cmd[2]).(int64)
+	offset, ok := utils.AdaptType(cmd[2]).(int)
 	if !ok {
-		return nil, errors.New("offset must be integer")
+		return nil, errors.New("offset must be an integer")
 	}
 
 	newStr := cmd[3]
@@ -50,47 +49,47 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
 	}
 
-	str, ok := server.GetValue(key).(string)
-	if !ok {
-		return nil, fmt.Errorf("value at key %s is not a string", key)
-	}
-
 	if _, err := server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
 
-	if offset >= int64(len(str)) {
+	str, ok := server.GetValue(key).(string)
+	if !ok {
+		return nil, fmt.Errorf("value at key %s is not a string", key)
+	}
+
+	// If the offset  >= length of the string, append the new string to the old one.
+	if offset >= len(str) {
 		newStr = str + newStr
 		server.SetValue(ctx, key, newStr)
 		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
 	}
 
+	// If the offset is < 0, prepend the new string to the old one.
 	if offset < 0 {
 		newStr = newStr + str
 		server.SetValue(ctx, key, newStr)
 		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
 	}
 
-	if offset == 0 {
-		newStr = newStr + strings.Join(strings.Split(str, "")[1:], "")
-		server.SetValue(ctx, key, newStr)
-		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
+	strRunes := []rune(str)
+
+	for i := 0; i < len(newStr); i++ {
+		// If we're still withing the length of the original string, replace the rune in strRunes
+		if offset < len(str) {
+			strRunes[offset] = rune(newStr[i])
+			offset += 1
+			continue
+		}
+		// We are past the length of the original string, append the remainder of newStr to strRunes
+		strRunes = append(strRunes, []rune(newStr)[i:]...)
+		break
 	}
 
-	if offset == int64(len(str))-1 {
-		newStr = strings.Join(strings.Split(str, "")[0:len(str)-1], "") + newStr
-		server.SetValue(ctx, key, newStr)
-		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
-	}
+	server.SetValue(ctx, key, string(strRunes))
 
-	strArr := strings.Split(str, "")
-	newStrArr := append(strArr[0:offset], append(strings.Split(newStr, ""), strArr[offset+1:]...)...)
-
-	newStr = strings.Join(newStrArr, "")
-	server.SetValue(ctx, key, newStr)
-
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
+	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(strRunes))), nil
 }
 
 func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
