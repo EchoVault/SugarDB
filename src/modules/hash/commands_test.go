@@ -273,7 +273,6 @@ func Test_HandleHINCRBY(t *testing.T) {
 				t.Errorf("expected response \"%+v\", got \"%s\"", test.expectedResponse, rv.String())
 			}
 		}
-
 		// Check that all the values are what is expected
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
