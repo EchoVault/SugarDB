@@ -603,7 +603,7 @@ func Commands() []utils.Command {
 		{
 			Command:     "hget",
 			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-			Description: `(HGET key field [field ...]) Retrieve the of each of the listed fields from the hash`,
+			Description: `(HGET key field [field ...]) Retrieve the value of each of the listed fields from the hash`,
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				if len(cmd) < 3 {
