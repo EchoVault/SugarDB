@@ -750,7 +750,34 @@ func Test_HandleHRANDFIELD(t *testing.T) {
 		if len(rv.Array()) != test.expectedCount {
 			t.Errorf("expected response array of length \"%d\", got length \"%d\"", test.expectedCount, len(rv.Array()))
 		}
+		switch test.withValues {
+		case false:
+			for _, v := range rv.Array() {
+				if !slices.ContainsFunc(test.expectedResponse, func(expected string) bool {
+					return expected == v.String()
+				}) {
+					t.Errorf("could not find response element \"%s\" in expected response", v.String())
+				}
+			}
+		case true:
+			responseArray := rv.Array()
+			for i := 0; i < len(responseArray); i++ {
+				if i%2 == 0 {
+					field := responseArray[i].String()
+					value := responseArray[i+1].String()
 
+					expectedFieldIndex := slices.Index(test.expectedResponse, field)
+					if expectedFieldIndex == -1 {
+						t.Errorf("could not find response value \"%s\" in expected values", field)
+					}
+					expectedValue := test.expectedResponse[expectedFieldIndex+1]
+
+					if value != expectedValue {
+						t.Errorf("expected value \"%s\", got \"%s\"", expectedValue, value)
+					}
+				}
+			}
+		}
 	}
 }
 
