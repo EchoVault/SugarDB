@@ -806,7 +806,7 @@ func Test_HandleHKeys(t *testing.T) {
 		expectedError    error
 	}{
 		{
-			// Return the correct length of the hash
+			// Return an array containing all the keys of the hash
 			preset:           true,
 			key:              "key1",
 			presetValue:      map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
@@ -815,7 +815,7 @@ func Test_HandleHKeys(t *testing.T) {
 			expectedValue:    map[string]interface{}{},
 			expectedError:    nil,
 		},
-		{ // Empty array response when trying to call HLEN on non-existent key
+		{ // Empty array response when trying to call HKEYS on non-existent key
 			preset:           false,
 			key:              "key2",
 			presetValue:      map[string]interface{}{},
@@ -890,7 +890,100 @@ func Test_HandleHKeys(t *testing.T) {
 	}
 }
 
-func Test_HandleHGETALL(t *testing.T) {}
+func Test_HandleHGETALL(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse interface{}
+		expectedValue    map[string]interface{}
+		expectedError    error
+	}{
+		{
+			// Return an array containing all the fields and values of the hash
+			preset:           true,
+			key:              "key1",
+			presetValue:      map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
+			command:          []string{"HGETALL", "key1"},
+			expectedResponse: []string{"field1", "value1", "field2", "123456789", "field3", "3.142"},
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Empty array response when trying to call HGETALL on non-existent key
+			preset:           false,
+			key:              "key2",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HGETALL", "key2"},
+			expectedResponse: []string{},
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key3",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HGETALL"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Command too long
+			preset:           false,
+			key:              "key4",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HGETALL", "key4", "key4"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Trying to get lengths on a non hasp map returns error
+			preset:           true,
+			key:              "key5",
+			presetValue:      "Default value",
+			command:          []string{"HGETALL", "key5"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New("value at key5 is not a hash"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleHGETALL(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if expectedResponse, ok := test.expectedResponse.([]string); ok {
+			if len(rv.Array()) != len(expectedResponse) {
+				t.Errorf("expected length \"%d\", got \"%d\"", len(expectedResponse), len(rv.Array()))
+			}
+			for i, field := range expectedResponse {
+				if rv.Array()[i].String() != field {
+					t.Errorf("expected entry \"%s\", got \"%s\"", field, rv.Array()[i].String())
+				}
+			}
+			continue
+		}
+		t.Error("expected array response, got another type")
+	}
+}
 
 func Test_HandleHEXISTS(t *testing.T) {}
 
