@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
@@ -468,7 +467,6 @@ func Test_HandleHSTRLEN(t *testing.T) {
 		}
 		expectedResponse, _ := test.expectedResponse.([]int)
 		for i, v := range rv.Array() {
-			fmt.Println("LENGTH: ", v.Integer(), "EXPECTED LENGTH: ", expectedResponse[i])
 			if v.Integer() != expectedResponse[i] {
 				t.Errorf("expected \"%d\", got \"%d\"", expectedResponse[i], v.Integer())
 			}
@@ -476,7 +474,118 @@ func Test_HandleHSTRLEN(t *testing.T) {
 	}
 }
 
-func Test_HandleHVALS(t *testing.T) {}
+func Test_HandleHVALS(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse interface{} // Change count
+		expectedValue    map[string]interface{}
+		expectedError    error
+	}{
+		{
+			// Return all the values from a hash
+			preset:           true,
+			key:              "key1",
+			presetValue:      map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
+			command:          []string{"HVALS", "key1"},
+			expectedResponse: []interface{}{"value1", 123456789, "3.142"},
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Empty array response when trying to get HSTRLEN non-existent key
+			preset:           false,
+			key:              "key2",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HVALS", "key2"},
+			expectedResponse: []interface{}{},
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key3",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HVALS"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Command too long
+			preset:           false,
+			key:              "key4",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HVALS", "key4", "key4"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Trying to get lengths on a non hasp map returns error
+			preset:           true,
+			key:              "key5",
+			presetValue:      "Default value",
+			command:          []string{"HSTRLEN", "key5"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New("value at key5 is not a hash"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleHVALS(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		expectedResponse, _ := test.expectedResponse.([]interface{})
+		switch len(expectedResponse) {
+		case 0:
+			if len(rv.Array()) != 0 {
+				t.Errorf("expected empty array, got length \"%d\"", len(rv.Array()))
+			}
+		default:
+			for i, v := range rv.Array() {
+				switch v.Type().String() {
+				default:
+					t.Errorf("unexpected error type")
+				case "Integer":
+					if expected, ok := expectedResponse[i].(int); ok {
+						if v.Integer() != expected {
+							t.Errorf("expected integer \"%d\", got \"%d\"", expected, v.Integer())
+						}
+						continue
+					}
+					t.Error("expected response should be integer")
+				case "BulkString":
+					if expected, ok := expectedResponse[i].(string); ok {
+						if v.String() != expected {
+							t.Errorf("expected string \"%s\", got \"%s\"", expected, v.String())
+						}
+						continue
+					}
+					t.Errorf("expected response should be string")
+				}
+			}
+		}
+	}
+}
 
 func Test_HandleHRANDFIELD(t *testing.T) {}
 
