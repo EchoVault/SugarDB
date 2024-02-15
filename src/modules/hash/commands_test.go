@@ -429,7 +429,7 @@ func Test_HandleHSTRLEN(t *testing.T) {
 			expectedValue:    map[string]interface{}{},
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
-		{ // Trying to get lengths on a non hasp map returns error
+		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
 			key:              "key4",
 			presetValue:      "Default value",
@@ -524,7 +524,7 @@ func Test_HandleHVALS(t *testing.T) {
 			expectedValue:    map[string]interface{}{},
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
-		{ // Trying to get lengths on a non hasp map returns error
+		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
 			key:              "key5",
 			presetValue:      "Default value",
@@ -639,7 +639,7 @@ func Test_HandleHVALS(t *testing.T) {
 // 			expectedValue:    map[string]interface{}{},
 // 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 // 		},
-// 		{ // Trying to get lengths on a non hasp map returns error
+// 		{ // Trying to get lengths on a non hash map returns error
 // 			preset:           true,
 // 			key:              "key5",
 // 			presetValue:      "Default value",
@@ -752,7 +752,7 @@ func Test_HandleHLEN(t *testing.T) {
 			expectedValue:    map[string]interface{}{},
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
-		{ // Trying to get lengths on a non hasp map returns error
+		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
 			key:              "key5",
 			presetValue:      "Default value",
@@ -842,7 +842,7 @@ func Test_HandleHKeys(t *testing.T) {
 			expectedValue:    map[string]interface{}{},
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
-		{ // Trying to get lengths on a non hasp map returns error
+		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
 			key:              "key5",
 			presetValue:      "Default value",
@@ -939,7 +939,7 @@ func Test_HandleHGETALL(t *testing.T) {
 			expectedValue:    map[string]interface{}{},
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
-		{ // Trying to get lengths on a non hasp map returns error
+		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
 			key:              "key5",
 			presetValue:      "Default value",
@@ -985,6 +985,94 @@ func Test_HandleHGETALL(t *testing.T) {
 	}
 }
 
-func Test_HandleHEXISTS(t *testing.T) {}
+func Test_HandleHEXISTS(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse interface{}
+		expectedValue    map[string]interface{}
+		expectedError    error
+	}{
+		{
+			// Return 1 if the field exists in the hash
+			preset:           true,
+			key:              "key1",
+			presetValue:      map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
+			command:          []string{"HEXISTS", "key1", "field1"},
+			expectedResponse: 1,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // 0 response when trying to call HEXISTS on non-existent key
+			preset:           false,
+			key:              "key2",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HEXISTS", "key2", "field1"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key3",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HEXISTS", "key3"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Command too long
+			preset:           false,
+			key:              "key4",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HEXISTS", "key4", "field1", "field2"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Trying to get lengths on a non hash map returns error
+			preset:           true,
+			key:              "key5",
+			presetValue:      "Default value",
+			command:          []string{"HEXISTS", "key5", "field1"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New("value at key5 is not a hash"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleHEXISTS(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if expectedResponse, ok := test.expectedResponse.(int); ok {
+			if rv.Integer() != expectedResponse {
+				t.Errorf("expected \"%d\", got \"%d\"", expectedResponse, rv.Integer())
+			}
+			continue
+		}
+		t.Error("expected integer response, got another type")
+	}
+}
 
 func Test_HandleHDEL(t *testing.T) {}
