@@ -504,6 +504,8 @@ func handleHGETALL(ctx context.Context, cmd []string, server utils.Server, conn 
 	}
 	res += "\r\n"
 
+	fmt.Println("RESPONSE: ", res)
+
 	return []byte(res), nil
 }
 
