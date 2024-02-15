@@ -160,7 +160,7 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server utils.Server, conn 
 			continue
 		}
 		if d, ok := value.(int); ok {
-			res += fmt.Sprintf(":%d\r\n", d)
+			res += fmt.Sprintf(":%d\r\n", len(strconv.Itoa(d)))
 			continue
 		}
 		res += ":0\r\n"

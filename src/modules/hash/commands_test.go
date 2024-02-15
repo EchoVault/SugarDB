@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
@@ -290,7 +291,6 @@ func Test_HandleHINCRBY(t *testing.T) {
 }
 
 func Test_HandleHGET(t *testing.T) {
-	// Tests for both HINCRBY and HINCRBYFLOAT
 	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
@@ -388,7 +388,93 @@ func Test_HandleHGET(t *testing.T) {
 	}
 }
 
-func Test_HandleHSTRLEN(t *testing.T) {}
+func Test_HandleHSTRLEN(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse interface{} // Change count
+		expectedValue    map[string]interface{}
+		expectedError    error
+	}{
+		{
+			// Return lengths of field values.
+			// If the key does not exist, its length should be 0.
+			preset:           true,
+			key:              "key1",
+			presetValue:      map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
+			command:          []string{"HSTRLEN", "key1", "field1", "field2", "field3", "field4"},
+			expectedResponse: []int{len("value1"), len("123456789"), len("3.142"), 0},
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Nil response when trying to get HSTRLEN non-existent key
+			preset:           false,
+			key:              "key2",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HSTRLEN", "key2", "field1"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key3",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HSTRLEN", "key3"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Trying to get lengths on a non hasp map returns error
+			preset:           true,
+			key:              "key4",
+			presetValue:      "Default value",
+			command:          []string{"HSTRLEN", "key4", "field1"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New("value at key4 is not a hash"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleHSTRLEN(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if test.expectedResponse == nil {
+			if !rv.IsNull() {
+				t.Errorf("expected nil response, got %+v", rv)
+			}
+			continue
+		}
+		expectedResponse, _ := test.expectedResponse.([]int)
+		for i, v := range rv.Array() {
+			fmt.Println("LENGTH: ", v.Integer(), "EXPECTED LENGTH: ", expectedResponse[i])
+			if v.Integer() != expectedResponse[i] {
+				t.Errorf("expected \"%d\", got \"%d\"", expectedResponse[i], v.Integer())
+			}
+		}
+	}
+}
 
 func Test_HandleHVALS(t *testing.T) {}
 
