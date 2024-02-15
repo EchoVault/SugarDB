@@ -1075,4 +1075,103 @@ func Test_HandleHEXISTS(t *testing.T) {
 	}
 }
 
-func Test_HandleHDEL(t *testing.T) {}
+func Test_HandleHDEL(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse interface{}
+		expectedValue    map[string]interface{}
+		expectedError    error
+	}{
+		{
+			// Return count of deleted fields in the specified hash
+			preset:           true,
+			key:              "key1",
+			presetValue:      map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142, "field7": "value7"},
+			command:          []string{"HDEL", "key1", "field1", "field2", "field3", "field4", "field5", "field6"},
+			expectedResponse: 3,
+			expectedValue:    map[string]interface{}{"field1": nil, "field2": nil, "field3": nil, "field7": "value1"},
+			expectedError:    nil,
+		},
+		{ // 0 response when passing delete fields that are non-existent on valid hash
+			preset:           true,
+			key:              "key2",
+			presetValue:      map[string]interface{}{"field1": "value1", "field2": "value2", "field3": "value3"},
+			command:          []string{"HDEL", "key2", "field4", "field5", "field6"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{"field1": "value1", "field2": "value2", "field3": "value3"},
+			expectedError:    nil,
+		},
+		{ // 0 response when trying to call HDEL on non-existent key
+			preset:           false,
+			key:              "key3",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HDEL", "key3", "field1"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key4",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HDEL", "key4"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Trying to get lengths on a non hash map returns error
+			preset:           true,
+			key:              "key5",
+			presetValue:      "Default value",
+			command:          []string{"HDEL", "key5", "field1"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New("value at key5 is not a hash"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleHDEL(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if expectedResponse, ok := test.expectedResponse.(int); ok {
+			if rv.Integer() != expectedResponse {
+				t.Errorf("expected \"%d\", got \"%d\"", expectedResponse, rv.Integer())
+			}
+			continue
+		}
+		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+			t.Error(err)
+		}
+		if hash, ok := mockServer.GetValue(test.key).(map[string]interface{}); ok {
+			for field, value := range hash {
+				if value != test.expectedValue[field] {
+					t.Errorf("expected value \"%+v\", got \"%+v\"", test.expectedValue[field], value)
+				}
+			}
+			continue
+		}
+		t.Error("expected hash value but got another type")
+	}
+}
