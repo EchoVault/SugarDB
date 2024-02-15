@@ -7,6 +7,7 @@ import (
 	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
+	"slices"
 	"testing"
 )
 
@@ -587,11 +588,307 @@ func Test_HandleHVALS(t *testing.T) {
 	}
 }
 
-func Test_HandleHRANDFIELD(t *testing.T) {}
+// TODO: EDIT THIS TEST
+// func Test_HandleHRANDFIELD(t *testing.T) {
+// 	// TODO: Customise this test plan
+// 	mockServer := server.NewServer(server.Opts{})
+//
+// 	tests := []struct {
+// 		preset           bool
+// 		key              string
+// 		presetValue      interface{}
+// 		command          []string
+// 		expectedResponse interface{} // Change count
+// 		expectedValue    map[string]interface{}
+// 		expectedError    error
+// 	}{
+// 		{
+// 			// Return all the values from a hash
+// 			preset:           true,
+// 			key:              "key1",
+// 			presetValue:      map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
+// 			command:          []string{"HVALS", "key1"},
+// 			expectedResponse: []interface{}{"value1", 123456789, "3.142"},
+// 			expectedValue:    map[string]interface{}{},
+// 			expectedError:    nil,
+// 		},
+// 		{ // Empty array response when trying to get HSTRLEN non-existent key
+// 			preset:           false,
+// 			key:              "key2",
+// 			presetValue:      map[string]interface{}{},
+// 			command:          []string{"HVALS", "key2"},
+// 			expectedResponse: []interface{}{},
+// 			expectedValue:    map[string]interface{}{},
+// 			expectedError:    nil,
+// 		},
+// 		{ // Command too short
+// 			preset:           false,
+// 			key:              "key3",
+// 			presetValue:      map[string]interface{}{},
+// 			command:          []string{"HVALS"},
+// 			expectedResponse: 0,
+// 			expectedValue:    map[string]interface{}{},
+// 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+// 		},
+// 		{ // Command too long
+// 			preset:           false,
+// 			key:              "key4",
+// 			presetValue:      map[string]interface{}{},
+// 			command:          []string{"HVALS", "key4", "key4"},
+// 			expectedResponse: 0,
+// 			expectedValue:    map[string]interface{}{},
+// 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+// 		},
+// 		{ // Trying to get lengths on a non hasp map returns error
+// 			preset:           true,
+// 			key:              "key5",
+// 			presetValue:      "Default value",
+// 			command:          []string{"HSTRLEN", "key5"},
+// 			expectedResponse: 0,
+// 			expectedValue:    map[string]interface{}{},
+// 			expectedError:    errors.New("value at key5 is not a hash"),
+// 		},
+// 	}
+//
+// 	for _, test := range tests {
+// 		if test.preset {
+// 			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+// 				t.Error(err)
+// 			}
+// 			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+// 			mockServer.KeyUnlock(test.key)
+// 		}
+// 		res, err := handleHVALS(context.Background(), test.command, mockServer, nil)
+// 		if test.expectedError != nil {
+// 			if err.Error() != test.expectedError.Error() {
+// 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+// 			}
+// 			continue
+// 		}
+// 		rd := resp.NewReader(bytes.NewBuffer(res))
+// 		rv, _, err := rd.ReadValue()
+// 		if err != nil {
+// 			t.Error(err)
+// 		}
+// 		expectedResponse, _ := test.expectedResponse.([]interface{})
+// 		switch len(expectedResponse) {
+// 		case 0:
+// 			if len(rv.Array()) != 0 {
+// 				t.Errorf("expected empty array, got length \"%d\"", len(rv.Array()))
+// 			}
+// 		default:
+// 			for i, v := range rv.Array() {
+// 				switch v.Type().String() {
+// 				default:
+// 					t.Errorf("unexpected error type")
+// 				case "Integer":
+// 					if expected, ok := expectedResponse[i].(int); ok {
+// 						if v.Integer() != expected {
+// 							t.Errorf("expected integer \"%d\", got \"%d\"", expected, v.Integer())
+// 						}
+// 						continue
+// 					}
+// 					t.Error("expected response should be integer")
+// 				case "BulkString":
+// 					if expected, ok := expectedResponse[i].(string); ok {
+// 						if v.String() != expected {
+// 							t.Errorf("expected string \"%s\", got \"%s\"", expected, v.String())
+// 						}
+// 						continue
+// 					}
+// 					t.Errorf("expected response should be string")
+// 				}
+// 			}
+// 		}
+// 	}
+// }
 
-func Test_HandleHLEN(t *testing.T) {}
+func Test_HandleHLEN(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
 
-func Test_HandleHKeys(t *testing.T) {}
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse interface{} // Change count
+		expectedValue    map[string]interface{}
+		expectedError    error
+	}{
+		{
+			// Return the correct length of the hash
+			preset:           true,
+			key:              "key1",
+			presetValue:      map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
+			command:          []string{"HLEN", "key1"},
+			expectedResponse: 3,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // 0 response when trying to call HLEN on non-existent key
+			preset:           false,
+			key:              "key2",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HLEN", "key2"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key3",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HLEN"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Command too long
+			preset:           false,
+			key:              "key4",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HLEN", "key4", "key4"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Trying to get lengths on a non hasp map returns error
+			preset:           true,
+			key:              "key5",
+			presetValue:      "Default value",
+			command:          []string{"HLEN", "key5"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New("value at key5 is not a hash"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleHLEN(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if expectedResponse, ok := test.expectedResponse.(int); ok {
+			if rv.Integer() != expectedResponse {
+				t.Errorf("expected ineger \"%d\", got \"%d\"", expectedResponse, rv.Integer())
+			}
+			continue
+		}
+		t.Error("expected integer response, got another type")
+	}
+}
+
+func Test_HandleHKeys(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse interface{} // Change count
+		expectedValue    map[string]interface{}
+		expectedError    error
+	}{
+		{
+			// Return the correct length of the hash
+			preset:           true,
+			key:              "key1",
+			presetValue:      map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
+			command:          []string{"HKEYS", "key1"},
+			expectedResponse: []string{"field1", "field2", "field3"},
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Empty array response when trying to call HLEN on non-existent key
+			preset:           false,
+			key:              "key2",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HKEYS", "key2"},
+			expectedResponse: []string{},
+			expectedValue:    map[string]interface{}{},
+			expectedError:    nil,
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key3",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HKEYS"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Command too long
+			preset:           false,
+			key:              "key4",
+			presetValue:      map[string]interface{}{},
+			command:          []string{"HKEYS", "key4", "key4"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Trying to get lengths on a non hasp map returns error
+			preset:           true,
+			key:              "key5",
+			presetValue:      "Default value",
+			command:          []string{"HKEYS", "key5"},
+			expectedResponse: 0,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New("value at key5 is not a hash"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleHKEYS(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if expectedResponse, ok := test.expectedResponse.([]string); ok {
+			if len(rv.Array()) != len(expectedResponse) {
+				t.Errorf("expected length \"%d\", got \"%d\"", len(expectedResponse), len(rv.Array()))
+			}
+			for _, field := range expectedResponse {
+				if !slices.ContainsFunc(rv.Array(), func(value resp.Value) bool {
+					return value.String() == field
+				}) {
+					t.Errorf("could not find expected to find key \"%s\" in response", field)
+				}
+			}
+			continue
+		}
+		t.Error("expected array response, got another type")
+	}
+}
 
 func Test_HandleHGETALL(t *testing.T) {}
 
