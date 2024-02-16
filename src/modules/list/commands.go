@@ -160,6 +160,11 @@ func handleLSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	key := cmd[1]
 
+	index, ok := utils.AdaptType(cmd[2]).(int)
+	if !ok {
+		return nil, errors.New("index must be an integer")
+	}
+
 	if !server.KeyExists(key) {
 		return nil, errors.New("LSET command on non-list item")
 	}
@@ -168,28 +173,19 @@ func handleLSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	if err != nil {
 		return nil, err
 	}
-	list, ok := server.GetValue(key).([]interface{})
+	defer server.KeyUnlock(key)
 
+	list, ok := server.GetValue(key).([]interface{})
 	if !ok {
-		server.KeyUnlock(key)
 		return nil, errors.New("LSET command on non-list item")
 	}
 
-	index, ok := utils.AdaptType(cmd[2]).(int)
-
-	if !ok {
-		server.KeyUnlock(key)
-		return nil, errors.New("index must be an integer")
-	}
-
 	if !(index >= 0 && index < len(list)) {
-		server.KeyUnlock(key)
-		return nil, errors.New("index must be within range")
+		return nil, errors.New("index must be within list range")
 	}
 
 	list[index] = utils.AdaptType(cmd[3])
 	server.SetValue(ctx, key, list)
-	server.KeyUnlock(key)
 
 	return []byte(utils.OK_RESPONSE), nil
 }
