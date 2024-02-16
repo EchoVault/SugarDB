@@ -406,7 +406,7 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 
 	key := cmd[1]
 
-	newElems := []interface{}{}
+	var newElems []interface{}
 
 	for _, elem := range cmd[2:] {
 		newElems = append(newElems, utils.AdaptType(elem))
@@ -415,7 +415,7 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 	if !server.KeyExists(key) {
 		switch strings.ToLower(cmd[0]) {
 		case "rpushx":
-			return nil, fmt.Errorf("%s command on non-list item", cmd[0])
+			return nil, errors.New("RPUSHX command on non-list item")
 		default:
 			// TODO: Retry CreateKeyAndLock until we managed to obtain the key
 			_, err := server.CreateKeyAndLock(ctx, key)
@@ -430,7 +430,6 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 			return nil, err
 		}
 	}
-
 	defer server.KeyUnlock(key)
 
 	currentList := server.GetValue(key)

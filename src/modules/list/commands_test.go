@@ -908,6 +908,105 @@ func Test_HandleLPUSH(t *testing.T) {
 	}
 }
 
-func Test_HandleRPUSH(t *testing.T) {}
+func Test_HandleRPUSH(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse interface{}
+		expectedValue    []interface{}
+		expectedError    error
+	}{
+		{ // RPUSHX to existing list prepends the element to the list
+			preset:           true,
+			key:              "key1",
+			presetValue:      []interface{}{"1", "2", "4", "5"},
+			command:          []string{"RPUSHX", "key1", "value1", "value2"},
+			expectedResponse: "OK",
+			expectedValue:    []interface{}{"1", "2", "4", "5", "value1", "value2"},
+			expectedError:    nil,
+		},
+		{ // RPUSH on existing list prepends the elements to the list
+			preset:           true,
+			key:              "key2",
+			presetValue:      []interface{}{"1", "2", "4", "5"},
+			command:          []string{"RPUSH", "key2", "value1", "value2"},
+			expectedResponse: "OK",
+			expectedValue:    []interface{}{"1", "2", "4", "5", "value1", "value2"},
+			expectedError:    nil,
+		},
+		{ // RPUSH on non-existent list creates the list
+			preset:           false,
+			key:              "key3",
+			presetValue:      nil,
+			command:          []string{"RPUSH", "key3", "value1", "value2"},
+			expectedResponse: "OK",
+			expectedValue:    []interface{}{"value1", "value2"},
+			expectedError:    nil,
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key5",
+			presetValue:      nil,
+			command:          []string{"RPUSH", "key5"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // RPUSHX command returns error on non-existent list
+			preset:           false,
+			key:              "key6",
+			presetValue:      nil,
+			command:          []string{"RPUSHX", "key7", "count", "value1"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("RPUSHX command on non-list item"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleRPush(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.String() != test.expectedResponse {
+			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
+		}
+		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+			t.Error(err)
+		}
+		list, ok := mockServer.GetValue(test.key).([]interface{})
+		if !ok {
+			t.Error("expected value to be list, got another type")
+		}
+		if len(list) != len(test.expectedValue) {
+			t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(list))
+		}
+		for i := 0; i < len(list); i++ {
+			if list[i] != test.expectedValue[i] {
+				t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
+			}
+		}
+		mockServer.KeyRUnlock(test.key)
+	}
+}
 
 func Test_HandlePop(t *testing.T) {}
