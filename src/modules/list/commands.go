@@ -80,7 +80,7 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *
 	end, endOk := utils.AdaptType(cmd[3]).(int)
 
 	if !startOk || !endOk {
-		return nil, errors.New("both start and end indices must be integers")
+		return nil, errors.New("start and end indices must be integers")
 	}
 
 	if !server.KeyExists(key) {
@@ -94,12 +94,12 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *
 
 	list, ok := server.GetValue(key).([]interface{})
 	if !ok {
-		return nil, errors.New("type cannot be returned with LRANGE command")
+		return nil, errors.New("LRANGE command on non-list item")
 	}
 
 	// Make sure start is within range
 	if !(start >= 0 && start < len(list)) {
-		return nil, errors.New("start index not within list range")
+		return nil, errors.New("start index must be within list boundary")
 	}
 
 	// Make sure end is within range, or is -1 otherwise

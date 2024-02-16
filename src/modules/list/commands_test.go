@@ -225,7 +225,162 @@ func Test_HandleLINDEX(t *testing.T) {
 	}
 }
 
-func Test_HandleLRANGE(t *testing.T) {}
+func Test_HandleLRANGE(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse []interface{}
+		expectedValue    []interface{}
+		expectedError    error
+	}{
+		{
+			// Return sub-list within range.
+			// Both start and end indices are positive.
+			// End index is greater than start index.
+			preset:           true,
+			key:              "key1",
+			presetValue:      []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
+			command:          []string{"LRANGE", "key1", "3", "6"},
+			expectedResponse: []interface{}{"value4", "value5", "value6", "value7"},
+			expectedValue:    nil,
+			expectedError:    nil,
+		},
+		{ // Return sub-list from start index to the end of the list when end index is -1
+			preset:           true,
+			key:              "key2",
+			presetValue:      []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
+			command:          []string{"LRANGE", "key2", "3", "-1"},
+			expectedResponse: []interface{}{"value4", "value5", "value6", "value7", "value8"},
+			expectedValue:    nil,
+			expectedError:    nil,
+		},
+		{ // Return the reversed sub-list when the end index is greater than -1 but less than start index
+			preset:           true,
+			key:              "key3",
+			presetValue:      []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
+			command:          []string{"LRANGE", "key3", "3", "0"},
+			expectedResponse: []interface{}{"value4", "value3", "value2", "value1"},
+			expectedValue:    nil,
+			expectedError:    nil,
+		},
+		{ // If key does not exist, return error
+			preset:           false,
+			key:              "key4",
+			presetValue:      nil,
+			command:          []string{"LRANGE", "key4", "0", "2"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("LRANGE command on non-list item"),
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key5",
+			presetValue:      nil,
+			command:          []string{"LRANGE", "key5"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Command too long
+			preset:           false,
+			key:              "key6",
+			presetValue:      nil,
+			command:          []string{"LRANGE", "key6", "0", "element", "element"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Error when executing command on non-list command
+			preset:           true,
+			key:              "key5",
+			presetValue:      "Default value",
+			command:          []string{"LRANGE", "key5", "0", "3"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("LRANGE command on non-list item"),
+		},
+		{ // Error when start index is less than 0
+			preset:           true,
+			key:              "key7",
+			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
+			command:          []string{"LRANGE", "key7", "-1", "3"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("start index must be within list boundary"),
+		},
+		{ // Error when start index is higher than the length of the list
+			preset:           true,
+			key:              "key8",
+			presetValue:      []interface{}{"value1", "value2", "value3"},
+			command:          []string{"LRANGE", "key8", "10", "11"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("start index must be within list boundary"),
+		},
+		{ // Return error when start index is not an integer
+			preset:           false,
+			key:              "key9",
+			presetValue:      []interface{}{"value1", "value2", "value3"},
+			command:          []string{"LRANGE", "key9", "start", "7"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("start and end indices must be integers"),
+		},
+		{ // Return error when end index is not an integer
+			preset:           false,
+			key:              "key10",
+			presetValue:      []interface{}{"value1", "value2", "value3"},
+			command:          []string{"LRANGE", "key10", "0", "end"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("start and end indices must be integers"),
+		},
+		{ // Error when start and end indices are equal
+			preset:           true,
+			key:              "key11",
+			presetValue:      []interface{}{"value1", "value2", "value3"},
+			command:          []string{"LRANGE", "key11", "1", "1"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("start and end indices cannot be equal"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleLRange(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		responseArray := rv.Array()
+		if len(responseArray) != len(test.expectedResponse) {
+			t.Errorf("expected response of length \"%d\", got \"%d\"", len(test.expectedResponse), len(responseArray))
+		}
+		for i := 0; i < len(responseArray); i++ {
+			if responseArray[i].String() != test.expectedResponse[i] {
+				t.Errorf("expected value \"%s\" at index %d, got \"%s\"", test.expectedResponse[i], i, responseArray[i].String())
+			}
+		}
+	}
+}
 
 func Test_HandleLSET(t *testing.T) {
 	mockServer := server.NewServer(server.Opts{})
