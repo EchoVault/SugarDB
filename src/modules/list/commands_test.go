@@ -686,7 +686,124 @@ func Test_HandleLTRIM(t *testing.T) {
 	}
 }
 
-func Test_HandleLREM(t *testing.T) {}
+func Test_HandleLREM(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse interface{}
+		expectedValue    []interface{}
+		expectedError    error
+	}{
+		{ // Remove the first 3 elements that appear in the list
+			preset:           true,
+			key:              "key1",
+			presetValue:      []interface{}{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
+			command:          []string{"LREM", "key1", "3", "4"},
+			expectedResponse: "OK",
+			expectedValue:    []interface{}{"1", "2", "5", "6", "7", "8", "4", "9", "10", "5", "4"},
+			expectedError:    nil,
+		},
+		{ // Remove the last 3 elements that appear in the list
+			preset:           true,
+			key:              "key1",
+			presetValue:      []interface{}{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
+			command:          []string{"LREM", "key1", "-3", "4"},
+			expectedResponse: "OK",
+			expectedValue:    []interface{}{"1", "2", "4", "4", "5", "6", "7", "8", "9", "10", "5"},
+			expectedError:    nil,
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key5",
+			presetValue:      nil,
+			command:          []string{"LREM", "key5"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Command too long
+			preset:           false,
+			key:              "key6",
+			presetValue:      nil,
+			command:          []string{"LREM", "key6", "0", "element", "element"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Throw error when count is not an integer
+			preset:           false,
+			key:              "key7",
+			presetValue:      nil,
+			command:          []string{"LREM", "key7", "count", "value1"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("count must be an integer"),
+		},
+		{ // Throw error on non-list item
+			preset:           true,
+			key:              "key8",
+			presetValue:      "Default value",
+			command:          []string{"LREM", "key8", "0", "value1"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("LREM command on non-list item"),
+		},
+		{ // Throw error on non-existent item
+			preset:           false,
+			key:              "key9",
+			presetValue:      "Default value",
+			command:          []string{"LREM", "key9", "0", "value1"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("LREM command on non-list item"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleLRem(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.String() != test.expectedResponse {
+			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
+		}
+		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+			t.Error(err)
+		}
+		list, ok := mockServer.GetValue(test.key).([]interface{})
+		if !ok {
+			t.Error("expected value to be list, got another type")
+		}
+		if len(list) != len(test.expectedValue) {
+			t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(list))
+		}
+		for i := 0; i < len(list); i++ {
+			if list[i] != test.expectedValue[i] {
+				t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
+			}
+		}
+		mockServer.KeyRUnlock(test.key)
+	}
+}
 
 func Test_HandleLMOVE(t *testing.T) {}
 

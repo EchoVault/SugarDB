@@ -240,13 +240,13 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	key := cmd[1]
 	value := cmd[3]
-	count, ok := utils.AdaptType(cmd[2]).(int)
 
+	count, ok := utils.AdaptType(cmd[2]).(int)
 	if !ok {
 		return nil, errors.New("count must be an integer")
 	}
 
-	absoluteCount := math.Abs(float64(count))
+	absoluteCount := utils.AbsInt(count)
 
 	if !server.KeyExists(key) {
 		return nil, errors.New("LREM command on non-list item")
@@ -259,7 +259,6 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	defer server.KeyUnlock(key)
 
 	list, ok := server.GetValue(key).([]interface{})
-
 	if !ok {
 		return nil, errors.New("LREM command on non-list item")
 	}
@@ -291,8 +290,8 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		}
 	}
 
-	list = utils.Filter[interface{}](list, func(elem interface{}) bool {
-		return elem != nil
+	list = slices.DeleteFunc(list, func(elem interface{}) bool {
+		return elem == nil
 	})
 
 	server.SetValue(ctx, key, list)
