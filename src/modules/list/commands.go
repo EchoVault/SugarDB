@@ -63,7 +63,7 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, errors.New("LINDEX command on non-list item")
 	}
 
-	if !(index >= 0 && int(index) < len(list)) {
+	if !(index >= 0 && index < len(list)) {
 		return nil, errors.New("index must be within list range")
 	}
 

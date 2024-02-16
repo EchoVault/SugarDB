@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"io"
+	"log"
 	"math/big"
 	"net"
 	"slices"
@@ -109,7 +110,11 @@ func GetIPAddress() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
+	defer func() {
+		if err = conn.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	localAddr := strings.Split(conn.LocalAddr().String(), ":")[0]
 
