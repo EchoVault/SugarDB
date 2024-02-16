@@ -94,3 +94,21 @@ func Test_HandleLLEN(t *testing.T) {
 		}
 	}
 }
+
+func Test_HandleLINDEX(t *testing.T) {}
+
+func Test_HandleLRANGE(t *testing.T) {}
+
+func Test_HandleLSET(t *testing.T) {}
+
+func Test_HandleLTRIM(t *testing.T) {}
+
+func Test_HandleLREM(t *testing.T) {}
+
+func Test_HandleLMOVE(t *testing.T) {}
+
+func Test_HandleLPUSH(t *testing.T) {}
+
+func Test_HandleRPUSH(t *testing.T) {}
+
+func Test_HandlePop(t *testing.T) {}
