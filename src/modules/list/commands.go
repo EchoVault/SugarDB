@@ -19,22 +19,21 @@ func handleLLen(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	key := cmd[1]
 
 	if !server.KeyExists(key) {
-		// Key, does not exist, return
-		return nil, errors.New("LLEN command on non-list item")
+		// If key does not exist, return 0
+		return []byte(":0\r\n\r\n"), nil
 	}
 
 	_, err := server.KeyRLock(ctx, key)
 	if err != nil {
 		return nil, err
 	}
-	list, ok := server.GetValue(key).([]interface{})
-	server.KeyRUnlock(key)
+	defer server.KeyRUnlock(key)
 
-	if !ok {
-		return nil, errors.New("LLEN command on non-list item")
+	if list, ok := server.GetValue(key).([]interface{}); ok {
+		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(list))), nil
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(list))), nil
+	return nil, errors.New("LLEN command on non-list item")
 }
 
 func handleLIndex(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
