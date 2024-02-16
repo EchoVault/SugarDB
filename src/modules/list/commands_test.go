@@ -373,7 +373,163 @@ func Test_HandleLSET(t *testing.T) {
 	}
 }
 
-func Test_HandleLTRIM(t *testing.T) {}
+func Test_HandleLTRIM(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse interface{}
+		expectedValue    []interface{}
+		expectedError    error
+	}{
+		{
+			// Return trim within range.
+			// Both start and end indices are positive.
+			// End index is greater than start index.
+			preset:           true,
+			key:              "key1",
+			presetValue:      []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
+			command:          []string{"LTRIM", "key1", "3", "6"},
+			expectedResponse: "OK",
+			expectedValue:    []interface{}{"value4", "value5", "value6"},
+			expectedError:    nil,
+		},
+		{ // Return element from start index to end index when end index is greater than length of the list
+			preset:           true,
+			key:              "key2",
+			presetValue:      []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
+			command:          []string{"LTRIM", "key2", "5", "-1"},
+			expectedResponse: "OK",
+			expectedValue:    []interface{}{"value6", "value7", "value8"},
+			expectedError:    nil,
+		},
+		{ // Return error when end index is smaller than start index but greater than -1
+			preset:           true,
+			key:              "key3",
+			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
+			command:          []string{"LTRIM", "key3", "3", "1"},
+			expectedResponse: nil,
+			expectedValue:    nil,
+			expectedError:    errors.New("end index must be greater than start index or -1"),
+		},
+		{ // If key does not exist, return error
+			preset:           false,
+			key:              "key4",
+			presetValue:      nil,
+			command:          []string{"LTRIM", "key4", "0", "2"},
+			expectedResponse: 0,
+			expectedValue:    nil,
+			expectedError:    errors.New("LTRIM command on non-list item"),
+		},
+		{ // Command too short
+			preset:           false,
+			key:              "key5",
+			presetValue:      nil,
+			command:          []string{"LTRIM", "key5"},
+			expectedResponse: 0,
+			expectedValue:    nil,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Command too long
+			preset:           false,
+			key:              "key6",
+			presetValue:      nil,
+			command:          []string{"LTRIM", "key6", "0", "element", "element"},
+			expectedResponse: 0,
+			expectedValue:    nil,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // Trying to get element by index on a non-list returns error
+			preset:           true,
+			key:              "key5",
+			presetValue:      "Default value",
+			command:          []string{"LTRIM", "key5", "0", "3"},
+			expectedResponse: 0,
+			expectedValue:    nil,
+			expectedError:    errors.New("LTRIM command on non-list item"),
+		},
+		{ // Error when start index is less than 0
+			preset:           true,
+			key:              "key7",
+			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
+			command:          []string{"LTRIM", "key7", "-1", "3"},
+			expectedResponse: 0,
+			expectedValue:    nil,
+			expectedError:    errors.New("start index must be within list boundary"),
+		},
+		{ // Error when start index is higher than the length of the list
+			preset:           true,
+			key:              "key8",
+			presetValue:      []interface{}{"value1", "value2", "value3"},
+			command:          []string{"LTRIM", "key8", "10", "11"},
+			expectedResponse: 0,
+			expectedValue:    nil,
+			expectedError:    errors.New("start index must be within list boundary"),
+		},
+		{ // Return error when start index is not an integer
+			preset:           false,
+			key:              "key9",
+			presetValue:      []interface{}{"value1", "value2", "value3"},
+			command:          []string{"LTRIM", "key9", "start", "7"},
+			expectedResponse: 0,
+			expectedValue:    nil,
+			expectedError:    errors.New("start and end indices must be integers"),
+		},
+		{ // Return error when end index is not an integer
+			preset:           false,
+			key:              "key10",
+			presetValue:      []interface{}{"value1", "value2", "value3"},
+			command:          []string{"LTRIM", "key10", "0", "end"},
+			expectedResponse: 0,
+			expectedValue:    nil,
+			expectedError:    errors.New("start and end indices must be integers"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleLTrim(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.String() != test.expectedResponse {
+			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
+		}
+		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+			t.Error(err)
+		}
+		list, ok := mockServer.GetValue(test.key).([]interface{})
+		if !ok {
+			t.Error("expected value to be list, got another type")
+		}
+		if len(list) != len(test.expectedValue) {
+			t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(list))
+		}
+		for i := 0; i < len(list); i++ {
+			if list[i] != test.expectedValue[i] {
+				t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
+			}
+		}
+		mockServer.KeyRUnlock(test.key)
+	}
+}
 
 func Test_HandleLREM(t *testing.T) {}
 

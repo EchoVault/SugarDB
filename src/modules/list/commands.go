@@ -87,24 +87,23 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, errors.New("LRANGE command on non-list item")
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err := server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	list, ok := server.GetValue(key).([]interface{})
-	server.KeyRUnlock(key)
+	defer server.KeyRUnlock(key)
 
+	list, ok := server.GetValue(key).([]interface{})
 	if !ok {
 		return nil, errors.New("type cannot be returned with LRANGE command")
 	}
 
 	// Make sure start is within range
-	if !(start >= 0 && int(start) < len(list)) {
+	if !(start >= 0 && start < len(list)) {
 		return nil, errors.New("start index not within list range")
 	}
 
 	// Make sure end is within range, or is -1 otherwise
-	if !((end >= 0 && int(end) < len(list)) || end == -1) {
+	if !((end >= 0 && end < len(list)) || end == -1) {
 		return nil, errors.New("end index must be within list range or -1")
 	}
 
@@ -211,25 +210,26 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server, conn *n
 		return nil, errors.New("LTRIM command on non-list item")
 	}
 
-	server.KeyLock(ctx, key)
-	list, ok := server.GetValue(key).([]interface{})
+	if _, err := server.KeyLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
 
+	list, ok := server.GetValue(key).([]interface{})
 	if !ok {
 		return nil, errors.New("LTRIM command on non-list item")
 	}
 
-	if !(start >= 0 && int(start) < len(list)) {
+	if !(start >= 0 && start < len(list)) {
 		return nil, errors.New("start index must be within list boundary")
 	}
 
-	if end == -1 || int(end) > len(list) {
+	if end == -1 || end > len(list) {
 		server.SetValue(ctx, key, list[start:])
-		server.KeyUnlock(key)
 		return []byte(utils.OK_RESPONSE), nil
 	}
 
 	server.SetValue(ctx, key, list[start:end])
-	server.KeyUnlock(key)
 	return []byte(utils.OK_RESPONSE), nil
 }
 
