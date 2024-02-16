@@ -455,10 +455,6 @@ func handlePop(ctx context.Context, cmd []string, server utils.Server, conn *net
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
 	}
 
-	if !server.KeyExists(key) {
-		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
-	}
-
 	_, err := server.KeyLock(ctx, key)
 	if err != nil {
 		return nil, err
@@ -466,7 +462,6 @@ func handlePop(ctx context.Context, cmd []string, server utils.Server, conn *net
 	defer server.KeyUnlock(key)
 
 	list, ok := server.GetValue(key).([]interface{})
-
 	if !ok {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
 	}
