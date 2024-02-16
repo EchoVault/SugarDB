@@ -361,7 +361,7 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	newElems := []interface{}{}
+	var newElems []interface{}
 
 	for _, elem := range cmd[2:] {
 		newElems = append(newElems, utils.AdaptType(elem))
@@ -372,10 +372,12 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 	if !server.KeyExists(key) {
 		switch strings.ToLower(cmd[0]) {
 		case "lpushx":
-			return nil, fmt.Errorf("%s command on non-list item", cmd[0])
+			return nil, errors.New("LPUSHX command on non-list item")
 		default:
 			// TODO: Retry CreateKeyAndLock until we obtain the key lock
-			server.CreateKeyAndLock(ctx, key)
+			if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+				return nil, err
+			}
 			server.SetValue(ctx, key, []interface{}{})
 		}
 	} else {
@@ -384,15 +386,13 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 			return nil, err
 		}
 	}
-
 	defer server.KeyUnlock(key)
 
 	currentList := server.GetValue(key)
 
 	l, ok := currentList.([]interface{})
-
 	if !ok {
-		return nil, fmt.Errorf("%s command on non-list item", cmd[0])
+		return nil, errors.New("LPUSH command on non-list item")
 	}
 
 	server.SetValue(ctx, key, append(newElems, l...))
