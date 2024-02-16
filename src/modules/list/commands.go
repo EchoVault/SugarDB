@@ -347,9 +347,9 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *n
 	case "right":
 		server.SetValue(ctx, source, append([]interface{}{}, sourceList[:len(sourceList)-1]...))
 		if whereTo == "left" {
-			server.SetValue(ctx, destination, append(sourceList[len(source)-1:], destinationList...))
+			server.SetValue(ctx, destination, append(sourceList[len(sourceList)-1:], destinationList...))
 		} else if whereTo == "right" {
-			server.SetValue(ctx, destination, append(destinationList, source[len(source)-1]))
+			server.SetValue(ctx, destination, append(destinationList, sourceList[len(sourceList)-1]))
 		}
 	}
 

@@ -805,7 +805,220 @@ func Test_HandleLREM(t *testing.T) {
 	}
 }
 
-func Test_HandleLMOVE(t *testing.T) {}
+func Test_HandleLMOVE(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValue      map[string]interface{}
+		command          []string
+		expectedResponse interface{}
+		expectedValue    map[string]interface{}
+		expectedError    error
+	}{
+		{
+			// 1. Move element from LEFT of left list to LEFT of right list
+			preset: true,
+			presetValue: map[string]interface{}{
+				"source1":      []interface{}{"one", "two", "three"},
+				"destination1": []interface{}{"one", "two", "three"},
+			},
+			command:          []string{"LMOVE", "source1", "destination1", "LEFT", "LEFT"},
+			expectedResponse: "OK",
+			expectedValue: map[string]interface{}{
+				"source1":      []interface{}{"two", "three"},
+				"destination1": []interface{}{"one", "one", "two", "three"},
+			},
+			expectedError: nil,
+		},
+		{
+			// 2. Move element from LEFT of left list to RIGHT of right list
+			preset: true,
+			presetValue: map[string]interface{}{
+				"source2":      []interface{}{"one", "two", "three"},
+				"destination2": []interface{}{"one", "two", "three"},
+			},
+			command:          []string{"LMOVE", "source2", "destination2", "LEFT", "RIGHT"},
+			expectedResponse: "OK",
+			expectedValue: map[string]interface{}{
+				"source2":      []interface{}{"two", "three"},
+				"destination2": []interface{}{"one", "two", "three", "one"},
+			},
+			expectedError: nil,
+		},
+		{
+			// 3. Move element from RIGHT of left list to LEFT of right list
+			preset: true,
+			presetValue: map[string]interface{}{
+				"source3":      []interface{}{"one", "two", "three"},
+				"destination3": []interface{}{"one", "two", "three"},
+			},
+			command:          []string{"LMOVE", "source3", "destination3", "RIGHT", "LEFT"},
+			expectedResponse: "OK",
+			expectedValue: map[string]interface{}{
+				"source3":      []interface{}{"one", "two"},
+				"destination3": []interface{}{"three", "one", "two", "three"},
+			},
+			expectedError: nil,
+		},
+		{
+			// 4. Move element from RIGHT of left list to RIGHT of right list
+			preset: true,
+			presetValue: map[string]interface{}{
+				"source4":      []interface{}{"one", "two", "three"},
+				"destination4": []interface{}{"one", "two", "three"},
+			},
+			command:          []string{"LMOVE", "source4", "destination4", "RIGHT", "RIGHT"},
+			expectedResponse: "OK",
+			expectedValue: map[string]interface{}{
+				"source4":      []interface{}{"one", "two"},
+				"destination4": []interface{}{"one", "two", "three", "three"},
+			},
+			expectedError: nil,
+		},
+		{
+			// 5. Throw error when the right list is non-existent
+			preset: true,
+			presetValue: map[string]interface{}{
+				"source5": []interface{}{"one", "two", "three"},
+			},
+			command:          []string{"LMOVE", "source5", "destination5", "LEFT", "LEFT"},
+			expectedResponse: nil,
+			expectedValue: map[string]interface{}{
+				"source5": []interface{}{"one", "two", "three"},
+			},
+			expectedError: errors.New("both source and destination must be lists"),
+		},
+		{
+			// 6. Throw error when right list in not a list
+			preset: true,
+			presetValue: map[string]interface{}{
+				"source6":      []interface{}{"one", "two", "tree"},
+				"destination6": "Default value",
+			},
+			command:          []string{"LMOVE", "source6", "destination6", "LEFT", "LEFT"},
+			expectedResponse: nil,
+			expectedValue: map[string]interface{}{
+				"source5":      []interface{}{"one", "two", "three"},
+				"destination6": "Default value",
+			},
+			expectedError: errors.New("both source and destination must be lists"),
+		},
+		{
+			// 7. Throw error when left list is non-existent
+			preset: true,
+			presetValue: map[string]interface{}{
+				"destination7": []interface{}{"one", "two", "three"},
+			},
+			command:          []string{"LMOVE", "source7", "destination7", "LEFT", "LEFT"},
+			expectedResponse: nil,
+			expectedValue: map[string]interface{}{
+				"destination7": []interface{}{""},
+			},
+			expectedError: errors.New("both source and destination must be lists"),
+		},
+		{
+			// 8. Throw error when left list is not a list
+			preset: true,
+			presetValue: map[string]interface{}{
+				"source8":      "Default value",
+				"destination8": []interface{}{"one", "two", "three"},
+			},
+			command:          []string{"LMOVE", "source8", "destination8", "LEFT", "LEFT"},
+			expectedResponse: nil,
+			expectedValue: map[string]interface{}{
+				"source5":      "Default value",
+				"destination6": []interface{}{"one", "two", "three"},
+			},
+			expectedError: errors.New("both source and destination must be lists"),
+		},
+		{
+			// 9. Throw error when command is too short
+			preset:           false,
+			presetValue:      map[string]interface{}{},
+			command:          []string{"LMOVE", "source9", "destination9"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{
+			// 10. Throw error when command is too long
+			preset:           false,
+			presetValue:      map[string]interface{}{},
+			command:          []string{"LMOVE", "source10", "destination10", "LEFT", "LEFT", "RIGHT"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{
+			// 11. Throw error when WHEREFROM argument is not LEFT/RIGHT
+			preset:           false,
+			presetValue:      map[string]interface{}{},
+			command:          []string{"LMOVE", "source11", "destination11", "UP", "RIGHT"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New("wherefrom and whereto arguments must be either LEFT or RIGHT"),
+		},
+		{
+			// 12. Throw error when WHERETO argument is not LEFT/RIGHT
+			preset:           false,
+			presetValue:      map[string]interface{}{},
+			command:          []string{"LMOVE", "source11", "destination11", "LEFT", "DOWN"},
+			expectedResponse: nil,
+			expectedValue:    map[string]interface{}{},
+			expectedError:    errors.New("wherefrom and whereto arguments must be either LEFT or RIGHT"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValue {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleLMove(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.String() != test.expectedResponse {
+			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
+		}
+		for key, value := range test.expectedValue {
+			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+				t.Error(err)
+			}
+			list, ok := mockServer.GetValue(key).([]interface{})
+			if !ok {
+				t.Error("expected value to be list, got another type")
+			}
+			expectedList, ok := value.([]interface{})
+			if !ok {
+				t.Error("expected test value to be list, got another type")
+			}
+			if len(list) != len(expectedList) {
+				t.Errorf("expected list length to be %d, got %d", len(expectedList), len(list))
+			}
+			for i := 0; i < len(list); i++ {
+				if list[i] != expectedList[i] {
+					t.Errorf("expected element at index %d to be %+v, got %+v", i, expectedList[i], list[i])
+				}
+			}
+			mockServer.KeyRUnlock(key)
+		}
+	}
+}
 
 func Test_HandleLPUSH(t *testing.T) {
 	mockServer := server.NewServer(server.Opts{})
