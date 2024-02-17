@@ -1248,26 +1248,41 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 		presetValue      interface{}
 		command          []string
 		expectedValue    int // The final cardinality of the resulting set
+		allowRepeat      bool
 		expectedResponse []string
 		expectedError    error
 	}{
 		{ // 1. Return multiple random elements without removing them
+			// Count is positive, do not allow repeated elements
 			preset:           true,
 			key:              "key1",
 			presetValue:      NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 			command:          []string{"SRANDMEMBER", "key1", "3"},
 			expectedValue:    8,
+			allowRepeat:      false,
+			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
+			expectedError:    nil,
+		},
+		{
+			// 2. Return multiple random elements without removing them
+			// Count is negative, so allow repeated numbers
+			preset:           true,
+			key:              "key2",
+			presetValue:      NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+			command:          []string{"SRANDMEMBER", "key2", "-5"},
+			expectedValue:    8,
+			allowRepeat:      true,
 			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
 			expectedError:    nil,
 		},
 		{ // 2. Return error when the source key is not a set
 			preset:           true,
-			key:              "key2",
+			key:              "key3",
 			presetValue:      "Default value",
-			command:          []string{"SRANDMEMBER", "key2"},
+			command:          []string{"SRANDMEMBER", "key3"},
 			expectedValue:    0,
 			expectedResponse: []string{},
-			expectedError:    errors.New("value at key2 is not a set"),
+			expectedError:    errors.New("value at key3 is not a set"),
 		},
 		{ // 5. Command too short
 			preset:        false,
@@ -1330,6 +1345,17 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 		for _, element := range rv.Array() {
 			if !set.Contains(element.String()) {
 				t.Errorf("expected element \"%s\" to be in set but it was not found", element.String())
+			}
+		}
+		// 4. If allowRepeat is false, check that all the elements make a valid set
+		if !test.allowRepeat {
+			var elems []string
+			for _, e := range rv.Array() {
+				elems = append(elems, e.String())
+			}
+			s := NewSet(elems)
+			if s.Cardinality() != len(elems) {
+				t.Errorf("expected non-repeating elements for random elements at key \"%s\"", test.key)
 			}
 		}
 	}
