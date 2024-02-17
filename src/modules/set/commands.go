@@ -139,6 +139,19 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 
 	destination := cmd[1]
 
+	// Extract base set first
+	if !server.KeyExists(cmd[2]) {
+		return nil, fmt.Errorf("key for base set \"%s\" does not exist", cmd[2])
+	}
+	if _, err := server.KeyRLock(ctx, cmd[2]); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(cmd[2])
+	baseSet, ok := server.GetValue(cmd[2]).(*Set)
+	if !ok {
+		return nil, fmt.Errorf("value at key %s is not a set", cmd[2])
+	}
+
 	locks := make(map[string]bool)
 	defer func() {
 		for key, locked := range locks {
@@ -148,7 +161,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 		}
 	}()
 
-	for _, key := range cmd[2:] {
+	for _, key := range cmd[3:] {
 		if !server.KeyExists(key) {
 			continue
 		}
@@ -160,7 +173,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 	}
 
 	var sets []*Set
-	for key, _ := range locks {
+	for _, key := range cmd[3:] {
 		set, ok := server.GetValue(key).(*Set)
 		if !ok {
 			continue
@@ -168,11 +181,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 		sets = append(sets, set)
 	}
 
-	if len(sets) <= 0 {
-		return nil, errors.New("not enough sets in the keys provided")
-	}
-
-	diff := sets[0].Subtract(sets[1:])
+	diff := baseSet.Subtract(sets)
 	elems := diff.GetAll()
 
 	res := fmt.Sprintf(":%d\r\n\r\n", len(elems))
@@ -817,10 +826,11 @@ All keys that are non-existed or hold values that are not sets will be skipped.`
 			HandlerFunc: handleSDIFF,
 		},
 		{
-			Command:     "sdiffstore",
-			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
-			Description: "(SDIFFSTORE destination key [key...]) Stores the difference between all the sets at the destination key. Keys that hold non-set values will be skipped.",
-			Sync:        true,
+			Command:    "sdiffstore",
+			Categories: []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Description: `(SDIFFSTORE destination key [key...]) Works the same as SDIFF but also stores the result at 'destination'.
+Returns the cardinality of the new set`,
+			Sync: true,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				if len(cmd) < 3 {
 					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
