@@ -848,7 +848,88 @@ func Test_HandleSISMEMBER(t *testing.T) {
 	}
 }
 
-func Test_HandleSMEMBERS(t *testing.T) {}
+func Test_HandleSMEMBERS(t *testing.T) {
+	mockserver := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedResponse []string
+		expectedError    error
+	}{
+		{ // 1. Return all the members of the set.
+			preset:           true,
+			key:              "key1",
+			presetValue:      NewSet([]string{"one", "two", "three", "four", "five"}),
+			command:          []string{"SMEMBERS", "key1"},
+			expectedResponse: []string{"one", "two", "three", "four", "five"},
+			expectedError:    nil,
+		},
+		{ // 2. If the key does not exist, return an empty array.
+			preset:           false,
+			key:              "key2",
+			presetValue:      nil,
+			command:          []string{"SMEMBERS", "key2"},
+			expectedResponse: []string{},
+			expectedError:    nil,
+		},
+		{ // 3. Throw error when the provided key is not a set.
+			preset:           true,
+			key:              "key3",
+			presetValue:      "Default value",
+			command:          []string{"SMEMBERS", "key3"},
+			expectedResponse: nil,
+			expectedError:    errors.New("value at key key3 is not a set"),
+		},
+		{ // 4. Command too short
+			preset:           false,
+			command:          []string{"SMEMBERS"},
+			expectedResponse: []string{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 5. Command too long
+			preset:           false,
+			command:          []string{"SMEMBERS", "key5", "key6"},
+			expectedResponse: []string{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockserver.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockserver.SetValue(context.Background(), test.key, test.presetValue)
+			mockserver.KeyUnlock(test.key)
+		}
+		res, err := handleSMEMBERS(context.Background(), test.command, mockserver, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if len(rv.Array()) != len(test.expectedResponse) {
+			t.Errorf("expected response array of length %d, got %d", len(test.expectedResponse), len(rv.Array()))
+		}
+		for _, responseElement := range rv.Array() {
+			if !slices.Contains(test.expectedResponse, responseElement.String()) {
+				t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+			}
+		}
+	}
+}
 
 func Test_HandleSMISMEMBER(t *testing.T) {
 	mockserver := server.NewServer(server.Opts{})
