@@ -304,7 +304,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, co
 	for _, key := range keySlice {
 		if !server.KeyExists(key) {
 			// If key does not exist, then there is no intersection
-			return []byte("*0\r\n\r\n"), nil
+			return []byte(":0\r\n\r\n"), nil
 		}
 		_, err := server.KeyRLock(ctx, key)
 		if err != nil {
@@ -350,7 +350,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	for _, key := range cmd[2:] {
 		if !server.KeyExists(key) {
 			// If key does not exist, then there is no intersection
-			return []byte("*0\r\n\r\n"), nil
+			return []byte(":0\r\n\r\n"), nil
 		}
 		_, err := server.KeyRLock(ctx, key)
 		if err != nil {

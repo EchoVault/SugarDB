@@ -128,12 +128,17 @@ func Intersection(limit int, sets ...*Set) (*Set, bool) {
 		return sets[0], false
 	case 2:
 		intersection := NewSet([]string{})
+		var limitReached bool
 		for _, member := range sets[0].GetAll() {
+			if limit > 0 && intersection.Cardinality() >= limit {
+				limitReached = true
+				break
+			}
 			if sets[1].Contains(member) {
 				intersection.Add([]string{member})
 			}
 		}
-		return intersection, (limit > 0) && intersection.Cardinality() >= limit
+		return intersection, limitReached
 	default:
 		left, stop := Intersection(limit, sets[0:len(sets)/2]...)
 		if stop { // Check if limit is reached by left, if it is, return left
