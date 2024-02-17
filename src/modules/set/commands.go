@@ -854,19 +854,19 @@ Returns the cardinality of the new set`,
 			},
 			HandlerFunc: handleSINTER,
 		},
-		// {
-		// 	Command:     "sintercard",
-		// 	Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-		// 	Description: "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
-		// 	Sync:        false,
-		// 	KeyExtractionFunc: func(cmd []string) ([]string, error) {
-		// 		if len(cmd) < 2 {
-		// 			return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-		// 		}
-		// 		return cmd[1:], nil
-		// 	},
-		// 	HandlerFunc: handleSINTERCARD,
-		// },
+		{
+			Command:     "sintercard",
+			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleSINTERCARD,
+		},
 		{
 			Command:     "sinterstore",
 			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
