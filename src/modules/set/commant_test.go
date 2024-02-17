@@ -1143,7 +1143,101 @@ func Test_HandleSMOVE(t *testing.T) {
 	}
 }
 
-func Test_HandleSPOP(t *testing.T) {}
+func Test_HandleSPOP(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedValue    int // The final cardinality of the resulting set
+		expectedResponse []string
+		expectedError    error
+	}{
+		{ // 1. Return multiple popped elements and modify the set
+			preset:           true,
+			key:              "key1",
+			presetValue:      NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+			command:          []string{"SPOP", "key1", "3"},
+			expectedValue:    5,
+			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
+			expectedError:    nil,
+		},
+		{ // 2. Return error when the source key is not a set
+			preset:           true,
+			key:              "key2",
+			presetValue:      "Default value",
+			command:          []string{"SPOP", "key2"},
+			expectedValue:    0,
+			expectedResponse: []string{},
+			expectedError:    errors.New("value at key2 is not a set"),
+		},
+		{ // 5. Command too short
+			preset:        false,
+			command:       []string{"SPOP"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 6. Command too long
+			preset:        false,
+			command:       []string{"SPOP", "source5", "source6", "member1", "member2"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 7. Throw error when count is not an integer
+			preset:        false,
+			command:       []string{"SPOP", "key1", "count"},
+			expectedError: errors.New("count must be an integer"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleSPOP(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		// 1. Check if the response array members are all included in test.expectedResponse.
+		for _, element := range rv.Array() {
+			if !slices.Contains(test.expectedResponse, element.String()) {
+				t.Errorf("expected response array does not contain element \"%s\"", element.String())
+			}
+		}
+		// 2. Fetch the set and check if its cardinality is what we expect.
+		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+			t.Error(err)
+		}
+		set, ok := mockServer.GetValue(test.key).(*Set)
+		if !ok {
+			t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
+		}
+		if set.Cardinality() != test.expectedValue {
+			t.Errorf("expected cardinality of final set to be %d, got %d", test.expectedValue, set.Cardinality())
+		}
+		// 3. Check if all the popped elements we received are no longer in the set.
+		for _, element := range rv.Array() {
+			if set.Contains(element.String()) {
+				t.Errorf("expected element \"%s\" to not be in set but it was found", element.String())
+			}
+		}
+	}
+}
 
 func Test_HandleSRANDMEMBER(t *testing.T) {}
 
