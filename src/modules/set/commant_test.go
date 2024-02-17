@@ -1335,7 +1335,95 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 	}
 }
 
-func Test_HandleSREM(t *testing.T) {}
+func Test_HandleSREM(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedValue    *Set // The final cardinality of the resulting set
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Remove multiple elements and return the number of elements removed
+			preset:           true,
+			key:              "key1",
+			presetValue:      NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+			command:          []string{"SREM", "key1", "one", "two", "three", "nine"},
+			expectedValue:    NewSet([]string{"four", "five", "six", "seven", "eight"}),
+			expectedResponse: 3,
+			expectedError:    nil,
+		},
+		{ // 2. If key does not exist, return 0
+			preset:           false,
+			key:              "key2",
+			presetValue:      nil,
+			command:          []string{"SREM", "key1", "one", "two", "three", "nine"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 3. Return error when the source key is not a set
+			preset:           true,
+			key:              "key3",
+			presetValue:      "Default value",
+			command:          []string{"SREM", "key3", "one"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key key3 is not a set"),
+		},
+		{ // 4. Command too short
+			preset:        false,
+			command:       []string{"SREM", "key"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleSREM(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected integer response %d, got %d", test.expectedResponse, rv.Integer())
+		}
+		if test.expectedValue != nil {
+			if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			set, ok := mockServer.GetValue(test.key).(*Set)
+			if !ok {
+				t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
+			}
+			for _, element := range set.GetAll() {
+				if !test.expectedValue.Contains(element) {
+					t.Errorf("element \"%s\" not found in expected set values but found in set", element)
+				}
+			}
+			mockServer.KeyRUnlock(test.key)
+		}
+	}
+}
 
 func Test_HandleSUNION(t *testing.T) {}
 
