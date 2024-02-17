@@ -248,8 +248,6 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	intersect, _ := Intersection(0, sets...)
 	elems := intersect.GetAll()
 
-	fmt.Println("INTERSECT: ", elems)
-
 	res := fmt.Sprintf("*%d", len(elems))
 	for i, e := range elems {
 		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(e), e)

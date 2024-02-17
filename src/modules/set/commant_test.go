@@ -528,7 +528,134 @@ func Test_HandleSINTER(t *testing.T) {
 
 func Test_HandleSINTERCARD(t *testing.T) {}
 
-func Test_HandleSINTERSTORE(t *testing.T) {}
+func Test_HandleSINTERSTORE(t *testing.T) {
+	mockserver := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		destination      string
+		command          []string
+		expectedValue    *Set
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Get the intersection between 2 sets and store it at the destination.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+			},
+			destination:      "destination1",
+			command:          []string{"SINTERSTORE", "destination1", "key1", "key2"},
+			expectedValue:    NewSet([]string{"three", "four", "five"}),
+			expectedResponse: 3,
+			expectedError:    nil,
+		},
+		{ // 2. Get the intersection between 3 sets and store it at the destination key.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"key4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
+				"key5": NewSet([]string{"one", "seven", "eight", "nine", "ten", "twelve"}),
+			},
+			destination:      "destination2",
+			command:          []string{"SINTERSTORE", "destination2", "key3", "key4", "key5"},
+			expectedValue:    NewSet([]string{"one", "eight"}),
+			expectedResponse: 2,
+			expectedError:    nil,
+		},
+		{ // 3. Throw error when any of the keys is not a set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"key7": "Default value",
+				"key8": NewSet([]string{"one"}),
+			},
+			destination:      "destination3",
+			command:          []string{"SINTERSTORE", "destination3", "key6", "key7", "key8"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key key7 is not a set"),
+		},
+		{ // 4. Throw error when base set is not a set.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key9":  "Default value",
+				"key10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"key11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+			},
+			destination:      "destination4",
+			command:          []string{"SINTERSTORE", "destination4", "key9", "key10", "key11"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key key9 is not a set"),
+		},
+		{ // 5. Return an empty intersection if one of the keys does not exist.
+			preset:      true,
+			destination: "destination5",
+			presetValues: map[string]interface{}{
+				"key12": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"key13": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+			},
+			command:          []string{"SINTERSTORE", "destination5", "non-existent", "key7", "key8"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 6. Command too short
+			preset:           false,
+			command:          []string{"SINTERSTORE", "destination6"},
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockserver.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockserver.SetValue(context.Background(), key, value)
+				mockserver.KeyUnlock(key)
+			}
+		}
+		res, err := handleSINTERSTORE(context.Background(), test.command, mockserver, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
+		}
+		if test.expectedValue != nil {
+			if _, err = mockserver.KeyRLock(context.Background(), test.destination); err != nil {
+				t.Error(err)
+			}
+			set, ok := mockserver.GetValue(test.destination).(*Set)
+			if !ok {
+				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+			}
+			for _, elem := range set.GetAll() {
+				if !test.expectedValue.Contains(elem) {
+					t.Errorf("could not find element %s in the expected values", elem)
+				}
+			}
+			mockserver.KeyRUnlock(test.destination)
+		}
+	}
+}
 
 func Test_HandleSISMEMBER(t *testing.T) {}
 
