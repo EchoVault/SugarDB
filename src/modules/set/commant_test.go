@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
+	"slices"
 	"testing"
 )
 
@@ -188,7 +190,111 @@ func Test_HandleSCARD(t *testing.T) {
 	}
 }
 
-func Test_HandleSDIFF(t *testing.T) {}
+func Test_HandleSDIFF(t *testing.T) {
+	mockserver := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		command          []string
+		expectedResponse []string
+		expectedError    error
+	}{
+		{ // 1. Get the difference between 2 sets.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+			},
+			command:          []string{"SDIFF", "key1", "key2"},
+			expectedResponse: []string{"one", "two"},
+			expectedError:    nil,
+		},
+		{ // 2. Get the difference between 3 sets.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"key4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"key5": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+			},
+			command:          []string{"SDIFF", "key3", "key4", "key5"},
+			expectedResponse: []string{"three", "four", "five", "six"},
+			expectedError:    nil,
+		},
+		{ // 3. Return base set element if base set is the only valid set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"key7": "Default value",
+				"key8": 123456789,
+			},
+			command:          []string{"SDIFF", "key6", "key7", "key8"},
+			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
+			expectedError:    nil,
+		},
+		{ // 4. Throw error when base set is not a set.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key9":  "Default value",
+				"key10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"key11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+			},
+			command:          []string{"SDIFF", "key9", "key10", "key11"},
+			expectedResponse: nil,
+			expectedError:    errors.New("value at key key9 is not a set"),
+		},
+		{ // 5. Throw error when base set is non-existent.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key12": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"key13": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+			},
+			command:          []string{"SDIFF", "non-existent", "key7", "key8"},
+			expectedResponse: nil,
+			expectedError:    errors.New("key for base set \"non-existent\" does not exist"),
+		},
+		{ // 6. Command too short
+			preset:           false,
+			command:          []string{"SDIFF"},
+			expectedResponse: []string{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockserver.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockserver.SetValue(context.Background(), key, value)
+				mockserver.KeyUnlock(key)
+			}
+		}
+		res, err := handleSDIFF(context.Background(), test.command, mockserver, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		fmt.Println("EXPECTED: ", test.expectedResponse)
+		fmt.Println("RECEIVED: ", rv.Array())
+		for _, responseElement := range rv.Array() {
+			if !slices.Contains(test.expectedResponse, responseElement.String()) {
+				t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+			}
+		}
+	}
+}
 
 func Test_HandleSDIFFSTORE(t *testing.T) {}
 
