@@ -12,7 +12,7 @@ import (
 )
 
 func Test_HandleSADD(t *testing.T) {
-	mockserver := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		preset           bool
@@ -61,13 +61,13 @@ func Test_HandleSADD(t *testing.T) {
 
 	for _, test := range tests {
 		if test.preset {
-			if _, err := mockserver.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
 				t.Error(err)
 			}
-			mockserver.SetValue(context.Background(), test.key, test.presetValue)
-			mockserver.KeyUnlock(test.key)
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
 		}
-		res, err := handleSADD(context.Background(), test.command, mockserver, nil)
+		res, err := handleSADD(context.Background(), test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -85,10 +85,10 @@ func Test_HandleSADD(t *testing.T) {
 		if rv.Integer() != test.expectedResponse {
 			t.Errorf("expected integer response %d, got %d", test.expectedResponse, rv.Integer())
 		}
-		if _, err = mockserver.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		set, ok := mockserver.GetValue(test.key).(*Set)
+		set, ok := mockServer.GetValue(test.key).(*Set)
 		if !ok {
 			t.Errorf("expected set value at key \"%s\"", test.key)
 		}
@@ -100,12 +100,12 @@ func Test_HandleSADD(t *testing.T) {
 				t.Errorf("could not find member \"%s\" in expected set", member)
 			}
 		}
-		mockserver.KeyRUnlock(test.key)
+		mockServer.KeyRUnlock(test.key)
 	}
 }
 
 func Test_HandleSCARD(t *testing.T) {
-	mockserver := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		preset           bool
@@ -162,13 +162,13 @@ func Test_HandleSCARD(t *testing.T) {
 
 	for _, test := range tests {
 		if test.preset {
-			if _, err := mockserver.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
 				t.Error(err)
 			}
-			mockserver.SetValue(context.Background(), test.key, test.presetValue)
-			mockserver.KeyUnlock(test.key)
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
 		}
-		res, err := handleSCARD(context.Background(), test.command, mockserver, nil)
+		res, err := handleSCARD(context.Background(), test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -190,7 +190,7 @@ func Test_HandleSCARD(t *testing.T) {
 }
 
 func Test_HandleSDIFF(t *testing.T) {
-	mockserver := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		preset           bool
@@ -263,14 +263,14 @@ func Test_HandleSDIFF(t *testing.T) {
 	for _, test := range tests {
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockserver.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
 					t.Error(err)
 				}
-				mockserver.SetValue(context.Background(), key, value)
-				mockserver.KeyUnlock(key)
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
 			}
 		}
-		res, err := handleSDIFF(context.Background(), test.command, mockserver, nil)
+		res, err := handleSDIFF(context.Background(), test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -294,7 +294,7 @@ func Test_HandleSDIFF(t *testing.T) {
 }
 
 func Test_HandleSDIFFSTORE(t *testing.T) {
-	mockserver := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		preset           bool
@@ -379,14 +379,14 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 	for _, test := range tests {
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockserver.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
 					t.Error(err)
 				}
-				mockserver.SetValue(context.Background(), key, value)
-				mockserver.KeyUnlock(key)
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
 			}
 		}
-		res, err := handleSDIFFSTORE(context.Background(), test.command, mockserver, nil)
+		res, err := handleSDIFFSTORE(context.Background(), test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -405,10 +405,10 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
 		}
 		if test.expectedValue != nil {
-			if _, err = mockserver.KeyRLock(context.Background(), test.destination); err != nil {
+			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockserver.GetValue(test.destination).(*Set)
+			set, ok := mockServer.GetValue(test.destination).(*Set)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -417,13 +417,13 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 					t.Errorf("could not find element %s in the expected values", elem)
 				}
 			}
-			mockserver.KeyRUnlock(test.destination)
+			mockServer.KeyRUnlock(test.destination)
 		}
 	}
 }
 
 func Test_HandleSINTER(t *testing.T) {
-	mockserver := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		preset           bool
@@ -496,14 +496,14 @@ func Test_HandleSINTER(t *testing.T) {
 	for _, test := range tests {
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockserver.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
 					t.Error(err)
 				}
-				mockserver.SetValue(context.Background(), key, value)
-				mockserver.KeyUnlock(key)
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
 			}
 		}
-		res, err := handleSINTER(context.Background(), test.command, mockserver, nil)
+		res, err := handleSINTER(context.Background(), test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -527,7 +527,7 @@ func Test_HandleSINTER(t *testing.T) {
 }
 
 func Test_HandleSINTERCARD(t *testing.T) {
-	mockserver := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		preset           bool
@@ -611,14 +611,14 @@ func Test_HandleSINTERCARD(t *testing.T) {
 	for _, test := range tests {
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockserver.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
 					t.Error(err)
 				}
-				mockserver.SetValue(context.Background(), key, value)
-				mockserver.KeyUnlock(key)
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
 			}
 		}
-		res, err := handleSINTERCARD(context.Background(), test.command, mockserver, nil)
+		res, err := handleSINTERCARD(context.Background(), test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -640,7 +640,7 @@ func Test_HandleSINTERCARD(t *testing.T) {
 }
 
 func Test_HandleSINTERSTORE(t *testing.T) {
-	mockserver := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		preset           bool
@@ -725,14 +725,14 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 	for _, test := range tests {
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockserver.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
 					t.Error(err)
 				}
-				mockserver.SetValue(context.Background(), key, value)
-				mockserver.KeyUnlock(key)
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
 			}
 		}
-		res, err := handleSINTERSTORE(context.Background(), test.command, mockserver, nil)
+		res, err := handleSINTERSTORE(context.Background(), test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -751,10 +751,10 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
 		}
 		if test.expectedValue != nil {
-			if _, err = mockserver.KeyRLock(context.Background(), test.destination); err != nil {
+			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockserver.GetValue(test.destination).(*Set)
+			set, ok := mockServer.GetValue(test.destination).(*Set)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -763,13 +763,13 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 					t.Errorf("could not find element %s in the expected values", elem)
 				}
 			}
-			mockserver.KeyRUnlock(test.destination)
+			mockServer.KeyRUnlock(test.destination)
 		}
 	}
 }
 
 func Test_HandleSISMEMBER(t *testing.T) {
-	mockserver := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		preset           bool
@@ -821,13 +821,13 @@ func Test_HandleSISMEMBER(t *testing.T) {
 
 	for _, test := range tests {
 		if test.preset {
-			if _, err := mockserver.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
 				t.Error(err)
 			}
-			mockserver.SetValue(context.Background(), test.key, test.presetValue)
-			mockserver.KeyUnlock(test.key)
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
 		}
-		res, err := handleSISMEMBER(context.Background(), test.command, mockserver, nil)
+		res, err := handleSISMEMBER(context.Background(), test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -849,7 +849,7 @@ func Test_HandleSISMEMBER(t *testing.T) {
 }
 
 func Test_HandleSMEMBERS(t *testing.T) {
-	mockserver := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		preset           bool
@@ -899,13 +899,13 @@ func Test_HandleSMEMBERS(t *testing.T) {
 
 	for _, test := range tests {
 		if test.preset {
-			if _, err := mockserver.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
 				t.Error(err)
 			}
-			mockserver.SetValue(context.Background(), test.key, test.presetValue)
-			mockserver.KeyUnlock(test.key)
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
 		}
-		res, err := handleSMEMBERS(context.Background(), test.command, mockserver, nil)
+		res, err := handleSMEMBERS(context.Background(), test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -932,7 +932,7 @@ func Test_HandleSMEMBERS(t *testing.T) {
 }
 
 func Test_HandleSMISMEMBER(t *testing.T) {
-	mockserver := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		preset           bool
@@ -981,13 +981,13 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 
 	for _, test := range tests {
 		if test.preset {
-			if _, err := mockserver.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
 				t.Error(err)
 			}
-			mockserver.SetValue(context.Background(), test.key, test.presetValue)
-			mockserver.KeyUnlock(test.key)
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
 		}
-		res, err := handleSMISMEMBER(context.Background(), test.command, mockserver, nil)
+		res, err := handleSMISMEMBER(context.Background(), test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1011,7 +1011,137 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 	}
 }
 
-func Test_HandleSMOVE(t *testing.T) {}
+func Test_HandleSMOVE(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		command          []string
+		expectedValues   map[string]interface{}
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Return 1 after a successful move of a member from source set to destination set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"source1":      NewSet([]string{"one", "two", "three", "four"}),
+				"destination1": NewSet([]string{"five", "six", "seven", "eight"}),
+			},
+			command: []string{"SMOVE", "source1", "destination1", "four"},
+			expectedValues: map[string]interface{}{
+				"source1":      NewSet([]string{"one", "two", "three"}),
+				"destination1": NewSet([]string{"four", "five", "six", "seven", "eight"}),
+			},
+			expectedResponse: 1,
+			expectedError:    nil,
+		},
+		{ // 2. Return 0 when trying to move a member from source set to destination set when it doesn't exist in source
+			preset: true,
+			presetValues: map[string]interface{}{
+				"source2":      NewSet([]string{"one", "two", "three", "four", "five"}),
+				"destination2": NewSet([]string{"five", "six", "seven", "eight"}),
+			},
+			command: []string{"SMOVE", "source2", "destination2", "six"},
+			expectedValues: map[string]interface{}{
+				"source2":      NewSet([]string{"one", "two", "three", "four", "five"}),
+				"destination2": NewSet([]string{"five", "six", "seven", "eight"}),
+			},
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 3. Return error when the source key is not a set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"source3":      "Default value",
+				"destination3": NewSet([]string{"five", "six", "seven", "eight"}),
+			},
+			command: []string{"SMOVE", "source3", "destination3", "five"},
+			expectedValues: map[string]interface{}{
+				"source3":      "Default value",
+				"destination3": NewSet([]string{"five", "six", "seven", "eight"}),
+			},
+			expectedResponse: 0,
+			expectedError:    errors.New("source is not a set"),
+		},
+		{ // 4. Return error when the destination key is not a set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"source4":      NewSet([]string{"one", "two", "three", "four", "five"}),
+				"destination4": "Default value",
+			},
+			command: []string{"SMOVE", "source4", "destination4", "five"},
+			expectedValues: map[string]interface{}{
+				"source4":      NewSet([]string{"one", "two", "three", "four", "five"}),
+				"destination4": "Default value",
+			},
+			expectedResponse: 0,
+			expectedError:    errors.New("destination is not a set"),
+		},
+		{ // 5. Command too short
+			preset:        false,
+			command:       []string{"SMOVE", "source5", "source6"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 6. Command too long
+			preset:        false,
+			command:       []string{"SMOVE", "source5", "source6", "member1", "member2"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleSMOVE(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
+		}
+		for key, value := range test.expectedValues {
+			expectedSet, ok := value.(*Set)
+			if !ok {
+				t.Errorf("expected value at \"%s\" should be a set", key)
+			}
+			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+				t.Error(key)
+			}
+			set, ok := mockServer.GetValue(key).(*Set)
+			if !ok {
+				t.Errorf("expected set \"%s\" to be a set, got another type", key)
+			}
+			if expectedSet.Cardinality() != set.Cardinality() {
+				t.Errorf("expected set to have cardinaltity %d, got %d", expectedSet.Cardinality(), set.Cardinality())
+			}
+			for _, element := range expectedSet.GetAll() {
+				if !set.Contains(element) {
+					t.Errorf("could not find element \"%s\" in the expected set", element)
+				}
+			}
+			mockServer.KeyRUnlock(key)
+		}
+	}
+}
 
 func Test_HandleSPOP(t *testing.T) {}
 
