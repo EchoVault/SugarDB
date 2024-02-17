@@ -118,32 +118,33 @@ func (set *Set) Union(others []*Set) *Set {
 	return union
 }
 
-func (set *Set) Intersection(others []*Set, limit int) *Set {
-	intersection := NewSet([]string{})
-	for sIdx, s := range others {
-		if sIdx == 0 {
-			for _, e := range s.GetAll() {
-				if limit > 0 && intersection.Cardinality() == limit {
-					return intersection
-				}
-				if set.Contains(e) {
-					intersection.Add([]string{e})
-				}
-			}
-			continue
-		}
-		for _, e := range s.GetAll() {
-			if limit > 0 && intersection.Cardinality() == limit {
-				return intersection
-			}
-			if !intersection.Contains(e) {
-				intersection.Remove([]string{e})
-			} else {
-				intersection.Add([]string{e})
+// The Intersection accepts limit parameter of type int and a list of sets whose intersects are to be calculated.
+// When limit is greater than 0, then the calculation will stop once the intersect cardinality reaches limit without
+// calculating the full intersect.
+func Intersection(limit int, sets ...*Set) (*Set, bool) {
+	// Use divide & conquer to get the set intersections
+	switch len(sets) {
+	case 1:
+		return sets[0], false
+	case 2:
+		intersection := NewSet([]string{})
+		for _, member := range sets[0].GetAll() {
+			if sets[1].Contains(member) {
+				intersection.Add([]string{member})
 			}
 		}
+		return intersection, (limit > 0) && intersection.Cardinality() >= limit
+	default:
+		left, stop := Intersection(limit, sets[0:len(sets)/2]...)
+		if stop { // Check if limit is reached by left, if it is, return left
+			return left, stop
+		}
+		right, stop := Intersection(limit, sets[len(sets)/2:]...)
+		if stop { // Check if limit is reached by right, if it is, return right
+			return right, stop
+		}
+		return Intersection(limit, left, right)
 	}
-	return intersection
 }
 
 func (set *Set) Subtract(others []*Set) *Set {

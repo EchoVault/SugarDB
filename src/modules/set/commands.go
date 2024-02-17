@@ -245,8 +245,10 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, fmt.Errorf("not enough sets in the keys provided")
 	}
 
-	intersect := sets[0].Intersection(sets[1:], 0)
+	intersect, _ := Intersection(0, sets...)
 	elems := intersect.GetAll()
+
+	fmt.Println("INTERSECT: ", elems)
 
 	res := fmt.Sprintf("*%d", len(elems))
 	for i, e := range elems {
@@ -328,7 +330,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, co
 		return nil, fmt.Errorf("not enough sets in the keys provided")
 	}
 
-	intersect := sets[0].Intersection(sets[1:], limit)
+	intersect, _ := Intersection(limit, sets...)
 
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", intersect.Cardinality())), nil
 }
@@ -374,7 +376,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 		return nil, fmt.Errorf("not enough sets in the keys provided")
 	}
 
-	intersect := sets[0].Intersection(sets[1:], 0)
+	intersect, _ := Intersection(0, sets...)
 	destination := cmd[1]
 
 	if server.KeyExists(destination) {
@@ -852,19 +854,19 @@ Returns the cardinality of the new set`,
 			},
 			HandlerFunc: handleSINTER,
 		},
-		{
-			Command:     "sintercard",
-			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleSINTERCARD,
-		},
+		// {
+		// 	Command:     "sintercard",
+		// 	Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+		// 	Description: "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
+		// 	Sync:        false,
+		// 	KeyExtractionFunc: func(cmd []string) ([]string, error) {
+		// 		if len(cmd) < 2 {
+		// 			return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		// 		}
+		// 		return cmd[1:], nil
+		// 	},
+		// 	HandlerFunc: handleSINTERCARD,
+		// },
 		{
 			Command:     "sinterstore",
 			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
