@@ -802,10 +802,12 @@ func Commands() []utils.Command {
 			HandlerFunc: handleSCARD,
 		},
 		{
-			Command:     "sdiff",
-			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: "(SDIFF key [key...]) Returns the difference between all the sets in the given keys.",
-			Sync:        false,
+			Command:    "sdiff",
+			Categories: []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: `(SDIFF key [key...]) Returns the difference between all the sets in the given keys.
+If the first key provided is the only valid set, then this key's set will be returned as the result.
+All keys that are non-existed or hold values that are not sets will be skipped.`,
+			Sync: false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				if len(cmd) < 2 {
 					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
