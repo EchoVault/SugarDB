@@ -152,9 +152,10 @@ func Intersection(limit int, sets ...*Set) (*Set, bool) {
 	}
 }
 
+// Subtract received a list of sets and finds the difference between sets provided
 func (set *Set) Subtract(others []*Set) *Set {
 	diff := NewSet(set.GetAll())
-	remove := []string{}
+	var remove []string
 	for _, s := range others {
 		for k, _ := range s.members {
 			if diff.Contains(k) {
