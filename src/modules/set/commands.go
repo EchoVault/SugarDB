@@ -704,7 +704,7 @@ func handleSUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 		sets = append(sets, set)
 	}
 
-	union := sets[0].Union(sets[1:])
+	union := Union(sets...)
 
 	res := fmt.Sprintf("*%d", union.Cardinality())
 	for i, e := range union.GetAll() {
@@ -755,7 +755,7 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 		sets = append(sets, set)
 	}
 
-	union := sets[0].Union(sets[1:])
+	union := Union(sets...)
 
 	destination := cmd[1]
 

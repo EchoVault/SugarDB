@@ -108,16 +108,6 @@ func (set *Set) Contains(e string) bool {
 	return set.Get(e) != nil
 }
 
-func (set *Set) Union(others []*Set) *Set {
-	union := NewSet(set.GetAll())
-	for _, s := range others {
-		for k, _ := range s.members {
-			union.Add([]string{k})
-		}
-	}
-	return union
-}
-
 // Subtract received a list of sets and finds the difference between sets provided
 func (set *Set) Subtract(others []*Set) *Set {
 	diff := NewSet(set.GetAll())
@@ -173,5 +163,21 @@ func Intersection(limit int, sets ...*Set) (*Set, bool) {
 			return right, stop
 		}
 		return Intersection(limit, left, right)
+	}
+}
+
+// Union takes a slice of sets and generates a union
+func Union(sets ...*Set) *Set {
+	switch len(sets) {
+	case 1:
+		return sets[0]
+	case 2:
+		union := sets[0]
+		union.Add(sets[1].GetAll())
+		return union
+	default:
+		left := Union(sets[0 : len(sets)/2]...)
+		right := Union(sets[len(sets)/2:]...)
+		return Union(left, right)
 	}
 }
