@@ -442,7 +442,7 @@ func Test_HandleSINTER(t *testing.T) {
 			expectedResponse: []string{"three", "four", "five"},
 			expectedError:    nil,
 		},
-		{ // 2. Get the difference between 3 sets.
+		{ // 2. Get the intersection between 3 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
 				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
@@ -1483,7 +1483,7 @@ func Test_HandleSUNION(t *testing.T) {
 		},
 		{ // 6. Command too short
 			preset:           false,
-			command:          []string{"SINTER"},
+			command:          []string{"SUNION"},
 			expectedResponse: []string{},
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
@@ -1522,4 +1522,109 @@ func Test_HandleSUNION(t *testing.T) {
 	}
 }
 
-func Test_HandleSUNIONSTORE(t *testing.T) {}
+func Test_HandleSUNIONSTORE(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		destination      string
+		command          []string
+		expectedValue    *Set
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Get the intersection between 2 sets and store it at the destination.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+			},
+			destination:      "destination1",
+			command:          []string{"SUNIONSTORE", "destination1", "key1", "key2"},
+			expectedValue:    NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+			expectedResponse: 8,
+			expectedError:    nil,
+		},
+		{ // 2. Get the intersection between 3 sets and store it at the destination key.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"key4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
+				"key5": NewSet([]string{"one", "seven", "eight", "nine", "ten", "twelve"}),
+			},
+			destination: "destination2",
+			command:     []string{"SUNIONSTORE", "destination2", "key3", "key4", "key5"},
+			expectedValue: NewSet([]string{
+				"one", "two", "three", "four", "five", "six", "seven", "eight",
+				"nine", "ten", "eleven", "twelve", "thirty-six",
+			}),
+			expectedResponse: 13,
+			expectedError:    nil,
+		},
+		{ // 3. Throw error when any of the keys is not a set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"key7": "Default value",
+				"key8": NewSet([]string{"one"}),
+			},
+			destination:      "destination3",
+			command:          []string{"SUNIONSTORE", "destination3", "key6", "key7", "key8"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key key7 is not a set"),
+		},
+		{ // 5. Command too short
+			preset:           false,
+			command:          []string{"SUNIONSTORE", "destination6"},
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleSUNIONSTORE(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
+		}
+		if test.expectedValue != nil {
+			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
+				t.Error(err)
+			}
+			set, ok := mockServer.GetValue(test.destination).(*Set)
+			if !ok {
+				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+			}
+			for _, elem := range set.GetAll() {
+				if !test.expectedValue.Contains(elem) {
+					t.Errorf("could not find element %s in the expected values", elem)
+				}
+			}
+			mockServer.KeyRUnlock(test.destination)
+		}
+	}
+}
