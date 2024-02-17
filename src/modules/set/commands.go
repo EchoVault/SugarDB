@@ -370,10 +370,6 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 		sets = append(sets, set)
 	}
 
-	if len(sets) <= 0 {
-		return nil, fmt.Errorf("not enough sets in the keys provided")
-	}
-
 	intersect, _ := Intersection(0, sets...)
 	destination := cmd[1]
 
