@@ -770,7 +770,7 @@ func Commands() []utils.Command {
 		{
 			Command:     "sadd",
 			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(SADD key member [member...]) Add one or more members to the set.",
+			Description: "(SADD key member [member...]) Add one or more members to the set. If the set does not exist, it's created.",
 			Sync:        true,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				if len(cmd) < 3 {
