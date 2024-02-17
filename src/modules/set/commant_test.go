@@ -850,6 +850,86 @@ func Test_HandleSISMEMBER(t *testing.T) {
 
 func Test_HandleSMEMBERS(t *testing.T) {}
 
+func Test_HandleSMISMEMBER(t *testing.T) {
+	mockserver := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValue      interface{}
+		key              string
+		command          []string
+		expectedResponse []int
+		expectedError    error
+	}{
+		{
+			// 1. Return set membership status for multiple elements
+			// Return 1 for present and 0 for absent
+			// The placement of the membership status flag should me consistent with the order the elements
+			// are in within the original command
+			preset:           true,
+			presetValue:      NewSet([]string{"one", "two", "three", "four", "five", "six", "seven"}),
+			key:              "key1",
+			command:          []string{"SMISMEMBER", "key1", "three", "four", "five", "six", "eight", "nine", "seven"},
+			expectedResponse: []int{1, 1, 1, 1, 0, 0, 1},
+			expectedError:    nil,
+		},
+		{ // 2. If the set key does not exist, return an array of zeroes as long as the list of members
+			preset:           false,
+			presetValue:      nil,
+			key:              "key2",
+			command:          []string{"SMISMEMBER", "key2", "one", "two", "three", "four"},
+			expectedResponse: []int{0, 0, 0, 0},
+			expectedError:    nil,
+		},
+		{ // 3. Throw error when trying to assert membership when the key does not hold a valid set
+			preset:           true,
+			presetValue:      "Default value",
+			key:              "key3",
+			command:          []string{"SMISMEMBER", "key3", "one"},
+			expectedResponse: nil,
+			expectedError:    errors.New("value at key key3 is not a set"),
+		},
+		{ // 4. Command too short
+			preset:           false,
+			key:              "key4",
+			command:          []string{"SMISMEMBER", "key4"},
+			expectedResponse: nil,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockserver.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockserver.SetValue(context.Background(), test.key, test.presetValue)
+			mockserver.KeyUnlock(test.key)
+		}
+		res, err := handleSMISMEMBER(context.Background(), test.command, mockserver, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		responseArray := rv.Array()
+		for i := 0; i < len(responseArray); i++ {
+			if responseArray[i].Integer() != test.expectedResponse[i] {
+				t.Errorf("expected integer %d at index %d, got %d", test.expectedResponse[i], i, responseArray[i].Integer())
+			}
+		}
+	}
+}
+
 func Test_HandleSMOVE(t *testing.T) {}
 
 func Test_HandleSPOP(t *testing.T) {}

@@ -484,16 +484,14 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server, co
 	}
 
 	res := fmt.Sprintf("*%d", len(members))
-	for i, m := range members {
-		if set.Contains(m) {
+	for i := 0; i < len(members); i++ {
+		if set.Contains(members[i]) {
 			res += "\r\n:1"
 		} else {
 			res += "\r\n:0"
 		}
-		if i == len(members)-1 {
-			res += "\r\n\r\n"
-		}
 	}
+	res += "\r\n\r\n"
 
 	return []byte(res), nil
 }
