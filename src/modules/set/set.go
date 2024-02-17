@@ -118,6 +118,30 @@ func (set *Set) Union(others []*Set) *Set {
 	return union
 }
 
+// Subtract received a list of sets and finds the difference between sets provided
+func (set *Set) Subtract(others []*Set) *Set {
+	diff := NewSet(set.GetAll())
+	var remove []string
+	for _, s := range others {
+		for k, _ := range s.members {
+			if diff.Contains(k) {
+				remove = append(remove, k)
+			}
+		}
+	}
+	diff.Remove(remove)
+	return diff
+}
+
+func (set *Set) Move(destination *Set, e string) int {
+	if !set.Contains(e) {
+		return 0
+	}
+	set.Remove([]string{e})
+	destination.Add([]string{e})
+	return 1
+}
+
 // The Intersection accepts limit parameter of type int and a list of sets whose intersects are to be calculated.
 // When limit is greater than 0, then the calculation will stop once the intersect cardinality reaches limit without
 // calculating the full intersect.
@@ -150,28 +174,4 @@ func Intersection(limit int, sets ...*Set) (*Set, bool) {
 		}
 		return Intersection(limit, left, right)
 	}
-}
-
-// Subtract received a list of sets and finds the difference between sets provided
-func (set *Set) Subtract(others []*Set) *Set {
-	diff := NewSet(set.GetAll())
-	var remove []string
-	for _, s := range others {
-		for k, _ := range s.members {
-			if diff.Contains(k) {
-				remove = append(remove, k)
-			}
-		}
-	}
-	diff.Remove(remove)
-	return diff
-}
-
-func (set *Set) Move(destination *Set, e string) int {
-	if !set.Contains(e) {
-		return 0
-	}
-	set.Remove([]string{e})
-	destination.Add([]string{e})
-	return 1
 }
