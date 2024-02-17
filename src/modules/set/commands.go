@@ -56,8 +56,7 @@ func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 		return []byte(fmt.Sprintf(":0\r\n\r\n")), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err := server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)

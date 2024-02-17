@@ -103,7 +103,90 @@ func Test_HandleSADD(t *testing.T) {
 	}
 }
 
-func Test_HandleSCARD(t *testing.T) {}
+func Test_HandleSCARD(t *testing.T) {
+	mockserver := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValue      interface{}
+		key              string
+		command          []string
+		expectedValue    *Set
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Get cardinality of valid set.
+			preset:           true,
+			presetValue:      NewSet([]string{"one", "two", "three", "four"}),
+			key:              "key1",
+			command:          []string{"SCARD", "key1"},
+			expectedValue:    nil,
+			expectedResponse: 4,
+			expectedError:    nil,
+		},
+		{ // 2. Return 0 when trying to get cardinality on non-existent key
+			preset:           false,
+			presetValue:      nil,
+			key:              "key2",
+			command:          []string{"SCARD", "key2"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 3. Throw error when trying to get cardinality of a value that is not a set
+			preset:           true,
+			presetValue:      "Default value",
+			key:              "key3",
+			command:          []string{"SCARD", "key3"},
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key key3 is not a set"),
+		},
+		{ // 4. Command too short
+			preset:           false,
+			key:              "key4",
+			command:          []string{"SCARD"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 5. Command too long
+			preset:           false,
+			key:              "key5",
+			command:          []string{"SCARD", "key5", "key5"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockserver.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockserver.SetValue(context.Background(), test.key, test.presetValue)
+			mockserver.KeyUnlock(test.key)
+		}
+		res, err := handleSCARD(context.Background(), test.command, mockserver, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected integer response %d, got %d", test.expectedResponse, rv.Integer())
+		}
+	}
+}
 
 func Test_HandleSDIFF(t *testing.T) {}
 
