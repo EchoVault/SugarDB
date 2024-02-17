@@ -768,7 +768,85 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 	}
 }
 
-func Test_HandleSISMEMBER(t *testing.T) {}
+func Test_HandleSISMEMBER(t *testing.T) {
+	mockserver := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValue      interface{}
+		key              string
+		command          []string
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Return 1 when element is a member of the set
+			preset:           true,
+			presetValue:      NewSet([]string{"one", "two", "three", "four"}),
+			key:              "key1",
+			command:          []string{"SISMEMBER", "key1", "three"},
+			expectedResponse: 1,
+			expectedError:    nil,
+		},
+		{ // 2. Return 0 when element is not a member of the set
+			preset:           true,
+			presetValue:      NewSet([]string{"one", "two", "three", "four"}),
+			key:              "key2",
+			command:          []string{"SISMEMBER", "key2", "five"},
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 3. Throw error when trying to assert membership when the key does not hold a valid set
+			preset:           true,
+			presetValue:      "Default value",
+			key:              "key3",
+			command:          []string{"SISMEMBER", "key3", "one"},
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key key3 is not a set"),
+		},
+		{ // 4. Command too short
+			preset:           false,
+			key:              "key4",
+			command:          []string{"SISMEMBER", "key4"},
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 5. Command too long
+			preset:           false,
+			key:              "key5",
+			command:          []string{"SISMEMBER", "key5", "one", "two", "three"},
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockserver.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockserver.SetValue(context.Background(), test.key, test.presetValue)
+			mockserver.KeyUnlock(test.key)
+		}
+		res, err := handleSISMEMBER(context.Background(), test.command, mockserver, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected integer response %d, got %d", test.expectedResponse, rv.Integer())
+		}
+	}
+}
 
 func Test_HandleSMEMBERS(t *testing.T) {}
 
