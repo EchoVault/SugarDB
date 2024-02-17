@@ -1425,6 +1425,101 @@ func Test_HandleSREM(t *testing.T) {
 	}
 }
 
-func Test_HandleSUNION(t *testing.T) {}
+func Test_HandleSUNION(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		command          []string
+		expectedResponse []string
+		expectedError    error
+	}{
+		{ // 1. Get the union between 2 sets.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+			},
+			command:          []string{"SUNION", "key1", "key2"},
+			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
+			expectedError:    nil,
+		},
+		{ // 2. Get the union between 3 sets.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"key4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
+				"key5": NewSet([]string{"one", "eight", "nine", "ten", "twelve"}),
+			},
+			command: []string{"SUNION", "key3", "key4", "key5"},
+			expectedResponse: []string{
+				"one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+				"ten", "eleven", "twelve", "thirty-six",
+			},
+			expectedError: nil,
+		},
+		{ // 3. Throw an error if any of the provided keys are not sets
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"key7": "Default value",
+				"key8": NewSet([]string{"one"}),
+			},
+			command:          []string{"SUNION", "key6", "key7", "key8"},
+			expectedResponse: nil,
+			expectedError:    errors.New("value at key key7 is not a set"),
+		},
+		{ // 4. Throw error any of the keys does not hold a set.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key9":  "Default value",
+				"key10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"key11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+			},
+			command:          []string{"SUNION", "key9", "key10", "key11"},
+			expectedResponse: nil,
+			expectedError:    errors.New("value at key key9 is not a set"),
+		},
+		{ // 6. Command too short
+			preset:           false,
+			command:          []string{"SINTER"},
+			expectedResponse: []string{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleSUNION(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		for _, responseElement := range rv.Array() {
+			if !slices.Contains(test.expectedResponse, responseElement.String()) {
+				t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+			}
+		}
+	}
+}
 
 func Test_HandleSUNIONSTORE(t *testing.T) {}
