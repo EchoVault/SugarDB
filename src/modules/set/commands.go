@@ -11,11 +11,12 @@ import (
 )
 
 func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := saddKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	var set *Set
 
@@ -29,8 +30,7 @@ func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(cmd[2:]))), nil
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -46,17 +46,18 @@ func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := scardKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte(fmt.Sprintf(":0\r\n\r\n")), nil
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -72,21 +73,22 @@ func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := sdiffKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	// Extract base set first
-	if !server.KeyExists(cmd[1]) {
-		return nil, fmt.Errorf("key for base set \"%s\" does not exist", cmd[1])
+	if !server.KeyExists(keys[0]) {
+		return nil, fmt.Errorf("key for base set \"%s\" does not exist", keys[0])
 	}
-	if _, err := server.KeyRLock(ctx, cmd[1]); err != nil {
+	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(cmd[1])
-	baseSet, ok := server.GetValue(cmd[1]).(*Set)
+	defer server.KeyRUnlock(keys[0])
+	baseSet, ok := server.GetValue(keys[0]).(*Set)
 	if !ok {
-		return nil, fmt.Errorf("value at key %s is not a set", cmd[1])
+		return nil, fmt.Errorf("value at key %s is not a set", keys[0])
 	}
 
 	locks := make(map[string]bool)
@@ -98,12 +100,11 @@ func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 		}
 	}()
 
-	for _, key := range cmd[2:] {
+	for _, key := range keys[1:] {
 		if !server.KeyExists(key) {
 			continue
 		}
-		_, err := server.KeyRLock(ctx, key)
-		if err != nil {
+		if _, err = server.KeyRLock(ctx, key); err != nil {
 			continue
 		}
 		locks[key] = true
@@ -133,23 +134,24 @@ func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-	}
-
-	destination := cmd[1]
-
-	// Extract base set first
-	if !server.KeyExists(cmd[2]) {
-		return nil, fmt.Errorf("key for base set \"%s\" does not exist", cmd[2])
-	}
-	if _, err := server.KeyRLock(ctx, cmd[2]); err != nil {
+	keys, err := sdiffstoreKeyFunc(cmd)
+	if err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(cmd[2])
-	baseSet, ok := server.GetValue(cmd[2]).(*Set)
+
+	destination := keys[0]
+
+	// Extract base set first
+	if !server.KeyExists(keys[1]) {
+		return nil, fmt.Errorf("key for base set \"%s\" does not exist", keys[1])
+	}
+	if _, err := server.KeyRLock(ctx, keys[1]); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(keys[1])
+	baseSet, ok := server.GetValue(keys[1]).(*Set)
 	if !ok {
-		return nil, fmt.Errorf("value at key %s is not a set", cmd[2])
+		return nil, fmt.Errorf("value at key %s is not a set", keys[1])
 	}
 
 	locks := make(map[string]bool)
@@ -161,19 +163,18 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 		}
 	}()
 
-	for _, key := range cmd[3:] {
+	for _, key := range keys[2:] {
 		if !server.KeyExists(key) {
 			continue
 		}
-		_, err := server.KeyRLock(ctx, key)
-		if err != nil {
+		if _, err = server.KeyRLock(ctx, key); err != nil {
 			continue
 		}
 		locks[key] = true
 	}
 
 	var sets []*Set
-	for _, key := range cmd[3:] {
+	for _, key := range keys[2:] {
 		set, ok := server.GetValue(key).(*Set)
 		if !ok {
 			continue
@@ -187,7 +188,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 	res := fmt.Sprintf(":%d\r\n\r\n", len(elems))
 
 	if server.KeyExists(destination) {
-		if _, err := server.KeyLock(ctx, destination); err != nil {
+		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
 		server.SetValue(ctx, destination, diff)
@@ -195,7 +196,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 		return []byte(res), nil
 	}
 
-	if _, err := server.CreateKeyAndLock(ctx, destination); err != nil {
+	if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
 		return nil, err
 	}
 	server.SetValue(ctx, destination, diff)
@@ -205,8 +206,9 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 }
 
 func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := sinterKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	locks := make(map[string]bool)
@@ -218,13 +220,12 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 	}()
 
-	for _, key := range cmd[1:] {
+	for _, key := range keys[0:] {
 		if !server.KeyExists(key) {
 			// If key does not exist, then there is no intersection
 			return []byte("*0\r\n\r\n"), nil
 		}
-		_, err := server.KeyRLock(ctx, key)
-		if err != nil {
+		if _, err = server.KeyRLock(ctx, key); err != nil {
 			return nil, err
 		}
 		locks[key] = true
@@ -260,8 +261,9 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := sintercardKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	// Extract the limit from the command
@@ -294,20 +296,12 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, co
 		}
 	}()
 
-	var keySlice []string
-	if limitIdx == -1 {
-		keySlice = cmd[1:]
-	} else {
-		keySlice = cmd[1 : limitIdx-1]
-	}
-
-	for _, key := range keySlice {
+	for _, key := range keys {
 		if !server.KeyExists(key) {
 			// If key does not exist, then there is no intersection
 			return []byte(":0\r\n\r\n"), nil
 		}
-		_, err := server.KeyRLock(ctx, key)
-		if err != nil {
+		if _, err = server.KeyRLock(ctx, key); err != nil {
 			return nil, err
 		}
 		locks[key] = true
@@ -334,8 +328,9 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, co
 }
 
 func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := sinterstoreKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	locks := make(map[string]bool)
@@ -347,13 +342,12 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 		}
 	}()
 
-	for _, key := range cmd[2:] {
+	for _, key := range keys[1:] {
 		if !server.KeyExists(key) {
 			// If key does not exist, then there is no intersection
 			return []byte(":0\r\n\r\n"), nil
 		}
-		_, err := server.KeyRLock(ctx, key)
-		if err != nil {
+		if _, err = server.KeyRLock(ctx, key); err != nil {
 			return nil, err
 		}
 		locks[key] = true
@@ -371,14 +365,14 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	}
 
 	intersect, _ := Intersection(0, sets...)
-	destination := cmd[1]
+	destination := keys[0]
 
 	if server.KeyExists(destination) {
-		if _, err := server.KeyLock(ctx, destination); err != nil {
+		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	} else {
-		if _, err := server.CreateKeyAndLock(ctx, destination); err != nil {
+		if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	}
@@ -390,18 +384,18 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 }
 
 func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := sismemberKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte(":0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -419,18 +413,18 @@ func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server, con
 }
 
 func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := smembersKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte("*0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -454,11 +448,12 @@ func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server, conn
 }
 
 func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := smismemberKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	members := cmd[2:]
 
 	if !server.KeyExists(key) {
@@ -472,8 +467,7 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server, co
 		return []byte(res), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -497,20 +491,20 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server, co
 }
 
 func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := smoveKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	source := cmd[1]
-	destination := cmd[2]
+	source := keys[0]
+	destination := keys[1]
 	member := cmd[3]
 
 	if !server.KeyExists(source) {
 		return []byte(":0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyLock(ctx, source)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, source); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(source)
@@ -524,8 +518,7 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *n
 
 	if !server.KeyExists(destination) {
 		// Destination key does not exist
-		_, err := server.CreateKeyAndLock(ctx, destination)
-		if err != nil {
+		if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
 			return nil, err
 		}
 		defer server.KeyUnlock(destination)
@@ -533,8 +526,7 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *n
 		server.SetValue(ctx, destination, destinationSet)
 	} else {
 		// Destination key exists
-		_, err := server.KeyLock(ctx, destination)
-		if err != nil {
+		if _, err := server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
 		defer server.KeyUnlock(destination)
@@ -551,11 +543,12 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleSPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 || len(cmd) > 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := spopKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	count := 1
 
 	if len(cmd) == 3 {
@@ -570,8 +563,7 @@ func handleSPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		return []byte("*-1\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -595,11 +587,12 @@ func handleSPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 || len(cmd) > 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := srandmemberKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	count := 1
 
 	if len(cmd) == 3 {
@@ -614,8 +607,7 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 		return []byte("*-1\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -639,19 +631,19 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 }
 
 func handleSREM(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := sremKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	members := cmd[2:]
 
 	if !server.KeyExists(key) {
 		return []byte(":0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -667,8 +659,9 @@ func handleSREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleSUNION(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := sunionKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	locks := make(map[string]bool)
@@ -680,12 +673,11 @@ func handleSUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 	}()
 
-	for _, key := range cmd[1:] {
+	for _, key := range keys {
 		if !server.KeyExists(key) {
 			continue
 		}
-		_, err := server.KeyRLock(ctx, key)
-		if err != nil {
+		if _, err = server.KeyRLock(ctx, key); err != nil {
 			return nil, err
 		}
 		locks[key] = true
@@ -718,8 +710,9 @@ func handleSUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := sunionstoreKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	locks := make(map[string]bool)
@@ -731,12 +724,11 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 		}
 	}()
 
-	for _, key := range cmd[2:] {
+	for _, key := range keys[1:] {
 		if !server.KeyExists(key) {
 			continue
 		}
-		_, err := server.KeyRLock(ctx, key)
-		if err != nil {
+		if _, err = server.KeyRLock(ctx, key); err != nil {
 			return nil, err
 		}
 		locks[key] = true
@@ -760,13 +752,11 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	destination := cmd[1]
 
 	if server.KeyExists(destination) {
-		_, err := server.KeyLock(ctx, destination)
-		if err != nil {
+		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	} else {
-		_, err := server.CreateKeyAndLock(ctx, destination)
-		if err != nil {
+		if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	}
@@ -779,30 +769,20 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
-			Command:     "sadd",
-			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(SADD key member [member...]) Add one or more members to the set. If the set does not exist, it's created.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSADD,
+			Command:           "sadd",
+			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       "(SADD key member [member...]) Add one or more members to the set. If the set does not exist, it's created.",
+			Sync:              true,
+			KeyExtractionFunc: saddKeyFunc,
+			HandlerFunc:       handleSADD,
 		},
 		{
-			Command:     "scard",
-			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(SCARD key) Returns the cardinality of the set.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSCARD,
+			Command:           "scard",
+			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       "(SCARD key) Returns the cardinality of the set.",
+			Sync:              false,
+			KeyExtractionFunc: scardKeyFunc,
+			HandlerFunc:       handleSCARD,
 		},
 		{
 			Command:    "sdiff",
@@ -810,185 +790,115 @@ func Commands() []utils.Command {
 			Description: `(SDIFF key [key...]) Returns the difference between all the sets in the given keys.
 If the first key provided is the only valid set, then this key's set will be returned as the result.
 All keys that are non-existed or hold values that are not sets will be skipped.`,
-			Sync: false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleSDIFF,
+			Sync:              false,
+			KeyExtractionFunc: sdiffKeyFunc,
+			HandlerFunc:       handleSDIFF,
 		},
 		{
 			Command:    "sdiffstore",
 			Categories: []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `(SDIFFSTORE destination key [key...]) Works the same as SDIFF but also stores the result at 'destination'.
 Returns the cardinality of the new set`,
-			Sync: true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleSDIFFSTORE,
+			Sync:              true,
+			KeyExtractionFunc: sdiffstoreKeyFunc,
+			HandlerFunc:       handleSDIFFSTORE,
 		},
 		{
-			Command:     "sinter",
-			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
-			Description: "(SINTER key [key...]) Returns the intersection of multiple sets.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleSINTER,
+			Command:           "sinter",
+			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Description:       "(SINTER key [key...]) Returns the intersection of multiple sets.",
+			Sync:              false,
+			KeyExtractionFunc: sinterKeyFunc,
+			HandlerFunc:       handleSINTER,
 		},
 		{
-			Command:     "sintercard",
-			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleSINTERCARD,
+			Command:           "sintercard",
+			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
+			Sync:              false,
+			KeyExtractionFunc: sintercardKeyFunc,
+			HandlerFunc:       handleSINTERCARD,
 		},
 		{
-			Command:     "sinterstore",
-			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
-			Description: "(SINTERSTORE destination key [key...]) Stores the intersection of multiple sets at the destination key.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleSINTERSTORE,
+			Command:           "sinterstore",
+			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Description:       "(SINTERSTORE destination key [key...]) Stores the intersection of multiple sets at the destination key.",
+			Sync:              true,
+			KeyExtractionFunc: sinterstoreKeyFunc,
+			HandlerFunc:       handleSINTERSTORE,
 		},
 		{
-			Command:     "sismember",
-			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
-			Description: "(SISMEMBER key member) Returns if member is contained in the set.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSISMEMBER,
+			Command:           "sismember",
+			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
+			Description:       "(SISMEMBER key member) Returns if member is contained in the set.",
+			Sync:              false,
+			KeyExtractionFunc: sismemberKeyFunc,
+			HandlerFunc:       handleSISMEMBER,
 		},
 		{
-			Command:     "smembers",
-			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: "(SMEMBERS key) Returns all members of a set.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSMEMBERS,
+			Command:           "smembers",
+			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       "(SMEMBERS key) Returns all members of a set.",
+			Sync:              false,
+			KeyExtractionFunc: smembersKeyFunc,
+			HandlerFunc:       handleSMEMBERS,
 		},
 		{
-			Command:     "smismember",
-			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
-			Description: "(SMISMEMBER key member [member...]) Returns if multiple members are in the set.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSMISMEMBER,
+			Command:           "smismember",
+			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
+			Description:       "(SMISMEMBER key member [member...]) Returns if multiple members are in the set.",
+			Sync:              false,
+			KeyExtractionFunc: smismemberKeyFunc,
+			HandlerFunc:       handleSMISMEMBER,
 		},
 
 		{
-			Command:     "smove",
-			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(SMOVE source destination member) Moves a member from source set to destination set.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:3], nil
-			},
-			HandlerFunc: handleSMOVE,
+			Command:           "smove",
+			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       "(SMOVE source destination member) Moves a member from source set to destination set.",
+			Sync:              true,
+			KeyExtractionFunc: smoveKeyFunc,
+			HandlerFunc:       handleSMOVE,
 		},
 		{
-			Command:     "spop",
-			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
-			Description: "(SPOP key [count]) Returns and removes one or more random members from the set.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSPOP,
+			Command:           "spop",
+			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Description:       "(SPOP key [count]) Returns and removes one or more random members from the set.",
+			Sync:              true,
+			KeyExtractionFunc: spopKeyFunc,
+			HandlerFunc:       handleSPOP,
 		},
 		{
-			Command:     "srandmember",
-			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: "(SRANDMEMBER key [count]) Returns one or more random members from the set without removing them.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSRANDMEMBER,
+			Command:           "srandmember",
+			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       "(SRANDMEMBER key [count]) Returns one or more random members from the set without removing them.",
+			Sync:              false,
+			KeyExtractionFunc: srandmemberKeyFunc,
+			HandlerFunc:       handleSRANDMEMBER,
 		},
 		{
-			Command:     "srem",
-			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(SREM key member [member...]) Remove one or more members from a set.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSREM,
+			Command:           "srem",
+			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       "(SREM key member [member...]) Remove one or more members from a set.",
+			Sync:              true,
+			KeyExtractionFunc: sremKeyFunc,
+			HandlerFunc:       handleSREM,
 		},
 		{
-			Command:     "sunion",
-			Categories:  []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: "(SUNION key [key...]) Returns the members of the set resulting from the union of the provided sets.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleSUNION,
+			Command:           "sunion",
+			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       "(SUNION key [key...]) Returns the members of the set resulting from the union of the provided sets.",
+			Sync:              false,
+			KeyExtractionFunc: sunionKeyFunc,
+			HandlerFunc:       handleSUNION,
 		},
 		{
-			Command:     "sunionstore",
-			Categories:  []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
-			Description: "(SUNIONSTORE destination key [key...]) Stores the union of the given sets into destination.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleSUNIONSTORE,
+			Command:           "sunionstore",
+			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Description:       "(SUNIONSTORE destination key [key...]) Stores the union of the given sets into destination.",
+			Sync:              true,
+			KeyExtractionFunc: sunionstoreKeyFunc,
+			HandlerFunc:       handleSUNIONSTORE,
 		},
 	}
 }
