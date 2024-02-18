@@ -12,19 +12,19 @@ import (
 )
 
 func handleLLen(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := llenKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		// If key does not exist, return 0
 		return []byte(":0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -37,11 +37,12 @@ func handleLLen(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleLIndex(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := lindexKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	index, ok := utils.AdaptType(cmd[2]).(int)
 
 	if !ok {
@@ -52,8 +53,7 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, errors.New("LINDEX command on non-list item")
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	list, ok := server.GetValue(key).([]interface{})
@@ -71,11 +71,12 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := lrangeKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	start, startOk := utils.AdaptType(cmd[2]).(int)
 	end, endOk := utils.AdaptType(cmd[3]).(int)
 
@@ -87,7 +88,7 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, errors.New("LRANGE command on non-list item")
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -153,11 +154,12 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleLSet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := lsetKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	index, ok := utils.AdaptType(cmd[2]).(int)
 	if !ok {
@@ -168,8 +170,7 @@ func handleLSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		return nil, errors.New("LSET command on non-list item")
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -190,11 +191,12 @@ func handleLSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleLTrim(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := ltrimKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	start, startOk := utils.AdaptType(cmd[2]).(int)
 	end, endOk := utils.AdaptType(cmd[3]).(int)
 
@@ -210,7 +212,7 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server, conn *n
 		return nil, errors.New("LTRIM command on non-list item")
 	}
 
-	if _, err := server.KeyLock(ctx, key); err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -234,11 +236,12 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := lremKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	value := cmd[3]
 
 	count, ok := utils.AdaptType(cmd[2]).(int)
@@ -252,8 +255,7 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		return nil, errors.New("LREM command on non-list item")
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -300,12 +302,13 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 5 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := lmoveKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	source := cmd[1]
-	destination := cmd[2]
+	source := keys[0]
+	destination := keys[1]
 	whereFrom := strings.ToLower(cmd[3])
 	whereTo := strings.ToLower(cmd[4])
 
@@ -317,8 +320,7 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *n
 		return nil, errors.New("both source and destination must be lists")
 	}
 
-	_, err := server.KeyLock(ctx, source)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, source); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(source)
@@ -357,8 +359,9 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := lpushKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	var newElems []interface{}
@@ -367,7 +370,7 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 		newElems = append(newElems, utils.AdaptType(elem))
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		switch strings.ToLower(cmd[0]) {
@@ -375,14 +378,13 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 			return nil, errors.New("LPUSHX command on non-list item")
 		default:
 			// TODO: Retry CreateKeyAndLock until we obtain the key lock
-			if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+			if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 				return nil, err
 			}
 			server.SetValue(ctx, key, []interface{}{})
 		}
 	} else {
-		_, err := server.KeyLock(ctx, key)
-		if err != nil {
+		if _, err = server.KeyLock(ctx, key); err != nil {
 			return nil, err
 		}
 	}
@@ -400,11 +402,12 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := rpushKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	var newElems []interface{}
 
@@ -418,15 +421,13 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 			return nil, errors.New("RPUSHX command on non-list item")
 		default:
 			// TODO: Retry CreateKeyAndLock until we managed to obtain the key
-			_, err := server.CreateKeyAndLock(ctx, key)
-			if err != nil {
+			if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 				return nil, err
 			}
 			server.SetValue(ctx, key, []interface{}{})
 		}
 	} else {
-		_, err := server.KeyLock(ctx, key)
-		if err != nil {
+		if _, err = server.KeyLock(ctx, key); err != nil {
 			return nil, err
 		}
 	}
@@ -445,18 +446,18 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handlePop(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := popKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -479,173 +480,108 @@ func handlePop(ctx context.Context, cmd []string, server utils.Server, conn *net
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
-			Command:     "lpush",
-			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleLPush,
+			Command:           "lpush",
+			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
+			Sync:              true,
+			KeyExtractionFunc: lpushKeyFunc,
+			HandlerFunc:       handleLPush,
 		},
 		{
-			Command:     "lpushx",
-			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleLPush,
+			Command:           "lpushx",
+			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
+			Sync:              true,
+			KeyExtractionFunc: lpushKeyFunc,
+			HandlerFunc:       handleLPush,
 		},
 		{
-			Command:     "lpop",
-			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(LPOP key) Removes and returns the first element of a list.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handlePop,
+			Command:           "lpop",
+			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       "(LPOP key) Removes and returns the first element of a list.",
+			Sync:              true,
+			KeyExtractionFunc: popKeyFunc,
+			HandlerFunc:       handlePop,
 		},
 		{
-			Command:     "llen",
-			Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.FastCategory},
-			Description: "(LLEN key) Return the length of a list.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleLLen,
+			Command:           "llen",
+			Categories:        []string{utils.ListCategory, utils.ReadCategory, utils.FastCategory},
+			Description:       "(LLEN key) Return the length of a list.",
+			Sync:              false,
+			KeyExtractionFunc: llenKeyFunc,
+			HandlerFunc:       handleLLen,
 		},
 		{
-			Command:     "lrange",
-			Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: "(LRANGE key start end) Return a range of elements between the given indices.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleLRange,
+			Command:           "lrange",
+			Categories:        []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       "(LRANGE key start end) Return a range of elements between the given indices.",
+			Sync:              false,
+			KeyExtractionFunc: lrangeKeyFunc,
+			HandlerFunc:       handleLRange,
 		},
 		{
-			Command:     "lindex",
-			Categories:  []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: "(LINDEX key index) Gets list element by index.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleLIndex,
+			Command:           "lindex",
+			Categories:        []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       "(LINDEX key index) Gets list element by index.",
+			Sync:              false,
+			KeyExtractionFunc: lindexKeyFunc,
+			HandlerFunc:       handleLIndex,
 		},
 		{
-			Command:     "lset",
-			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
-			Description: "(LSET key index value) Sets the value of an element in a list by its index.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleLSet,
+			Command:           "lset",
+			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Description:       "(LSET key index value) Sets the value of an element in a list by its index.",
+			Sync:              true,
+			KeyExtractionFunc: lsetKeyFunc,
+			HandlerFunc:       handleLSet,
 		},
 		{
-			Command:     "ltrim",
-			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
-			Description: "(LTRIM key start end) Trims a list to the specified range.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleLTrim,
+			Command:           "ltrim",
+			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Description:       "(LTRIM key start end) Trims a list to the specified range.",
+			Sync:              true,
+			KeyExtractionFunc: ltrimKeyFunc,
+			HandlerFunc:       handleLTrim,
 		},
 		{
-			Command:     "lrem",
-			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
-			Description: "(LREM key count value) Remove elements from list.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleLRem,
+			Command:           "lrem",
+			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Description:       "(LREM key count value) Remove elements from list.",
+			Sync:              true,
+			KeyExtractionFunc: lremKeyFunc,
+			HandlerFunc:       handleLRem,
 		},
 		{
-			Command:     "lmove",
-			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
-			Description: "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>) Move element from one list to the other specifying left/right for both lists.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 5 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1], cmd[2]}, nil
-			},
-			HandlerFunc: handleLMove,
+			Command:           "lmove",
+			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Description:       "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>) Move element from one list to the other specifying left/right for both lists.",
+			Sync:              true,
+			KeyExtractionFunc: lmoveKeyFunc,
+			HandlerFunc:       handleLMove,
 		},
 		{
-			Command:     "rpop",
-			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(RPOP key) Removes and gets the last element in a list.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handlePop,
+			Command:           "rpop",
+			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       "(RPOP key) Removes and gets the last element in a list.",
+			Sync:              true,
+			KeyExtractionFunc: popKeyFunc,
+			HandlerFunc:       handlePop,
 		},
 		{
-			Command:     "rpush",
-			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleRPush,
+			Command:           "rpush",
+			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
+			Sync:              true,
+			KeyExtractionFunc: rpushKeyFunc,
+			HandlerFunc:       handleRPush,
 		},
 		{
-			Command:     "rpushx",
-			Categories:  []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-			Description: "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleRPush,
+			Command:           "rpushx",
+			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
+			Sync:              true,
+			KeyExtractionFunc: rpushKeyFunc,
+			HandlerFunc:       handleRPush,
 		},
 	}
 }
