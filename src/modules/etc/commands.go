@@ -2,11 +2,9 @@ package etc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"net"
-	"time"
 )
 
 type KeyObject struct {
@@ -15,62 +13,57 @@ type KeyObject struct {
 }
 
 func handleSet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	switch x := len(cmd); {
-	default:
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-	case x == 3:
-		key := cmd[1]
-
-		if !server.KeyExists(key) {
-			_, err := server.CreateKeyAndLock(ctx, key)
-			if err != nil {
-				return nil, err
-			}
-			server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
-			server.KeyUnlock(key)
-			return []byte(utils.OK_RESPONSE), nil
-		}
-
-		if _, err := server.KeyLock(ctx, key); err != nil {
-			return nil, err
-		}
-
-		server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
-		server.KeyUnlock(key)
-		return []byte(utils.OK_RESPONSE), nil
+	keys, err := setKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
-}
 
-func handleSetNX(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	switch x := len(cmd); {
-	default:
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-	case x == 3:
-		key := cmd[1]
-		if server.KeyExists(key) {
-			return nil, fmt.Errorf("key %s already exists", cmd[1])
-		}
-		// TODO: Retry CreateKeyAndLock until we manage to obtain the key
+	key := keys[0]
+
+	if !server.KeyExists(key) {
 		_, err := server.CreateKeyAndLock(ctx, key)
 		if err != nil {
 			return nil, err
 		}
 		server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
 		server.KeyUnlock(key)
+		return []byte(utils.OK_RESPONSE), nil
 	}
+
+	if _, err := server.KeyLock(ctx, key); err != nil {
+		return nil, err
+	}
+
+	server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+	server.KeyUnlock(key)
+
+	return []byte(utils.OK_RESPONSE), nil
+}
+
+func handleSetNX(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+	keys, err := setNXKeyFunc(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys[0]
+	if server.KeyExists(key) {
+		return nil, fmt.Errorf("key %s already exists", key)
+	}
+	// TODO: Retry CreateKeyAndLock until we manage to obtain the key
+	_, err = server.CreateKeyAndLock(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
+	server.KeyUnlock(key)
+
 	return []byte(utils.OK_RESPONSE), nil
 }
 
 func handleMSet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
-	defer cancel()
-
-	// Check if key/value pairs are complete
-	if len(cmd[1:])%2 != 0 {
-		return nil, errors.New("each key must have a matching value")
+	if _, err := msetKeyFunc(cmd); err != nil {
+		return nil, err
 	}
 
 	entries := make(map[string]KeyObject)
@@ -125,49 +118,28 @@ func handleMSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
-			Command:     "set",
-			Categories:  []string{utils.WriteCategory, utils.SlowCategory},
-			Description: "(SET key value) Set the value of a key, considering the value's type.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSet,
+			Command:           "set",
+			Categories:        []string{utils.WriteCategory, utils.SlowCategory},
+			Description:       "(SET key value) Set the value of a key, considering the value's type.",
+			Sync:              true,
+			KeyExtractionFunc: setKeyFunc,
+			HandlerFunc:       handleSet,
 		},
 		{
-			Command:     "setnx",
-			Categories:  []string{utils.WriteCategory, utils.SlowCategory},
-			Description: "(SETNX key value) Set the key/value only if the key doesn't exist.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSetNX,
+			Command:           "setnx",
+			Categories:        []string{utils.WriteCategory, utils.SlowCategory},
+			Description:       "(SETNX key value) Set the key/value only if the key doesn't exist.",
+			Sync:              true,
+			KeyExtractionFunc: setNXKeyFunc,
+			HandlerFunc:       handleSetNX,
 		},
 		{
-			Command:     "mset",
-			Categories:  []string{utils.WriteCategory, utils.SlowCategory},
-			Description: "(MSET key value [key value ...]) Automatically etc or modify multiple key/value pairs.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd[1:])%2 != 0 {
-					return nil, errors.New("each key must be paired with a value")
-				}
-				var keys []string
-				for i, key := range cmd[1:] {
-					if i%2 == 0 {
-						keys = append(keys, key)
-					}
-				}
-				return keys, nil
-			},
-			HandlerFunc: handleMSet,
+			Command:           "mset",
+			Categories:        []string{utils.WriteCategory, utils.SlowCategory},
+			Description:       "(MSET key value [key value ...]) Automatically etc or modify multiple key/value pairs.",
+			Sync:              true,
+			KeyExtractionFunc: msetKeyFunc,
+			HandlerFunc:       handleMSet,
 		},
 	}
 }

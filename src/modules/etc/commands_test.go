@@ -138,7 +138,7 @@ func Test_HandleMSET(t *testing.T) {
 			command:          []string{"SET", "test1", "value1", "test2", "10", "test3"},
 			expectedResponse: "",
 			expectedValues:   make(map[string]interface{}),
-			expectedErr:      errors.New("each key must have a matching value"),
+			expectedErr:      errors.New("each key must be paired with a value"),
 		},
 	}
 
