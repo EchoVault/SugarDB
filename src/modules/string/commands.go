@@ -164,56 +164,36 @@ func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
-			Command:     "setrange",
-			Categories:  []string{utils.StringCategory, utils.WriteCategory, utils.SlowCategory},
-			Description: "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSetRange,
+			Command:           "setrange",
+			Categories:        []string{utils.StringCategory, utils.WriteCategory, utils.SlowCategory},
+			Description:       "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
+			Sync:              true,
+			KeyExtractionFunc: setRangeKeyFunc,
+			HandlerFunc:       handleSetRange,
 		},
 		{
-			Command:     "strlen",
-			Categories:  []string{utils.StringCategory, utils.ReadCategory, utils.FastCategory},
-			Description: "(STRLEN key) Returns length of the key's value if it's a string.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleStrLen,
+			Command:           "strlen",
+			Categories:        []string{utils.StringCategory, utils.ReadCategory, utils.FastCategory},
+			Description:       "(STRLEN key) Returns length of the key's value if it's a string.",
+			Sync:              false,
+			KeyExtractionFunc: strLenKeyFunc,
+			HandlerFunc:       handleStrLen,
 		},
 		{
-			Command:     "substr",
-			Categories:  []string{utils.StringCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: "(SUBSTR key start end) Returns a substring from the string value.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSubStr,
+			Command:           "substr",
+			Categories:        []string{utils.StringCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       "(SUBSTR key start end) Returns a substring from the string value.",
+			Sync:              false,
+			KeyExtractionFunc: subStrKeyFunc,
+			HandlerFunc:       handleSubStr,
 		},
 		{
-			Command:     "getrange",
-			Categories:  []string{utils.StringCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: "(GETRANGE key start end) Returns a substring from the string value.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleSubStr,
+			Command:           "getrange",
+			Categories:        []string{utils.StringCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       "(GETRANGE key start end) Returns a substring from the string value.",
+			Sync:              false,
+			KeyExtractionFunc: subStrKeyFunc,
+			HandlerFunc:       handleSubStr,
 		},
 	}
 }
