@@ -9,11 +9,12 @@ import (
 )
 
 func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd[1:]) != 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := setRangeKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	offset, ok := utils.AdaptType(cmd[2]).(int)
 	if !ok {
@@ -75,11 +76,12 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 }
 
 func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd[1:]) != 1 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := strLenKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte(":0\r\n\r\n"), nil
@@ -100,11 +102,12 @@ func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd[1:]) != 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := subStrKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	start, startOk := utils.AdaptType(cmd[2]).(int)
 	end, endOk := utils.AdaptType(cmd[3]).(int)
