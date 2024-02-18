@@ -13,11 +13,12 @@ import (
 )
 
 func handleHSET(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hsetKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	entries := make(map[string]interface{})
 
 	if len(cmd[2:])%2 != 0 {
@@ -38,8 +39,7 @@ func handleHSET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(entries))), nil
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -67,19 +67,19 @@ func handleHSET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleHGET(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hgetKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	fields := cmd[2:]
 
 	if !server.KeyExists(key) {
 		return []byte("$-1\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -119,19 +119,19 @@ func handleHGET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleHSTRLEN(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hstrlenKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	fields := cmd[2:]
 
 	if !server.KeyExists(key) {
 		return []byte("$-1\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -171,17 +171,18 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server utils.Server, conn 
 }
 
 func handleHVALS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hvalsKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
-	key := cmd[1]
+
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte("*0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -212,11 +213,12 @@ func handleHVALS(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 || len(cmd) > 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hrandfieldKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	count := 1
 	if len(cmd) >= 3 {
@@ -243,7 +245,7 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.Server, co
 		return []byte("*0\r\n\r\n"), nil
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -329,17 +331,18 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.Server, co
 }
 
 func handleHLEN(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hlenKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte(":0\r\n\r\n"), nil
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -353,17 +356,18 @@ func handleHLEN(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleHKEYS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hkeysKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte("*0\r\n\r\n"), nil
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -383,11 +387,12 @@ func handleHKEYS(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleHINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hincrbyKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	field := cmd[2]
 
 	var intIncrement int
@@ -468,17 +473,18 @@ func handleHINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 }
 
 func handleHGETALL(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hgetallKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte("*0\r\n\r\n"), nil
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -508,18 +514,19 @@ func handleHGETALL(ctx context.Context, cmd []string, server utils.Server, conn 
 }
 
 func handleHEXISTS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hexistsKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	field := cmd[2]
 
 	if !server.KeyExists(key) {
 		return []byte(":0\r\n\r\n"), nil
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -537,18 +544,19 @@ func handleHEXISTS(ctx context.Context, cmd []string, server utils.Server, conn 
 }
 
 func handleHDEL(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := hdelKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	fields := cmd[2:]
 
 	if !server.KeyExists(key) {
 		return []byte(":0\r\n\r\n"), nil
 	}
 
-	if _, err := server.KeyLock(ctx, key); err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -575,177 +583,109 @@ func handleHDEL(ctx context.Context, cmd []string, server utils.Server, conn *ne
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
-			Command:     "hset",
-			Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
-			Description: `(HSET key field value [field value ...]) Set update each field of the hash with the corresponding value`,
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:2], nil
-			},
-			HandlerFunc: handleHSET,
+			Command:           "hset",
+			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       `(HSET key field value [field value ...]) Set update each field of the hash with the corresponding value`,
+			Sync:              true,
+			KeyExtractionFunc: hsetKeyFunc,
+			HandlerFunc:       handleHSET,
 		},
 		{
-			Command:     "hsetnx",
-			Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
-			Description: `(HSETNX key field value [field value ...]) Set hash field value only if the field does not exist`,
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:2], nil
-			},
-			HandlerFunc: handleHSET,
+			Command:           "hsetnx",
+			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       `(HSETNX key field value [field value ...]) Set hash field value only if the field does not exist`,
+			Sync:              true,
+			KeyExtractionFunc: hsetnxKeyFunc,
+			HandlerFunc:       handleHSET,
 		},
 		{
-			Command:     "hget",
-			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-			Description: `(HGET key field [field ...]) Retrieve the value of each of the listed fields from the hash`,
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:2], nil
-			},
-			HandlerFunc: handleHGET,
+			Command:           "hget",
+			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Description:       `(HGET key field [field ...]) Retrieve the value of each of the listed fields from the hash`,
+			Sync:              false,
+			KeyExtractionFunc: hgetKeyFunc,
+			HandlerFunc:       handleHGET,
 		},
 		{
 			Command:    "hstrlen",
 			Categories: []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
 			Description: `(HSTRLEN key field [field ...]) 
 Return the string length of the values stored at the specified fields. 0 if the value does not exist`,
-			Sync: false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:2], nil
-			},
-			HandlerFunc: handleHSTRLEN,
+			Sync:              false,
+			KeyExtractionFunc: hstrlenKeyFunc,
+			HandlerFunc:       handleHSTRLEN,
 		},
 		{
-			Command:     "hvals",
-			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: `(HVALS key) Returns all the values of the hash at key.`,
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleHVALS,
+			Command:           "hvals",
+			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       `(HVALS key) Returns all the values of the hash at key.`,
+			Sync:              false,
+			KeyExtractionFunc: hvalsKeyFunc,
+			HandlerFunc:       handleHVALS,
 		},
 		{
-			Command:     "hrandfield",
-			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: `(HRANDFIELD key [count [WITHVALUES]]) Returns one or more random fields from the hash`,
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 2 || len(cmd) > 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				if len(cmd) == 2 {
-					return cmd[1:], nil
-				}
-				return cmd[1:2], nil
-			},
-			HandlerFunc: handleHRANDFIELD,
+			Command:           "hrandfield",
+			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       `(HRANDFIELD key [count [WITHVALUES]]) Returns one or more random fields from the hash`,
+			Sync:              false,
+			KeyExtractionFunc: hrandfieldKeyFunc,
+			HandlerFunc:       handleHRANDFIELD,
 		},
 		{
-			Command:     "hlen",
-			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-			Description: `(HLEN key) Returns the number of fields in the hash`,
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleHLEN,
+			Command:           "hlen",
+			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Description:       `(HLEN key) Returns the number of fields in the hash`,
+			Sync:              false,
+			KeyExtractionFunc: hlenKeyFunc,
+			HandlerFunc:       handleHLEN,
 		},
 		{
-			Command:     "hkeys",
-			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: `(HKEYS key) Returns all the fields in a hash`,
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleHKEYS,
+			Command:           "hkeys",
+			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       `(HKEYS key) Returns all the fields in a hash`,
+			Sync:              false,
+			KeyExtractionFunc: hkeysKeyFunc,
+			HandlerFunc:       handleHKEYS,
 		},
 		{
-			Command:     "hincrbyfloat",
-			Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
-			Description: `(HINCRBYFLOAT key field increment) Increment the hash value by the float increment`,
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:2], nil
-			},
-			HandlerFunc: handleHINCRBY,
+			Command:           "hincrbyfloat",
+			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       `(HINCRBYFLOAT key field increment) Increment the hash value by the float increment`,
+			Sync:              true,
+			KeyExtractionFunc: hincrbyKeyFunc,
+			HandlerFunc:       handleHINCRBY,
 		},
 		{
-			Command:     "hincrby",
-			Categories:  []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
-			Description: `(HINCRBY key field increment) Increment the hash value by the integer increment`,
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 4 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:2], nil
-			},
-			HandlerFunc: handleHINCRBY,
+			Command:           "hincrby",
+			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Description:       `(HINCRBY key field increment) Increment the hash value by the integer increment`,
+			Sync:              true,
+			KeyExtractionFunc: hincrbyKeyFunc,
+			HandlerFunc:       handleHINCRBY,
 		},
 		{
-			Command:     "hgetall",
-			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
-			Description: `(HGETALL key) Get all fields and values of a hash`,
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleHGETALL,
+			Command:           "hgetall",
+			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Description:       `(HGETALL key) Get all fields and values of a hash`,
+			Sync:              false,
+			KeyExtractionFunc: hgetallKeyFunc,
+			HandlerFunc:       handleHGETALL,
 		},
 		{
-			Command:     "hexists",
-			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-			Description: `(HEXISTS key field) Returns if field is an existing field in the hash`,
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:2], nil
-			},
-			HandlerFunc: handleHEXISTS,
+			Command:           "hexists",
+			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Description:       `(HEXISTS key field) Returns if field is an existing field in the hash`,
+			Sync:              false,
+			KeyExtractionFunc: hexistsKeyFunc,
+			HandlerFunc:       handleHEXISTS,
 		},
 		{
-			Command:     "hdel",
-			Categories:  []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
-			Description: `(HDEL key field [field ...]) Deletes the specified fields from the hash`,
-			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:2], nil
-			},
-			HandlerFunc: handleHDEL,
+			Command:           "hdel",
+			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Description:       `(HDEL key field [field ...]) Deletes the specified fields from the hash`,
+			Sync:              true,
+			KeyExtractionFunc: hdelKeyFunc,
+			HandlerFunc:       handleHDEL,
 		},
 	}
 }
