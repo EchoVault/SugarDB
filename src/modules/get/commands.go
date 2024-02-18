@@ -2,24 +2,23 @@ package get
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"net"
 )
 
 func handleGet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := getKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
-
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte("+nil\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
+	_, err = server.KeyRLock(ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -31,20 +30,21 @@ func handleGet(ctx context.Context, cmd []string, server utils.Server, conn *net
 }
 
 func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := mgetKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	values := make(map[string]string)
 
 	locks := make(map[string]bool)
-	for _, key := range cmd[1:] {
+	for _, key := range keys {
 		if _, ok := values[key]; ok {
 			// Skip if we have already locked this key
 			continue
 		}
 		if server.KeyExists(key) {
-			_, err := server.KeyRLock(ctx, key)
+			_, err = server.KeyRLock(ctx, key)
 			if err != nil {
 				return nil, fmt.Errorf("could not obtain lock for %s key", key)
 			}
@@ -80,30 +80,20 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
-			Command:     "get",
-			Categories:  []string{utils.ReadCategory, utils.FastCategory},
-			Description: "(GET key) Get the value at the specified key.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
-			},
-			HandlerFunc: handleGet,
+			Command:           "get",
+			Categories:        []string{utils.ReadCategory, utils.FastCategory},
+			Description:       "(GET key) Get the value at the specified key.",
+			Sync:              false,
+			KeyExtractionFunc: getKeyFunc,
+			HandlerFunc:       handleGet,
 		},
 		{
-			Command:     "mget",
-			Categories:  []string{utils.ReadCategory, utils.FastCategory},
-			Description: "(MGET key1 [key2]) Get multiple values from the specified keys.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleMGet,
+			Command:           "mget",
+			Categories:        []string{utils.ReadCategory, utils.FastCategory},
+			Description:       "(MGET key1 [key2]) Get multiple values from the specified keys.",
+			Sync:              false,
+			KeyExtractionFunc: mgetKeyFunc,
+			HandlerFunc:       handleMGet,
 		},
 	}
 }
