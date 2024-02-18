@@ -94,10 +94,19 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		for _, option := range options {
 			if slices.Contains([]string{"xx", "nx"}, strings.ToLower(option)) {
 				updatePolicy = option
+				// If option is "NX" and comparison is not nil, return an error
+				if strings.EqualFold(option, "NX") && comparison != nil {
+					return nil, errors.New("GT/LT flags not allowed if NX flag is provided")
+				}
 				continue
 			}
 			if slices.Contains([]string{"gt", "lt"}, strings.ToLower(option)) {
 				comparison = option
+				// If updatePolicy is "NX", return an error
+				up, _ := updatePolicy.(string)
+				if strings.EqualFold(up, "NX") {
+					return nil, errors.New("GT/LT flags not allowed if NX flag is provided")
+				}
 				continue
 			}
 			if strings.EqualFold(option, "ch") {
@@ -106,6 +115,10 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 			}
 			if strings.EqualFold(option, "incr") {
 				incr = option
+				// If members length is more than 1, return an error
+				if len(members) > 1 {
+					return nil, errors.New("cannot pass more than one score/member pair when INCR flag is provided")
+				}
 				continue
 			}
 			return nil, fmt.Errorf("invalid option %s", option)
@@ -137,8 +150,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 
 	// Key does not exist
-	_, err := server.CreateKeyAndLock(ctx, key)
-	if err != nil {
+	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -1552,7 +1564,13 @@ func Commands() []utils.Command {
 			Command:    "zadd",
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
 			Description: `(ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member...])
-Adds all the specified members with the specified scores to the sorted set at the key`,
+Adds all the specified members with the specified scores to the sorted set at the key.
+"NX" only adds the member if it currently does not exist in the sorted set.
+"XX" only updates the scores of members that exist in the sorted set.
+"GT"" only updates the score if the new score is greater than the current score.
+"LT" only updates the score if the new score is less than the current score.
+"CH" modifies the result to return total number of members changed + added, instead of only new members added.
+"INCR" modifies the command to act like ZINCRBY, only one score/member pair can be specified in this mode.`,
 			Sync:              true,
 			KeyExtractionFunc: zaddKeyFunc,
 			HandlerFunc:       handleZADD,
