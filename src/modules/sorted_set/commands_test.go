@@ -7,6 +7,7 @@ import (
 	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
+	"math"
 	"testing"
 )
 
@@ -26,13 +27,15 @@ func Test_HandleZADD(t *testing.T) {
 			preset:      false,
 			presetValue: nil,
 			key:         "key1",
-			command:     []string{"ZADD", "key1", "5.5", "member1", "67.77", "member2", "10", "member3"},
+			command:     []string{"ZADD", "key1", "5.5", "member1", "67.77", "member2", "10", "member3", "-inf", "member4", "+inf", "member5"},
 			expectedValue: NewSortedSet([]MemberParam{
 				{value: "member1", score: Score(5.5)},
 				{value: "member2", score: Score(67.77)},
 				{value: "member3", score: Score(10)},
+				{value: "member4", score: Score(math.Inf(-1))},
+				{value: "member5", score: Score(math.Inf(1))},
 			}),
-			expectedResponse: 3,
+			expectedResponse: 5,
 			expectedError:    nil,
 		},
 		{ // 2. Only add the elements that do not currently exist in the sorted set when NX flag is provided
