@@ -14,11 +14,12 @@ import (
 )
 
 func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zaddKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	var updatePolicy interface{} = nil
 	var comparison interface{} = nil
@@ -162,17 +163,17 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleZCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zcardKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte(":0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)

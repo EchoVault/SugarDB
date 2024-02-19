@@ -263,7 +263,88 @@ func Test_HandleZADD(t *testing.T) {
 	}
 }
 
-func Test_HandleZCARD(t *testing.T) {}
+func Test_HandleZCARD(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValue      *SortedSet
+		key              string
+		command          []string
+		expectedValue    *SortedSet
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Get cardinality of valid sorted set.
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "member1", score: Score(5.5)},
+				{value: "member2", score: Score(67.77)},
+				{value: "member3", score: Score(10)},
+			}),
+			key:              "key1",
+			command:          []string{"ZCARD", "key1"},
+			expectedValue:    nil,
+			expectedResponse: 3,
+			expectedError:    nil,
+		},
+		{ // 2. Return 0 when trying to get cardinality from non-existent key
+			preset:           false,
+			presetValue:      nil,
+			key:              "key2",
+			command:          []string{"ZCARD", "key2"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 3. Command is too short
+			preset:           false,
+			presetValue:      nil,
+			key:              "key3",
+			command:          []string{"ZCARD"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 4. Command too long
+			preset:           false,
+			presetValue:      nil,
+			key:              "key4",
+			command:          []string{"ZCARD", "key4", "key5"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleZCARD(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewReader(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
+		}
+	}
+}
 
 func Test_HandleZCOUNT(t *testing.T) {}
 
