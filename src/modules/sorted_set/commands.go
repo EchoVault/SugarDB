@@ -322,6 +322,10 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}()
 
 	// Extract base set
+	if !server.KeyExists(keys[0]) {
+		// If base set does not exist, return an empty array
+		return []byte("*0\r\n\r\n"), nil
+	}
 	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
 		return nil, err
 	}
@@ -373,12 +377,12 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zdiffstoreKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	destination := cmd[1]
-	keys := cmd[2:]
 
 	locks := make(map[string]bool)
 	defer func() {
@@ -389,40 +393,43 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 		}
 	}()
 
+	// Extract base set
+	if !server.KeyExists(keys[0]) {
+		// If base set does not exist, return 0
+		return []byte(":0\r\n\r\n"), nil
+	}
+	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(keys[0])
+	baseSortedSet, ok := server.GetValue(keys[0]).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", keys[0])
+	}
+
 	var sets []*SortedSet
 
-	for _, key := range keys {
-		if server.KeyExists(key) {
-			_, err := server.KeyRLock(ctx, key)
-			if err != nil {
+	for i := 1; i < len(keys); i++ {
+		if server.KeyExists(keys[i]) {
+			if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 				return nil, err
 			}
-			set, ok := server.GetValue(key).(*SortedSet)
+			set, ok := server.GetValue(keys[i]).(*SortedSet)
 			if !ok {
-				return nil, fmt.Errorf("value at %s is not a sorted set", key)
+				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}
 			sets = append(sets, set)
 		}
 	}
 
-	var diff *SortedSet
-
-	if len(sets) > 1 {
-		diff = sets[0].Subtract(sets[1:])
-	} else if len(sets) == 1 {
-		diff = sets[0]
-	} else {
-		return nil, errors.New("not enough sorted sets to calculate difference")
-	}
+	diff := baseSortedSet.Subtract(sets)
 
 	if server.KeyExists(destination) {
-		_, err := server.KeyLock(ctx, destination)
-		if err != nil {
+		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	} else {
-		_, err := server.CreateKeyAndLock(ctx, destination)
-		if err != nil {
+		if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	}
@@ -1610,7 +1617,8 @@ Computes the difference between all the sorted sets specifies in the list of key
 			Command:    "zdiffstore",
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `(ZDIFFSTORE destination key [key...]). 
-Computes the difference between all the sorted sets specifies in the list of keys. Stores the result in destination.`,
+Computes the difference between all the sorted sets specifies in the list of keys. Stores the result in destination.
+If the base set (first key) does not exist, return 0, otherwise, return the cardinality of the diff.`,
 			Sync:              true,
 			KeyExtractionFunc: zdiffstoreKeyFunc,
 			HandlerFunc:       handleZDIFFSTORE,

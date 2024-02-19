@@ -763,7 +763,182 @@ func Test_HandleZDIFF(t *testing.T) {
 	}
 }
 
-func Test_HandleZDIFFSTORE(t *testing.T) {}
+func Test_HandleZDIFFSTORE(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		destination      string
+		command          []string
+		expectedValue    *SortedSet
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Get the difference between 2 sorted sets.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+				"key2": NewSortedSet([]MemberParam{
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+			},
+			destination:      "destination1",
+			command:          []string{"ZDIFFSTORE", "destination1", "key1", "key2"},
+			expectedValue:    NewSortedSet([]MemberParam{{value: "one", score: 1}, {value: "two", score: 2}}),
+			expectedResponse: 2,
+			expectedError:    nil,
+		},
+		{ // 2. Get the difference between 3 sorted sets.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key4": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11},
+				}),
+				"key5": NewSortedSet([]MemberParam{
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12},
+				}),
+			},
+			destination: "destination2",
+			command:     []string{"ZDIFFSTORE", "destination2", "key3", "key4", "key5"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5}, {value: "six", score: 6},
+			}),
+			expectedResponse: 4,
+			expectedError:    nil,
+		},
+		{ // 3. Return base sorted set element if base set is the only existing key provided and is a valid sorted set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key6": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+			},
+			destination: "destination3",
+			command:     []string{"ZDIFFSTORE", "destination3", "key6", "key7", "key8"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5}, {value: "six", score: 6},
+				{value: "seven", score: 7}, {value: "eight", score: 8},
+			}),
+			expectedResponse: 8,
+			expectedError:    nil,
+		},
+		{ // 4. Throw error when base sorted set is not a set.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key9": "Default value",
+				"key10": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11},
+				}),
+				"key11": NewSortedSet([]MemberParam{
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12},
+				}),
+			},
+			destination:      "destination4",
+			command:          []string{"ZDIFFSTORE", "destination4", "key9", "key10", "key11"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key9 is not a sorted set"),
+		},
+		{ // 5. Throw error when base set is non-existent.
+			preset:      true,
+			destination: "destination5",
+			presetValues: map[string]interface{}{
+				"key12": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11},
+				}),
+				"key13": NewSortedSet([]MemberParam{
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12},
+				}),
+			},
+			command:          []string{"ZDIFFSTORE", "destination5", "non-existent", "key12", "key13"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 6. Command too short
+			preset:           false,
+			command:          []string{"ZDIFFSTORE", "destination6"},
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleZDIFFSTORE(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
+		}
+		if test.expectedValue != nil {
+			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
+				t.Error(err)
+			}
+			set, ok := mockServer.GetValue(test.destination).(*SortedSet)
+			if !ok {
+				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+			}
+			for _, elem := range set.GetAll() {
+				if !test.expectedValue.Contains(elem.value) {
+					t.Errorf("could not find element %s in the expected values", elem.value)
+				}
+			}
+			mockServer.KeyRUnlock(test.destination)
+		}
+	}
+}
 
 func Test_HandleZINCRBY(t *testing.T) {}
 
