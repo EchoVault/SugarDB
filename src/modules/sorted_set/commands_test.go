@@ -349,7 +349,135 @@ func Test_HandleZCARD(t *testing.T) {
 	}
 }
 
-func Test_HandleZCOUNT(t *testing.T) {}
+func Test_HandleZCOUNT(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValue      *SortedSet
+		key              string
+		command          []string
+		expectedValue    *SortedSet
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Get entire count using infinity boundaries
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "member1", score: Score(5.5)},
+				{value: "member2", score: Score(67.77)},
+				{value: "member3", score: Score(10)},
+				{value: "member4", score: Score(1083.13)},
+				{value: "member5", score: Score(11)},
+				{value: "member6", score: Score(math.Inf(-1))},
+				{value: "member7", score: Score(math.Inf(1))},
+			}),
+			key:              "key1",
+			command:          []string{"ZCOUNT", "key1", "-inf", "+inf"},
+			expectedValue:    nil,
+			expectedResponse: 7,
+			expectedError:    nil,
+		},
+		{ // 2. Get count of sub-set from -inf to limit
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "member1", score: Score(5.5)},
+				{value: "member2", score: Score(67.77)},
+				{value: "member3", score: Score(10)},
+				{value: "member4", score: Score(1083.13)},
+				{value: "member5", score: Score(11)},
+				{value: "member6", score: Score(math.Inf(-1))},
+				{value: "member7", score: Score(math.Inf(1))},
+			}),
+			key:              "key2",
+			command:          []string{"ZCOUNT", "key2", "-inf", "90"},
+			expectedValue:    nil,
+			expectedResponse: 5,
+			expectedError:    nil,
+		},
+		{ // 3. Get count of sub-set from bottom boundary to +inf limit
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "member1", score: Score(5.5)},
+				{value: "member2", score: Score(67.77)},
+				{value: "member3", score: Score(10)},
+				{value: "member4", score: Score(1083.13)},
+				{value: "member5", score: Score(11)},
+				{value: "member6", score: Score(math.Inf(-1))},
+				{value: "member7", score: Score(math.Inf(1))},
+			}),
+			key:              "key3",
+			command:          []string{"ZCOUNT", "key3", "1000", "+inf"},
+			expectedValue:    nil,
+			expectedResponse: 2,
+			expectedError:    nil,
+		},
+		{ // 4. Return error when bottom boundary is not a valid double/float
+			preset:           false,
+			presetValue:      nil,
+			key:              "key4",
+			command:          []string{"ZCOUNT", "key4", "min", "10"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New("min constraint must be a double"),
+		},
+		{ // 5. Return error when top boundary is not a valid double/float
+			preset:           false,
+			presetValue:      nil,
+			key:              "key5",
+			command:          []string{"ZCOUNT", "key5", "-10", "max"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New("max constraint must be a double"),
+		},
+		{ // 6. Command is too short
+			preset:           false,
+			presetValue:      nil,
+			key:              "key6",
+			command:          []string{"ZCOUNT"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 7. Command too long
+			preset:           false,
+			presetValue:      nil,
+			key:              "key7",
+			command:          []string{"ZCOUNT", "key4", "min", "max", "count"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleZCOUNT(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewReader(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
+		}
+	}
+}
 
 func Test_HandleZLEXCOUNT(t *testing.T) {}
 

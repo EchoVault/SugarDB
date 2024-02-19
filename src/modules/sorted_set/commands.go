@@ -187,11 +187,12 @@ func handleZCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zcountKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	minimum := Score(math.Inf(-1))
 	switch utils.AdaptType(cmd[2]).(type) {
@@ -230,11 +231,10 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte(":0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -1577,9 +1577,11 @@ Adds all the specified members with the specified scores to the sorted set at th
 			HandlerFunc:       handleZADD,
 		},
 		{
-			Command:           "zcard",
-			Categories:        []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
-			Description:       `(ZCARD key) Returns the set cardinality of the sorted set at key.`,
+			Command:    "zcard",
+			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Description: `(ZCARD key) Returns the set cardinality of the sorted set at key.
+If the key does not exist, 0 is returned, otherwise the cardinality of the sorted set is returned.
+If the key holds a value that is not a sorted set, this command will return an error.`,
 			Sync:              false,
 			KeyExtractionFunc: zcardKeyFunc,
 			HandlerFunc:       handleZCARD,
@@ -1588,7 +1590,9 @@ Adds all the specified members with the specified scores to the sorted set at th
 			Command:    "zcount",
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZCOUNT key min max) 
-Returns the number of elements in the sorted set key with scores in the range of min and max.`,
+Returns the number of elements in the sorted set key with scores in the range of min and max.
+If the key does not exist, a count of 0 is returned, otherwise return the count.
+If the key holds a value that is not a sorted set, an error is returned.`,
 			Sync:              false,
 			KeyExtractionFunc: zcountKeyFunc,
 			HandlerFunc:       handleZCOUNT,
