@@ -271,7 +271,7 @@ func Test_HandleZCARD(t *testing.T) {
 
 	tests := []struct {
 		preset           bool
-		presetValue      *SortedSet
+		presetValue      interface{}
 		key              string
 		command          []string
 		expectedValue    *SortedSet
@@ -318,6 +318,15 @@ func Test_HandleZCARD(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
+		{ // 5. Return error when not a sorted set
+			preset:           true,
+			presetValue:      "Default value",
+			key:              "key5",
+			command:          []string{"ZCARD", "key5"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key5 is not a sorted set"),
+		},
 	}
 
 	for _, test := range tests {
@@ -354,7 +363,7 @@ func Test_HandleZCOUNT(t *testing.T) {
 
 	tests := []struct {
 		preset           bool
-		presetValue      *SortedSet
+		presetValue      interface{}
 		key              string
 		command          []string
 		expectedValue    *SortedSet
@@ -448,6 +457,15 @@ func Test_HandleZCOUNT(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
+		{ // 8. Throw error when value at the key is not a sorted set
+			preset:           true,
+			presetValue:      "Default value",
+			key:              "key8",
+			command:          []string{"ZCOUNT", "key8", "1", "10"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key8 is not a sorted set"),
+		},
 	}
 
 	for _, test := range tests {
@@ -479,7 +497,118 @@ func Test_HandleZCOUNT(t *testing.T) {
 	}
 }
 
-func Test_HandleZLEXCOUNT(t *testing.T) {}
+func Test_HandleZLEXCOUNT(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValue      interface{}
+		key              string
+		command          []string
+		expectedValue    *SortedSet
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Get entire count using infinity boundaries
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "e", score: Score(1)},
+				{value: "f", score: Score(1)},
+				{value: "g", score: Score(1)},
+				{value: "h", score: Score(1)},
+				{value: "i", score: Score(1)},
+				{value: "j", score: Score(1)},
+				{value: "k", score: Score(1)},
+			}),
+			key:              "key1",
+			command:          []string{"ZLEXCOUNT", "key1", "f", "j"},
+			expectedValue:    nil,
+			expectedResponse: 5,
+			expectedError:    nil,
+		},
+		{ // 2. Return 0 when the members do not have the same score
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "a", score: Score(5.5)},
+				{value: "b", score: Score(67.77)},
+				{value: "c", score: Score(10)},
+				{value: "d", score: Score(1083.13)},
+				{value: "e", score: Score(11)},
+				{value: "f", score: Score(math.Inf(-1))},
+				{value: "g", score: Score(math.Inf(1))},
+			}),
+			key:              "key2",
+			command:          []string{"ZLEXCOUNT", "key2", "a", "b"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 3. Return 0 when the key does not exist
+			preset:           false,
+			presetValue:      nil,
+			key:              "key3",
+			command:          []string{"ZLEXCOUNT", "key3", "a", "z"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 4. Return error when the value at the key is not a sorted set
+			preset:           true,
+			presetValue:      "Default value",
+			key:              "key4",
+			command:          []string{"ZLEXCOUNT", "key4", "a", "z"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key4 is not a sorted set"),
+		},
+		{ // 5. Command is too short
+			preset:           false,
+			presetValue:      nil,
+			key:              "key5",
+			command:          []string{"ZLEXCOUNT"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 6. Command too long
+			preset:           false,
+			presetValue:      nil,
+			key:              "key6",
+			command:          []string{"ZLEXCOUNT", "key6", "min", "max", "count"},
+			expectedValue:    nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleZLEXCOUNT(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewReader(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
+		}
+	}
+}
 
 func Test_HandleZDIFF(t *testing.T) {}
 

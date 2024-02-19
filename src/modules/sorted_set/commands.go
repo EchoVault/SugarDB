@@ -255,19 +255,20 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zlexcountKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	minimum := cmd[2]
 	maximum := cmd[3]
 
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte(":0\r\n\r\n"), nil
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -282,7 +283,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 	// Check if all members has the same score
 	for i := 0; i < len(members)-2; i++ {
 		if members[i].score != members[i+1].score {
-			return []byte("+(nil)\r\n\r\n"), nil
+			return []byte(":0\r\n\r\n"), nil
 		}
 	}
 
@@ -1756,7 +1757,8 @@ The elements are ordered from lowest score to highest score`,
 			Command:    "zlexcount",
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZLEXCOUNT key min max) Returns the number of elements in within the sorted set within the 
-lexicographical range between min and max`,
+lexicographical range between min and max. Returns 0, if the keys does not exist or if all the members do not have
+the same score. If the value held at key is not a sorted set, an error is returned`,
 			Sync:              false,
 			KeyExtractionFunc: zlexcountKeyFunc,
 			HandlerFunc:       handleZLEXCOUNT,
