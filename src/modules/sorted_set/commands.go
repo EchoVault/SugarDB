@@ -300,13 +300,10 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 }
 
 func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zdiffKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
-
-	keys := utils.Filter(cmd[1:], func(s string) bool {
-		return !strings.EqualFold(s, "withscores")
-	})
 
 	withscoresIndex := slices.IndexFunc(cmd, func(s string) bool {
 		return strings.EqualFold(s, "withscores")
@@ -324,34 +321,36 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 		}
 	}()
 
+	// Extract base set
+	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(keys[0])
+	baseSortedSet, ok := server.GetValue(keys[0]).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", keys[0])
+	}
+
+	// Extract the remaining sets
 	var sets []*SortedSet
 
-	for _, key := range keys {
-		if !server.KeyExists(key) {
+	for i := 1; i < len(keys); i++ {
+		if !server.KeyExists(keys[i]) {
 			continue
 		}
-		locked, err := server.KeyRLock(ctx, key)
+		locked, err := server.KeyRLock(ctx, keys[i])
 		if err != nil {
 			return nil, err
 		}
-		locks[key] = locked
-		set, ok := server.GetValue(key).(*SortedSet)
+		locks[keys[i]] = locked
+		set, ok := server.GetValue(keys[i]).(*SortedSet)
 		if !ok {
-			return nil, fmt.Errorf("value at error %s is not a sorted set", key)
+			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 		}
 		sets = append(sets, set)
 	}
 
-	var diff *SortedSet
-
-	switch len(sets) {
-	case 0:
-		return []byte("*0\r\n\r\n"), nil
-	case 1:
-		diff = sets[0]
-	default:
-		diff = sets[0].Subtract(sets[1:])
-	}
+	var diff = baseSortedSet.Subtract(sets)
 
 	res := fmt.Sprintf("*%d", diff.Cardinality())
 	includeScores := withscoresIndex != -1 && withscoresIndex >= 2
@@ -359,7 +358,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 	var str string
 	for i, m := range diff.GetAll() {
 		if includeScores {
-			str = fmt.Sprintf("%s %f", m.value, m.score)
+			str = fmt.Sprintf("%s %s", m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 			res += fmt.Sprintf("\r\n$%d\r\n%s", len(str), str)
 		} else {
 			str = string(m.value)

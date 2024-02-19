@@ -8,6 +8,7 @@ import (
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
 	"math"
+	"slices"
 	"testing"
 )
 
@@ -610,7 +611,157 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 	}
 }
 
-func Test_HandleZDIFF(t *testing.T) {}
+func Test_HandleZDIFF(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		command          []string
+		expectedResponse []string
+		expectedError    error
+	}{
+		{ // 1. Get the difference between 2 sorted sets without scores.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "one", score: 1},
+					{value: "two", score: 2},
+					{value: "three", score: 3},
+					{value: "four", score: 4},
+				}),
+				"key2": NewSortedSet([]MemberParam{
+					{value: "three", score: 3},
+					{value: "four", score: 4},
+					{value: "five", score: 5},
+					{value: "six", score: 6},
+					{value: "seven", score: 7},
+					{value: "eight", score: 8},
+				}),
+			},
+			command:          []string{"ZDIFF", "key1", "key2"},
+			expectedResponse: []string{"one", "two"},
+			expectedError:    nil,
+		},
+		{ // 2. Get the difference between 2 sorted sets with scores.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "one", score: 1},
+					{value: "two", score: 2},
+					{value: "three", score: 3},
+					{value: "four", score: 4},
+				}),
+				"key2": NewSortedSet([]MemberParam{
+					{value: "three", score: 3},
+					{value: "four", score: 4},
+					{value: "five", score: 5},
+					{value: "six", score: 6},
+					{value: "seven", score: 7},
+					{value: "eight", score: 8},
+				}),
+			},
+			command:          []string{"ZDIFF", "key1", "key2", "WITHSCORES"},
+			expectedResponse: []string{"one 1", "two 2"},
+			expectedError:    nil,
+		},
+		{ // 3. Get the difference between 3 sets with scores.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key4": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11},
+				}),
+				"key5": NewSortedSet([]MemberParam{
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12},
+				}),
+			},
+			command:          []string{"ZDIFF", "key3", "key4", "key5", "WITHSCORES"},
+			expectedResponse: []string{"three 3", "four 4", "five 5", "six 6"},
+			expectedError:    nil,
+		},
+		{ // 3. Return sorted set if only one key exists and is a sorted set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key6": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+			},
+			command:          []string{"ZDIFF", "key6", "key7", "key8", "WITHSCORES"},
+			expectedResponse: []string{"one 1", "two 2", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 8"},
+			expectedError:    nil,
+		},
+		{ // 4. Throw error when one of the keys is not a sorted set.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key9": "Default value",
+				"key10": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11},
+				}),
+				"key11": NewSortedSet([]MemberParam{
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12},
+				}),
+			},
+			command:          []string{"ZDIFF", "key9", "key10", "key11"},
+			expectedResponse: nil,
+			expectedError:    errors.New("value at key9 is not a sorted set"),
+		},
+		{ // 6. Command too short
+			preset:           false,
+			command:          []string{"ZDIFF"},
+			expectedResponse: []string{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleZDIFF(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		for _, responseElement := range rv.Array() {
+			if !slices.Contains(test.expectedResponse, responseElement.String()) {
+				t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+			}
+		}
+	}
+}
 
 func Test_HandleZDIFFSTORE(t *testing.T) {}
 

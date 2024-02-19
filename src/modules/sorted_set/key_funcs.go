@@ -32,10 +32,16 @@ func zdiffKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) < 2 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
-	keys := utils.Filter(cmd[1:], func(elem string) bool {
-		return !strings.EqualFold(elem, "WITHSCORES")
+
+	withscoresIndex := slices.IndexFunc(cmd, func(s string) bool {
+		return strings.EqualFold(s, "withscores")
 	})
-	return keys, nil
+
+	if withscoresIndex == -1 {
+		return cmd[1:], nil
+	}
+
+	return cmd[1:withscoresIndex], nil
 }
 
 func zdiffstoreKeyFunc(cmd []string) ([]string, error) {
