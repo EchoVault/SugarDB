@@ -526,8 +526,8 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	var setParams []SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
-		// If key does not exist, return an empty array
 		if !server.KeyExists(keys[i]) {
+			// If any of the keys is non-existent, return an empty array as there's no intersect
 			return []byte("*0\r\n\r\n"), nil
 		}
 		if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
@@ -565,12 +565,14 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zinterstoreKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	destination := cmd[1]
+	destination := keys[0]
 
+	// Remove the destination keys from the command before parsing it
 	cmd = slices.DeleteFunc(cmd, func(s string) bool {
 		return s == destination
 	})
@@ -589,39 +591,34 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 		}
 	}()
 
-	var sets []*SortedSet
+	var setParams []SortedSetParam
 
-	for _, key := range keys {
-		_, err := server.KeyRLock(ctx, key)
-		if err != nil {
+	for i := 0; i < len(keys); i++ {
+		if !server.KeyExists(keys[i]) {
+			return []byte(":0\r\n\r\n"), nil
+		}
+		if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 			return nil, err
 		}
-		locks[key] = true
-		set, ok := server.GetValue(key).(*SortedSet)
+		locks[keys[i]] = true
+		set, ok := server.GetValue(keys[i]).(*SortedSet)
 		if !ok {
-			return nil, fmt.Errorf("value at %s is not a sorted set", key)
+			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 		}
-		sets = append(sets, set)
+		setParams = append(setParams, SortedSetParam{
+			set:    set,
+			weight: weights[i],
+		})
 	}
 
-	var intersect *SortedSet
+	intersect := Intersect(aggregate, setParams...)
 
-	if len(sets) > 1 {
-		if intersect, err = sets[0].Intersect(sets[1:], weights, aggregate); err != nil {
+	if server.KeyExists(destination) && intersect.Cardinality() > 0 {
+		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
-	} else if len(sets) == 1 {
-		intersect = sets[0]
-	} else {
-		return nil, errors.New("not enough sets to form an intersect")
-	}
-
-	if server.KeyExists(destination) {
-		if _, err := server.KeyLock(ctx, destination); err != nil {
-			return nil, err
-		}
-	} else {
-		if _, err := server.CreateKeyAndLock(ctx, destination); err != nil {
+	} else if intersect.Cardinality() > 0 {
+		if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	}
