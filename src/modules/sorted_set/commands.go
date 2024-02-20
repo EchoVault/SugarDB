@@ -441,11 +441,12 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 }
 
 func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zincrbyKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	member := Value(cmd[3])
 	var increment Score
 
@@ -469,8 +470,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 	}
 
 	if server.KeyExists(key) {
-		_, err := server.KeyLock(ctx, key)
-		if err != nil {
+		if _, err = server.KeyLock(ctx, key); err != nil {
 			return nil, err
 		}
 		defer server.KeyUnlock(key)
@@ -486,8 +486,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		return []byte(fmt.Sprintf("+%f\r\n\r\n", set.Get(member).score)), nil
 	}
 
-	_, err := server.CreateKeyAndLock(ctx, key)
-	if err != nil {
+	if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
