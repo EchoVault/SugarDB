@@ -1474,11 +1474,12 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zunionstoreKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	destination := cmd[1]
+	destination := keys[0]
 
 	// Remove destination key from list of keys
 	cmd = slices.DeleteFunc(cmd, func(s string) bool {
@@ -1499,48 +1500,41 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 		}
 	}()
 
-	var sets []*SortedSet
+	var setParams []SortedSetParam
 
-	for _, key := range keys {
-		if server.KeyExists(key) {
-			_, err := server.KeyRLock(ctx, key)
-			if err != nil {
+	for i := 0; i < len(keys); i++ {
+		if server.KeyExists(keys[i]) {
+			if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 				return nil, err
 			}
-			locks[key] = true
-			set, ok := server.GetValue(key).(*SortedSet)
+			locks[keys[i]] = true
+			set, ok := server.GetValue(keys[i]).(*SortedSet)
 			if !ok {
-				return nil, fmt.Errorf("value at %s is not a sorted set", key)
+				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}
-			sets = append(sets, set)
+			setParams = append(setParams, SortedSetParam{
+				set:    set,
+				weight: weights[i],
+			})
 		}
 	}
 
-	var union *SortedSet
-
-	if len(sets) > 1 {
-		union, err = sets[0].Union(sets[1:], weights, aggregate)
-		if err != nil {
-			return nil, err
-		}
-	} else if len(sets) == 1 {
-		union = sets[0]
-	} else {
-		return nil, errors.New("no sorted sets to form union")
-	}
+	union := Union(aggregate, setParams...)
 
 	if server.KeyExists(destination) {
-		if _, err := server.KeyLock(ctx, destination); err != nil {
+		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	} else {
-		if _, err := server.CreateKeyAndLock(ctx, destination); err != nil {
+		if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	}
 	defer server.KeyUnlock(destination)
 
 	server.SetValue(ctx, destination, union)
+
+	fmt.Println("DESTINATION: ", destination, ", CARD: ", union.Cardinality())
 
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", union.Cardinality())), nil
 }
