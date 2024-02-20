@@ -504,8 +504,9 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 }
 
 func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zinterKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	keys, weights, aggregate, withscores, err := extractKeysWeightsAggregateWithScores(cmd)
@@ -522,52 +523,43 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 	}()
 
-	var sets []*SortedSet
+	var setParams []SortedSetParam
 
-	for _, key := range keys {
-		if server.KeyExists(key) {
-			_, err := server.KeyRLock(ctx, key)
-			if err != nil {
-				return nil, err
-			}
-			locks[key] = true
-			set, ok := server.GetValue(key).(*SortedSet)
-			if !ok {
-				return nil, fmt.Errorf("value at %s is not a sorted set", key)
-			}
-			sets = append(sets, set)
+	for i := 0; i < len(keys); i++ {
+		// If key does not exist, return an empty array
+		if !server.KeyExists(keys[i]) {
+			return []byte("*0\r\n\r\n"), nil
 		}
-	}
-
-	var intersect *SortedSet
-
-	if len(sets) > 1 {
-		if intersect, err = sets[0].Intersect(sets[1:], weights, aggregate); err != nil {
+		if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 			return nil, err
 		}
-	} else if len(sets) == 1 {
-		intersect = sets[0]
-	} else {
-		return nil, errors.New("not enough sets to form an intersect")
+		locks[keys[i]] = true
+		set, ok := server.GetValue(keys[i]).(*SortedSet)
+		if !ok {
+			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
+		}
+		setParams = append(setParams, SortedSetParam{
+			set:    set,
+			weight: weights[i],
+		})
 	}
+
+	intersect := Intersect(aggregate, setParams...)
 
 	res := fmt.Sprintf("*%d", intersect.Cardinality())
 
 	if intersect.Cardinality() > 0 {
-		for i, m := range intersect.GetAll() {
+		for _, m := range intersect.GetAll() {
 			if withscores {
-				s := fmt.Sprintf("%s %f", m.value, m.score)
+				s := fmt.Sprintf("%s %s", m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 				res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
 			} else {
-				res += fmt.Sprintf("\r\n%s", m.value)
-			}
-			if i == intersect.Cardinality()-1 {
-				res += "\r\n\r\n"
+				res += fmt.Sprintf("\r\n$%d\r\n%s", len(m.value), m.value)
 			}
 		}
-	} else {
-		res += "\r\n\r\n"
 	}
+
+	res += "\r\n\r\n"
 
 	return []byte(res), nil
 }

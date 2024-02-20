@@ -9,16 +9,13 @@ import (
 )
 
 func extractKeysWeightsAggregateWithScores(cmd []string) ([]string, []int, string, bool, error) {
-	firstModifierIndex := -1
-
 	var weights []int
 	weightsIndex := slices.IndexFunc(cmd, func(s string) bool {
 		return strings.EqualFold(s, "weights")
 	})
 	if weightsIndex != -1 {
-		firstModifierIndex = weightsIndex
 		for i := weightsIndex + 1; i < len(cmd); i++ {
-			if slices.Contains([]string{"aggregate", "withscores"}, cmd[i]) {
+			if slices.Contains([]string{"aggregate", "withscores"}, strings.ToLower(cmd[i])) {
 				break
 			}
 			w, err := strconv.Atoi(cmd[i])
@@ -34,14 +31,6 @@ func extractKeysWeightsAggregateWithScores(cmd []string) ([]string, []int, strin
 		return strings.EqualFold(s, "aggregate")
 	})
 	if aggregateIndex != -1 {
-		if firstModifierIndex != -1 && (aggregateIndex != -1 && aggregateIndex < firstModifierIndex) {
-			firstModifierIndex = aggregateIndex
-		} else if firstModifierIndex == -1 {
-			firstModifierIndex = aggregateIndex
-		}
-		if aggregateIndex >= len(cmd)-1 {
-			return []string{}, []int{}, "", false, errors.New("aggregate must be SUM, MIN, or MAX")
-		}
 		if !slices.Contains([]string{"sum", "min", "max"}, strings.ToLower(cmd[aggregateIndex+1])) {
 			return []string{}, []int{}, "", false, errors.New("aggregate must be SUM, MIN, or MAX")
 		}
@@ -53,25 +42,31 @@ func extractKeysWeightsAggregateWithScores(cmd []string) ([]string, []int, strin
 		return strings.EqualFold(s, "withscores")
 	})
 	if withscoresIndex != -1 {
-		if firstModifierIndex != -1 && (withscoresIndex != -1 && withscoresIndex < firstModifierIndex) {
-			firstModifierIndex = withscoresIndex
-		} else if firstModifierIndex == -1 {
-			firstModifierIndex = withscoresIndex
-		}
 		withscores = true
+	}
+
+	// Get the first modifier index as this will be the upper boundary when extracting the keys
+	firstModifierIndex := -1
+	for _, modifierIndex := range []int{weightsIndex, aggregateIndex, withscoresIndex} {
+		if modifierIndex == -1 {
+			continue
+		}
+		if firstModifierIndex == -1 {
+			firstModifierIndex = modifierIndex
+			continue
+		}
+		if modifierIndex < firstModifierIndex {
+			firstModifierIndex = modifierIndex
+		}
 	}
 
 	var keys []string
 	if firstModifierIndex == -1 {
 		keys = cmd[1:]
-	} else if firstModifierIndex != -1 && firstModifierIndex < 2 {
-		return []string{}, []int{}, "", false, errors.New("must provide at least 1 key")
 	} else {
 		keys = cmd[1:firstModifierIndex]
 	}
-	if len(keys) < 1 {
-		return []string{}, []int{}, "", false, errors.New("must provide at least 1 key")
-	}
+
 	if weightsIndex != -1 && (len(keys) != len(weights)) {
 		return []string{}, []int{}, "", false, errors.New("number of weights should match number of keys")
 	} else if weightsIndex == -1 {

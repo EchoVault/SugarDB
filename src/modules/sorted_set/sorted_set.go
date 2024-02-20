@@ -294,6 +294,83 @@ func (set *SortedSet) Union(others []*SortedSet, weights []int, aggregate string
 	return res, nil
 }
 
+// SortedSetParam is a composite object used for Intersect and Union function
+type SortedSetParam struct {
+	set    *SortedSet
+	weight int
+}
+
+func Intersect(aggregate string, setParams ...SortedSetParam) *SortedSet {
+	switch len(setParams) {
+	case 1:
+		var params []MemberParam
+		for _, member := range setParams[0].set.GetAll() {
+			params = append(params, MemberParam{
+				value: member.value,
+				score: member.score * Score(setParams[0].weight),
+			})
+		}
+		return NewSortedSet(params)
+	case 2:
+		var params []MemberParam
+		// Traverse the params in the left sorted set
+		for _, member := range setParams[0].set.GetAll() {
+			// Check if the member exists in the right sorted set
+			if !setParams[1].set.Contains(member.value) {
+				continue
+			}
+			// If the member exists, get both elements and apply the weight
+			param := MemberParam{
+				value: member.value,
+				score: func(left, right Score) Score {
+					// Choose which param to add to params depending on the aggregate
+					switch aggregate {
+					case "sum":
+						return left + right
+					case "min":
+						return compareScores(left, right, "lt")
+					default:
+						// Aggregate is "max"
+						return compareScores(left, right, "gt")
+					}
+				}(
+					member.score*Score(setParams[0].weight),
+					setParams[1].set.Get(member.value).score*Score(setParams[1].weight),
+				),
+			}
+			params = append(params, param)
+		}
+		return NewSortedSet(params)
+	default:
+		// Divide the sets into 2 and return the intersection
+		left := Intersect(aggregate, setParams[0:len(setParams)/2]...)
+		right := Intersect(aggregate, setParams[len(setParams)/2:]...)
+
+		var params []MemberParam
+		for _, member := range left.GetAll() {
+			if !right.Contains(member.value) {
+				continue
+			}
+			params = append(params, MemberParam{
+				value: member.value,
+				score: func(left, right Score) Score {
+					switch aggregate {
+					case "sum":
+						return left + right
+					case "min":
+						return compareScores(left, right, "lt")
+					default:
+						// Aggregate is "max"
+						return compareScores(left, right, "gt")
+					}
+				}(member.score, right.Get(member.value).score),
+			})
+		}
+
+		return NewSortedSet(params)
+	}
+}
+
 func (set *SortedSet) Intersect(others []*SortedSet, weights []int, aggregate string) (*SortedSet, error) {
 	res := NewSortedSet([]MemberParam{})
 	// Find intersect between this set and the first set in others

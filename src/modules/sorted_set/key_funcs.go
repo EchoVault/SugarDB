@@ -74,7 +74,7 @@ func zinterKeyFunc(cmd []string) ([]string, error) {
 		return cmd[1:], nil
 	}
 	if endIdx >= 1 {
-		return cmd[1 : endIdx+1], nil
+		return cmd[1:endIdx], nil
 	}
 	return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 }
