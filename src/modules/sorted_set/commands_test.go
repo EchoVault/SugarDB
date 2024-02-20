@@ -1617,6 +1617,327 @@ func Test_HandleZRANGE(t *testing.T) {}
 
 func Test_HandleZRANGESTORE(t *testing.T) {}
 
-func Test_HandleZUNION(t *testing.T) {}
+func Test_HandleZUNION(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		command          []string
+		expectedResponse []string
+		expectedError    error
+	}{
+		{ // 1. Get the union between 2 sorted sets.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+				"key2": NewSortedSet([]MemberParam{
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+			},
+			command:          []string{"ZUNION", "key1", "key2"},
+			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
+			expectedError:    nil,
+		},
+		{
+			// 2. Get the union between 3 sorted sets with scores.
+			// By default, the SUM aggregate will be used.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key4": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11}, {value: "eight", score: 8},
+				}),
+				"key5": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "eight", score: 8},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12}, {value: "thirty-six", score: 36},
+				}),
+			},
+			command: []string{"ZUNION", "key3", "key4", "key5", "WITHSCORES"},
+			expectedResponse: []string{
+				"one 3", "two 4", "three 3", "four 4", "five 5", "six 6",
+				"seven 7", "eight 24", "nine 9", "ten 10", "eleven 11", "twelve 24", "thirty-six 72"},
+			expectedError: nil,
+		},
+		{
+			// 3. Get the union between 3 sorted sets with scores.
+			// Use MIN aggregate.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key6": NewSortedSet([]MemberParam{
+					{value: "one", score: 100}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key7": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				}),
+				"key8": NewSortedSet([]MemberParam{
+					{value: "one", score: 1000}, {value: "eight", score: 800},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12}, {value: "thirty-six", score: 72},
+				}),
+			},
+			command: []string{"ZUNION", "key6", "key7", "key8", "WITHSCORES", "AGGREGATE", "MIN"},
+			expectedResponse: []string{
+				"one 1", "two 2", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 8",
+				"nine 9", "ten 10", "eleven 11", "twelve 12", "thirty-six 36",
+			},
+			expectedError: nil,
+		},
+		{
+			// 4. Get the union between 3 sorted sets with scores.
+			// Use MAX aggregate.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key9": NewSortedSet([]MemberParam{
+					{value: "one", score: 100}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key10": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				}),
+				"key11": NewSortedSet([]MemberParam{
+					{value: "one", score: 1000}, {value: "eight", score: 800},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12}, {value: "thirty-six", score: 72},
+				}),
+			},
+			command: []string{"ZUNION", "key9", "key10", "key11", "WITHSCORES", "AGGREGATE", "MAX"},
+			expectedResponse: []string{
+				"one 1000", "two 2", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 800",
+				"nine 9", "ten 10", "eleven 11", "twelve 12", "thirty-six 72",
+			},
+			expectedError: nil,
+		},
+		{
+			// 5. Get the union between 3 sorted sets with scores.
+			// Use SUM aggregate with weights modifier.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key12": NewSortedSet([]MemberParam{
+					{value: "one", score: 100}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key13": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				}),
+				"key14": NewSortedSet([]MemberParam{
+					{value: "one", score: 1000}, {value: "eight", score: 800},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12},
+				}),
+			},
+			command: []string{"ZUNION", "key12", "key13", "key14", "WITHSCORES", "AGGREGATE", "SUM", "WEIGHTS", "1", "2", "3"},
+			expectedResponse: []string{
+				"one 3102", "two 6", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 2568",
+				"nine 27", "ten 30", "eleven 22", "twelve 60", "thirty-six 72",
+			},
+			expectedError: nil,
+		},
+		{
+			// 6. Get the union between 3 sorted sets with scores.
+			// Use MAX aggregate with added weights.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key15": NewSortedSet([]MemberParam{
+					{value: "one", score: 100}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key16": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				}),
+				"key17": NewSortedSet([]MemberParam{
+					{value: "one", score: 1000}, {value: "eight", score: 800},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12},
+				}),
+			},
+			command: []string{"ZUNION", "key15", "key16", "key17", "WITHSCORES", "AGGREGATE", "MAX", "WEIGHTS", "1", "2", "3"},
+			expectedResponse: []string{
+				"one 3000", "two 4", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 2400",
+				"nine 27", "ten 30", "eleven 22", "twelve 36", "thirty-six 72",
+			},
+			expectedError: nil,
+		},
+		{
+			// 7. Get the union between 3 sorted sets with scores.
+			// Use MIN aggregate with added weights.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key18": NewSortedSet([]MemberParam{
+					{value: "one", score: 100}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key19": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				}),
+				"key20": NewSortedSet([]MemberParam{
+					{value: "one", score: 1000}, {value: "eight", score: 800},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12},
+				}),
+			},
+			command: []string{"ZUNION", "key18", "key19", "key20", "WITHSCORES", "AGGREGATE", "MIN", "WEIGHTS", "1", "2", "3"},
+			expectedResponse: []string{
+				"one 2", "two 2", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 8",
+				"nine 27", "ten 30", "eleven 22", "twelve 24", "thirty-six 72",
+			},
+			expectedError: nil,
+		},
+		{ // 8. Throw an error if there are more weights than keys
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key21": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key22": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+			},
+			command:          []string{"ZUNION", "key21", "key22", "WEIGHTS", "1", "2", "3"},
+			expectedResponse: nil,
+			expectedError:    errors.New("number of weights should match number of keys"),
+		},
+		{ // 9. Throw an error if there are fewer weights than keys
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key23": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key24": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+				}),
+				"key25": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+			},
+			command:          []string{"ZUNION", "key23", "key24", "key25", "WEIGHTS", "5", "4"},
+			expectedResponse: nil,
+			expectedError:    errors.New("number of weights should match number of keys"),
+		},
+		{ // 10. Throw an error if there are no keys provided
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key26": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"key27": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"key28": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+			},
+			command:          []string{"ZUNION", "WEIGHTS", "5", "4"},
+			expectedResponse: nil,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 11. Throw an error if any of the provided keys are not sorted sets
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key29": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+				"key30": "Default value",
+				"key31": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+			},
+			command:          []string{"ZUNION", "key29", "key30", "key31"},
+			expectedResponse: nil,
+			expectedError:    errors.New("value at key30 is not a sorted set"),
+		},
+		{ // 12. If any of the keys does not exist, skip it.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key32": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
+					{value: "eleven", score: 11},
+				}),
+				"key33": NewSortedSet([]MemberParam{
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+					{value: "nine", score: 9}, {value: "ten", score: 10},
+					{value: "twelve", score: 12},
+				}),
+			},
+			command: []string{"ZUNION", "non-existent", "key32", "key33"},
+			expectedResponse: []string{
+				"one", "two", "thirty-six", "twelve", "eleven",
+				"seven", "eight", "nine", "ten",
+			},
+			expectedError: nil,
+		},
+		{ // 13. Command too short
+			preset:           false,
+			command:          []string{"ZUNION"},
+			expectedResponse: []string{},
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleZUNION(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		for _, responseElement := range rv.Array() {
+			if !slices.Contains(test.expectedResponse, responseElement.String()) {
+				t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+			}
+		}
+	}
+}
 
 func Test_HandleZUNIONSTORE(t *testing.T) {}

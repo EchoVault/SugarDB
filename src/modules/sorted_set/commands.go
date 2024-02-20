@@ -1419,8 +1419,8 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 }
 
 func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	if _, err := zunionKeyFunc(cmd); err != nil {
+		return nil, err
 	}
 
 	keys, weights, aggregate, withscores, err := extractKeysWeightsAggregateWithScores(cmd)
@@ -1437,48 +1437,38 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 	}()
 
-	var sets []*SortedSet
+	var setParams []SortedSetParam
 
-	for _, key := range keys {
-		if server.KeyExists(key) {
-			_, err := server.KeyRLock(ctx, key)
-			if err != nil {
+	for i := 0; i < len(keys); i++ {
+		if server.KeyExists(keys[i]) {
+			if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 				return nil, err
 			}
-			locks[key] = true
-			set, ok := server.GetValue(key).(*SortedSet)
+			locks[keys[i]] = true
+			set, ok := server.GetValue(keys[i]).(*SortedSet)
 			if !ok {
-				return nil, fmt.Errorf("value at key %s is not a sorted set", key)
+				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}
-			sets = append(sets, set)
+			setParams = append(setParams, SortedSetParam{
+				set:    set,
+				weight: weights[i],
+			})
 		}
 	}
 
-	var union *SortedSet
-
-	if len(sets) > 1 {
-		union, err = sets[0].Union(sets[1:], weights, aggregate)
-		if err != nil {
-			return nil, err
-		}
-	} else if len(sets) == 1 {
-		union = sets[0]
-	} else {
-		return nil, errors.New("no sorted sets to form union")
-	}
+	union := Union(aggregate, setParams...)
 
 	res := fmt.Sprintf("*%d", union.Cardinality())
-	for i, m := range union.GetAll() {
+	for _, m := range union.GetAll() {
 		if withscores {
-			s := fmt.Sprintf("%s %f", m.value, m.score)
+			s := fmt.Sprintf("%s %s", m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 			res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
 		} else {
 			res += fmt.Sprintf("\r\n+%s", m.value)
 		}
-		if i == union.Cardinality()-1 {
-			res += "\r\n\r\n"
-		}
 	}
+
+	res += "\r\n\r\n"
 
 	return []byte(res), nil
 }

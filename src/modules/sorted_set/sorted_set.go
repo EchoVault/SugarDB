@@ -300,6 +300,107 @@ type SortedSetParam struct {
 	weight int
 }
 
+// Union uses divided & conquer to calculate the union of multiple sets
+func Union(aggregate string, setParams ...SortedSetParam) *SortedSet {
+	switch len(setParams) {
+	case 0:
+		return NewSortedSet([]MemberParam{})
+	case 1:
+		var params []MemberParam
+		for _, member := range setParams[0].set.GetAll() {
+			params = append(params, MemberParam{
+				value: member.value,
+				score: member.score * Score(setParams[0].weight),
+			})
+		}
+		return NewSortedSet(params)
+	case 2:
+		var params []MemberParam
+		// Traverse the params in the left sorted set
+		for _, member := range setParams[0].set.GetAll() {
+			// If the member does not exist in the other sorted set, add it to params along with the appropriate weight
+			if !setParams[1].set.Contains(member.value) {
+				params = append(params, MemberParam{
+					value: member.value,
+					score: member.score * Score(setParams[0].weight),
+				})
+				continue
+			}
+			// If the member exists, get both elements and apply the weight
+			param := MemberParam{
+				value: member.value,
+				score: func(left, right Score) Score {
+					// Choose which param to add to params depending on the aggregate
+					switch aggregate {
+					case "sum":
+						return left + right
+					case "min":
+						return compareScores(left, right, "lt")
+					default:
+						// Aggregate is "max"
+						return compareScores(left, right, "gt")
+					}
+				}(
+					member.score*Score(setParams[0].weight),
+					setParams[1].set.Get(member.value).score*Score(setParams[1].weight),
+				),
+			}
+			params = append(params, param)
+		}
+		// Traverse the params on the right sorted set and add all the elements that are not
+		// already contained in params with their respective weights applied.
+		for _, member := range setParams[1].set.GetAll() {
+			if !slices.ContainsFunc(params, func(param MemberParam) bool {
+				return param.value == member.value
+			}) {
+				params = append(params, MemberParam{
+					value: member.value,
+					score: member.score * Score(setParams[1].weight),
+				})
+			}
+		}
+		return NewSortedSet(params)
+	default:
+		// Divide the sets into 2 and return the unions
+		left := Union(aggregate, setParams[0:len(setParams)/2]...)
+		right := Union(aggregate, setParams[len(setParams)/2:]...)
+
+		var params []MemberParam
+		// Traverse left sub-set and add the union elements to params
+		for _, member := range left.GetAll() {
+			if !right.Contains(member.value) {
+				// If the right set does not contain the current element, just add it to params
+				params = append(params, member)
+				continue
+			}
+			params = append(params, MemberParam{
+				value: member.value,
+				score: func(left, right Score) Score {
+					switch aggregate {
+					case "sum":
+						return left + right
+					case "min":
+						return compareScores(left, right, "lt")
+					default:
+						// Aggregate is "max"
+						return compareScores(left, right, "gt")
+					}
+				}(member.score, right.Get(member.value).score),
+			})
+		}
+		// Traverse the right sub-set and add any remaining elements to params
+		for _, member := range right.GetAll() {
+			if !slices.ContainsFunc(params, func(param MemberParam) bool {
+				return param.value == member.value
+			}) {
+				params = append(params, member)
+			}
+		}
+		return NewSortedSet(params)
+	}
+}
+
+// Intersect uses divide & conquer to calculate the intersection of multiple sets
 func Intersect(aggregate string, setParams ...SortedSetParam) *SortedSet {
 	switch len(setParams) {
 	case 0:

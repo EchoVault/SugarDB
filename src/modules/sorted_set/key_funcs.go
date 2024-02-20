@@ -208,17 +208,43 @@ func zrangeStoreKeyFunc(cmd []string) ([]string, error) {
 }
 
 func zunionKeyFunc(cmd []string) ([]string, error) {
-	keys, _, _, _, err := extractKeysWeightsAggregateWithScores(cmd)
-	if err != nil {
-		return nil, err
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
-	return keys, nil
+	endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
+		if strings.EqualFold(s, "WEIGHTS") ||
+			strings.EqualFold(s, "AGGREGATE") ||
+			strings.EqualFold(s, "WITHSCORES") {
+			return true
+		}
+		return false
+	})
+	if endIdx == -1 {
+		return cmd[1:], nil
+	}
+	if endIdx >= 1 {
+		return cmd[1:endIdx], nil
+	}
+	return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 }
 
 func zunionstoreKeyFunc(cmd []string) ([]string, error) {
-	keys, _, _, _, err := extractKeysWeightsAggregateWithScores(cmd)
-	if err != nil {
-		return nil, err
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
-	return keys, nil
+	endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
+		if strings.EqualFold(s, "WEIGHTS") ||
+			strings.EqualFold(s, "AGGREGATE") ||
+			strings.EqualFold(s, "WITHSCORES") {
+			return true
+		}
+		return false
+	})
+	if endIdx == -1 {
+		return cmd[1:], nil
+	}
+	if endIdx >= 1 {
+		return cmd[1:endIdx], nil
+	}
+	return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 }
