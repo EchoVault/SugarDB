@@ -1116,11 +1116,12 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 }
 
 func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 4 || len(cmd) > 10 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zrangeKeyCount(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	policy := "byscore"
 	scoreStart := math.Inf(-1) // Lower bound if policy is "byscore"
 	scoreStop := math.Inf(1)   // Upper bound if policy is "byfloat"
@@ -1143,16 +1144,14 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 		policy = "bylex"
 	} else {
 		// policy is "byscore" make sure start and stop are valid float values
-		fStart, err := strconv.ParseFloat(cmd[2], 64)
+		scoreStart, err = strconv.ParseFloat(cmd[2], 64)
 		if err != nil {
 			return nil, err
 		}
-		scoreStart = fStart
-		fStop, err := strconv.ParseFloat(cmd[3], 64)
+		scoreStop, err = strconv.ParseFloat(cmd[3], 64)
 		if err != nil {
 			return nil, err
 		}
-		scoreStop = fStop
 	}
 
 	if slices.ContainsFunc(cmd[4:], func(s string) bool {
@@ -1172,19 +1171,17 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 			return nil, errors.New("offset must be >= 0")
 		}
 		offset = o
-		c, err := strconv.Atoi(cmd[4:][limitIdx+2])
+		count, err = strconv.Atoi(cmd[4:][limitIdx+2])
 		if err != nil {
 			return nil, err
 		}
-		count = c
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte("*0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -1262,12 +1259,13 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 5 || len(cmd) > 11 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zrangeStoreKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	destination := cmd[1]
-	source := cmd[2]
+	destination := keys[0]
+	source := keys[1]
 	policy := "byscore"
 	scoreStart := math.Inf(-1) // Lower bound if policy is "byscore"
 	scoreStop := math.Inf(1)   // Upper bound if policy is "byfloat"
@@ -1286,16 +1284,14 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 		policy = "bylex"
 	} else {
 		// policy is "byscore" make sure start and stop are valid float values
-		fStart, err := strconv.ParseFloat(cmd[3], 64)
+		scoreStart, err = strconv.ParseFloat(cmd[3], 64)
 		if err != nil {
 			return nil, err
 		}
-		scoreStart = fStart
-		fStop, err := strconv.ParseFloat(cmd[4], 64)
+		scoreStop, err = strconv.ParseFloat(cmd[4], 64)
 		if err != nil {
 			return nil, err
 		}
-		scoreStop = fStop
 	}
 
 	if slices.ContainsFunc(cmd[5:], func(s string) bool {
@@ -1307,24 +1303,21 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 		if limitIdx != -1 && limitIdx > len(cmd[5:])-3 {
 			return nil, errors.New("limit should contain offset and count as integers")
 		}
-		o, err := strconv.Atoi(cmd[5:][limitIdx+1])
+		offset, err = strconv.Atoi(cmd[5:][limitIdx+1])
 		if err != nil {
 			return nil, err
 		}
-		offset = o
-		c, err := strconv.Atoi(cmd[5:][limitIdx+2])
+		count, err = strconv.Atoi(cmd[5:][limitIdx+2])
 		if err != nil {
 			return nil, err
 		}
-		count = c
 	}
 
 	if !server.KeyExists(source) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte("*0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, source)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, source); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(source)
@@ -1335,7 +1328,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 	}
 
 	if offset > set.Cardinality() {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte(":0\r\n\r\n"), nil
 	}
 	if count < 0 {
 		count = set.Cardinality() - offset
@@ -1355,7 +1348,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 		// If policy is BYLEX, all the elements must have the same score
 		for i := 0; i < len(members)-1; i++ {
 			if members[i].score != members[i+1].score {
-				return []byte("*0\r\n\r\n"), nil
+				return []byte(":0\r\n\r\n"), nil
 			}
 		}
 		slices.SortFunc(members, func(a, b MemberParam) int {
@@ -1387,13 +1380,11 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 	newSortedSet := NewSortedSet(resultMembers)
 
 	if server.KeyExists(destination) {
-		_, err := server.KeyLock(ctx, destination)
-		if err != nil {
+		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	} else {
-		_, err := server.CreateKeyAndLock(ctx, destination)
-		if err != nil {
+		if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
 			return nil, err
 		}
 	}
