@@ -291,7 +291,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			count += 1
 		}
 	}
@@ -1042,7 +1042,7 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 		stop = stop + set.Cardinality()
 	}
 
-	if start < 0 || start > set.Cardinality()-1 || stop < 0 || start > set.Cardinality()-1 {
+	if start < 0 || start > set.Cardinality()-1 || stop < 0 || stop > set.Cardinality()-1 {
 		return nil, errors.New("indices out of bounds")
 	}
 
@@ -1106,7 +1106,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	// All the members have the same score
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			set.Remove(m.value)
 			deletedCount += 1
 		}
@@ -1239,7 +1239,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 			continue
 		}
 		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
-				slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
 			resultMembers = append(resultMembers, members[i])
 		}
 	}
@@ -1379,7 +1379,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 			continue
 		}
 		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
-				slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
 			resultMembers = append(resultMembers, members[i])
 		}
 	}
