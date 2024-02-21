@@ -1659,7 +1659,7 @@ func Test_HandleZSCORE(t *testing.T) {
 		expectedResponse interface{}
 		expectedError    error
 	}{
-		{ // 1. Return score from a set.
+		{ // 1. Return score from a sorted set.
 			preset: true,
 			presetValues: map[string]interface{}{
 				"key1": NewSortedSet([]MemberParam{
@@ -1906,7 +1906,121 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 	}
 }
 
-func Test_HandleZRANK(t *testing.T) {}
+func Test_HandleZRANK(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		command          []string
+		expectedResponse []string
+		expectedError    error
+	}{
+		{ // 1. Return element's rank from a sorted set.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+			},
+			command:          []string{"ZRANK", "key1", "four"},
+			expectedResponse: []string{"3"},
+			expectedError:    nil,
+		},
+		{ // 2. Return element's rank from a sorted set with its score.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "one", score: 100.1}, {value: "two", score: 245},
+					{value: "three", score: 305.43}, {value: "four", score: 411.055},
+					{value: "five", score: 500},
+				}),
+			},
+			command:          []string{"ZRANK", "key1", "four", "WITHSCORES"},
+			expectedResponse: []string{"3", "411.055"},
+			expectedError:    nil,
+		},
+		{ // 3. If key does not exist, return nil value
+			preset:           false,
+			presetValues:     nil,
+			command:          []string{"ZRANK", "key3", "one"},
+			expectedResponse: nil,
+			expectedError:    nil,
+		},
+		{ // 4. If key exists and is a sorted set, but the member does not exist, return nil
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key4": NewSortedSet([]MemberParam{
+					{value: "one", score: 1.1}, {value: "two", score: 245},
+					{value: "three", score: 3}, {value: "four", score: 4.055},
+					{value: "five", score: 5},
+				}),
+			},
+			command:          []string{"ZRANK", "key4", "non-existent"},
+			expectedResponse: nil,
+			expectedError:    nil,
+		},
+		{ // 5. Throw error when trying to find scores from elements that are not sorted sets
+			preset:        true,
+			presetValues:  map[string]interface{}{"key5": "Default value"},
+			command:       []string{"ZRANK", "key5", "one"},
+			expectedError: errors.New("value at key5 is not a sorted set"),
+		},
+		{ // 5. Command too short
+			preset:        false,
+			command:       []string{"ZRANK"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 6. Command too long
+			preset:        false,
+			command:       []string{"ZRANK", "key5", "one", "WITHSCORES", "two"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleZRANK(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if test.expectedResponse == nil {
+			if !rv.IsNull() {
+				t.Errorf("expected nil response, got %+v", rv)
+			}
+			continue
+		}
+		if len(rv.Array()) != len(test.expectedResponse) {
+			t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
+		}
+		for i := 0; i < len(test.expectedResponse); i++ {
+			if rv.Array()[i].String() != test.expectedResponse[i] {
+				t.Errorf("expected element at index %d to be %s, got %s", i, test.expectedResponse[i], rv.Array()[i].String())
+			}
+		}
+	}
+}
 
 func Test_HandleZREM(t *testing.T) {}
 

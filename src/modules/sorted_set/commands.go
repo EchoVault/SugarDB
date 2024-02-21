@@ -849,11 +849,12 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 }
 
 func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 || len(cmd) > 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zrankKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	member := cmd[2]
 	withscores := false
 
@@ -862,10 +863,10 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte("$-1\r\n\r\n"), nil
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -889,12 +890,12 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *n
 				score := strconv.FormatFloat(float64(members[i].score), 'f', -1, 64)
 				return []byte(fmt.Sprintf("*2\r\n:%d\r\n$%d\r\n%s\r\n\r\n", i, len(score), score)), nil
 			} else {
-				return []byte(fmt.Sprintf(":%d\r\n\r\n", i)), nil
+				return []byte(fmt.Sprintf("*1\r\n:%d\r\n\r\n", i)), nil
 			}
 		}
 	}
 
-	return []byte("+(nil)\r\n\r\n"), nil
+	return []byte("$-1\r\n\r\n"), nil
 }
 
 func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {

@@ -138,7 +138,7 @@ func zrandmemberKeyFunc(cmd []string) ([]string, error) {
 }
 
 func zrankKeyFunc(cmd []string) ([]string, error) {
-	if len(cmd) < 3 {
+	if len(cmd) < 3 || len(cmd) > 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 	return cmd[1:2], nil
