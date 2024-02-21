@@ -1649,13 +1649,109 @@ func Test_HandleZMSCORE(t *testing.T) {
 	}
 }
 
+func Test_HandleZSCORE(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		command          []string
+		expectedResponse interface{}
+		expectedError    error
+	}{
+		{ // 1. Return score from a set.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "one", score: 1.1}, {value: "two", score: 245},
+					{value: "three", score: 3}, {value: "four", score: 4.055},
+					{value: "five", score: 5},
+				}),
+			},
+			command:          []string{"ZSCORE", "key1", "four"},
+			expectedResponse: "4.055",
+			expectedError:    nil,
+		},
+		{ // 2. If key does not exist, return nil value
+			preset:           false,
+			presetValues:     nil,
+			command:          []string{"ZSCORE", "key2", "one"},
+			expectedResponse: nil,
+			expectedError:    nil,
+		},
+		{ // 3. If key exists and is a sorted set, but the member does not exist, return nil
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSortedSet([]MemberParam{
+					{value: "one", score: 1.1}, {value: "two", score: 245},
+					{value: "three", score: 3}, {value: "four", score: 4.055},
+					{value: "five", score: 5},
+				}),
+			},
+			command:          []string{"ZSCORE", "key3", "non-existent"},
+			expectedResponse: nil,
+			expectedError:    nil,
+		},
+		{ // 4. Throw error when trying to find scores from elements that are not sorted sets
+			preset:        true,
+			presetValues:  map[string]interface{}{"key4": "Default value"},
+			command:       []string{"ZSCORE", "key4", "one"},
+			expectedError: errors.New("value at key4 is not a sorted set"),
+		},
+		{ // 5. Command too short
+			preset:        false,
+			command:       []string{"ZSCORE"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 6. Command too long
+			preset:        false,
+			command:       []string{"ZSCORE", "key5", "one", "two"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleZSCORE(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if test.expectedResponse == nil {
+			if !rv.IsNull() {
+				t.Errorf("expected nil response, got %+v", rv)
+			}
+			continue
+		}
+		if rv.String() != test.expectedResponse {
+			t.Errorf("expected response \"%s\", got %s", test.expectedResponse, rv.String())
+		}
+	}
+}
+
 func Test_HandleZRANDMEMBER(t *testing.T) {}
 
 func Test_HandleZRANK(t *testing.T) {}
 
 func Test_HandleZREM(t *testing.T) {}
-
-func Test_HandleZSCORE(t *testing.T) {}
 
 func Test_HandleZREMRANGEBYSCORE(t *testing.T) {}
 
