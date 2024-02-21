@@ -291,7 +291,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			count += 1
 		}
 	}
@@ -359,19 +359,15 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 	res := fmt.Sprintf("*%d", diff.Cardinality())
 	includeScores := withscoresIndex != -1 && withscoresIndex >= 2
 
-	var str string
-	for i, m := range diff.GetAll() {
+	for _, m := range diff.GetAll() {
 		if includeScores {
-			str = fmt.Sprintf("%s %s", m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
-			res += fmt.Sprintf("\r\n$%d\r\n%s", len(str), str)
+			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 		} else {
-			str = string(m.value)
-			res += fmt.Sprintf("\r\n$%d\r\n%s", len(str), str)
-		}
-		if i == diff.Cardinality()-1 {
-			res += "\r\n\r\n"
+			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
 		}
 	}
+
+	res += "\r\n\r\n"
 
 	return []byte(res), nil
 }
@@ -549,10 +545,9 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	if intersect.Cardinality() > 0 {
 		for _, m := range intersect.GetAll() {
 			if withscores {
-				s := fmt.Sprintf("%s %s", m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
-				res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+				res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 			} else {
-				res += fmt.Sprintf("\r\n$%d\r\n%s", len(m.value), m.value)
+				res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
 			}
 		}
 	}
@@ -706,11 +701,12 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 || len(cmd) > 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zpopKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	count := 1
 	policy := "min"
 
@@ -727,11 +723,10 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte("*0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -747,13 +742,11 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 
 	res := fmt.Sprintf("*%d", popped.Cardinality())
-	for i, m := range popped.GetAll() {
-		s := fmt.Sprintf("%s %f", m.value, m.score)
-		res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
-		if i == popped.Cardinality()-1 {
-			res += "\r\n\r\n"
-		}
+	for _, m := range popped.GetAll() {
+		res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 	}
+
+	res += "\r\n\r\n"
 
 	return []byte(res), nil
 }
@@ -842,10 +835,9 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 	res := fmt.Sprintf("*%d", len(members))
 	for i, m := range members {
 		if withscores {
-			s := fmt.Sprintf("%s %s", m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
-			res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 		} else {
-			res += fmt.Sprintf("\r\n$%d\r\n%s", len(m.value), m.value)
+			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
 		}
 		if i == len(members)-1 {
 			res += "\r\n\r\n"
@@ -1104,7 +1096,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	// All the members have the same score
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			set.Remove(m.value)
 			deletedCount += 1
 		}
@@ -1237,7 +1229,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 			continue
 		}
 		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
-				slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
 			resultMembers = append(resultMembers, members[i])
 		}
 	}
@@ -1246,18 +1238,15 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 	if len(resultMembers) == 0 {
 		res += "\r\n\r\n"
 	}
-	for i, m := range resultMembers {
+	for _, m := range resultMembers {
 		if withscores {
-			score := strconv.FormatFloat(float64(m.score), 'f', -1, 64)
-			s := fmt.Sprintf("%s %s", m.value, score)
-			res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 		} else {
-			res += fmt.Sprintf("\r\n$%d\r\n%s", len(m.value), m.value)
-		}
-		if i == len(resultMembers)-1 {
-			res += "\r\n\r\n"
+			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
 		}
 	}
+
+	res += "\r\n\r\n"
 
 	return []byte(res), nil
 }
@@ -1380,7 +1369,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 			continue
 		}
 		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
-				slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
 			resultMembers = append(resultMembers, members[i])
 		}
 	}
@@ -1448,10 +1437,9 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 	res := fmt.Sprintf("*%d", union.Cardinality())
 	for _, m := range union.GetAll() {
 		if withscores {
-			s := fmt.Sprintf("%s %s", m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
-			res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
+			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 		} else {
-			res += fmt.Sprintf("\r\n+%s", m.value)
+			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
 		}
 	}
 

@@ -255,14 +255,8 @@ func Test_HandleZADD(t *testing.T) {
 		if test.expectedValue == nil {
 			continue
 		}
-		for _, member := range sortedSet.GetAll() {
-			expectedMember := test.expectedValue.Get(member.value)
-			if !expectedMember.exists {
-				t.Errorf("could not find member %+v in expected sorted set, found in stored set", member)
-			}
-			if member.score != expectedMember.score {
-				t.Errorf("expected member \"%s\" to have score %f, got score %f", expectedMember.value, expectedMember.score, member.score)
-			}
+		if !sortedSet.Equals(test.expectedValue) {
+			t.Errorf("expected sorted set %+v, got %+v", test.expectedValue, sortedSet)
 		}
 		mockServer.KeyRUnlock(test.key)
 	}
@@ -619,7 +613,7 @@ func Test_HandleZDIFF(t *testing.T) {
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
-		expectedResponse []string
+		expectedResponse [][]string
 		expectedError    error
 	}{
 		{ // 1. Get the difference between 2 sorted sets without scores.
@@ -641,7 +635,7 @@ func Test_HandleZDIFF(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZDIFF", "key1", "key2"},
-			expectedResponse: []string{"one", "two"},
+			expectedResponse: [][]string{{"one"}, {"two"}},
 			expectedError:    nil,
 		},
 		{ // 2. Get the difference between 2 sorted sets with scores.
@@ -663,7 +657,7 @@ func Test_HandleZDIFF(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZDIFF", "key1", "key2", "WITHSCORES"},
-			expectedResponse: []string{"one 1", "two 2"},
+			expectedResponse: [][]string{{"one", "1"}, {"two", "2"}},
 			expectedError:    nil,
 		},
 		{ // 3. Get the difference between 3 sets with scores.
@@ -687,7 +681,7 @@ func Test_HandleZDIFF(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZDIFF", "key3", "key4", "key5", "WITHSCORES"},
-			expectedResponse: []string{"three 3", "four 4", "five 5", "six 6"},
+			expectedResponse: [][]string{{"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
 			expectedError:    nil,
 		},
 		{ // 3. Return sorted set if only one key exists and is a sorted set
@@ -700,9 +694,12 @@ func Test_HandleZDIFF(t *testing.T) {
 					{value: "seven", score: 7}, {value: "eight", score: 8},
 				}),
 			},
-			command:          []string{"ZDIFF", "key6", "key7", "key8", "WITHSCORES"},
-			expectedResponse: []string{"one 1", "two 2", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 8"},
-			expectedError:    nil,
+			command: []string{"ZDIFF", "key6", "key7", "key8", "WITHSCORES"},
+			expectedResponse: [][]string{
+				{"one", "1"}, {"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"},
+				{"six", "6"}, {"seven", "7"}, {"eight", "8"},
+			},
+			expectedError: nil,
 		},
 		{ // 4. Throw error when one of the keys is not a sorted set.
 			preset: true,
@@ -726,7 +723,7 @@ func Test_HandleZDIFF(t *testing.T) {
 		{ // 6. Command too short
 			preset:           false,
 			command:          []string{"ZDIFF"},
-			expectedResponse: []string{},
+			expectedResponse: [][]string{},
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
 	}
@@ -756,9 +753,20 @@ func Test_HandleZDIFF(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		for _, responseElement := range rv.Array() {
-			if !slices.Contains(test.expectedResponse, responseElement.String()) {
-				t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+		for _, element := range rv.Array() {
+			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+				// The current sub-slice is a different length, return false because they're not equal
+				if len(element.Array()) != len(expected) {
+					return false
+				}
+				for i := 0; i < len(expected); i++ {
+					if element.Array()[i].String() != expected[i] {
+						return false
+					}
+				}
+				return true
+			}) {
+				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
 		}
 	}
@@ -1358,7 +1366,16 @@ func Test_HandleZMPOP(t *testing.T) {
 		}
 		for _, element := range rv.Array() {
 			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
-				return element.Array()[0].String() == expected[0] && element.Array()[1].String() == expected[1]
+				// The current sub-slice is a different length, return false because they're not equal
+				if len(element.Array()) != len(expected) {
+					return false
+				}
+				for i := 0; i < len(expected); i++ {
+					if element.Array()[i].String() != expected[i] {
+						return false
+					}
+				}
+				return true
 			}) {
 				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
@@ -1378,7 +1395,176 @@ func Test_HandleZMPOP(t *testing.T) {
 	}
 }
 
-func Test_HandleZPOP(t *testing.T) {}
+func Test_HandleZPOP(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		command          []string
+		expectedValues   map[string]*SortedSet
+		expectedResponse [][]string
+		expectedError    error
+	}{
+		{ // 1. Successfully pop one min element by default
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+			},
+			command: []string{"ZPOPMIN", "key1"},
+			expectedValues: map[string]*SortedSet{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+			},
+			expectedResponse: [][]string{
+				{"one", "1"},
+			},
+			expectedError: nil,
+		},
+		{ // 2. Successfully pop one max element by default
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key2": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+			},
+			command: []string{"ZPOPMAX", "key2"},
+			expectedValues: map[string]*SortedSet{
+				"key2": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+				}),
+			},
+			expectedResponse: [][]string{
+				{"five", "5"},
+			},
+			expectedError: nil,
+		},
+		{ // 3. Successfully pop multiple min elements
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+				}),
+			},
+			command: []string{"ZPOPMIN", "key3", "5"},
+			expectedValues: map[string]*SortedSet{
+				"key3": NewSortedSet([]MemberParam{
+					{value: "six", score: 6},
+				}),
+			},
+			expectedResponse: [][]string{
+				{"one", "1"}, {"two", "2"}, {"three", "3"},
+				{"four", "4"}, {"five", "5"},
+			},
+			expectedError: nil,
+		},
+		{ // 4. Successfully pop multiple max elements
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key4": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+				}),
+			},
+			command: []string{"ZPOPMAX", "key4", "5"},
+			expectedValues: map[string]*SortedSet{
+				"key4": NewSortedSet([]MemberParam{
+					{value: "one", score: 1},
+				}),
+			},
+			expectedResponse: [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
+			expectedError:    nil,
+		},
+		{ // 5. Throw an error when trying to pop from an element that's not a sorted set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key5": "Default value",
+			},
+			command:          []string{"ZPOPMIN", "key5"},
+			expectedValues:   nil,
+			expectedResponse: nil,
+			expectedError:    errors.New("value at key key5 is not a sorted set"),
+		},
+		{ // 6. Command too short
+			preset:        false,
+			command:       []string{"ZPOPMAX"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 7. Command too long
+			preset:        false,
+			command:       []string{"ZPOPMAX", "key7", "6", "3"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleZPOP(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		for _, element := range rv.Array() {
+			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+				// The current sub-slice is a different length, return false because they're not equal
+				if len(element.Array()) != len(expected) {
+					return false
+				}
+				for i := 0; i < len(expected); i++ {
+					if element.Array()[i].String() != expected[i] {
+						return false
+					}
+				}
+				return true
+			}) {
+				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
+			}
+		}
+		for key, expectedSortedSet := range test.expectedValues {
+			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+				t.Error(err)
+			}
+			set, ok := mockServer.GetValue(key).(*SortedSet)
+			if !ok {
+				t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
+			}
+			if !set.Equals(expectedSortedSet) {
+				t.Errorf("expected sorted set at key \"%s\" %+v, got %+v", key, expectedSortedSet, set)
+			}
+		}
+	}
+}
 
 func Test_HandleZMSCORE(t *testing.T) {}
 
@@ -1407,7 +1593,7 @@ func Test_HandleZINTER(t *testing.T) {
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
-		expectedResponse []string
+		expectedResponse [][]string
 		expectedError    error
 	}{
 		{ // 1. Get the intersection between 2 sorted sets.
@@ -1425,7 +1611,7 @@ func Test_HandleZINTER(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZINTER", "key1", "key2"},
-			expectedResponse: []string{"three", "four", "five"},
+			expectedResponse: [][]string{{"three"}, {"four"}, {"five"}},
 			expectedError:    nil,
 		},
 		{
@@ -1451,7 +1637,7 @@ func Test_HandleZINTER(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZINTER", "key3", "key4", "key5", "WITHSCORES"},
-			expectedResponse: []string{"one 3", "eight 24"},
+			expectedResponse: [][]string{{"one", "3"}, {"eight", "24"}},
 			expectedError:    nil,
 		},
 		{
@@ -1477,7 +1663,7 @@ func Test_HandleZINTER(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZINTER", "key6", "key7", "key8", "WITHSCORES", "AGGREGATE", "MIN"},
-			expectedResponse: []string{"one 1", "eight 8"},
+			expectedResponse: [][]string{{"one", "1"}, {"eight", "8"}},
 			expectedError:    nil,
 		},
 		{
@@ -1503,7 +1689,7 @@ func Test_HandleZINTER(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZINTER", "key9", "key10", "key11", "WITHSCORES", "AGGREGATE", "MAX"},
-			expectedResponse: []string{"one 1000", "eight 800"},
+			expectedResponse: [][]string{{"one", "1000"}, {"eight", "800"}},
 			expectedError:    nil,
 		},
 		{
@@ -1529,7 +1715,7 @@ func Test_HandleZINTER(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZINTER", "key12", "key13", "key14", "WITHSCORES", "AGGREGATE", "SUM", "WEIGHTS", "1", "5", "3"},
-			expectedResponse: []string{"one 3105", "eight 2808"},
+			expectedResponse: [][]string{{"one", "3105"}, {"eight", "2808"}},
 			expectedError:    nil,
 		},
 		{
@@ -1555,7 +1741,7 @@ func Test_HandleZINTER(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZINTER", "key15", "key16", "key17", "WITHSCORES", "AGGREGATE", "MAX", "WEIGHTS", "1", "5", "3"},
-			expectedResponse: []string{"one 3000", "eight 2400"},
+			expectedResponse: [][]string{{"one", "3000"}, {"eight", "2400"}},
 			expectedError:    nil,
 		},
 		{
@@ -1581,7 +1767,7 @@ func Test_HandleZINTER(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZINTER", "key18", "key19", "key20", "WITHSCORES", "AGGREGATE", "MIN", "WEIGHTS", "1", "5", "3"},
-			expectedResponse: []string{"one 5", "eight 8"},
+			expectedResponse: [][]string{{"one", "5"}, {"eight", "8"}},
 			expectedError:    nil,
 		},
 		{ // 8. Throw an error if there are more weights than keys
@@ -1659,13 +1845,13 @@ func Test_HandleZINTER(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZINTER", "non-existent", "key32", "key33"},
-			expectedResponse: []string{},
+			expectedResponse: [][]string{},
 			expectedError:    nil,
 		},
 		{ // 13. Command too short
 			preset:           false,
 			command:          []string{"ZINTER"},
-			expectedResponse: []string{},
+			expectedResponse: [][]string{},
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
 	}
@@ -1695,9 +1881,20 @@ func Test_HandleZINTER(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		for _, responseElement := range rv.Array() {
-			if !slices.Contains(test.expectedResponse, responseElement.String()) {
-				t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+		for _, element := range rv.Array() {
+			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+				// The current sub-slice is a different length, return false because they're not equal
+				if len(element.Array()) != len(expected) {
+					return false
+				}
+				for i := 0; i < len(expected); i++ {
+					if element.Array()[i].String() != expected[i] {
+						return false
+					}
+				}
+				return true
+			}) {
+				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
 		}
 	}
@@ -2057,7 +2254,7 @@ func Test_HandleZUNION(t *testing.T) {
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
-		expectedResponse []string
+		expectedResponse [][]string
 		expectedError    error
 	}{
 		{ // 1. Get the union between 2 sorted sets.
@@ -2075,7 +2272,7 @@ func Test_HandleZUNION(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZUNION", "key1", "key2"},
-			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
+			expectedResponse: [][]string{{"one"}, {"two"}, {"three"}, {"four"}, {"five"}, {"six"}, {"seven"}, {"eight"}},
 			expectedError:    nil,
 		},
 		{
@@ -2101,9 +2298,11 @@ func Test_HandleZUNION(t *testing.T) {
 				}),
 			},
 			command: []string{"ZUNION", "key3", "key4", "key5", "WITHSCORES"},
-			expectedResponse: []string{
-				"one 3", "two 4", "three 3", "four 4", "five 5", "six 6",
-				"seven 7", "eight 24", "nine 9", "ten 10", "eleven 11", "twelve 24", "thirty-six 72"},
+			expectedResponse: [][]string{
+				{"one", "3"}, {"two", "4"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"},
+				{"seven", "7"}, {"eight", "24"}, {"nine", "9"}, {"ten", "10"}, {"eleven", "11"},
+				{"twelve", "24"}, {"thirty-six", "72"},
+			},
 			expectedError: nil,
 		},
 		{
@@ -2129,9 +2328,10 @@ func Test_HandleZUNION(t *testing.T) {
 				}),
 			},
 			command: []string{"ZUNION", "key6", "key7", "key8", "WITHSCORES", "AGGREGATE", "MIN"},
-			expectedResponse: []string{
-				"one 1", "two 2", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 8",
-				"nine 9", "ten 10", "eleven 11", "twelve 12", "thirty-six 36",
+			expectedResponse: [][]string{
+				{"one", "1"}, {"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"},
+				{"seven", "7"}, {"eight", "8"}, {"nine", "9"}, {"ten", "10"}, {"eleven", "11"},
+				{"twelve", "12"}, {"thirty-six", "36"},
 			},
 			expectedError: nil,
 		},
@@ -2158,9 +2358,10 @@ func Test_HandleZUNION(t *testing.T) {
 				}),
 			},
 			command: []string{"ZUNION", "key9", "key10", "key11", "WITHSCORES", "AGGREGATE", "MAX"},
-			expectedResponse: []string{
-				"one 1000", "two 2", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 800",
-				"nine 9", "ten 10", "eleven 11", "twelve 12", "thirty-six 72",
+			expectedResponse: [][]string{
+				{"one", "1000"}, {"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"},
+				{"seven", "7"}, {"eight", "800"}, {"nine", "9"}, {"ten", "10"}, {"eleven", "11"},
+				{"twelve", "12"}, {"thirty-six", "72"},
 			},
 			expectedError: nil,
 		},
@@ -2187,9 +2388,10 @@ func Test_HandleZUNION(t *testing.T) {
 				}),
 			},
 			command: []string{"ZUNION", "key12", "key13", "key14", "WITHSCORES", "AGGREGATE", "SUM", "WEIGHTS", "1", "2", "3"},
-			expectedResponse: []string{
-				"one 3102", "two 6", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 2568",
-				"nine 27", "ten 30", "eleven 22", "twelve 60", "thirty-six 72",
+			expectedResponse: [][]string{
+				{"one", "3102"}, {"two", "6"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"},
+				{"seven", "7"}, {"eight", "2568"}, {"nine", "27"}, {"ten", "30"}, {"eleven", "22"},
+				{"twelve", "60"}, {"thirty-six", "72"},
 			},
 			expectedError: nil,
 		},
@@ -2216,9 +2418,10 @@ func Test_HandleZUNION(t *testing.T) {
 				}),
 			},
 			command: []string{"ZUNION", "key15", "key16", "key17", "WITHSCORES", "AGGREGATE", "MAX", "WEIGHTS", "1", "2", "3"},
-			expectedResponse: []string{
-				"one 3000", "two 4", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 2400",
-				"nine 27", "ten 30", "eleven 22", "twelve 36", "thirty-six 72",
+			expectedResponse: [][]string{
+				{"one", "3000"}, {"two", "4"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"},
+				{"seven", "7"}, {"eight", "2400"}, {"nine", "27"}, {"ten", "30"}, {"eleven", "22"},
+				{"twelve", "36"}, {"thirty-six", "72"},
 			},
 			expectedError: nil,
 		},
@@ -2245,9 +2448,9 @@ func Test_HandleZUNION(t *testing.T) {
 				}),
 			},
 			command: []string{"ZUNION", "key18", "key19", "key20", "WITHSCORES", "AGGREGATE", "MIN", "WEIGHTS", "1", "2", "3"},
-			expectedResponse: []string{
-				"one 2", "two 2", "three 3", "four 4", "five 5", "six 6", "seven 7", "eight 8",
-				"nine 27", "ten 30", "eleven 22", "twelve 24", "thirty-six 72",
+			expectedResponse: [][]string{
+				{"one", "2"}, {"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}, {"seven", "7"},
+				{"eight", "8"}, {"nine", "27"}, {"ten", "30"}, {"eleven", "22"}, {"twelve", "24"}, {"thirty-six", "72"},
 			},
 			expectedError: nil,
 		},
@@ -2326,17 +2529,16 @@ func Test_HandleZUNION(t *testing.T) {
 				}),
 			},
 			command: []string{"ZUNION", "non-existent", "key32", "key33"},
-			expectedResponse: []string{
-				"one", "two", "thirty-six", "twelve", "eleven",
-				"seven", "eight", "nine", "ten",
+			expectedResponse: [][]string{
+				{"one"}, {"two"}, {"thirty-six"}, {"twelve"}, {"eleven"},
+				{"seven"}, {"eight"}, {"nine"}, {"ten"},
 			},
 			expectedError: nil,
 		},
 		{ // 13. Command too short
-			preset:           false,
-			command:          []string{"ZUNION"},
-			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			preset:        false,
+			command:       []string{"ZUNION"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
 	}
 
@@ -2365,9 +2567,20 @@ func Test_HandleZUNION(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		for _, responseElement := range rv.Array() {
-			if !slices.Contains(test.expectedResponse, responseElement.String()) {
-				t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+		for _, element := range rv.Array() {
+			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+				// The current sub-slice is a different length, return false because they're not equal
+				if len(element.Array()) != len(expected) {
+					return false
+				}
+				for i := 0; i < len(expected); i++ {
+					if element.Array()[i].String() != expected[i] {
+						return false
+					}
+				}
+				return true
+			}) {
+				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
 		}
 	}
