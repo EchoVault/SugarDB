@@ -899,18 +899,18 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *n
 }
 
 func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zremKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte(":0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -1664,21 +1664,23 @@ Returns the rank of the specified member in the sorted set. WITHSCORE modifies t
 			HandlerFunc:       handleZRANK,
 		},
 		{
-			Command:           "zrem",
-			Categories:        []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
-			Description:       `(ZREM key member [member ...]) Removes the listed members from the sorted set.`,
-			Sync:              true,
-			KeyExtractionFunc: zremKeyFunc,
-			HandlerFunc:       handleZREM,
-		},
-		{
 			Command:    "zrevrank",
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZREVRANK key member [WITHSCORE])
-Returns the rank of the member in the sorted set. WITHSCORE modifies the result to include the score.`,
+Returns the rank of the member in the sorted set in reverse order. 
+WITHSCORE modifies the result to include the score.`,
 			Sync:              false,
 			KeyExtractionFunc: zrevrankKeyFunc,
 			HandlerFunc:       handleZRANK,
+		},
+		{
+			Command:    "zrem",
+			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
+			Description: `(ZREM key member [member ...]) Removes the listed members from the sorted set.
+Returns the number of elements removed.`,
+			Sync:              true,
+			KeyExtractionFunc: zremKeyFunc,
+			HandlerFunc:       handleZREM,
 		},
 		{
 			Command:           "zscore",
