@@ -2232,7 +2232,136 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 
 func Test_HandleZREMRANGEBYRANK(t *testing.T) {}
 
-func Test_HandleZREMRANGEBYLEX(t *testing.T) {}
+func Test_HandleZREMRANGEBYLEX(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		command          []string
+		expectedValues   map[string]*SortedSet
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Successfully remove multiple elements with scores inside the provided range
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "a", score: 1}, {value: "b", score: 1},
+					{value: "c", score: 1}, {value: "d", score: 1},
+					{value: "e", score: 1}, {value: "f", score: 1},
+					{value: "g", score: 1}, {value: "h", score: 1},
+					{value: "i", score: 1}, {value: "j", score: 1},
+				}),
+			},
+			command: []string{"ZREMRANGEBYLEX", "key1", "a", "d"},
+			expectedValues: map[string]*SortedSet{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "e", score: 1}, {value: "f", score: 1},
+					{value: "g", score: 1}, {value: "h", score: 1},
+					{value: "i", score: 1}, {value: "j", score: 1},
+				}),
+			},
+			expectedResponse: 4,
+			expectedError:    nil,
+		},
+		{ // 2. Return 0 if the members do not have the same score
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key2": NewSortedSet([]MemberParam{
+					{value: "a", score: 1}, {value: "b", score: 2},
+					{value: "c", score: 3}, {value: "d", score: 4},
+					{value: "e", score: 5}, {value: "f", score: 6},
+					{value: "g", score: 7}, {value: "h", score: 8},
+					{value: "i", score: 9}, {value: "j", score: 10},
+				}),
+			},
+			command: []string{"ZREMRANGEBYLEX", "key2", "d", "g"},
+			expectedValues: map[string]*SortedSet{
+				"key2": NewSortedSet([]MemberParam{
+					{value: "a", score: 1}, {value: "b", score: 2},
+					{value: "c", score: 3}, {value: "d", score: 4},
+					{value: "e", score: 5}, {value: "f", score: 6},
+					{value: "g", score: 7}, {value: "h", score: 8},
+					{value: "i", score: 9}, {value: "j", score: 10},
+				}),
+			},
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 3. If key does not exist, return 0
+			preset:           false,
+			presetValues:     nil,
+			command:          []string{"ZREMRANGEBYLEX", "key3", "2", "4"},
+			expectedValues:   nil,
+			expectedResponse: 0,
+			expectedError:    nil,
+		},
+		{ // 3. Return error key is not a sorted set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": "Default value",
+			},
+			command:       []string{"ZREMRANGEBYLEX", "key3", "a", "d"},
+			expectedError: errors.New("value at key3 is not a sorted set"),
+		},
+		{ // 4. Command too short
+			preset:        false,
+			command:       []string{"ZREMRANGEBYLEX", "key4", "a"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 5. Command too long
+			preset:        false,
+			command:       []string{"ZREMRANGEBYLEX", "key5", "a", "b", "c"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleZREMRANGEBYLEX(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+		}
+		// Check if the expected values are the same
+		if test.expectedValues != nil {
+			for key, expectedSet := range test.expectedValues {
+				if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				set, ok := mockServer.GetValue(key).(*SortedSet)
+				if !ok {
+					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
+				}
+				if !set.Equals(expectedSet) {
+					t.Errorf("exptected sorted set %+v, got %+v", expectedSet, set)
+				}
+			}
+		}
+	}
+}
 
 func Test_HandleZRANGE(t *testing.T) {}
 

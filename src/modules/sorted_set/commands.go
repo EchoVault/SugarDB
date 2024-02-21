@@ -291,7 +291,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			count += 1
 		}
 	}
@@ -1004,11 +1004,12 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Serv
 }
 
 func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zremrangebyrankKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	start, err := strconv.Atoi(cmd[2])
 	if err != nil {
@@ -1021,10 +1022,10 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte(":0\r\n\r\n"), nil
 	}
 
-	if _, err := server.KeyLock(ctx, key); err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -1105,7 +1106,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	// All the members have the same score
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			set.Remove(m.value)
 			deletedCount += 1
 		}
@@ -1238,7 +1239,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 			continue
 		}
 		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+				slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
 			resultMembers = append(resultMembers, members[i])
 		}
 	}
@@ -1378,7 +1379,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 			continue
 		}
 		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+				slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
 			resultMembers = append(resultMembers, members[i])
 		}
 	}
