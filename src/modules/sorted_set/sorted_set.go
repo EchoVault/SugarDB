@@ -106,7 +106,7 @@ func (set *SortedSet) Cardinality() int {
 }
 
 func (set *SortedSet) AddOrUpdate(
-	members []MemberParam, updatePolicy interface{}, comparison interface{}, changed interface{}, incr interface{},
+		members []MemberParam, updatePolicy interface{}, comparison interface{}, changed interface{}, incr interface{},
 ) (int, error) {
 	policy, err := validateUpdatePolicy(updatePolicy)
 	if err != nil {
@@ -136,7 +136,15 @@ func (set *SortedSet) AddOrUpdate(
 	if strings.EqualFold(inc, "incr") {
 		for _, m := range members {
 			if !set.Contains(m.value) {
-				return count, fmt.Errorf("cannot increment member %s as it does not exist in the sorted set", m.value)
+				// If the member is not contained, add it with the increment as its score
+				set.members[m.value] = MemberObject{
+					value:  m.value,
+					score:  m.score,
+					exists: true,
+				}
+				// Always add count because this is the addition of a new element
+				count += 1
+				return count, err
 			}
 			if slices.Contains([]Score{Score(math.Inf(-1)), Score(math.Inf(1))}, set.members[m.value].score) {
 				return count, errors.New("cannot increment -inf or +inf")

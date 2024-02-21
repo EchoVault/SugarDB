@@ -469,37 +469,36 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		increment = Score(s)
 	}
 
-	if server.KeyExists(key) {
-		if _, err = server.KeyLock(ctx, key); err != nil {
+	if !server.KeyExists(key) {
+		// If the key does not exist, create a new sorted set at the key with
+		// the member and increment as the first value
+		if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 			return nil, err
 		}
-		defer server.KeyUnlock(key)
-		set, ok := server.GetValue(key).(*SortedSet)
-		if !ok {
-			return nil, fmt.Errorf("value at %s is not a sorted set", key)
-		}
-		_, err = set.AddOrUpdate(
-			[]MemberParam{{value: member, score: increment}}, "xx", nil, nil, "incr")
-		if err != nil {
-			return nil, err
-		}
-		return []byte(fmt.Sprintf("+%f\r\n\r\n", set.Get(member).score)), nil
+		server.SetValue(ctx, key, NewSortedSet([]MemberParam{{value: member, score: increment}}))
+		server.KeyUnlock(key)
+		return []byte(fmt.Sprintf("+%s\r\n\r\n", strconv.FormatFloat(float64(increment), 'f', -1, 64))), nil
 	}
 
-	if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
-
-	set := NewSortedSet([]MemberParam{
-		{
-			value: member,
-			score: increment,
-		},
-	})
-	server.SetValue(ctx, key, set)
-
-	return []byte(fmt.Sprintf("+%f\r\n\r\n", set.Get(member).score)), nil
+	set, ok := server.GetValue(key).(*SortedSet)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
+	}
+	if _, err = set.AddOrUpdate(
+		[]MemberParam{
+			{value: member, score: increment}},
+		"xx",
+		nil,
+		nil,
+		"incr"); err != nil {
+		return nil, err
+	}
+	return []byte(fmt.Sprintf("+%s\r\n\r\n",
+		strconv.FormatFloat(float64(set.Get(member).score), 'f', -1, 64))), nil
 }
 
 func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -1532,8 +1531,6 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	defer server.KeyUnlock(destination)
 
 	server.SetValue(ctx, destination, union)
-
-	fmt.Println("DESTINATION: ", destination, ", CARD: ", union.Cardinality())
 
 	return []byte(fmt.Sprintf(":%d\r\n\r\n", union.Cardinality())), nil
 }

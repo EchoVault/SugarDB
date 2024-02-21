@@ -9,6 +9,7 @@ import (
 	"github.com/tidwall/resp"
 	"math"
 	"slices"
+	"strconv"
 	"testing"
 )
 
@@ -940,7 +941,226 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 	}
 }
 
-func Test_HandleZINCRBY(t *testing.T) {}
+func Test_HandleZINCRBY(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValue      interface{}
+		key              string
+		command          []string
+		expectedValue    *SortedSet
+		expectedResponse string
+		expectedError    error
+	}{
+		{ // 1. Successfully increment by int. Return the new score
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5},
+			}),
+			key:     "key1",
+			command: []string{"ZINCRBY", "key1", "5", "one"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 6}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5},
+			}),
+			expectedResponse: "6",
+			expectedError:    nil,
+		},
+		{ // 2. Successfully increment by float. Return new score
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5},
+			}),
+			key:     "key2",
+			command: []string{"ZINCRBY", "key2", "346.785", "one"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 347.785}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5},
+			}),
+			expectedResponse: "347.785",
+			expectedError:    nil,
+		},
+		{ // 3. Increment on non-existent sorted set will create the set with the member and increment as its score
+			preset:      false,
+			presetValue: nil,
+			key:         "key3",
+			command:     []string{"ZINCRBY", "key3", "346.785", "one"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 346.785},
+			}),
+			expectedResponse: "346.785",
+			expectedError:    nil,
+		},
+		{ // 4. Increment score to +inf
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5},
+			}),
+			key:     "key4",
+			command: []string{"ZINCRBY", "key4", "+inf", "one"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "one", score: Score(math.Inf(1))}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5},
+			}),
+			expectedResponse: "+Inf",
+			expectedError:    nil,
+		},
+		{ // 5. Increment score to -inf
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5},
+			}),
+			key:     "key5",
+			command: []string{"ZINCRBY", "key5", "-inf", "one"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "one", score: Score(math.Inf(-1))}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5},
+			}),
+			expectedResponse: "-Inf",
+			expectedError:    nil,
+		},
+		{ // 6. Incrementing score by negative increment should lower the score
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5},
+			}),
+			key:     "key6",
+			command: []string{"ZINCRBY", "key6", "-2.5", "five"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1}, {value: "two", score: 2},
+				{value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 2.5},
+			}),
+			expectedResponse: "2.5",
+			expectedError:    nil,
+		},
+		{ // 7. Return error when attempting to increment on a value that is not a valid sorted set
+			preset:           true,
+			presetValue:      "Default value",
+			key:              "key7",
+			command:          []string{"ZINCRBY", "key7", "-2.5", "five"},
+			expectedValue:    nil,
+			expectedResponse: "",
+			expectedError:    errors.New("value at key7 is not a sorted set"),
+		},
+		{ // 8. Return error when trying to increment a member that already has score -inf
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "one", score: Score(math.Inf(-1))},
+			}),
+			key:     "key8",
+			command: []string{"ZINCRBY", "key8", "2.5", "one"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "one", score: Score(math.Inf(-1))},
+			}),
+			expectedResponse: "",
+			expectedError:    errors.New("cannot increment -inf or +inf"),
+		},
+		{ // 9. Return error when trying to increment a member that already has score +inf
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "one", score: Score(math.Inf(1))},
+			}),
+			key:     "key9",
+			command: []string{"ZINCRBY", "key9", "2.5", "one"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "one", score: Score(math.Inf(-1))},
+			}),
+			expectedResponse: "",
+			expectedError:    errors.New("cannot increment -inf or +inf"),
+		},
+		{ // 10. Return error when increment is not a valid number
+			preset: true,
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1},
+			}),
+			key:     "key10",
+			command: []string{"ZINCRBY", "key10", "increment", "one"},
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1},
+			}),
+			expectedResponse: "",
+			expectedError:    errors.New("increment must be a double"),
+		},
+		{ // 11. Command too short
+			key:              "key11",
+			command:          []string{"ZINCRBY", "key11", "one"},
+			expectedResponse: "",
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 12. Command too long
+			key:              "key12",
+			command:          []string{"ZINCRBY", "key12", "one", "1", "2"},
+			expectedResponse: "",
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleZINCRBY(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.String() != test.expectedResponse {
+			t.Errorf("expected response integer %s, got %s", test.expectedResponse, rv.String())
+		}
+		if test.expectedValue != nil {
+			if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			set, ok := mockServer.GetValue(test.key).(*SortedSet)
+			if !ok {
+				t.Errorf("expected vaule at key %s to be set, got another type", test.key)
+			}
+			for _, elem := range set.GetAll() {
+				if !test.expectedValue.Contains(elem.value) {
+					t.Errorf("could not find element %s in the expected values", elem.value)
+				}
+				if test.expectedValue.Get(elem.value).score != elem.score {
+					t.Errorf("expected score of element \"%s\" from set at key \"%s\" to be %s, got %s",
+						elem.value, test.key,
+						strconv.FormatFloat(float64(test.expectedValue.Get(elem.value).score), 'f', -1, 64),
+						strconv.FormatFloat(float64(elem.score), 'f', -1, 64),
+					)
+				}
+			}
+			mockServer.KeyRUnlock(test.key)
+		}
+	}
+}
 
 func Test_HandleZINTER(t *testing.T) {
 	mockServer := server.NewServer(server.Opts{})
