@@ -2711,10 +2711,10 @@ func Test_HandleZRANGE(t *testing.T) {
 			expectedResponse: [][]string{},
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
-		{ // Command too long
+		{ // 16 Command too long
 			preset:           false,
 			presetValues:     nil,
-			command:          []string{"ZRANGE", "key13", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9", "REV", "WITHSCORES"},
+			command:          []string{"ZRANGE", "key16", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9", "REV", "WITHSCORES"},
 			expectedResponse: [][]string{},
 			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
 		},
