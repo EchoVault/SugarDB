@@ -1165,15 +1165,15 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 		o, err := strconv.Atoi(cmd[4:][limitIdx+1])
 		if err != nil {
-			return nil, err
+			return nil, errors.New("limit offset must be integer")
 		}
 		if o < 0 {
-			return nil, errors.New("offset must be >= 0")
+			return nil, errors.New("limit offset must be >= 0")
 		}
 		offset = o
 		count, err = strconv.Atoi(cmd[4:][limitIdx+2])
 		if err != nil {
-			return nil, err
+			return nil, errors.New("limit count must be integer")
 		}
 	}
 
