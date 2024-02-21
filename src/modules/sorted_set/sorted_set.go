@@ -3,7 +3,6 @@ package sorted_set
 import (
 	"cmp"
 	"errors"
-	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"math"
 	"math/rand"
@@ -106,7 +105,7 @@ func (set *SortedSet) Cardinality() int {
 }
 
 func (set *SortedSet) AddOrUpdate(
-		members []MemberParam, updatePolicy interface{}, comparison interface{}, changed interface{}, incr interface{},
+	members []MemberParam, updatePolicy interface{}, comparison interface{}, changed interface{}, incr interface{},
 ) (int, error) {
 	policy, err := validateUpdatePolicy(updatePolicy)
 	if err != nil {
@@ -231,14 +230,13 @@ func (set *SortedSet) Pop(count int, policy string) (*SortedSet, error) {
 	})
 
 	for i := 0; i < count; i++ {
-		if i < len(members) {
-			set.Remove(members[i].value)
-			_, err := popped.AddOrUpdate([]MemberParam{members[i]}, nil, nil, nil, nil)
-			if err != nil {
-				fmt.Println(err.Error())
-				// TODO: Add all the removed elements back if we encounter an error
-				return nil, err
-			}
+		if i >= len(members) {
+			break
+		}
+		set.Remove(members[i].value)
+		_, err := popped.AddOrUpdate([]MemberParam{members[i]}, nil, nil, nil, nil)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -261,6 +259,24 @@ func (set *SortedSet) Subtract(others []*SortedSet) *SortedSet {
 type SortedSetParam struct {
 	set    *SortedSet
 	weight int
+}
+
+func (set *SortedSet) Equals(other *SortedSet) bool {
+	if set.Cardinality() != other.Cardinality() {
+		return false
+	}
+	if set.Cardinality() == 0 {
+		return true
+	}
+	for _, member := range set.members {
+		if !other.Contains(member.value) {
+			return false
+		}
+		if member.score != other.Get(member.value).score {
+			return false
+		}
+	}
+	return true
 }
 
 // Union uses divided & conquer to calculate the union of multiple sets

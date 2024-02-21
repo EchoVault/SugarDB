@@ -291,7 +291,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			count += 1
 		}
 	}
@@ -628,8 +628,9 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 }
 
 func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zmpopKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
 	count := 1
@@ -672,48 +673,36 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *n
 		}
 	}
 
-	var keys []string
-	if modifierIdx == -1 {
-		keys = cmd[1:]
-	} else {
-		keys = cmd[1:modifierIdx]
-	}
-
-	for _, key := range keys {
-		if server.KeyExists(key) {
-			_, err := server.KeyLock(ctx, key)
-			if err != nil {
+	for i := 0; i < len(keys); i++ {
+		if server.KeyExists(keys[i]) {
+			if _, err = server.KeyLock(ctx, keys[i]); err != nil {
 				continue
 			}
-			v, ok := server.GetValue(key).(*SortedSet)
+			v, ok := server.GetValue(keys[i]).(*SortedSet)
 			if !ok || v.Cardinality() == 0 {
-				server.KeyUnlock(key)
+				server.KeyUnlock(keys[i])
 				continue
 			}
 			popped, err := v.Pop(count, policy)
 			if err != nil {
-				server.KeyUnlock(key)
+				server.KeyUnlock(keys[i])
 				return nil, err
 			}
-			server.KeyUnlock(key)
-			if popped.Cardinality() == 0 {
-				return []byte("+(nil)\r\n\r\n"), nil
-			}
+			server.KeyUnlock(keys[i])
 
 			res := fmt.Sprintf("*%d", popped.Cardinality())
-			for i, m := range popped.GetAll() {
-				s := fmt.Sprintf("%s %f", m.value, m.score)
-				res += fmt.Sprintf("\r\n$%d\r\n%s", len(s), s)
-				if i == popped.Cardinality()-1 {
-					res += "\r\n\r\n"
-				}
+
+			for _, m := range popped.GetAll() {
+				res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 			}
+
+			res += "\r\n\r\n"
 
 			return []byte(res), nil
 		}
 	}
 
-	return []byte("+(nil)\r\n\r\n"), nil
+	return []byte("*0\r\n\r\n"), nil
 }
 
 func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -1115,7 +1104,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	// All the members have the same score
 	for _, m := range members {
 		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+				slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
 			set.Remove(m.value)
 			deletedCount += 1
 		}
@@ -1248,7 +1237,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 			continue
 		}
 		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+				slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
 			resultMembers = append(resultMembers, members[i])
 		}
 	}
@@ -1391,7 +1380,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 			continue
 		}
 		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+				slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
 			resultMembers = append(resultMembers, members[i])
 		}
 	}

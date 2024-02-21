@@ -1162,6 +1162,244 @@ func Test_HandleZINCRBY(t *testing.T) {
 	}
 }
 
+func Test_HandleZMPOP(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		command          []string
+		expectedValues   map[string]*SortedSet
+		expectedResponse [][]string
+		expectedError    error
+	}{
+		{ // 1. Successfully pop one min element by default
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+			},
+			command: []string{"ZMPOP", "key1"},
+			expectedValues: map[string]*SortedSet{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+			},
+			expectedResponse: [][]string{
+				{"one", "1"},
+			},
+			expectedError: nil,
+		},
+		{ // 2. Successfully pop one min element by specifying MIN
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key2": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+			},
+			command: []string{"ZMPOP", "key2", "MIN"},
+			expectedValues: map[string]*SortedSet{
+				"key2": NewSortedSet([]MemberParam{
+					{value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+			},
+			expectedResponse: [][]string{
+				{"one", "1"},
+			},
+			expectedError: nil,
+		},
+		{ // 3. Successfully pop one max element by specifying MAX modifier
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5},
+				}),
+			},
+			command: []string{"ZMPOP", "key3", "MAX"},
+			expectedValues: map[string]*SortedSet{
+				"key3": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+				}),
+			},
+			expectedResponse: [][]string{
+				{"five", "5"},
+			},
+			expectedError: nil,
+		},
+		{ // 4. Successfully pop multiple min elements
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key4": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+				}),
+			},
+			command: []string{"ZMPOP", "key4", "MIN", "COUNT", "5"},
+			expectedValues: map[string]*SortedSet{
+				"key4": NewSortedSet([]MemberParam{
+					{value: "six", score: 6},
+				}),
+			},
+			expectedResponse: [][]string{
+				{"one", "1"}, {"two", "2"}, {"three", "3"},
+				{"four", "4"}, {"five", "5"},
+			},
+			expectedError: nil,
+		},
+		{ // 5. Successfully pop multiple max elements
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key5": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+				}),
+			},
+			command: []string{"ZMPOP", "key5", "MAX", "COUNT", "5"},
+			expectedValues: map[string]*SortedSet{
+				"key5": NewSortedSet([]MemberParam{
+					{value: "one", score: 1},
+				}),
+			},
+			expectedResponse: [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
+			expectedError:    nil,
+		},
+		{ // 6. Successfully pop elements from the first set which is non-empty
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key6": NewSortedSet([]MemberParam{}),
+				"key7": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+				}),
+			},
+			command: []string{"ZMPOP", "key6", "key7", "MAX", "COUNT", "5"},
+			expectedValues: map[string]*SortedSet{
+				"key6": NewSortedSet([]MemberParam{}),
+				"key7": NewSortedSet([]MemberParam{
+					{value: "one", score: 1},
+				}),
+			},
+			expectedResponse: [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
+			expectedError:    nil,
+		},
+		{ // 7. Skip the non-set items and pop elements from the first non-empty sorted set found
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key8":  "Default value",
+				"key9":  56,
+				"key10": NewSortedSet([]MemberParam{}),
+				"key11": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+				}),
+			},
+			command: []string{"ZMPOP", "key8", "key9", "key10", "key11", "MIN", "COUNT", "5"},
+			expectedValues: map[string]*SortedSet{
+				"key10": NewSortedSet([]MemberParam{}),
+				"key11": NewSortedSet([]MemberParam{
+					{value: "six", score: 6},
+				}),
+			},
+			expectedResponse: [][]string{{"one", "1"}, {"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}},
+			expectedError:    nil,
+		},
+		{ // 9. Return error when count is a negative integer
+			preset:        false,
+			command:       []string{"ZMPOP", "key8", "MAX", "COUNT", "-20"},
+			expectedError: errors.New("count must be a positive integer"),
+		},
+		{ // 9. Command too short
+			preset:        false,
+			command:       []string{"ZMPOP"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleZMPOP(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		for _, element := range rv.Array() {
+			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+				return element.Array()[0].String() == expected[0] && element.Array()[1].String() == expected[1]
+			}) {
+				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
+			}
+		}
+		for key, expectedSortedSet := range test.expectedValues {
+			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+				t.Error(err)
+			}
+			set, ok := mockServer.GetValue(key).(*SortedSet)
+			if !ok {
+				t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
+			}
+			if !set.Equals(expectedSortedSet) {
+				t.Errorf("expected sorted set at key \"%s\" %+v, got %+v", key, expectedSortedSet, set)
+			}
+		}
+	}
+}
+
+func Test_HandleZPOP(t *testing.T) {}
+
+func Test_HandleZMSCORE(t *testing.T) {}
+
+func Test_HandleZRANDMEMBER(t *testing.T) {}
+
+func Test_HandleZRANK(t *testing.T) {}
+
+func Test_HandleZREM(t *testing.T) {}
+
+func Test_HandleZSCORE(t *testing.T) {}
+
+func Test_HandleZREMRANGEBYSCORE(t *testing.T) {}
+
+func Test_HandleZREMRANGEBYRANK(t *testing.T) {}
+
+func Test_HandleZREMRANGEBYLEX(t *testing.T) {}
+
+func Test_HandleZRANGE(t *testing.T) {}
+
+func Test_HandleZRANGESTORE(t *testing.T) {}
+
 func Test_HandleZINTER(t *testing.T) {
 	mockServer := server.NewServer(server.Opts{})
 
@@ -1811,30 +2049,6 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		}
 	}
 }
-
-func Test_HandleZMPOP(t *testing.T) {}
-
-func Test_HandleZPOP(t *testing.T) {}
-
-func Test_HandleZMSCORE(t *testing.T) {}
-
-func Test_HandleZRANDMEMBER(t *testing.T) {}
-
-func Test_HandleZRANK(t *testing.T) {}
-
-func Test_HandleZREM(t *testing.T) {}
-
-func Test_HandleZSCORE(t *testing.T) {}
-
-func Test_HandleZREMRANGEBYSCORE(t *testing.T) {}
-
-func Test_HandleZREMRANGEBYRANK(t *testing.T) {}
-
-func Test_HandleZREMRANGEBYLEX(t *testing.T) {}
-
-func Test_HandleZRANGE(t *testing.T) {}
-
-func Test_HandleZRANGESTORE(t *testing.T) {}
 
 func Test_HandleZUNION(t *testing.T) {
 	mockServer := server.NewServer(server.Opts{})
