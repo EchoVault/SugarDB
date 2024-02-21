@@ -752,18 +752,18 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zmscoreKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	if !server.KeyExists(key) {
 		return []byte("*0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -773,19 +773,22 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server, conn 
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
-	res := fmt.Sprintf("*%d", len(cmd[2:]))
+	members := cmd[2:]
+
+	res := fmt.Sprintf("*%d", len(members))
+
 	var member MemberObject
-	for i, m := range cmd[2:] {
-		member = set.Get(Value(m))
+
+	for i := 0; i < len(members); i++ {
+		member = set.Get(Value(members[i]))
 		if !member.exists {
-			res = fmt.Sprintf("%s\r\n_", res)
+			res = fmt.Sprintf("%s\r\n$-1", res)
 		} else {
-			res = fmt.Sprintf("%s\r\n+%f", res, member.score)
-		}
-		if i == len(cmd[2:])-1 {
-			res += "\r\n\r\n"
+			res = fmt.Sprintf("%s\r\n+%s", res, strconv.FormatFloat(float64(member.score), 'f', -1, 64))
 		}
 	}
+
+	res += "\r\n\r\n"
 
 	return []byte(res), nil
 }
@@ -929,15 +932,17 @@ func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 }
 
 func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-	}
-	key := cmd[1]
-	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
-	}
-	_, err := server.KeyRLock(ctx, key)
+	keys, err := zscoreKeyFunc(cmd)
 	if err != nil {
+		return nil, err
+	}
+
+	key := keys[0]
+
+	if !server.KeyExists(key) {
+		return []byte("$-1\r\n\r\n"), nil
+	}
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
@@ -947,9 +952,12 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 	member := set.Get(Value(cmd[2]))
 	if !member.exists {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte("$-1\r\n\r\n"), nil
 	}
-	return []byte(fmt.Sprintf("+%f\r\n\r\n", member.score)), nil
+
+	score := strconv.FormatFloat(float64(member.score), 'f', -1, 64)
+
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(score), score)), nil
 }
 
 func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
