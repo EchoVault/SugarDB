@@ -960,12 +960,14 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *
 }
 
 func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zremrangebyscoreKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
+	key := keys[0]
+
 	deletedCount := 0
-	key := cmd[1]
 
 	minimum, err := strconv.ParseFloat(cmd[2], 64)
 	if err != nil {
@@ -978,10 +980,10 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Serv
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte(":0\r\n\r\n"), nil
 	}
 
-	if _, err := server.KeyLock(ctx, key); err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -1066,20 +1068,20 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 }
 
 func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) != 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zremrangebylexKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 	minimum := cmd[2]
 	maximum := cmd[3]
 
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte(":0\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
@@ -1091,10 +1093,10 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 
 	members := set.GetAll()
 
-	// Check if all the members have the same score. If not, return nil
+	// Check if all the members have the same score. If not, return 0
 	for i := 0; i < len(members)-1; i++ {
 		if members[i].score != members[i+1].score {
-			return []byte("+(nil)\r\n\r\n"), nil
+			return []byte(":0\r\n\r\n"), nil
 		}
 	}
 
