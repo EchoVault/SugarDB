@@ -131,7 +131,7 @@ func zpopKeyFunc(cmd []string) ([]string, error) {
 }
 
 func zrandmemberKeyFunc(cmd []string) ([]string, error) {
-	if len(cmd) < 2 {
+	if len(cmd) < 2 || len(cmd) > 4 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 	return cmd[1:2], nil

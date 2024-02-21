@@ -794,19 +794,19 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server, conn 
 }
 
 func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 || len(cmd) > 4 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	keys, err := zrandmemberKeyFunc(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	key := cmd[1]
+	key := keys[0]
 
 	count := 1
 	if len(cmd) >= 3 {
-		c, err := strconv.Atoi(cmd[2])
+		count, err = strconv.Atoi(cmd[2])
 		if err != nil {
-			return nil, err
+			return nil, errors.New("count must be an integer")
 		}
-		count = c
 	}
 
 	withscores := false
@@ -819,33 +819,31 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("+(nil)\r\n\r\n"), nil
+		return []byte("$-1\r\n\r\n"), nil
 	}
 
-	_, err := server.KeyRLock(ctx, key)
-	if err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
 
 	set, ok := server.GetValue(key).(*SortedSet)
 	if !ok {
-		return nil, fmt.Errorf("value at %s is not a dorted set", key)
+		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
 	members := set.GetRandom(count)
 
 	res := fmt.Sprintf("*%d", len(members))
-	for i, m := range members {
+	for _, m := range members {
 		if withscores {
 			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 		} else {
 			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
 		}
-		if i == len(members)-1 {
-			res += "\r\n\r\n"
-		}
 	}
+
+	res += "\r\n\r\n"
 
 	return []byte(res), nil
 }

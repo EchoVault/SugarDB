@@ -1747,7 +1747,164 @@ func Test_HandleZSCORE(t *testing.T) {
 	}
 }
 
-func Test_HandleZRANDMEMBER(t *testing.T) {}
+func Test_HandleZRANDMEMBER(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		key              string
+		presetValue      interface{}
+		command          []string
+		expectedValue    int // The final cardinality of the resulting set
+		allowRepeat      bool
+		expectedResponse [][]string
+		expectedError    error
+	}{
+		{ // 1. Return multiple random elements without removing them
+			// Count is positive, do not allow repeated elements
+			preset: true,
+			key:    "key1",
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1}, {value: "two", score: 2}, {value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5}, {value: "six", score: 6}, {value: "seven", score: 7}, {value: "eight", score: 8},
+			}),
+			command:       []string{"ZRANDMEMBER", "key1", "3"},
+			expectedValue: 8,
+			allowRepeat:   false,
+			expectedResponse: [][]string{
+				{"one"}, {"two"}, {"three"}, {"four"},
+				{"five"}, {"six"}, {"seven"}, {"eight"},
+			},
+			expectedError: nil,
+		},
+		{
+			// 2. Return multiple random elements and their scores without removing them.
+			// Count is negative, so allow repeated numbers.
+			preset: true,
+			key:    "key2",
+			presetValue: NewSortedSet([]MemberParam{
+				{value: "one", score: 1}, {value: "two", score: 2}, {value: "three", score: 3}, {value: "four", score: 4},
+				{value: "five", score: 5}, {value: "six", score: 6}, {value: "seven", score: 7}, {value: "eight", score: 8},
+			}),
+			command:       []string{"ZRANDMEMBER", "key2", "-5", "WITHSCORES"},
+			expectedValue: 8,
+			allowRepeat:   true,
+			expectedResponse: [][]string{
+				{"one", "1"}, {"two", "2"}, {"three", "3"}, {"four", "4"},
+				{"five", "5"}, {"six", "6"}, {"seven", "7"}, {"eight", "8"},
+			},
+			expectedError: nil,
+		},
+		{ // 2. Return error when the source key is not a sorted set.
+			preset:        true,
+			key:           "key3",
+			presetValue:   "Default value",
+			command:       []string{"ZRANDMEMBER", "key3"},
+			expectedValue: 0,
+			expectedError: errors.New("value at key3 is not a sorted set"),
+		},
+		{ // 5. Command too short
+			preset:        false,
+			command:       []string{"ZRANDMEMBER"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 6. Command too long
+			preset:        false,
+			command:       []string{"ZRANDMEMBER", "source5", "source6", "member1", "member2"},
+			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 7. Throw error when count is not an integer
+			preset:        false,
+			command:       []string{"SRANDMEMBER", "key1", "count"},
+			expectedError: errors.New("count must be an integer"),
+		},
+		{ // 8. Throw error when the fourth argument is not WITHSCORES
+			preset:        false,
+			command:       []string{"SRANDMEMBER", "key1", "8", "ANOTHER"},
+			expectedError: errors.New("last option must be WITHSCORES"),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+				t.Error(err)
+			}
+			mockServer.SetValue(context.Background(), test.key, test.presetValue)
+			mockServer.KeyUnlock(test.key)
+		}
+		res, err := handleZRANDMEMBER(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		// 1. Check if the response array members are all included in test.expectedResponse.
+		for _, element := range rv.Array() {
+			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+				// The current sub-slice is a different length, return false because they're not equal
+				if len(element.Array()) != len(expected) {
+					return false
+				}
+				for i := 0; i < len(expected); i++ {
+					if element.Array()[i].String() != expected[i] {
+						return false
+					}
+				}
+				return true
+			}) {
+				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
+			}
+		}
+		// 2. Fetch the set and check if its cardinality is what we expect.
+		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+			t.Error(err)
+		}
+		set, ok := mockServer.GetValue(test.key).(*SortedSet)
+		if !ok {
+			t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
+		}
+		if set.Cardinality() != test.expectedValue {
+			t.Errorf("expected cardinality of final set to be %d, got %d", test.expectedValue, set.Cardinality())
+		}
+		// 3. Check if all the returned elements we received are still in the set.
+		for _, element := range rv.Array() {
+			if !set.Contains(Value(element.Array()[0].String())) {
+				t.Errorf("expected element \"%s\" to be in set but it was not found", element.String())
+			}
+		}
+		// 4. If allowRepeat is false, check that all the elements make a valid set
+		if !test.allowRepeat {
+			var elems []MemberParam
+			for _, e := range rv.Array() {
+				if len(e.Array()) == 1 {
+					elems = append(elems, MemberParam{
+						value: Value(e.Array()[0].String()),
+						score: 1,
+					})
+					continue
+				}
+				elems = append(elems, MemberParam{
+					value: Value(e.Array()[0].String()),
+					score: Score(e.Array()[1].Float()),
+				})
+			}
+			s := NewSortedSet(elems)
+			if s.Cardinality() != len(elems) {
+				t.Errorf("expected non-repeating elements for random elements at key \"%s\"", test.key)
+			}
+		}
+	}
+}
 
 func Test_HandleZRANK(t *testing.T) {}
 
