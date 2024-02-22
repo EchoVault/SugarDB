@@ -1163,14 +1163,13 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 		if limitIdx != -1 && limitIdx > len(cmd[4:])-3 {
 			return nil, errors.New("limit should contain offset and count as integers")
 		}
-		o, err := strconv.Atoi(cmd[4:][limitIdx+1])
+		offset, err = strconv.Atoi(cmd[4:][limitIdx+1])
 		if err != nil {
 			return nil, errors.New("limit offset must be integer")
 		}
-		if o < 0 {
+		if offset < 0 {
 			return nil, errors.New("limit offset must be >= 0")
 		}
-		offset = o
 		count, err = strconv.Atoi(cmd[4:][limitIdx+2])
 		if err != nil {
 			return nil, errors.New("limit count must be integer")
@@ -1305,11 +1304,14 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 		}
 		offset, err = strconv.Atoi(cmd[5:][limitIdx+1])
 		if err != nil {
-			return nil, err
+			return nil, errors.New("limit offset must be integer")
+		}
+		if offset < 0 {
+			return nil, errors.New("limit offset must be >= 0")
 		}
 		count, err = strconv.Atoi(cmd[5:][limitIdx+2])
 		if err != nil {
-			return nil, err
+			return nil, errors.New("limit count must be integer")
 		}
 	}
 

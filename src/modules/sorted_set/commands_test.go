@@ -2634,7 +2634,7 @@ func Test_HandleZRANGE(t *testing.T) {
 				}),
 			},
 			command:          []string{"ZRANGE", "key7", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
-			expectedResponse: [][]string{{"b", "1"}, {"c", "1"}, {"d", "1"}, {"e", "1"}},
+			expectedResponse: [][]string{{"c", "1"}, {"d", "1"}, {"e", "1"}},
 			expectedError:    nil,
 		},
 		{ // 8. Get elements within lex range with offset and limit + reverse the results.
@@ -2745,6 +2745,9 @@ func Test_HandleZRANGE(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
+		if len(rv.Array()) != len(test.expectedResponse) {
+			t.Errorf("expected response array of length %d, got %d", len(test.expectedResponse), len(rv.Array()))
+		}
 		for _, element := range rv.Array() {
 			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
 				// The current sub-slice is a different length, return false because they're not equal
@@ -2764,7 +2767,284 @@ func Test_HandleZRANGE(t *testing.T) {
 	}
 }
 
-func Test_HandleZRANGESTORE(t *testing.T) {}
+func Test_HandleZRANGESTORE(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{})
+
+	tests := []struct {
+		preset           bool
+		presetValues     map[string]interface{}
+		destination      string
+		command          []string
+		expectedValue    *SortedSet
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Get elements withing score range without score.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key1": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+			},
+			destination:      "destination1",
+			command:          []string{"ZRANGE", "destination1", "key1", "3", "7", "BYSCORE"},
+			expectedResponse: 5,
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "three", score: 3}, {value: "four", score: 4}, {value: "five", score: 5},
+				{value: "six", score: 6}, {value: "seven", score: 7},
+			}),
+			expectedError: nil,
+		},
+		{ // 2. Get elements within score range with score.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key2": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+			},
+			destination:      "destination2",
+			command:          []string{"ZRANGE", "destination2", "key2", "3", "7", "BYSCORE", "WITHSCORES"},
+			expectedResponse: 5,
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "three", score: 3}, {value: "four", score: 4}, {value: "five", score: 5},
+				{value: "six", score: 6}, {value: "seven", score: 7},
+			}),
+			expectedError: nil,
+		},
+		{ // 3. Get elements within score range with offset and limit.
+			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key3": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+			},
+			destination:      "destination3",
+			command:          []string{"ZRANGE", "destination3", "key3", "3", "7", "BYSCORE", "WITHSCORES", "LIMIT", "2", "4"},
+			expectedResponse: 3,
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "three", score: 3}, {value: "four", score: 4}, {value: "five", score: 5},
+			}),
+			expectedError: nil,
+		},
+		{ // 4. Get elements within score range with offset and limit + reverse the results.
+			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
+			// REV reverses the original set before getting the range.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key4": NewSortedSet([]MemberParam{
+					{value: "one", score: 1}, {value: "two", score: 2},
+					{value: "three", score: 3}, {value: "four", score: 4},
+					{value: "five", score: 5}, {value: "six", score: 6},
+					{value: "seven", score: 7}, {value: "eight", score: 8},
+				}),
+			},
+			destination:      "destination4",
+			command:          []string{"ZRANGE", "destination4", "key4", "3", "7", "BYSCORE", "WITHSCORES", "LIMIT", "2", "4", "REV"},
+			expectedResponse: 3,
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "six", score: 6}, {value: "five", score: 5}, {value: "four", score: 4},
+			}),
+			expectedError: nil,
+		},
+		{ // 5. Get elements within lex range without score.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key5": NewSortedSet([]MemberParam{
+					{value: "a", score: 1}, {value: "e", score: 1},
+					{value: "b", score: 1}, {value: "f", score: 1},
+					{value: "c", score: 1}, {value: "g", score: 1},
+					{value: "d", score: 1}, {value: "h", score: 1},
+				}),
+			},
+			destination:      "destination5",
+			command:          []string{"ZRANGE", "destination5", "key5", "c", "g", "BYLEX"},
+			expectedResponse: 5,
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "c", score: 1}, {value: "d", score: 1}, {value: "e", score: 1},
+				{value: "f", score: 1}, {value: "g", score: 1},
+			}),
+			expectedError: nil,
+		},
+		{ // 6. Get elements within lex range with score.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key6": NewSortedSet([]MemberParam{
+					{value: "a", score: 1}, {value: "e", score: 1},
+					{value: "b", score: 1}, {value: "f", score: 1},
+					{value: "c", score: 1}, {value: "g", score: 1},
+					{value: "d", score: 1}, {value: "h", score: 1},
+				}),
+			},
+			destination:      "destination6",
+			command:          []string{"ZRANGE", "destination6", "key6", "a", "f", "BYLEX", "WITHSCORES"},
+			expectedResponse: 6,
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "a", score: 1}, {value: "b", score: 1}, {value: "c", score: 1},
+				{value: "d", score: 1}, {value: "e", score: 1}, {value: "f", score: 1},
+			}),
+			expectedError: nil,
+		},
+		{ // 7. Get elements within lex range with offset and limit.
+			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key7": NewSortedSet([]MemberParam{
+					{value: "a", score: 1}, {value: "b", score: 1},
+					{value: "c", score: 1}, {value: "d", score: 1},
+					{value: "e", score: 1}, {value: "f", score: 1},
+					{value: "g", score: 1}, {value: "h", score: 1},
+				}),
+			},
+			destination:      "destination7",
+			command:          []string{"ZRANGE", "destination7", "key7", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
+			expectedResponse: 3,
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "c", score: 1}, {value: "d", score: 1}, {value: "e", score: 1},
+			}),
+			expectedError: nil,
+		},
+		{ // 8. Get elements within lex range with offset and limit + reverse the results.
+			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
+			// REV reverses the original set before getting the range.
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key8": NewSortedSet([]MemberParam{
+					{value: "a", score: 1}, {value: "b", score: 1},
+					{value: "c", score: 1}, {value: "d", score: 1},
+					{value: "e", score: 1}, {value: "f", score: 1},
+					{value: "g", score: 1}, {value: "h", score: 1},
+				}),
+			},
+			destination:      "destination8",
+			command:          []string{"ZRANGE", "destination8", "key8", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4", "REV"},
+			expectedResponse: 3,
+			expectedValue: NewSortedSet([]MemberParam{
+				{value: "f", score: 1}, {value: "e", score: 1}, {value: "d", score: 1},
+			}),
+			expectedError: nil,
+		},
+		{ // 9. Return an empty slice when we use BYLEX while elements have different scores
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key9": NewSortedSet([]MemberParam{
+					{value: "a", score: 1}, {value: "b", score: 5},
+					{value: "c", score: 2}, {value: "d", score: 6},
+					{value: "e", score: 3}, {value: "f", score: 7},
+					{value: "g", score: 4}, {value: "h", score: 8},
+				}),
+			},
+			destination:      "destination9",
+			command:          []string{"ZRANGE", "destination9", "key9", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
+			expectedResponse: 0,
+			expectedValue:    nil,
+			expectedError:    nil,
+		},
+		{ // 10. Throw error when limit does not provide both offset and limit
+			preset:           false,
+			presetValues:     nil,
+			command:          []string{"ZRANGE", "destination10", "key10", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2"},
+			expectedResponse: 0,
+			expectedError:    errors.New("limit should contain offset and count as integers"),
+		},
+		{ // 11. Throw error when offset is not a valid integer
+			preset:           false,
+			presetValues:     nil,
+			command:          []string{"ZRANGE", "destination11", "key11", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "offset", "4"},
+			expectedResponse: 0,
+			expectedError:    errors.New("limit offset must be integer"),
+		},
+		{ // 12. Throw error when limit is not a valid integer
+			preset:           false,
+			presetValues:     nil,
+			command:          []string{"ZRANGE", "destination12", "key12", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "4", "limit"},
+			expectedResponse: 0,
+			expectedError:    errors.New("limit count must be integer"),
+		},
+		{ // 13. Throw error when offset is negative
+			preset:           false,
+			presetValues:     nil,
+			command:          []string{"ZRANGE", "destination13", "key13", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9"},
+			expectedResponse: 0,
+			expectedError:    errors.New("limit offset must be >= 0"),
+		},
+		{ // 14. Throw error when the key does not hold a sorted set
+			preset: true,
+			presetValues: map[string]interface{}{
+				"key14": "Default value",
+			},
+			command:          []string{"ZRANGE", "destination14", "key14", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
+			expectedResponse: 0,
+			expectedError:    errors.New("value at key14 is not a sorted set"),
+		},
+		{ // 15. Command too short
+			preset:           false,
+			presetValues:     nil,
+			command:          []string{"ZRANGE", "key15", "1"},
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+		{ // 16 Command too long
+			preset:           false,
+			presetValues:     nil,
+			command:          []string{"ZRANGE", "destination16", "key16", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9", "REV", "WITHSCORES"},
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
+	}
+
+	for _, test := range tests {
+		if test.preset {
+			for key, value := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetValue(context.Background(), key, value)
+				mockServer.KeyUnlock(key)
+			}
+		}
+		res, err := handleZRANGESTORE(context.Background(), test.command, mockServer, nil)
+		if test.expectedError != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
+		}
+		if test.expectedValue != nil {
+			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
+				t.Error(err)
+			}
+			set, ok := mockServer.GetValue(test.destination).(*SortedSet)
+			if !ok {
+				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+			}
+			if !set.Equals(test.expectedValue) {
+				t.Errorf("expected sorted set %+v, got %+v", test.expectedValue, set)
+			}
+			mockServer.KeyRUnlock(test.destination)
+		}
+	}
+}
 
 func Test_HandleZINTER(t *testing.T) {
 	mockServer := server.NewServer(server.Opts{})
