@@ -22,7 +22,7 @@ builds:
 brews:
   - name: echovault
     homepage: https://github.com/EchoVault/EchoVault
-    tap:
+    repository:
       owner: EchoVault
       name: Homebrew-EchoVault
     commit_author:
