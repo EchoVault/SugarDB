@@ -95,21 +95,27 @@ func NewServer(opts Opts) *Server {
 			SetValue:                      server.SetValue,
 		})
 		// Set up standalone AOF engine
-
-		engine, err := aof.NewAOFEngine(aof.Opts{
-			Config:           opts.Config,
-			GetState:         server.GetState,
-			StartRewriteAOF:  server.StartRewriteAOF,
-			FinishRewriteAOF: server.FinishRewriteAOF,
-			CreateKeyAndLock: server.CreateKeyAndLock,
-			KeyUnlock:        server.KeyUnlock,
-			SetValue:         server.SetValue,
-			HandleCommand:    server.handleCommand,
-		}, nil, nil)
-		if err != nil {
-			log.Println(err)
-		}
-		server.AOFEngine = engine
+		server.AOFEngine = aof.NewAOFEngine(
+			aof.WithDirectory(opts.Config.DataDir),
+			aof.WithStrategy(opts.Config.AOFSyncStrategy),
+			aof.WithStartRewriteFunc(server.StartRewriteAOF),
+			aof.WithFinishRewriteFunc(server.FinishRewriteAOF),
+			aof.WithGetStateFunc(server.GetState),
+			aof.WithSetValueFunc(func(key string, value interface{}) {
+				if _, err := server.CreateKeyAndLock(context.Background(), key); err != nil {
+					log.Println(err)
+					return
+				}
+				server.SetValue(context.Background(), key, value)
+				server.KeyUnlock(key)
+			}),
+			aof.WithHandleCommandFunc(func(command []byte) {
+				_, err := server.handleCommand(context.Background(), command, nil, true)
+				if err != nil {
+					log.Println(err)
+				}
+			}),
+		)
 	}
 	return server
 }
