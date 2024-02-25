@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -77,6 +78,15 @@ func (store *AppendStore) Restore(ctx context.Context) error {
 }
 
 func (store *AppendStore) Truncate() error {
+	rw, ok := store.rw.(interface {
+		Truncate(size int64) error
+	})
+	if !ok {
+		fmt.Println("could not truncate AOF file")
+	}
+	if err := rw.Truncate(0); err != nil {
+		return err
+	}
 	return nil
 }
 

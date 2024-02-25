@@ -47,7 +47,7 @@ func NewAOFEngine(opts Opts, appendRW io.ReadWriter, preambleRW io.ReadWriter) (
 	// Obtain preamble file handler
 	if preambleRW == nil {
 		f, err := os.OpenFile(
-			path.Join(engine.options.Config.DataDir, "aof", "peamble.bin"),
+			path.Join(engine.options.Config.DataDir, "aof", "preamble.bin"),
 			os.O_WRONLY|os.O_CREATE|os.O_APPEND,
 			os.ModePerm)
 		if err != nil {
@@ -135,16 +135,15 @@ func (engine *Engine) RewriteLog() error {
 	engine.options.StartRewriteAOF()
 	defer engine.options.FinishRewriteAOF()
 
-	// Replace aof file with empty file.
-	aof, err := os.Create(path.Join(engine.options.Config.DataDir, "aof", "log.aof"))
-	if err != nil {
-		return err
+	// Create AOF preamble
+	if err := engine.preambleStore.CreatePreamble(); err != nil {
+		log.Println(err)
 	}
-	defer func() {
-		if err = aof.Close(); err != nil {
-			log.Println(err)
-		}
-	}()
+
+	// Truncate the AOF file.
+	if err := engine.appendStore.Truncate(); err != nil {
+		log.Println(err)
+	}
 
 	return nil
 }

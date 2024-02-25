@@ -3,6 +3,7 @@ package aof
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -62,6 +63,18 @@ func (store *PreambleStore) CreatePreamble() error {
 	state := store.getState()
 	o, err := json.Marshal(state)
 	if err != nil {
+		return err
+	}
+
+	// Truncate the preamble first
+	rw, ok := store.rw.(interface {
+		Truncate(size int64) error
+	})
+	if !ok {
+		return errors.New("could not truncate preamble file")
+	}
+
+	if err = rw.Truncate(0); err != nil {
 		return err
 	}
 
