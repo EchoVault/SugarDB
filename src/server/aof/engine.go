@@ -106,11 +106,11 @@ func (engine *Engine) RewriteLog() error {
 	return nil
 }
 
-func (engine *Engine) Restore(ctx context.Context) error {
-	if err := engine.preambleStore.Restore(ctx); err != nil {
+func (engine *Engine) Restore() error {
+	if err := engine.preambleStore.Restore(); err != nil {
 		log.Println(err)
 	}
-	if err := engine.appendStore.Restore(ctx); err != nil {
+	if err := engine.appendStore.Restore(); err != nil {
 		log.Println(err)
 	}
 	return nil

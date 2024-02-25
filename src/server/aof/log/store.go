@@ -3,7 +3,6 @@ package log
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"errors"
 	"io"
 	"log"
@@ -112,7 +111,7 @@ func (store *AppendStore) Sync() error {
 	return store.rw.Sync()
 }
 
-func (store *AppendStore) Restore(ctx context.Context) error {
+func (store *AppendStore) Restore() error {
 	store.mut.Lock()
 	defer store.mut.Unlock()
 

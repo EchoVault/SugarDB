@@ -244,7 +244,7 @@ func (server *Server) Start(ctx context.Context) {
 	} else {
 		// Restore from AOF by default if it's enabled
 		if conf.RestoreAOF {
-			err := server.AOFEngine.Restore(ctx)
+			err := server.AOFEngine.Restore()
 			if err != nil {
 				log.Println(err)
 			}
