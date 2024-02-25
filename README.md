@@ -6,35 +6,78 @@
 
 <img alt="echovault_logo" src="./images/EchoVault GitHub Cover.png" width="5062" />
 
+# What is EchoVault
+
+EchoVault is a highly configurable, distributed, in-memory data store and cache implemented in Go.
+EchoVault aims to provide a rich set of data structures and functions for
+manipulating data in memory, these data structures include, but are not limited to:
+lists, sets, sorted sets, hashes, with much more to come in the near future.
+
+EchoVault provides a persistence layer for increased reliability. Both Append-Only files 
+and snapshots can be used to persist data to disk for recovery in case of unexpected shutdowns.
+
+Replication is a core feature of EchoVault and is implemented using the RAFT algorithm, 
+allowing you to create a fault-tolerant cluster of EchoVault nodes to improve reliability.
+If you do not need a replication cluster, you can always run EchoVault
+in standalone mode and have a fully capable single node.
+
+EchoVault aims to not only be a server, but to be importable into existing 
+projects in order to enhance them with EchoVault features, this 
+capability is always being worked on and improved.
+
+Speed and reliability are top priorities of Echovault, as a result,
+we're always working to improve these 2 characteristics. While we might
+not be there yet, we are consistently working to make gains
+in this area.
+
 # Features
 
-- [x] Config file support
-- [x] TCP support w/ TLS
-- [x] Replication Cluster support
-- [x] ACL Authentication Layer
-- [x] Pub/Sub support
-- [x] Ping/Pong
-- [x] String support
-- [x] Integer support
-- [x] Float support
-- [x] List support
-- [x] Set support
-- [x] Sorted set support
-- [x] Hash support
-- [x] Append-Only File & reload from AOF (Cluster)
-- [x] Periodic snapshots & reload state from snapshot (Cluster)
-- [x] Append-Only File & reload from AOF (Standalone)
-- [x] Periodic snapshots & reload state from snapshot (Standalone)
-- [x] mTLS for client verification
-- [x] Support for multiple client CAs on server side
-- [x] Support for multiple server CAs on client side
-- [ ] Encrypted Snapshot & AOF files
-- [ ] Structured logging & Observability
-- [ ] Stream support
-- [ ] Transactions
-- [ ] Search support
-- [ ] JSON support
-- [ ] Graph support
-- [ ] Geospatial support
-- [ ] Bitmap support
-- [ ] HyperLogLog support
+Some key features offered by EchoVault include:
+
+1) TLS and mTLS support with support for multiple server and client RootCAs
+2) Replication clustering using RAFT algorithm
+3) ACL Layer for user Authentication and Authorization
+4) Distributed Pub/Sub functionality with consumer groups
+5) Sets, Sorted Sets, Hashes
+6) Persistence layer with Snapshots and Append-Only files
+
+We are working hard to add more features to EchoVault to make it
+much more powerful. Features in the roadmap include:
+
+1) Encryption for Snapshot and AOF files
+2) Streams
+3) Transactions
+4) Bitmap
+5) HyperLogLog
+6) JSON
+7) Improved Observability
+
+# Installing
+
+Coming soon
+
+# Clients
+
+- [CLI Client](https://github.com/EchoVault/EchoVault-CLI)
+- Go (Coming Soon)
+- JavaScript/TypeScript (Coming Soon)
+- Java (Coming Soon)
+- C# (Coming Soon)
+
+# Development Setup
+
+Pre-requisites:
+1) Go
+2) Docker
+3) Docker Compose
+4) x86_64-linux-musl-gcc cross-compile toolchain as the development image is build for an alpine container
+
+Steps:
+1) Clone the repository.
+2) If you're on MacOS, you can run `make buld && docker-compose up --build` to build the project and spin up the development docker container.
+3) If you're on another OS, you will have to use `go build` with the relevant flags for your system.
+
+# Contribution
+
+Contributions are welcome! If you're interested in contributing,
+feel free to clone the repository and submit a Pull Request.
