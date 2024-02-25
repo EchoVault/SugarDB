@@ -44,13 +44,14 @@ Some key features offered by EchoVault include:
 We are working hard to add more features to EchoVault to make it
 much more powerful. Features in the roadmap include:
 
-1) Encryption for Snapshot and AOF files
-2) Streams
-3) Transactions
-4) Bitmap
-5) HyperLogLog
-6) JSON
-7) Improved Observability
+1) Eviction Policies to reduce memory footprint
+2) Encryption for Snapshot and AOF files
+3) Streams
+4) Transactions
+5) Bitmap
+6) HyperLogLog
+7) JSON
+8) Improved Observability
 
 # Installing
 
