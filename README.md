@@ -6,7 +6,7 @@
 
 <img alt="echovault_logo" src="./images/EchoVault GitHub Cover.png" width="5062" />
 
-# What is EchoVault
+# What is EchoVault?
 
 EchoVault is a highly configurable, distributed, in-memory data store and cache implemented in Go.
 EchoVault aims to provide a rich set of data structures and functions for
