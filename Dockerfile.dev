@@ -12,28 +12,29 @@ COPY ./openssl/client /etc/ssl/certs/echovault/client
 WORKDIR /opt/echovault/bin
 
 CMD "./server" \
-  "--bindAddr" "${BIND_ADDR}" \
+  "--bind-addr" "${BIND_ADDR}" \
   "--port" "${PORT}" \
-  "--mlPort" "${ML_PORT}" \
-  "--raftPort" "${RAFT_PORT}" \
-  "--serverId" "${SERVER_ID}" \
-  "--joinAddr" "${JOIN_ADDR}" \
-  "--pluginDir" "${PLUGIN_DIR}" \
-  "--dataDir" "${DATA_DIR}" \
-  "--snapshotThreshold" "${SNAPSHOT_THRESHOLD}" \
-  "--snapshotInterval" "${SNAPSHOT_INTERVAL}" \
+  "--memberlist-port" "${ML_PORT}" \
+  "--raft-port" "${RAFT_PORT}" \
+  "--server-id" "${SERVER_ID}" \
+  "--join-addr" "${JOIN_ADDR}" \
+  "--plugin-dir" "${PLUGIN_DIR}" \
+  "--data-dir" "${DATA_DIR}" \
+  "--snapshot-threshold" "${SNAPSHOT_THRESHOLD}" \
+  "--snapshot-interval" "${SNAPSHOT_INTERVAL}" \
   "--tls=${TLS}" \
   "--mtls=${MTLS}" \
-  "--inMemory=${IN_MEMORY}" \
-  "--bootstrapCluster=${BOOTSTRAP_CLUSTER}" \
-  "--aclConfig=${ACL_CONFIG}" \
-  "--requirePass=${REQUIRE_PASS}" \
+  "--in-memory=${IN_MEMORY}" \
+  "--bootstrap-cluster=${BOOTSTRAP_CLUSTER}" \
+  "--acl-config=${ACL_CONFIG}" \
+  "--require-pass=${REQUIRE_PASS}" \
   "--password=${PASSWORD}" \
-  "--forwardCommand=${FORWARD_COMMAND}" \
-  "--restoreSnapshot=${RESTORE_SNAPSHOT}" \
-  "--restoreAOF=${RESTORE_AOF}" \
+  "--forward-commands=${FORWARD_COMMAND}" \
+  "--restore-snapshot=${RESTORE_SNAPSHOT}" \
+  "--restore-aof=${RESTORE_AOF}" \
+  "--aof-sync-strategy=${AOF_SYNC_STRATEGY}" \
   # List of server cert/key pairs
-  "--certKeyPair=${CERT_KEY_PAIR_1}" \
-  "--certKeyPair=${CERT_KEY_PAIR_2}" \
+  "--cert-key-pair=${CERT_KEY_PAIR_1}" \
+  "--cert-key-pair=${CERT_KEY_PAIR_2}" \
   # List of client certs
-  "--clientCA=${CLIENT_CA_1}" \
+  "--client-ca=${CLIENT_CA_1}" \

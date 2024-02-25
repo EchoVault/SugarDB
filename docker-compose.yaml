@@ -29,6 +29,7 @@ services:
       - SNAPSHOT_INTERVAL=5m30s
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=true
+      - AOF_SYNC_STRATEGY=everysec
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -69,6 +70,7 @@ services:
       - SNAPSHOT_INTERVAL=5m30s
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=false
+      - AOF_SYNC_STRATEGY=everysec
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -110,6 +112,7 @@ services:
       - SNAPSHOT_INTERVAL=5m30s
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=false
+      - AOF_SYNC_STRATEGY=everysec
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -151,6 +154,7 @@ services:
       - SNAPSHOT_INTERVAL=5m30s
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=false
+      - AOF_SYNC_STRATEGY=everysec
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -192,6 +196,7 @@ services:
       - SNAPSHOT_INTERVAL=5m30s
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=false
+      - AOF_SYNC_STRATEGY=everysec
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -233,6 +238,7 @@ services:
       - SNAPSHOT_INTERVAL=5m30s
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=false
+      - AOF_SYNC_STRATEGY=everysec
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
