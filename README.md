@@ -55,7 +55,11 @@ much more powerful. Features in the roadmap include:
 
 # Installing
 
-Coming soon
+### Homebrew
+
+### Configuration
+Checkout the [configuration wiki page](https://github.com/EchoVault/EchoVault/wiki/Configuration) for the possible configuration
+flags
 
 # Clients
 

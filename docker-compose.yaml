@@ -57,7 +57,6 @@ services:
       - KEY=/etc/ssl/certs/echovault/server1.key
       - CERT=/etc/ssl/certs/echovault/server1.crt
       - SERVER_ID=1
-      - PLUGIN_DIR=/usr/local/lib/echovault
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
       - TLS=true
@@ -99,7 +98,6 @@ services:
       - CERT=/etc/ssl/certs/echovault/server1.crt
       - SERVER_ID=2
       - JOIN_ADDR=cluster_node_1:7946
-      - PLUGIN_DIR=/usr/local/lib/echovault
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
       - TLS=true
@@ -141,7 +139,6 @@ services:
       - CERT=/etc/ssl/certs/echovault/server1.crt
       - SERVER_ID=3
       - JOIN_ADDR=cluster_node_1:7946
-      - PLUGIN_DIR=/usr/local/lib/echovault
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
       - TLS=true
@@ -183,7 +180,6 @@ services:
       - CERT=/etc/ssl/certs/echovault/server1.crt
       - SERVER_ID=4
       - JOIN_ADDR=cluster_node_1:7946
-      - PLUGIN_DIR=/usr/local/lib/echovault
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
       - TLS=true
@@ -225,7 +221,6 @@ services:
       - CERT=/etc/ssl/certs/echovault/server1.crt
       - SERVER_ID=5
       - JOIN_ADDR=cluster_node_1:7946
-      - PLUGIN_DIR=/usr/local/lib/echovault
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
       - TLS=true

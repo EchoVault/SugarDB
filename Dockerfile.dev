@@ -18,7 +18,6 @@ CMD "./server" \
   "--raft-port" "${RAFT_PORT}" \
   "--server-id" "${SERVER_ID}" \
   "--join-addr" "${JOIN_ADDR}" \
-  "--plugin-dir" "${PLUGIN_DIR}" \
   "--data-dir" "${DATA_DIR}" \
   "--snapshot-threshold" "${SNAPSHOT_THRESHOLD}" \
   "--snapshot-interval" "${SNAPSHOT_INTERVAL}" \

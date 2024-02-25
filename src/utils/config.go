@@ -20,7 +20,6 @@ type Config struct {
 	CertKeyPairs       [][]string    `json:"CertKeyPairs" yaml:"CertKeyPairs"`
 	ClientCAs          []string      `json:"ClientCAs" yaml:"ClientCAs"`
 	Port               uint16        `json:"Port" yaml:"Port"`
-	PluginDir          string        `json:"Plugins" yaml:"Plugins"`
 	ServerID           string        `json:"ServerId" yaml:"ServerId"`
 	JoinAddr           string        `json:"JoinAddr" yaml:"JoinAddr"`
 	BindAddr           string        `json:"BindAddr" yaml:"BindAddr"`
@@ -79,14 +78,13 @@ The options are 'always' for syncing on each command, 'everysec' to sync every s
 	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false")
 	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
-	pluginDir := flag.String("plugin-dir", "", "Directory where plugins are located.")
 	serverId := flag.String("server-id", "1", "Server ID in raft cluster. Leave empty for client.")
 	joinAddr := flag.String("join-addr", "", "Address of cluster member in a cluster to you want to join.")
 	bindAddr := flag.String("bind-addr", "", "Address to bind the server to.")
 	raftBindPort := flag.Uint("raft-port", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	mlBindPort := flag.Uint("memberlist-port", 7946, "Port to use for memberlist communication.")
 	inMemory := flag.Bool("in-memory", false, "Whether to use memory or persistent storage for raft logs and snapshots.")
-	dataDir := flag.String("data-dir", "/var/lib/memstore", "Directory to store raft snapshots and logs.")
+	dataDir := flag.String("data-dir", "/var/lib/echovault", "Directory to store raft snapshots and logs.")
 	bootstrapCluster := flag.Bool("bootstrap-cluster", false, "Whether this instance should bootstrap a new cluster.")
 	aclConfig := flag.String("acl-config", "", "ACL config file path.")
 	snapshotThreshold := flag.Uint64("snapshot-threshold", 1000, "The number of entries that trigger a snapshot. Default is 1000.")
@@ -122,7 +120,6 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		ClientCAs:          clientCAs,
 		TLS:                *tls,
 		MTLS:               *mtls,
-		PluginDir:          *pluginDir,
 		Port:               uint16(*port),
 		ServerID:           *serverId,
 		JoinAddr:           *joinAddr,
