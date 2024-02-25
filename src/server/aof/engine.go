@@ -2,15 +2,12 @@ package aof
 
 import (
 	"context"
+	logstore "github.com/echovault/echovault/src/server/aof/log"
+	"github.com/echovault/echovault/src/server/aof/preamble"
 	"github.com/echovault/echovault/src/utils"
-	"io"
 	"log"
 	"net"
-	"os"
-	"path"
-	"strings"
 	"sync"
-	"time"
 )
 
 // This package handles AOF logging in standalone mode only.
@@ -32,11 +29,11 @@ type Engine struct {
 	mut           sync.Mutex
 	logChan       chan []byte
 	logCount      uint64
-	preambleStore *PreambleStore
-	appendStore   AppendStore
+	preambleStore *preamble.PreambleStore
+	appendStore   *logstore.AppendStore
 }
 
-func NewAOFEngine(opts Opts, appendRW io.ReadWriter, preambleRW io.ReadWriter) (*Engine, error) {
+func NewAOFEngine(opts Opts, appendRW logstore.AppendReadWriter, preambleRW preamble.PreambleReadWriter) (*Engine, error) {
 	engine := &Engine{
 		options:  opts,
 		mut:      sync.Mutex{},
@@ -44,23 +41,12 @@ func NewAOFEngine(opts Opts, appendRW io.ReadWriter, preambleRW io.ReadWriter) (
 		logCount: 0,
 	}
 
-	// Obtain preamble file handler
-	if preambleRW == nil {
-		f, err := os.OpenFile(
-			path.Join(engine.options.Config.DataDir, "aof", "preamble.bin"),
-			os.O_WRONLY|os.O_CREATE|os.O_APPEND,
-			os.ModePerm)
-		if err != nil {
-			return nil, err
-		}
-		preambleRW = f
-	}
-
 	// Setup Preamble engine
-	engine.preambleStore = NewPreambleStore(
-		WithReadWriter(preambleRW),
-		WithGetStateFunc(opts.GetState),
-		WithSetValueFunc(func(key string, value interface{}) {
+	engine.preambleStore = preamble.NewPreambleStore(
+		preamble.WithDirectory(engine.options.Config.DataDir),
+		preamble.WithReadWriter(preambleRW),
+		preamble.WithGetStateFunc(opts.GetState),
+		preamble.WithSetValueFunc(func(key string, value interface{}) {
 			if _, err := engine.options.CreateKeyAndLock(context.Background(), key); err != nil {
 				log.Println(err)
 			}
@@ -69,28 +55,18 @@ func NewAOFEngine(opts Opts, appendRW io.ReadWriter, preambleRW io.ReadWriter) (
 		}),
 	)
 
-	// 1. Create AOF directory if it does not exist.
-	if err := os.MkdirAll(path.Join(engine.options.Config.DataDir, "aof"), os.ModePerm); err != nil {
-		return nil, err
-	}
-
-	// 2. Setup storage engine.
-	engine.appendStore = AppendStore{
-		rw:  appendRW,
-		mut: sync.Mutex{},
-	}
-
-	// If out is not provided by the caller, then create/open the new AOF file based on the configuration.
-	if appendRW == nil {
-		f, err := os.OpenFile(
-			path.Join(engine.options.Config.DataDir, "aof", "log.aof"),
-			os.O_WRONLY|os.O_CREATE|os.O_APPEND,
-			os.ModePerm)
-		if err != nil {
-			return nil, err
-		}
-		engine.appendStore.rw = f
-	}
+	// Setup AOF log store engine
+	engine.appendStore = logstore.NewAppendStore(
+		logstore.WithDirectory(engine.options.Config.DataDir),
+		logstore.WithStrategy(engine.options.Config.AOFSyncStrategy),
+		logstore.WithReadWriter(appendRW),
+		logstore.WithHandleCommandFunc(func(command []byte) {
+			_, err := engine.options.HandleCommand(context.Background(), command, nil, true)
+			if err != nil {
+				log.Println(err)
+			}
+		}),
+	)
 
 	// 3. Start the goroutine to pick up queued commands in order to write them to the file.
 	// LogCommand will get the open file handler from the struct top perform the AOF operation.
@@ -100,26 +76,8 @@ func NewAOFEngine(opts Opts, appendRW io.ReadWriter, preambleRW io.ReadWriter) (
 			if err := engine.appendStore.Write(c); err != nil {
 				log.Println(err)
 			}
-			if strings.EqualFold(engine.options.Config.AOFSyncStrategy, "always") {
-				if err := engine.appendStore.Sync(); err != nil {
-					log.Println(err)
-				}
-			}
 		}
 	}()
-
-	// 4. Start another goroutine that takes handles syncing the content to the file system.
-	// No need to start this goroutine if sync strategy is anything other than 'everysec'.
-	if strings.EqualFold(engine.options.Config.AOFSyncStrategy, "everysec") {
-		go func() {
-			for {
-				if err := engine.appendStore.Sync(); err != nil {
-					log.Println(err)
-				}
-				<-time.After(1 * time.Second)
-			}
-		}()
-	}
 
 	return engine, nil
 }

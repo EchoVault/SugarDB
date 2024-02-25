@@ -43,207 +43,207 @@ services:
       - ./volumes/standalone_node:/var/lib/echovault
     networks:
       - testnet
-
-  cluster_node_1:
-    container_name: cluster_node_1
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    environment:
-      - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
-      - KEY=/etc/ssl/certs/echovault/server1.key
-      - CERT=/etc/ssl/certs/echovault/server1.crt
-      - SERVER_ID=1
-      - PLUGIN_DIR=/usr/local/lib/echovault
-      - DATA_DIR=/var/lib/echovault
-      - IN_MEMORY=false
-      - TLS=true
-      - MTLS=true
-      - BOOTSTRAP_CLUSTER=true
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
-      - REQUIRE_PASS=false
-      - FORWARD_COMMAND=true
-      - SNAPSHOT_THRESHOLD=1000
-      - SNAPSHOT_INTERVAL=5m30s
-      - RESTORE_SNAPSHOT=false
-      - RESTORE_AOF=false
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
-      # List of client certificate authorities
-      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
-    ports:
-      - "7480:7480"
-      - "7945:7946"
-      - "8000:8000"
-    volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
-      - ./volumes/cluster_node_1:/var/lib/echovault
-    networks:
-      - testnet
-
-  cluster_node_2:
-    container_name: cluster_node_2
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    environment:
-      - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
-      - KEY=/etc/ssl/certs/echovault/server1.key
-      - CERT=/etc/ssl/certs/echovault/server1.crt
-      - SERVER_ID=2
-      - JOIN_ADDR=cluster_node_1:7946
-      - PLUGIN_DIR=/usr/local/lib/echovault
-      - DATA_DIR=/var/lib/echovault
-      - IN_MEMORY=false
-      - TLS=true
-      - MTLS=true
-      - BOOTSTRAP_CLUSTER=false
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
-      - REQUIRE_PASS=false
-      - FORWARD_COMMAND=true
-      - SNAPSHOT_THRESHOLD=1000
-      - SNAPSHOT_INTERVAL=5m30s
-      - RESTORE_SNAPSHOT=false
-      - RESTORE_AOF=false
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
-      # List of client certificate authorities
-      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
-    ports:
-      - "7481:7480"
-      - "7947:7946"
-      - "8001:8000"
-    volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
-      - ./volumes/cluster_node_2:/var/lib/echovault
-    networks:
-      - testnet
-
-  cluster_node_3:
-    container_name: cluster_node_3
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    environment:
-      - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
-      - KEY=/etc/ssl/certs/echovault/server1.key
-      - CERT=/etc/ssl/certs/echovault/server1.crt
-      - SERVER_ID=3
-      - JOIN_ADDR=cluster_node_1:7946
-      - PLUGIN_DIR=/usr/local/lib/echovault
-      - DATA_DIR=/var/lib/echovault
-      - IN_MEMORY=false
-      - TLS=true
-      - MTLS=true
-      - BOOTSTRAP_CLUSTER=false
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
-      - REQUIRE_PASS=false
-      - FORWARD_COMMAND=true
-      - SNAPSHOT_THRESHOLD=1000
-      - SNAPSHOT_INTERVAL=5m30s
-      - RESTORE_SNAPSHOT=false
-      - RESTORE_AOF=false
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
-      # List of client certificate authorities
-      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
-    ports:
-      - "7482:7480"
-      - "7948:7946"
-      - "8002:8000"
-    volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
-      - ./volumes/cluster_node_3:/var/lib/echovault
-    networks:
-      - testnet
-
-  cluster_node_4:
-    container_name: cluster_node_4
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    environment:
-      - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
-      - KEY=/etc/ssl/certs/echovault/server1.key
-      - CERT=/etc/ssl/certs/echovault/server1.crt
-      - SERVER_ID=4
-      - JOIN_ADDR=cluster_node_1:7946
-      - PLUGIN_DIR=/usr/local/lib/echovault
-      - DATA_DIR=/var/lib/echovault
-      - IN_MEMORY=false
-      - TLS=true
-      - MTLS=true
-      - BOOTSTRAP_CLUSTER=false
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
-      - REQUIRE_PASS=false
-      - FORWARD_COMMAND=true
-      - SNAPSHOT_THRESHOLD=1000
-      - SNAPSHOT_INTERVAL=5m30s
-      - RESTORE_SNAPSHOT=false
-      - RESTORE_AOF=false
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
-      # List of client certificate authorities
-      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
-    ports:
-      - "7483:7480"
-      - "7949:7946"
-      - "8003:8000"
-    volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
-      - ./volumes/cluster_node_4:/var/lib/echovault
-    networks:
-      - testnet
-
-  cluster_node_5:
-    container_name: cluster_node_5
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    environment:
-      - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
-      - KEY=/etc/ssl/certs/echovault/server1.key
-      - CERT=/etc/ssl/certs/echovault/server1.crt
-      - SERVER_ID=5
-      - JOIN_ADDR=cluster_node_1:7946
-      - PLUGIN_DIR=/usr/local/lib/echovault
-      - DATA_DIR=/var/lib/echovault
-      - IN_MEMORY=false
-      - TLS=true
-      - MTLS=true
-      - BOOTSTRAP_CLUSTER=false
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
-      - REQUIRE_PASS=false
-      - FORWARD_COMMAND=true
-      - SNAPSHOT_THRESHOLD=1000
-      - SNAPSHOT_INTERVAL=5m30s
-      - RESTORE_SNAPSHOT=false
-      - RESTORE_AOF=false
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
-      # List of client certificate authorities
-      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
-    ports:
-      - "7484:7480"
-      - "7950:7946"
-      - "8004:8000"
-    volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
-      - ./volumes/cluster_node_5:/var/lib/echovault
-    networks:
-      - testnet
+#
+#  cluster_node_1:
+#    container_name: cluster_node_1
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.dev
+#    environment:
+#      - PORT=7480
+#      - RAFT_PORT=8000
+#      - ML_PORT=7946
+#      - KEY=/etc/ssl/certs/echovault/server1.key
+#      - CERT=/etc/ssl/certs/echovault/server1.crt
+#      - SERVER_ID=1
+#      - PLUGIN_DIR=/usr/local/lib/echovault
+#      - DATA_DIR=/var/lib/echovault
+#      - IN_MEMORY=false
+#      - TLS=true
+#      - MTLS=true
+#      - BOOTSTRAP_CLUSTER=true
+#      - ACL_CONFIG=/etc/config/echovault/acl.yml
+#      - REQUIRE_PASS=false
+#      - FORWARD_COMMAND=true
+#      - SNAPSHOT_THRESHOLD=1000
+#      - SNAPSHOT_INTERVAL=5m30s
+#      - RESTORE_SNAPSHOT=false
+#      - RESTORE_AOF=false
+#      # List of server cert/key pairs
+#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+#      # List of client certificate authorities
+#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+#    ports:
+#      - "7480:7480"
+#      - "7945:7946"
+#      - "8000:8000"
+#    volumes:
+#      - ./config/acl.yml:/etc/config/echovault/acl.yml
+#      - ./volumes/cluster_node_1:/var/lib/echovault
+#    networks:
+#      - testnet
+#
+#  cluster_node_2:
+#    container_name: cluster_node_2
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.dev
+#    environment:
+#      - PORT=7480
+#      - RAFT_PORT=8000
+#      - ML_PORT=7946
+#      - KEY=/etc/ssl/certs/echovault/server1.key
+#      - CERT=/etc/ssl/certs/echovault/server1.crt
+#      - SERVER_ID=2
+#      - JOIN_ADDR=cluster_node_1:7946
+#      - PLUGIN_DIR=/usr/local/lib/echovault
+#      - DATA_DIR=/var/lib/echovault
+#      - IN_MEMORY=false
+#      - TLS=true
+#      - MTLS=true
+#      - BOOTSTRAP_CLUSTER=false
+#      - ACL_CONFIG=/etc/config/echovault/acl.yml
+#      - REQUIRE_PASS=false
+#      - FORWARD_COMMAND=true
+#      - SNAPSHOT_THRESHOLD=1000
+#      - SNAPSHOT_INTERVAL=5m30s
+#      - RESTORE_SNAPSHOT=false
+#      - RESTORE_AOF=false
+#      # List of server cert/key pairs
+#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+#      # List of client certificate authorities
+#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+#    ports:
+#      - "7481:7480"
+#      - "7947:7946"
+#      - "8001:8000"
+#    volumes:
+#      - ./config/acl.yml:/etc/config/echovault/acl.yml
+#      - ./volumes/cluster_node_2:/var/lib/echovault
+#    networks:
+#      - testnet
+#
+#  cluster_node_3:
+#    container_name: cluster_node_3
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.dev
+#    environment:
+#      - PORT=7480
+#      - RAFT_PORT=8000
+#      - ML_PORT=7946
+#      - KEY=/etc/ssl/certs/echovault/server1.key
+#      - CERT=/etc/ssl/certs/echovault/server1.crt
+#      - SERVER_ID=3
+#      - JOIN_ADDR=cluster_node_1:7946
+#      - PLUGIN_DIR=/usr/local/lib/echovault
+#      - DATA_DIR=/var/lib/echovault
+#      - IN_MEMORY=false
+#      - TLS=true
+#      - MTLS=true
+#      - BOOTSTRAP_CLUSTER=false
+#      - ACL_CONFIG=/etc/config/echovault/acl.yml
+#      - REQUIRE_PASS=false
+#      - FORWARD_COMMAND=true
+#      - SNAPSHOT_THRESHOLD=1000
+#      - SNAPSHOT_INTERVAL=5m30s
+#      - RESTORE_SNAPSHOT=false
+#      - RESTORE_AOF=false
+#      # List of server cert/key pairs
+#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+#      # List of client certificate authorities
+#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+#    ports:
+#      - "7482:7480"
+#      - "7948:7946"
+#      - "8002:8000"
+#    volumes:
+#      - ./config/acl.yml:/etc/config/echovault/acl.yml
+#      - ./volumes/cluster_node_3:/var/lib/echovault
+#    networks:
+#      - testnet
+#
+#  cluster_node_4:
+#    container_name: cluster_node_4
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.dev
+#    environment:
+#      - PORT=7480
+#      - RAFT_PORT=8000
+#      - ML_PORT=7946
+#      - KEY=/etc/ssl/certs/echovault/server1.key
+#      - CERT=/etc/ssl/certs/echovault/server1.crt
+#      - SERVER_ID=4
+#      - JOIN_ADDR=cluster_node_1:7946
+#      - PLUGIN_DIR=/usr/local/lib/echovault
+#      - DATA_DIR=/var/lib/echovault
+#      - IN_MEMORY=false
+#      - TLS=true
+#      - MTLS=true
+#      - BOOTSTRAP_CLUSTER=false
+#      - ACL_CONFIG=/etc/config/echovault/acl.yml
+#      - REQUIRE_PASS=false
+#      - FORWARD_COMMAND=true
+#      - SNAPSHOT_THRESHOLD=1000
+#      - SNAPSHOT_INTERVAL=5m30s
+#      - RESTORE_SNAPSHOT=false
+#      - RESTORE_AOF=false
+#      # List of server cert/key pairs
+#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+#      # List of client certificate authorities
+#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+#    ports:
+#      - "7483:7480"
+#      - "7949:7946"
+#      - "8003:8000"
+#    volumes:
+#      - ./config/acl.yml:/etc/config/echovault/acl.yml
+#      - ./volumes/cluster_node_4:/var/lib/echovault
+#    networks:
+#      - testnet
+#
+#  cluster_node_5:
+#    container_name: cluster_node_5
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.dev
+#    environment:
+#      - PORT=7480
+#      - RAFT_PORT=8000
+#      - ML_PORT=7946
+#      - KEY=/etc/ssl/certs/echovault/server1.key
+#      - CERT=/etc/ssl/certs/echovault/server1.crt
+#      - SERVER_ID=5
+#      - JOIN_ADDR=cluster_node_1:7946
+#      - PLUGIN_DIR=/usr/local/lib/echovault
+#      - DATA_DIR=/var/lib/echovault
+#      - IN_MEMORY=false
+#      - TLS=true
+#      - MTLS=true
+#      - BOOTSTRAP_CLUSTER=false
+#      - ACL_CONFIG=/etc/config/echovault/acl.yml
+#      - REQUIRE_PASS=false
+#      - FORWARD_COMMAND=true
+#      - SNAPSHOT_THRESHOLD=1000
+#      - SNAPSHOT_INTERVAL=5m30s
+#      - RESTORE_SNAPSHOT=false
+#      - RESTORE_AOF=false
+#      # List of server cert/key pairs
+#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+#      # List of client certificate authorities
+#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+#    ports:
+#      - "7484:7480"
+#      - "7950:7946"
+#      - "8004:8000"
+#    volumes:
+#      - ./config/acl.yml:/etc/config/echovault/acl.yml
+#      - ./volumes/cluster_node_5:/var/lib/echovault
+#    networks:
+#      - testnet

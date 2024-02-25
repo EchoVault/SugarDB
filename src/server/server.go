@@ -105,7 +105,7 @@ func NewServer(opts Opts) *Server {
 			KeyUnlock:        server.KeyUnlock,
 			SetValue:         server.SetValue,
 			HandleCommand:    server.handleCommand,
-		}, nil)
+		}, nil, nil)
 		if err != nil {
 			log.Println(err)
 		}

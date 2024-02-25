@@ -1,23 +1,30 @@
-package aof
+package preamble
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"log"
 	"os"
+	"path"
 	"sync"
 )
 
-type PreambleStore struct {
-	rw       io.ReadWriter
-	mut      sync.Mutex
-	getState func() map[string]interface{}
-	setValue func(key string, value interface{})
+type PreambleReadWriter interface {
+	io.ReadWriteSeeker
+	io.Closer
+	Truncate(size int64) error
+	Sync() error
 }
 
-func WithReadWriter(rw io.ReadWriter) func(store *PreambleStore) {
+type PreambleStore struct {
+	rw        PreambleReadWriter
+	mut       sync.Mutex
+	directory string
+	getState  func() map[string]interface{}
+	setValue  func(key string, value interface{})
+}
+
+func WithReadWriter(rw PreambleReadWriter) func(store *PreambleStore) {
 	return func(store *PreambleStore) {
 		store.rw = rw
 	}
@@ -35,10 +42,17 @@ func WithSetValueFunc(f func(key string, value interface{})) func(store *Preambl
 	}
 }
 
+func WithDirectory(directory string) func(store *PreambleStore) {
+	return func(store *PreambleStore) {
+		store.directory = directory
+	}
+}
+
 func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 	store := &PreambleStore{
-		rw:  nil,
-		mut: sync.Mutex{},
+		rw:        nil,
+		mut:       sync.Mutex{},
+		directory: "",
 		getState: func() map[string]interface{} {
 			// No-Op by default
 			return nil
@@ -50,6 +64,15 @@ func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 
 	for _, option := range options {
 		option(store)
+	}
+
+	// If rw is nil, create the default
+	if store.rw == nil {
+		f, err := os.OpenFile(path.Join(store.directory, "aof", "preamble.bin"), os.O_RDWR|os.O_CREATE, os.ModePerm)
+		if err != nil {
+			log.Println(err)
+		}
+		store.rw = f
 	}
 
 	return store
@@ -67,14 +90,11 @@ func (store *PreambleStore) CreatePreamble() error {
 	}
 
 	// Truncate the preamble first
-	rw, ok := store.rw.(interface {
-		Truncate(size int64) error
-	})
-	if !ok {
-		return errors.New("could not truncate preamble file")
+	if err = store.rw.Truncate(0); err != nil {
+		return err
 	}
-
-	if err = rw.Truncate(0); err != nil {
+	// Seek to the beginning of the file after truncating
+	if _, err = store.rw.Seek(0, 0); err != nil {
 		return err
 	}
 
@@ -82,18 +102,15 @@ func (store *PreambleStore) CreatePreamble() error {
 		return err
 	}
 
-	// If the rw is a file, sync it immediately
-	file, ok := store.rw.(*os.File)
-	if ok {
-		if err = file.Sync(); err != nil {
-			log.Println(err)
-		}
+	// Sync the changes
+	if err = store.rw.Sync(); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (store *PreambleStore) Restore(ctx context.Context) error {
+func (store *PreambleStore) Restore() error {
 	if store.rw == nil {
 		return nil
 	}
@@ -114,4 +131,10 @@ func (store *PreambleStore) Restore(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (store *PreambleStore) Close() error {
+	store.mut.Lock()
+	defer store.mut.Unlock()
+	return store.rw.Close()
 }
