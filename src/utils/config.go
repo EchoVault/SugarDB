@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -36,6 +37,7 @@ type Config struct {
 	SnapshotInterval   time.Duration `json:"SnapshotInterval" yaml:"SnapshotInterval"`
 	RestoreSnapshot    bool          `json:"RestoreSnapshot" yaml:"RestoreSnapshot"`
 	RestoreAOF         bool          `json:"RestoreAOF" yaml:"RestoreAOF"`
+	AOFSyncStrategy    string        `json:"AOFSyncStrategy" yaml:"AOFSyncStrategy"`
 }
 
 func GetConfig() (Config, error) {
@@ -60,6 +62,19 @@ func GetConfig() (Config, error) {
 		clientCAs = append(clientCAs, s)
 		return nil
 	})
+
+	var aofSyncStrategy string = "everysec"
+	flag.Func("aofSyncStrategy", `How often to flush the file contents written to append only file.
+The options are 'always' for syncing on each command, 'everysec' to sync every second, and 'no' to leave it up to the os.`,
+		func(option string) error {
+			if !slices.ContainsFunc([]string{"always", "everysec", "no"}, func(s string) bool {
+				return strings.EqualFold(s, option)
+			}) {
+				return errors.New("aofSyncStrategy must be 'always', 'everysec' or 'no'")
+			}
+			aofSyncStrategy = strings.ToLower(option)
+			return nil
+		})
 
 	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false")
 	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
@@ -125,6 +140,7 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		SnapshotInterval:   *snapshotInterval,
 		RestoreSnapshot:    *restoreSnapshot,
 		RestoreAOF:         *restoreAOF,
+		AOFSyncStrategy:    aofSyncStrategy,
 	}
 
 	if len(*config) > 0 {

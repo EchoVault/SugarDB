@@ -95,7 +95,8 @@ func NewServer(opts Opts) *Server {
 			SetValue:                      server.SetValue,
 		})
 		// Set up standalone AOF engine
-		server.AOFEngine = aof.NewAOFEngine(aof.Opts{
+
+		engine, err := aof.NewAOFEngine(aof.Opts{
 			Config:           opts.Config,
 			GetState:         server.GetState,
 			StartRewriteAOF:  server.StartRewriteAOF,
@@ -104,7 +105,11 @@ func NewServer(opts Opts) *Server {
 			KeyUnlock:        server.KeyUnlock,
 			SetValue:         server.SetValue,
 			HandleCommand:    server.handleCommand,
-		})
+		}, nil)
+		if err != nil {
+			log.Println(err)
+		}
+		server.AOFEngine = engine
 	}
 	return server
 }
@@ -237,22 +242,23 @@ func (server *Server) Start(ctx context.Context) {
 		server.raft.RaftInit(ctx)
 		server.memberList.MemberListInit(ctx)
 	} else {
-		// Initialize and start standalone snapshot engine
-		if conf.RestoreSnapshot {
+		// Restore from AOF by default if it's enabled
+		if conf.RestoreAOF {
+			err := server.AOFEngine.Restore(ctx)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+
+		// Restore from snapshot if snapshot restore is enabled and AOF restore is disabled
+		if conf.RestoreSnapshot && !conf.RestoreAOF {
 			err := server.SnapshotEngine.Restore(ctx)
 			if err != nil {
 				log.Println(err)
 			}
 		}
 		server.SnapshotEngine.Start(ctx)
-		// Initialize standalone AOF engine
-		if conf.RestoreAOF && !conf.RestoreSnapshot {
-			err := server.AOFEngine.Restore(ctx)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-		server.AOFEngine.Start(ctx)
+
 	}
 
 	server.StartTCP(ctx)
