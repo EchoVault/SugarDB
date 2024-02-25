@@ -57,6 +57,20 @@ much more powerful. Features in the roadmap include:
 
 ### Homebrew
 
+To install via homebrew, run:
+1) `brew tap echovault/echovault`
+2) `brew install echovault/echovault/echovault`
+
+Once installed, you can run the server with the following command:
+`echovault --bind-addr=localhost --data-dir="path/to/persistence/direcotry"`
+
+Next, [install the client via homebrew](https://github.com/EchoVault/EchoVault-CLI).
+
+### Binaries
+
+You can download the binaries by clicking the on a release tag and downloading
+the binary for your system.
+
 ### Configuration
 Checkout the [configuration wiki page](https://github.com/EchoVault/EchoVault/wiki/Configuration) for the possible configuration
 flags
