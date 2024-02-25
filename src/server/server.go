@@ -225,8 +225,29 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 			continue
 		}
 
-		if _, err = w.Write(res); err != nil {
-			log.Println(err)
+		chunkSize := 1024
+
+		if len(res) <= chunkSize {
+			_, err = w.Write(res)
+			if err != nil {
+				log.Println(err)
+			}
+			continue
+		}
+
+		// If the response is large, send it in chunks.
+		startIndex := 0
+		for {
+			// If the current start index is less than chunkSize from length, return the remaining bytes.
+			if len(res)-1-startIndex < chunkSize {
+				_, _ = w.Write(res[startIndex:])
+				break
+			}
+			n, _ := w.Write(res[startIndex : startIndex+chunkSize])
+			if n < chunkSize {
+				break
+			}
+			startIndex += chunkSize
 		}
 	}
 
