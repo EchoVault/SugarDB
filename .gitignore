@@ -3,3 +3,5 @@ bin
 volumes
 /config/
 /coverage/
+
+dist/
