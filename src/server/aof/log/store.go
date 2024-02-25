@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -69,9 +70,14 @@ func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
 
 	// If rw is nil, use a default file at the provided directory
 	if store.rw == nil {
+		// Create the directory if it does not exist
+		err := os.MkdirAll(path.Join(store.directory, "aof"), os.ModePerm)
+		if err != nil {
+			log.Println(fmt.Errorf("new append store -> mkdir error: %+v", err))
+		}
 		f, err := os.OpenFile(path.Join(store.directory, "aof", "log.aof"), os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModePerm)
 		if err != nil {
-			log.Println(err)
+			log.Println(fmt.Errorf("new append store -> open file error: %+v", err))
 		}
 		store.rw = f
 	}
@@ -82,7 +88,8 @@ func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
 		go func() {
 			for {
 				if err := store.Sync(); err != nil {
-					log.Println(err)
+					log.Println(fmt.Errorf("new append store error: %+v", err))
+					break
 				}
 				<-time.After(1 * time.Second)
 			}

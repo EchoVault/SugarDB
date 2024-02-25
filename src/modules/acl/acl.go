@@ -283,6 +283,11 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 	// Get current connection ACL details
 	connection := acl.Connections[conn]
 
+	// If password is not required, allow the connection
+	if !acl.Config.RequirePass {
+		return nil
+	}
+
 	// 1. Check if password is required and if the user is authenticated
 	if acl.Config.RequirePass && !connection.Authenticated {
 		return errors.New("user must be authenticated")

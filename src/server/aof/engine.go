@@ -1,6 +1,7 @@
 package aof
 
 import (
+	"fmt"
 	logstore "github.com/echovault/echovault/src/server/aof/log"
 	"github.com/echovault/echovault/src/server/aof/preamble"
 	"log"
@@ -123,7 +124,7 @@ func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 		for {
 			c := <-engine.logChan
 			if err := engine.appendStore.Write(c); err != nil {
-				log.Println(err)
+				log.Println(fmt.Errorf("new aof engine error: %+v", err))
 			}
 		}
 	}()
@@ -144,12 +145,12 @@ func (engine *Engine) RewriteLog() error {
 
 	// Create AOF preamble
 	if err := engine.preambleStore.CreatePreamble(); err != nil {
-		log.Println(err)
+		log.Println(fmt.Errorf("rewrite log -> create preamble error: %+v", err))
 	}
 
 	// Truncate the AOF file.
 	if err := engine.appendStore.Truncate(); err != nil {
-		log.Println(err)
+		log.Println(fmt.Errorf("rewrite log -> create aof error: %+v", err))
 	}
 
 	return nil
@@ -157,10 +158,10 @@ func (engine *Engine) RewriteLog() error {
 
 func (engine *Engine) Restore() error {
 	if err := engine.preambleStore.Restore(); err != nil {
-		log.Println(err)
+		log.Println(fmt.Errorf("restore aof -> restore preamble error: %+v", err))
 	}
 	if err := engine.appendStore.Restore(); err != nil {
-		log.Println(err)
+		log.Println(fmt.Errorf("restore aof -> restore aof error: %+v", err))
 	}
 	return nil
 }
