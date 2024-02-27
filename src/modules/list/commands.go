@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func handleLLen(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleLLen(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	keys, err := llenKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -21,7 +21,7 @@ func handleLLen(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	if !server.KeyExists(key) {
 		// If key does not exist, return 0
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -30,7 +30,7 @@ func handleLLen(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	defer server.KeyRUnlock(key)
 
 	if list, ok := server.GetValue(key).([]interface{}); ok {
-		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(list))), nil
+		return []byte(fmt.Sprintf(":%d\r\n", len(list))), nil
 	}
 
 	return nil, errors.New("LLEN command on non-list item")
@@ -67,7 +67,7 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, errors.New("index must be within list range")
 	}
 
-	return []byte(fmt.Sprintf("+%s\r\n\r\n", list[index])), nil
+	return []byte(fmt.Sprintf("+%s\r\n", list[index])), nil
 }
 
 func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -117,7 +117,6 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *
 			str := fmt.Sprintf("%v", list[i])
 			bytes = append(bytes, []byte("$"+fmt.Sprint(len(str))+"\r\n"+str+"\r\n")...)
 		}
-		bytes = append(bytes, []byte("\r\n")...)
 		return bytes, nil
 	}
 
@@ -147,8 +146,6 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 
 	}
-
-	bytes = append(bytes, []byte("\r\n")...)
 
 	return bytes, nil
 }
@@ -377,7 +374,6 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 		case "lpushx":
 			return nil, errors.New("LPUSHX command on non-list item")
 		default:
-			// TODO: Retry CreateKeyAndLock until we obtain the key lock
 			if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 				return nil, err
 			}
@@ -420,7 +416,6 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 		case "rpushx":
 			return nil, errors.New("RPUSHX command on non-list item")
 		default:
-			// TODO: Retry CreateKeyAndLock until we managed to obtain the key
 			if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 				return nil, err
 			}
@@ -470,10 +465,10 @@ func handlePop(ctx context.Context, cmd []string, server utils.Server, conn *net
 	switch strings.ToLower(cmd[0]) {
 	default:
 		server.SetValue(ctx, key, list[1:])
-		return []byte(fmt.Sprintf("+%v\r\n\r\n", list[0])), nil
+		return []byte(fmt.Sprintf("+%v\r\n", list[0])), nil
 	case "rpop":
 		server.SetValue(ctx, key, list[:len(list)-1])
-		return []byte(fmt.Sprintf("+%v\r\n\r\n", list[len(list)-1])), nil
+		return []byte(fmt.Sprintf("+%v\r\n", list[len(list)-1])), nil
 	}
 }
 

@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"bufio"
 	"bytes"
+	"errors"
 	"io"
 	"log"
 	"math/big"
@@ -32,60 +34,45 @@ func AdaptType(s string) interface{} {
 	return f
 }
 
-func Filter[T any](arr []T, test func(elem T) bool) (res []T) {
-	for _, e := range arr {
-		if test(e) {
-			res = append(res, e)
-		}
-	}
-	return
-}
-
 func Decode(raw []byte) ([]string, error) {
-	rd := resp.NewReader(bytes.NewBuffer(raw))
-	var res []string
+	reader := resp.NewReader(bytes.NewReader(raw))
 
-	v, _, err := rd.ReadValue()
-
+	value, _, err := reader.ReadValue()
 	if err != nil {
 		return nil, err
 	}
 
-	if slices.Contains([]string{"SimpleString", "Integer", "Error"}, v.Type().String()) {
-		return []string{v.String()}, nil
-	}
-
-	if v.Type().String() == "Array" {
-		for _, elem := range v.Array() {
-			res = append(res, elem.String())
-		}
+	var res []string
+	for i := 0; i < len(value.Array()); i++ {
+		res = append(res, value.Array()[i].String())
 	}
 
 	return res, nil
 }
 
 func ReadMessage(r io.Reader) ([]byte, error) {
-	delim := []byte{'\r', '\n', '\r', '\n'}
-	buffSize := 8
-	buff := make([]byte, buffSize)
+	reader := bufio.NewReader(r)
 
-	var n int
-	var err error
 	var res []byte
 
+	chunk := make([]byte, 8192)
+
 	for {
-		n, err = r.Read(buff)
-		res = append(res, buff...)
-		if n < buffSize || err != nil {
+		n, err := reader.Read(chunk)
+		if err != nil && errors.Is(err, io.EOF) {
 			break
 		}
-		if bytes.Equal(buff[len(buff)-4:], delim) {
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, chunk...)
+		if n < len(chunk) {
 			break
 		}
-		clear(buff)
+		clear(chunk)
 	}
 
-	return res, err
+	return res, nil
 }
 
 func RetryBackoff(b retry.Backoff, maxRetries uint64, jitter, cappedDuration, maxDuration time.Duration) retry.Backoff {
