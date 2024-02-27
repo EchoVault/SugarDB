@@ -3,7 +3,6 @@ package pubsub
 import (
 	"context"
 	"fmt"
-	"github.com/echovault/echovault/src/utils"
 	"io"
 	"log"
 	"net"
@@ -11,58 +10,54 @@ import (
 	"sync"
 )
 
-// Channel - A channel can be subscribed to directly, or via a consumer group.
-// All direct subscribers to the channel will receive any message published to the channel.
-// Only one subscriber of a channel's consumer group will receive a message posted to the channel.
-type Channel struct {
-	name             string
-	subscribersRWMut sync.RWMutex
-	subscribers      []*net.Conn
-	messageChan      *chan string
+// PubSub container
+type PubSub struct {
+	channels      []*Channel
+	channelsRWMut sync.RWMutex
 }
 
-func NewChannel(name string) *Channel {
-	messageChan := make(chan string, 4096)
-
-	return &Channel{
-		name:             name,
-		subscribersRWMut: sync.RWMutex{},
-		subscribers:      []*net.Conn{},
-		messageChan:      &messageChan,
+func NewPubSub() *PubSub {
+	return &PubSub{
+		channels:      []*Channel{},
+		channelsRWMut: sync.RWMutex{},
 	}
 }
 
-func (ch *Channel) Start() {
-	go func() {
-		for {
-			message := <-*ch.messageChan
+func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) {
 
-			ch.subscribersRWMut.RLock()
+	for i := 0; i < len(channels); i++ {
+		// Check if channel with given name exists
+		// If it does, subscribe the connection to the channel
+		// If it does not, create the channel and subscribe to it
+		channelIdx := slices.IndexFunc(ps.channels, func(channel *Channel) bool {
+			return channel.name == channels[i]
+		})
 
-			for _, conn := range ch.subscribers {
-				go func(conn *net.Conn) {
-					w := io.Writer(*conn)
-
-					if _, err := w.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(message), message))); err != nil {
-						log.Println(err)
-					}
-				}(conn)
+		if channelIdx == -1 {
+			// Create new channel, start it, and subscribe to it
+			var newChan *Channel
+			if withPattern {
+				newChan = NewChannel(WithPattern(channels[i]))
+			} else {
+				newChan = NewChannel(WithName(channels[i]))
 			}
-
-			ch.subscribersRWMut.RUnlock()
+			newChan.Start()
+			newChan.Subscribe(conn)
+			ps.channels = append(ps.channels, newChan)
+		} else {
+			// Subscribe to existing channel
+			ps.channels[channelIdx].Subscribe(conn)
 		}
-	}()
-}
 
-func (ch *Channel) Subscribe(conn *net.Conn, index int) {
-	if !slices.Contains(ch.subscribers, conn) {
-		ch.subscribersRWMut.Lock()
-		defer ch.subscribersRWMut.Unlock()
+		var res string
+		if len(channels) > 1 {
+			// If subscribing to more than one channel, write array to verify the subscription of this channel
+			res = fmt.Sprintf("*3\r\n+subscribe\r\n$%d\r\n%s\r\n:%d\r\n", len(channels[i]), channels[i], i+1)
+		} else {
+			// Ony one channel, simply send "subscribe" simple string response
+			res = "+subscribe\r\n"
+		}
 
-		ch.subscribers = append(ch.subscribers, conn)
-
-		// Write array to verify the subscription of this channel
-		res := fmt.Sprintf("*3\r\n+subscribe\r\n$%d\r\n%s\r\n:%d\r\n", len(ch.name), ch.name, index+1)
 		w := io.Writer(*conn)
 		if _, err := w.Write([]byte(res)); err != nil {
 			log.Println(err)
@@ -70,56 +65,10 @@ func (ch *Channel) Subscribe(conn *net.Conn, index int) {
 	}
 }
 
-func (ch *Channel) Unsubscribe(conn *net.Conn, waitGroup *sync.WaitGroup) {
-	ch.subscribersRWMut.Lock()
-	defer ch.subscribersRWMut.Unlock()
-
-	ch.subscribers = slices.DeleteFunc(ch.subscribers, func(c *net.Conn) bool {
-		return c == conn
-	})
-
-	if waitGroup != nil {
-		waitGroup.Done()
-	}
-}
-
-func (ch *Channel) Publish(message string) {
-	*ch.messageChan <- message
-}
-
-// PubSub container
-type PubSub struct {
-	channels []*Channel
-}
-
-func NewPubSub() *PubSub {
-	return &PubSub{
-		channels: []*Channel{},
-	}
-}
-
-func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channelName string, index int) {
-	// Check if channel with given name exists
-	// If it does, subscribe the connection to the channel
-	// If it does not, create the channel and subscribe to it
-	channelIdx := slices.IndexFunc(ps.channels, func(channel *Channel) bool {
-		return channel.name == channelName
-	})
-
-	if channelIdx == -1 {
-		go func() {
-			newChan := NewChannel(channelName)
-			newChan.Start()
-			newChan.Subscribe(conn, index)
-			ps.channels = append(ps.channels, newChan)
-		}()
-		return
-	}
-
-	ps.channels[channelIdx].Subscribe(conn, index)
-}
-
 func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channelName string) {
+	ps.channelsRWMut.RLock()
+	ps.channelsRWMut.RUnlock()
+
 	if channelName == "*" {
 		wg := &sync.WaitGroup{}
 		for _, channel := range ps.channels {
@@ -140,10 +89,22 @@ func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channelName s
 }
 
 func (ps *PubSub) Publish(ctx context.Context, message string, channelName string) {
-	channels := utils.Filter[*Channel](ps.channels, func(c *Channel) bool {
-		return c.name == channelName
-	})
-	for _, channel := range channels {
-		go channel.Publish(message)
+	ps.channelsRWMut.RLock()
+	defer ps.channelsRWMut.RUnlock()
+
+	for _, channel := range ps.channels {
+		fmt.Println(channel.name, channel.pattern)
+
+		// If it's a regular channel, check if the channel name matches the name given
+		if channel.pattern == nil {
+			if channel.name == channelName {
+				channel.Publish(message)
+			}
+			continue
+		}
+		// If it's a glob pattern channel, check if the name matches the pattern
+		if channel.pattern.Match(channelName) {
+			channel.Publish(message)
+		}
 	}
 }

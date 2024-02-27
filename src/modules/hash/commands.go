@@ -36,7 +36,7 @@ func handleHSET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		}
 		defer server.KeyUnlock(key)
 		server.SetValue(ctx, key, entries)
-		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(entries))), nil
+		return []byte(fmt.Sprintf(":%d\r\n", len(entries))), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -63,7 +63,7 @@ func handleHSET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	server.SetValue(ctx, key, hash)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
 func handleHGET(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -76,7 +76,7 @@ func handleHGET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	fields := cmd[2:]
 
 	if !server.KeyExists(key) {
-		return []byte("$-1\r\n\r\n"), nil
+		return []byte("$-1\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -113,7 +113,6 @@ func handleHGET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		}
 		res += fmt.Sprintf("$-1\r\n")
 	}
-	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -128,7 +127,7 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server utils.Server, conn 
 	fields := cmd[2:]
 
 	if !server.KeyExists(key) {
-		return []byte("$-1\r\n\r\n"), nil
+		return []byte("$-1\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -165,7 +164,6 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server utils.Server, conn 
 		}
 		res += ":0\r\n"
 	}
-	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -179,7 +177,7 @@ func handleHVALS(ctx context.Context, cmd []string, server utils.Server, conn *n
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -207,7 +205,6 @@ func handleHVALS(ctx context.Context, cmd []string, server utils.Server, conn *n
 			res += fmt.Sprintf(":%d\r\n", d)
 		}
 	}
-	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -227,7 +224,7 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.Server, co
 			return nil, errors.New("count must be an integer")
 		}
 		if c == 0 {
-			return []byte("*0\r\n\r\n"), nil
+			return []byte("*0\r\n"), nil
 		}
 		count = c
 	}
@@ -242,7 +239,7 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.Server, co
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -279,7 +276,6 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.Server, co
 				}
 			}
 		}
-		res += "\r\n"
 		return []byte(res), nil
 	}
 
@@ -325,7 +321,6 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.Server, co
 			}
 		}
 	}
-	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -339,7 +334,7 @@ func handleHLEN(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -352,7 +347,7 @@ func handleHLEN(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(hash))), nil
+	return []byte(fmt.Sprintf(":%d\r\n", len(hash))), nil
 }
 
 func handleHKEYS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -364,7 +359,7 @@ func handleHKEYS(ctx context.Context, cmd []string, server utils.Server, conn *n
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -381,7 +376,6 @@ func handleHKEYS(ctx context.Context, cmd []string, server utils.Server, conn *n
 	for field, _ := range hash {
 		res += fmt.Sprintf("$%d\r\n%s\r\n", len(field), field)
 	}
-	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -421,11 +415,11 @@ func handleHINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		if strings.EqualFold(cmd[0], "hincrbyfloat") {
 			hash[field] = floatIncrement
 			server.SetValue(ctx, key, hash)
-			return []byte(fmt.Sprintf("+%s\r\n\r\n", strconv.FormatFloat(floatIncrement, 'f', -1, 64))), nil
+			return []byte(fmt.Sprintf("+%s\r\n", strconv.FormatFloat(floatIncrement, 'f', -1, 64))), nil
 		} else {
 			hash[field] = intIncrement
 			server.SetValue(ctx, key, hash)
-			return []byte(fmt.Sprintf(":%d\r\n\r\n", intIncrement)), nil
+			return []byte(fmt.Sprintf(":%d\r\n", intIncrement)), nil
 		}
 	}
 
@@ -465,11 +459,11 @@ func handleHINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 	server.SetValue(ctx, key, hash)
 
 	if f, ok := hash[field].(float64); ok {
-		return []byte(fmt.Sprintf("+%s\r\n\r\n", strconv.FormatFloat(f, 'f', -1, 64))), nil
+		return []byte(fmt.Sprintf("+%s\r\n", strconv.FormatFloat(f, 'f', -1, 64))), nil
 	}
 
 	i, _ := hash[field].(int)
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", i)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", i)), nil
 }
 
 func handleHGETALL(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -481,7 +475,7 @@ func handleHGETALL(ctx context.Context, cmd []string, server utils.Server, conn 
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -508,7 +502,6 @@ func handleHGETALL(ctx context.Context, cmd []string, server utils.Server, conn 
 			res += fmt.Sprintf(":%d\r\n", d)
 		}
 	}
-	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -523,7 +516,7 @@ func handleHEXISTS(ctx context.Context, cmd []string, server utils.Server, conn 
 	field := cmd[2]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -537,10 +530,10 @@ func handleHEXISTS(ctx context.Context, cmd []string, server utils.Server, conn 
 	}
 
 	if hash[field] != nil {
-		return []byte(":1\r\n\r\n"), nil
+		return []byte(":1\r\n"), nil
 	}
 
-	return []byte(":0\r\n\r\n"), nil
+	return []byte(":0\r\n"), nil
 }
 
 func handleHDEL(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -553,7 +546,7 @@ func handleHDEL(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	fields := cmd[2:]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -577,7 +570,7 @@ func handleHDEL(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	server.SetValue(ctx, key, hash)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
 func Commands() []utils.Command {

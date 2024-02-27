@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/echovault/echovault/src/utils"
 	"net"
+	"strings"
 )
 
 func handleSubscribe(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -19,8 +20,11 @@ func handleSubscribe(ctx context.Context, cmd []string, server utils.Server, con
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
 
-	for i := 0; i < len(channels); i++ {
-		pubsub.Subscribe(ctx, conn, channels[i], i)
+	switch strings.ToLower(cmd[0]) {
+	case "subscribe":
+		pubsub.Subscribe(ctx, conn, channels, false)
+	case "psubscribe":
+		pubsub.Subscribe(ctx, conn, channels, true)
 	}
 
 	return []byte{}, nil
@@ -61,6 +65,34 @@ func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn 
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
+			Command:     "subscribe",
+			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
+			Description: "(SUBSCRIBE channel [channel ...]) Subscribe to one or more channels.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				// Treat the channels as keys
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleSubscribe,
+		},
+		{
+			Command:     "psubscribe",
+			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
+			Description: "(PSUBSCRIBE pattern [pattern ...]) Subscribe to one or more glob patterns.",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				// Treat the patterns as keys
+				if len(cmd) < 2 {
+					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+				}
+				return cmd[1:], nil
+			},
+			HandlerFunc: handleSubscribe,
+		},
+		{
 			Command:     "publish",
 			Categories:  []string{utils.PubSubCategory, utils.FastCategory},
 			Description: "(PUBLISH channel message) Publish a message to the specified channel.",
@@ -73,20 +105,6 @@ func Commands() []utils.Command {
 				return []string{cmd[1]}, nil
 			},
 			HandlerFunc: handlePublish,
-		},
-		{
-			Command:     "subscribe",
-			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
-			Description: "(SUBSCRIBE channel [channel ...]) Subscribe to one or more channels.",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				// Treat the channel as a key
-				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return cmd[1:], nil
-			},
-			HandlerFunc: handleSubscribe,
 		},
 		{
 			Command:    "unsubscribe",

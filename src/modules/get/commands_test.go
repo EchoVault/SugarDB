@@ -47,8 +47,8 @@ func Test_HandleGET(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if !bytes.Equal(res, []byte(fmt.Sprintf("+%v\r\n\r\n", value))) {
-				t.Errorf("expected %s, got: %s", fmt.Sprintf("+%v\r\n\r\n", value), string(res))
+			if !bytes.Equal(res, []byte(fmt.Sprintf("+%v\r\n", value))) {
+				t.Errorf("expected %s, got: %s", fmt.Sprintf("+%v\r\n", value), string(res))
 			}
 		}(test.key, test.value)
 	}
@@ -58,8 +58,8 @@ func Test_HandleGET(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(res, []byte("+nil\r\n\r\n")) {
-		t.Errorf("expected %+v, got: %+v", "+nil\r\n\r\n", res)
+	if !bytes.Equal(res, []byte("$-1\r\n")) {
+		t.Errorf("expected %+v, got: %+v", "+nil\r\n", res)
 	}
 
 	errorTests := []struct {
@@ -93,21 +93,21 @@ func Test_HandleMGET(t *testing.T) {
 		presetKeys    []string
 		presetValues  []string
 		command       []string
-		expected      []string
+		expected      []interface{}
 		expectedError error
 	}{
 		{
 			presetKeys:    []string{"test1", "test2", "test3", "test4"},
 			presetValues:  []string{"value1", "value2", "value3", "value4"},
 			command:       []string{"MGET", "test1", "test4", "test2", "test3", "test1"},
-			expected:      []string{"value1", "value4", "value2", "value3", "value1"},
+			expected:      []interface{}{"value1", "value4", "value2", "value3", "value1"},
 			expectedError: nil,
 		},
 		{
 			presetKeys:    []string{"test5", "test6", "test7"},
 			presetValues:  []string{"value5", "value6", "value7"},
 			command:       []string{"MGET", "test5", "test6", "non-existent", "non-existent", "test7", "non-existent"},
-			expected:      []string{"value5", "value6", "nil", "nil", "value7", "nil"},
+			expected:      []interface{}{"value5", "value6", nil, nil, "value7", nil},
 			expectedError: nil,
 		},
 		{
@@ -150,6 +150,12 @@ func Test_HandleMGET(t *testing.T) {
 			t.Errorf("expected type Array, got: %s", rv.Type().String())
 		}
 		for i, value := range rv.Array() {
+			if test.expected[i] == nil {
+				if !value.IsNull() {
+					t.Errorf("expected nil value, got %+v", value)
+				}
+				continue
+			}
 			if value.String() != test.expected[i] {
 				t.Errorf("expected value %s, got: %s", test.expected[i], value.String())
 			}
