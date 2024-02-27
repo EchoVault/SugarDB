@@ -10,41 +10,46 @@ import (
 func handleSubscribe(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*PubSub)
 	if !ok {
-		return nil, errors.New("could not load pubsub")
+		return nil, errors.New("could not load pubsub module")
 	}
-	switch len(cmd) {
-	case 2:
-		// Subscribe to specified channel
-		pubsub.Subscribe(ctx, conn, cmd[1], nil)
-	case 3:
-		// Subscribe to specified channel and specified consumer group
-		pubsub.Subscribe(ctx, conn, cmd[1], cmd[2])
-	default:
+
+	channels := cmd[1:]
+
+	if len(channels) == 0 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	}
-	return []byte("+SUBSCRIBE_OK\r\n\r\n"), nil
+
+	for i := 0; i < len(channels); i++ {
+		pubsub.Subscribe(ctx, conn, channels[i], i)
+	}
+
+	return []byte{}, nil
 }
 
 func handleUnsubscribe(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*PubSub)
 	if !ok {
-		return nil, errors.New("could not load pubsub")
+		return nil, errors.New("could not load pubsub module")
 	}
-	switch len(cmd) {
-	case 1:
-		pubsub.Unsubscribe(ctx, conn, nil)
-	case 2:
-		pubsub.Unsubscribe(ctx, conn, cmd[1])
-	default:
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+
+	channels := cmd[1:]
+
+	if len(channels) == 0 {
+		pubsub.Unsubscribe(ctx, conn, "*")
+		return []byte(utils.OK_RESPONSE), nil
 	}
+
+	for _, channel := range channels {
+		pubsub.Unsubscribe(ctx, conn, channel)
+	}
+
 	return []byte(utils.OK_RESPONSE), nil
 }
 
 func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*PubSub)
 	if !ok {
-		return nil, errors.New("could not load pubsub")
+		return nil, errors.New("could not load pubsub module")
 	}
 	if len(cmd) != 3 {
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
@@ -72,28 +77,27 @@ func Commands() []utils.Command {
 		{
 			Command:     "subscribe",
 			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
-			Description: "(SUBSCRIBE channel [consumer_group]) Subscribe to a channel with an option to join a consumer group on the channel.",
+			Description: "(SUBSCRIBE channel [channel ...]) Subscribe to one or more channels.",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				// Treat the channel as a key
 				if len(cmd) < 2 {
 					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 				}
-				return []string{cmd[1]}, nil
+				return cmd[1:], nil
 			},
 			HandlerFunc: handleSubscribe,
 		},
 		{
-			Command:     "unsubscribe",
-			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
-			Description: "(UNSUBSCRIBE channel) Unsubscribe from a channel.",
-			Sync:        false,
+			Command:    "unsubscribe",
+			Categories: []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
+			Description: `(UNSUBSCRIBE [channel [channel ...]]) Unsubscribe from a list of channels.
+If the channel list is not provided, then the connection will be unsubscribed from all the channels that
+it's currently subscribe to.`,
+			Sync: false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				// Treat the channel as a key
-				if len(cmd) != 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
-				}
-				return []string{cmd[1]}, nil
+				// Treat the channels as keys
+				return cmd[1:], nil
 			},
 			HandlerFunc: handleUnsubscribe,
 		},

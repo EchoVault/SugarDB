@@ -228,6 +228,11 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 
 		chunkSize := 1024
 
+		// If the length of the response is 0, return nothing to the client
+		if len(res) == 0 {
+			continue
+		}
+
 		if len(res) <= chunkSize {
 			_, err = w.Write(res)
 			if err != nil {

@@ -31,17 +31,5 @@ func Commands() []utils.Command {
 			},
 			HandlerFunc: handlePing,
 		},
-		{
-			Command:     "ack",
-			Categories:  []string{},
-			Description: "",
-			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				return []string{}, nil
-			},
-			HandlerFunc: func(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-				return []byte{}, nil
-			},
-		},
 	}
 }
