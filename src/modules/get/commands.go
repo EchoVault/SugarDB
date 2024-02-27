@@ -51,7 +51,7 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 			locks[key] = true
 			continue
 		}
-		values[key] = "nil"
+		values[key] = ""
 	}
 	defer func() {
 		for key, locked := range locks {
@@ -69,6 +69,10 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	bytes := []byte(fmt.Sprintf("*%d\r\n", len(cmd[1:])))
 
 	for _, key := range cmd[1:] {
+		if values[key] == "" {
+			bytes = append(bytes, []byte("$-1\r\n")...)
+			continue
+		}
 		bytes = append(bytes, []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(values[key]), values[key]))...)
 	}
 

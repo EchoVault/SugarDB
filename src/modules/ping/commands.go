@@ -40,7 +40,7 @@ func Commands() []utils.Command {
 				return []string{}, nil
 			},
 			HandlerFunc: func(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-				return []byte("$-1\r\n"), nil
+				return []byte{}, nil
 			},
 		},
 	}
