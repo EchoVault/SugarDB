@@ -1,6 +1,11 @@
-![Go](https://github.com/EchoVault/EchoVault/workflows/Go/badge.svg) 
+[![Go](https://github.com/EchoVault/EchoVault/workflows/Go/badge.svg)]() 
 [![Go Report Card](https://goreportcard.com/badge/github.com/echovault/echovault)](https://goreportcard.com/report/github.com/echovault/echovault)
 [![Go Coverage](https://github.com/EchoVault/EchoVault/wiki/coverage.svg)](https://raw.githack.com/wiki/EchoVault/EchoVault/coverage.html)
+[![GitHub Release](https://img.shields.io/github/v/release/EchoVault/EchoVault)]()
+<br/>
+[![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+<br/>
+[![Discord](https://img.shields.io/discord/1211815152291414037?style=flat&logo=discord&link=https%3A%2F%2Fdiscord.gg%2Fvt45CKfF)](https://discord.gg/vt45CKfF)
 
 <hr/>
 
@@ -100,3 +105,6 @@ Steps:
 
 Contributions are welcome! If you're interested in contributing,
 feel free to clone the repository and submit a Pull Request.
+
+Join the [Discord server](https://discord.gg/vt45CKfF) if you'd like to discuss your contribution and/or
+be a part of the community.
