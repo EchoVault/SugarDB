@@ -2,6 +2,7 @@ package etc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"net"
@@ -50,9 +51,7 @@ func handleSetNX(ctx context.Context, cmd []string, server utils.Server, conn *n
 	if server.KeyExists(key) {
 		return nil, fmt.Errorf("key %s already exists", key)
 	}
-	// TODO: Retry CreateKeyAndLock until we manage to obtain the key
-	_, err = server.CreateKeyAndLock(ctx, key)
-	if err != nil {
+	if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 		return nil, err
 	}
 	server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
@@ -113,6 +112,10 @@ func handleMSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 
 	return []byte(utils.OK_RESPONSE), nil
+}
+
+func handleCopy(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
+	return nil, errors.New("command not yet implemented")
 }
 
 func Commands() []utils.Command {

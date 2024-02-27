@@ -48,9 +48,33 @@ func handleGetAllCommands(ctx context.Context, cmd []string, server utils.Server
 		}
 	}
 
-	res = fmt.Sprintf("*%d\r\n%s\r\n", commandCount, res)
+	res = fmt.Sprintf("*%d\r\n%s", commandCount, res)
 
 	return []byte(res), nil
+}
+
+func handleCommandDocs(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	return []byte("*0\r\n"), nil
+}
+
+func handleCommandCount(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	return nil, errors.New("command not yet implemented")
+}
+
+func handleCommandList(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	return nil, errors.New("command not yet implemented")
+}
+
+func handleConfigGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	return nil, errors.New("command not yet implemented")
+}
+
+func handleConfigRewrite(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
+	return nil, errors.New("command not yet implemented")
+}
+
+func handleConfigSet(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
+	return nil, errors.New("command not yet implemented")
 }
 
 func Commands() []utils.Command {
@@ -62,6 +86,25 @@ func Commands() []utils.Command {
 			Sync:              false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
 			HandlerFunc:       handleGetAllCommands,
+		},
+		{
+			Command:     "command",
+			Categories:  []string{},
+			Description: "Commands pertaining to echovault commands",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) ([]string, error) {
+				return []string{}, nil
+			},
+			SubCommands: []utils.SubCommand{
+				{
+					Command:           "docs",
+					Categories:        []string{utils.SlowCategory, utils.ConnectionCategory},
+					Description:       "Get command documentation",
+					Sync:              false,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
+					HandlerFunc:       handleCommandDocs,
+				},
+			},
 		},
 		{
 			Command:     "save",

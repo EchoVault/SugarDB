@@ -13,9 +13,9 @@ func handlePing(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	default:
 		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
 	case 1:
-		return []byte("+PONG\r\n\r\n"), nil
+		return []byte("+PONG\r\n"), nil
 	case 2:
-		return []byte(fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(cmd[1]), cmd[1])), nil
+		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(cmd[1]), cmd[1])), nil
 	}
 }
 
@@ -40,7 +40,7 @@ func Commands() []utils.Command {
 				return []string{}, nil
 			},
 			HandlerFunc: func(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
-				return []byte("$-1\r\n\r\n"), nil
+				return []byte("$-1\r\n"), nil
 			},
 		},
 	}
