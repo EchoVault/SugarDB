@@ -1,308 +1,203 @@
 package pubsub
 
 import (
-	"bytes"
-	"container/ring"
 	"context"
 	"fmt"
-	"github.com/echovault/echovault/src/utils"
-	"io"
+	"github.com/gobwas/glob"
 	"net"
 	"slices"
 	"sync"
-	"time"
 )
-
-// ConsumerGroup allows multiple subscribers to share the consumption load of a channel.
-// Only one subscriber in the consumer group will receive messages published to the channel.
-type ConsumerGroup struct {
-	name             string
-	subscribersRWMut sync.RWMutex
-	subscribers      *ring.Ring
-	messageChan      *chan string
-}
-
-func NewConsumerGroup(name string) *ConsumerGroup {
-	messageChan := make(chan string)
-
-	return &ConsumerGroup{
-		name:             name,
-		subscribersRWMut: sync.RWMutex{},
-		subscribers:      nil,
-		messageChan:      &messageChan,
-	}
-}
-
-func (cg *ConsumerGroup) SendMessage(message string) {
-	cg.subscribersRWMut.RLock()
-
-	conn := cg.subscribers.Value.(*net.Conn)
-
-	cg.subscribersRWMut.RUnlock()
-
-	w, r := io.Writer(*conn), io.Reader(*conn)
-
-	if _, err := w.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n\n", len(message), message))); err != nil {
-		// TODO: Log error at configured logger
-		fmt.Println(err)
-	}
-	// Wait for an ACK
-	// If no ACK is received within a time limit, remove this connection from subscribers and retry
-	if err := (*conn).SetReadDeadline(time.Now().Add(250 * time.Millisecond)); err != nil {
-		// TODO: Log error at configured logger
-		fmt.Println(err)
-	}
-	if msg, err := utils.ReadMessage(r); err != nil {
-		// Remove the connection from subscribers list
-		cg.Unsubscribe(conn)
-		// Reset the deadline
-		if err := (*conn).SetReadDeadline(time.Time{}); err != nil {
-			// TODO: Log error at configured logger
-			fmt.Println(err)
-		}
-		// Retry sending the message
-		cg.SendMessage(message)
-	} else {
-		if !bytes.Equal(bytes.TrimSpace(msg), []byte("+ACK")) {
-			cg.Unsubscribe(conn)
-			if err := (*conn).SetReadDeadline(time.Time{}); err != nil {
-				// TODO: Log error at configured logger
-				fmt.Println(err)
-			}
-			cg.SendMessage(message)
-		}
-	}
-
-	if err := (*conn).SetDeadline(time.Time{}); err != nil {
-		// TODO: Log error at configured logger
-		fmt.Println(err)
-	}
-	cg.subscribers = cg.subscribers.Next()
-}
-
-func (cg *ConsumerGroup) Start() {
-	go func() {
-		for {
-			message := <-*cg.messageChan
-			if cg.subscribers != nil {
-				cg.SendMessage(message)
-			}
-		}
-	}()
-}
-
-func (cg *ConsumerGroup) Subscribe(conn *net.Conn) {
-	cg.subscribersRWMut.Lock()
-	defer cg.subscribersRWMut.Unlock()
-
-	r := ring.New(1)
-	for i := 0; i < r.Len(); i++ {
-		r.Value = conn
-		r = r.Next()
-	}
-
-	if cg.subscribers == nil {
-		cg.subscribers = r
-		return
-	}
-
-	cg.subscribers = cg.subscribers.Link(r)
-}
-
-func (cg *ConsumerGroup) Unsubscribe(conn *net.Conn) {
-	cg.subscribersRWMut.Lock()
-	defer cg.subscribersRWMut.Unlock()
-
-	// If length is 1 and the connection passed is the one contained within, unlink it
-	if cg.subscribers.Len() == 1 {
-		if cg.subscribers.Value == conn {
-			cg.subscribers = nil
-		}
-		return
-	}
-
-	for i := 0; i < cg.subscribers.Len(); i++ {
-		if cg.subscribers.Value == conn {
-			cg.subscribers = cg.subscribers.Prev()
-			cg.subscribers.Unlink(1)
-			break
-		}
-		cg.subscribers = cg.subscribers.Next()
-	}
-}
-
-func (cg *ConsumerGroup) Publish(message string) {
-	*cg.messageChan <- message
-}
-
-// Channel - A channel can be subscribed to directly, or via a consumer group.
-// All direct subscribers to the channel will receive any message published to the channel.
-// Only one subscriber of a channel's consumer group will receive a message posted to the channel.
-type Channel struct {
-	name             string
-	subscribersRWMut sync.RWMutex
-	subscribers      []*net.Conn
-	consumerGroups   []*ConsumerGroup
-	messageChan      *chan string
-}
-
-func NewChannel(name string) *Channel {
-	messageChan := make(chan string)
-
-	return &Channel{
-		name:             name,
-		subscribersRWMut: sync.RWMutex{},
-		subscribers:      []*net.Conn{},
-		consumerGroups:   []*ConsumerGroup{},
-		messageChan:      &messageChan,
-	}
-}
-
-func (ch *Channel) Start() {
-	go func() {
-		for {
-			message := <-*ch.messageChan
-
-			ch.subscribersRWMut.RLock()
-
-			for _, conn := range ch.subscribers {
-				go func(conn *net.Conn) {
-					w, r := io.Writer(*conn), io.Reader(*conn)
-
-					if _, err := w.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(message), message))); err != nil {
-						// TODO: Log error at configured logger
-						fmt.Println(err)
-					}
-
-					if err := (*conn).SetReadDeadline(time.Now().Add(200 * time.Millisecond)); err != nil {
-						// TODO: Log error at configured logger
-						fmt.Println(err)
-						ch.Unsubscribe(conn)
-					}
-					defer func() {
-						if err := (*conn).SetReadDeadline(time.Time{}); err != nil {
-							// TODO: Log error at configured logger
-							fmt.Println(err)
-							ch.Unsubscribe(conn)
-						}
-					}()
-
-					if msg, err := utils.ReadMessage(r); err != nil {
-						ch.Unsubscribe(conn)
-					} else {
-						if !bytes.EqualFold(bytes.TrimSpace(msg), []byte("+ACK")) {
-							ch.Unsubscribe(conn)
-						}
-					}
-				}(conn)
-			}
-
-			ch.subscribersRWMut.RUnlock()
-		}
-	}()
-}
-
-func (ch *Channel) Subscribe(conn *net.Conn, consumerGroupName interface{}) {
-	if consumerGroupName == nil && !slices.Contains(ch.subscribers, conn) {
-		ch.subscribersRWMut.Lock()
-		defer ch.subscribersRWMut.Unlock()
-		ch.subscribers = append(ch.subscribers, conn)
-		return
-	}
-
-	groups := utils.Filter[*ConsumerGroup](ch.consumerGroups, func(group *ConsumerGroup) bool {
-		return group.name == consumerGroupName.(string)
-	})
-
-	if len(groups) == 0 {
-		go func() {
-			newGroup := NewConsumerGroup(consumerGroupName.(string))
-			newGroup.Start()
-			newGroup.Subscribe(conn)
-			ch.consumerGroups = append(ch.consumerGroups, newGroup)
-		}()
-		return
-	}
-
-	for _, group := range groups {
-		go group.Subscribe(conn)
-	}
-}
-
-func (ch *Channel) Unsubscribe(conn *net.Conn) {
-	ch.subscribersRWMut.Lock()
-	defer ch.subscribersRWMut.Unlock()
-
-	ch.subscribers = utils.Filter[*net.Conn](ch.subscribers, func(c *net.Conn) bool {
-		return c != conn
-	})
-
-	for _, group := range ch.consumerGroups {
-		go group.Unsubscribe(conn)
-	}
-}
-
-func (ch *Channel) Publish(message string) {
-	for _, group := range ch.consumerGroups {
-		go group.Publish(message)
-	}
-	*ch.messageChan <- message
-}
 
 // PubSub container
 type PubSub struct {
-	channels []*Channel
+	channels      []*Channel
+	channelsRWMut sync.RWMutex
 }
 
 func NewPubSub() *PubSub {
 	return &PubSub{
-		channels: []*Channel{},
+		channels:      []*Channel{},
+		channelsRWMut: sync.RWMutex{},
 	}
 }
 
-func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channelName string, consumerGroup interface{}) {
-	// Check if channel with given name exists
-	// If it does, subscribe the connection to the channel
-	// If it does not, create the channel and subscribe to it
-	channelIdx := slices.IndexFunc(ps.channels, func(channel *Channel) bool {
-		return channel.name == channelName
-	})
+func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) []byte {
+	res := fmt.Sprintf("*%d\r\n", len(channels))
 
-	if channelIdx == -1 {
-		go func() {
-			newChan := NewChannel(channelName)
+	for i := 0; i < len(channels); i++ {
+		// Check if channel with given name exists
+		// If it does, subscribe the connection to the channel
+		// If it does not, create the channel and subscribe to it
+		channelIdx := slices.IndexFunc(ps.channels, func(channel *Channel) bool {
+			return channel.name == channels[i]
+		})
+
+		if channelIdx == -1 {
+			// Create new channel, start it, and subscribe to it
+			var newChan *Channel
+			if withPattern {
+				newChan = NewChannel(WithPattern(channels[i]))
+			} else {
+				newChan = NewChannel(WithName(channels[i]))
+			}
 			newChan.Start()
-			newChan.Subscribe(conn, consumerGroup)
+			newChan.Subscribe(conn)
 			ps.channels = append(ps.channels, newChan)
-		}()
-		return
+		} else {
+			// Subscribe to existing channel
+			ps.channels[channelIdx].Subscribe(conn)
+		}
+
+		if len(channels) > 1 {
+			// If subscribing to more than one channel, write array to verify the subscription of this channel
+			res += fmt.Sprintf("*3\r\n+subscribe\r\n$%d\r\n%s\r\n:%d\r\n", len(channels[i]), channels[i], i+1)
+		} else {
+			// Ony one channel, simply send "subscribe" simple string response
+			res = "+subscribe\r\n"
+		}
 	}
 
-	go ps.channels[channelIdx].Subscribe(conn, consumerGroup)
+	return []byte(res)
 }
 
-func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channelName interface{}) {
-	if channelName == nil {
+func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) []byte {
+	ps.channelsRWMut.RLock()
+	ps.channelsRWMut.RUnlock()
+
+	action := "unsubscribe"
+	if withPattern {
+		action = "subscribe"
+	}
+
+	unsubscribed := make(map[int]string)
+	count := 1
+
+	// If the channels slice is empty, unsubscribe from all channels.
+	if len(channels) <= 0 {
 		for _, channel := range ps.channels {
-			go channel.Unsubscribe(conn)
+			if channel.Unsubscribe(conn) {
+				unsubscribed[1] = channel.name
+				count += 1
+			}
 		}
-		return
 	}
 
-	channels := utils.Filter[*Channel](ps.channels, func(c *Channel) bool {
-		return c.name == channelName
-	})
-
-	for _, channel := range channels {
-		go channel.Unsubscribe(conn)
+	// If withPattern is false, unsubscribe from channels where the name exactly matches channel name.
+	if !withPattern {
+		for _, channel := range ps.channels { // For each channel in PubSub
+			for _, c := range channels { // For each channel name provided
+				if channel.name == c && channel.Unsubscribe(conn) {
+					unsubscribed[count] = channel.name
+					count += 1
+				}
+			}
+		}
 	}
+
+	// If withPattern is true, unsubscribe from channels where pattern matches pattern provided,
+	// also unsubscribe from channels where the name matches the given pattern.
+	if withPattern {
+		for _, pattern := range channels {
+			g := glob.MustCompile(pattern)
+			for _, channel := range ps.channels {
+				// If it's a pattern channel, directly compare the patterns
+				if channel.pattern != nil && channel.name == pattern {
+					unsubscribed[count] = channel.name
+					count += 1
+					continue
+				}
+				// If this is a regular channel, check if the channel name matches the pattern given
+				if g.Match(channel.name) {
+					unsubscribed[count] = channel.name
+					count += 1
+				}
+			}
+		}
+	}
+
+	res := fmt.Sprintf("*%d\r\n", len(unsubscribed))
+	for key, value := range unsubscribed {
+		res += fmt.Sprintf("*3\r\n+%s\r\n$%d\r\n%s\r\n:%d\r\n", action, len(value), value, key)
+	}
+
+	return []byte(res)
 }
 
 func (ps *PubSub) Publish(ctx context.Context, message string, channelName string) {
-	channels := utils.Filter[*Channel](ps.channels, func(c *Channel) bool {
-		return c.name == channelName
-	})
-	for _, channel := range channels {
-		go channel.Publish(message)
+	ps.channelsRWMut.RLock()
+	defer ps.channelsRWMut.RUnlock()
+
+	for _, channel := range ps.channels {
+		// If it's a regular channel, check if the channel name matches the name given
+		if channel.pattern == nil {
+			if channel.name == channelName {
+				channel.Publish(message)
+			}
+			continue
+		}
+		// If it's a glob pattern channel, check if the name matches the pattern
+		if channel.pattern.Match(channelName) {
+			channel.Publish(message)
+		}
 	}
+}
+
+func (ps *PubSub) Channels(ctx context.Context, pattern string) []byte {
+	var count int
+	var res string
+
+	if pattern == "" {
+		for _, channel := range ps.channels {
+			if channel.IsActive() {
+				res += fmt.Sprintf("$%d\r\n%s\r\n", len(channel.name), channel.name)
+				count += 1
+			}
+		}
+
+		res = fmt.Sprintf("*%d\r\n%s", count, res)
+		return []byte(res)
+	}
+
+	g := glob.MustCompile(pattern)
+
+	for _, channel := range ps.channels {
+		// If channel is a pattern channel, then directly compare the channel name to pattern
+		if channel.pattern != nil && channel.name == pattern && channel.IsActive() {
+			res += fmt.Sprintf("$%d\r\n%s\r\n", len(channel.name), channel.name)
+			count += 1
+			continue
+		}
+		if g.Match(channel.name) && channel.IsActive() {
+			res += fmt.Sprintf("$%d\r\n%s\r\n", len(channel.name), channel.name)
+			count += 1
+		}
+	}
+
+	return []byte(res)
+}
+
+func (ps *PubSub) NumPat(ctx context.Context) int {
+	var count int
+	for _, channel := range ps.channels {
+		if channel.pattern != nil {
+			count += 1
+		}
+	}
+	return count
+}
+
+func (ps *PubSub) NumSub(ctx context.Context, channels []string) []byte {
+	res := fmt.Sprintf("*%d\r\n", len(channels))
+	for _, channel := range channels {
+		chanIdx := slices.IndexFunc(ps.channels, func(c *Channel) bool {
+			return c.name == channel
+		})
+		if chanIdx == -1 {
+			res += fmt.Sprintf("*2\r\n$%d\r\n%s\r\n:0\r\n", len(channel), channel)
+			continue
+		}
+		res += fmt.Sprintf("*2\r\n$%d\r\n%s\r\n:%d\r\n", len(channel), channel, ps.channels[chanIdx].NumSubs())
+	}
+	return []byte(res)
 }

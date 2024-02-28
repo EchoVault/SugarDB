@@ -75,8 +75,8 @@ func (set *Set) GetRandom(count int) []string {
 			n = rand.Intn(len(keys))
 			if !slices.Contains(res, keys[n]) {
 				res = append(res, keys[n])
-				keys = utils.Filter(keys, func(elem string) bool {
-					return elem != keys[n]
+				keys = slices.DeleteFunc(keys, func(elem string) bool {
+					return elem == keys[n]
 				})
 				i++
 			}

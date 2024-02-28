@@ -29,7 +29,7 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 		}
 		server.SetValue(ctx, key, newStr)
 		server.KeyUnlock(key)
-		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
+		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
 	}
 
 	if _, err := server.KeyLock(ctx, key); err != nil {
@@ -46,14 +46,14 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 	if offset >= len(str) {
 		newStr = str + newStr
 		server.SetValue(ctx, key, newStr)
-		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
+		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
 	}
 
 	// If the offset is < 0, prepend the new string to the old one.
 	if offset < 0 {
 		newStr = newStr + str
 		server.SetValue(ctx, key, newStr)
-		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(newStr))), nil
+		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
 	}
 
 	strRunes := []rune(str)
@@ -72,7 +72,7 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 
 	server.SetValue(ctx, key, string(strRunes))
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(strRunes))), nil
+	return []byte(fmt.Sprintf(":%d\r\n", len(strRunes))), nil
 }
 
 func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -84,7 +84,7 @@ func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err := server.KeyRLock(ctx, key); err != nil {
@@ -98,7 +98,7 @@ func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, fmt.Errorf("value at key %s is not a string", key)
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(value))), nil
+	return []byte(fmt.Sprintf(":%d\r\n", len(value))), nil
 }
 
 func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -161,7 +161,7 @@ func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *
 		str = res
 	}
 
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(str), str)), nil
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(str), str)), nil
 }
 
 func Commands() []utils.Command {

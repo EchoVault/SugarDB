@@ -1,7 +1,6 @@
 package acl
 
 import (
-	"github.com/echovault/echovault/src/utils"
 	"slices"
 	"strings"
 )
@@ -105,18 +104,18 @@ func (user *User) UpdateUser(cmd []string) error {
 			continue
 		}
 		if str[0] == '<' {
-			user.Passwords = utils.Filter(user.Passwords, func(password Password) bool {
+			user.Passwords = slices.DeleteFunc(user.Passwords, func(password Password) bool {
 				if strings.EqualFold(password.PasswordType, "SHA256") {
-					return true
+					return false
 				}
 				return password.PasswordValue == str[1:]
 			})
 			continue
 		}
 		if str[0] == '!' {
-			user.Passwords = utils.Filter(user.Passwords, func(password Password) bool {
+			user.Passwords = slices.DeleteFunc(user.Passwords, func(password Password) bool {
 				if strings.EqualFold(password.PasswordType, "plaintext") {
-					return true
+					return false
 				}
 				return password.PasswordValue == str[1:]
 			})

@@ -27,7 +27,7 @@ func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		}
 		server.SetValue(ctx, key, set)
 		server.KeyUnlock(key)
-		return []byte(fmt.Sprintf(":%d\r\n\r\n", len(cmd[2:]))), nil
+		return []byte(fmt.Sprintf(":%d\r\n", len(cmd[2:]))), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -42,7 +42,7 @@ func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	count := set.Add(cmd[2:])
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
 func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -54,7 +54,7 @@ func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte(fmt.Sprintf(":0\r\n\r\n")), nil
+		return []byte(fmt.Sprintf(":0\r\n")), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -69,7 +69,7 @@ func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 
 	cardinality := set.Cardinality()
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", cardinality)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", cardinality)), nil
 }
 
 func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -126,7 +126,7 @@ func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 	for i, e := range elems {
 		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(e), e)
 		if i == len(elems)-1 {
-			res += "\r\n\r\n"
+			res += "\r\n"
 		}
 	}
 
@@ -185,7 +185,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 	diff := baseSet.Subtract(sets)
 	elems := diff.GetAll()
 
-	res := fmt.Sprintf(":%d\r\n\r\n", len(elems))
+	res := fmt.Sprintf(":%d\r\n", len(elems))
 
 	if server.KeyExists(destination) {
 		if _, err = server.KeyLock(ctx, destination); err != nil {
@@ -223,7 +223,7 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	for _, key := range keys[0:] {
 		if !server.KeyExists(key) {
 			// If key does not exist, then there is no intersection
-			return []byte("*0\r\n\r\n"), nil
+			return []byte("*0\r\n"), nil
 		}
 		if _, err = server.KeyRLock(ctx, key); err != nil {
 			return nil, err
@@ -253,7 +253,7 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	for i, e := range elems {
 		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(e), e)
 		if i == len(elems)-1 {
-			res += "\r\n\r\n"
+			res += "\r\n"
 		}
 	}
 
@@ -299,7 +299,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, co
 	for _, key := range keys {
 		if !server.KeyExists(key) {
 			// If key does not exist, then there is no intersection
-			return []byte(":0\r\n\r\n"), nil
+			return []byte(":0\r\n"), nil
 		}
 		if _, err = server.KeyRLock(ctx, key); err != nil {
 			return nil, err
@@ -324,7 +324,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, co
 
 	intersect, _ := Intersection(limit, sets...)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", intersect.Cardinality())), nil
+	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
 func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -345,7 +345,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	for _, key := range keys[1:] {
 		if !server.KeyExists(key) {
 			// If key does not exist, then there is no intersection
-			return []byte(":0\r\n\r\n"), nil
+			return []byte(":0\r\n"), nil
 		}
 		if _, err = server.KeyRLock(ctx, key); err != nil {
 			return nil, err
@@ -380,7 +380,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	server.SetValue(ctx, destination, intersect)
 	server.KeyUnlock(destination)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", intersect.Cardinality())), nil
+	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
 func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -392,7 +392,7 @@ func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server, con
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -406,10 +406,10 @@ func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server, con
 	}
 
 	if !set.Contains(cmd[2]) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
-	return []byte(":1\r\n\r\n"), nil
+	return []byte(":1\r\n"), nil
 }
 
 func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -421,7 +421,7 @@ func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server, conn
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -440,7 +440,7 @@ func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server, conn
 	for i, e := range elems {
 		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(e), e)
 		if i == len(elems)-1 {
-			res += "\r\n\r\n"
+			res += "\r\n"
 		}
 	}
 
@@ -461,7 +461,7 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server, co
 		for i, _ := range members {
 			res = fmt.Sprintf("%s\r\n:0", res)
 			if i == len(members)-1 {
-				res += "\r\n\r\n"
+				res += "\r\n"
 			}
 		}
 		return []byte(res), nil
@@ -485,7 +485,7 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server, co
 			res += "\r\n:0"
 		}
 	}
-	res += "\r\n\r\n"
+	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -501,7 +501,7 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *n
 	member := cmd[3]
 
 	if !server.KeyExists(source) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, source); err != nil {
@@ -539,7 +539,7 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *n
 
 	res := sourceSet.Move(destinationSet, member)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", res)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", res)), nil
 }
 
 func handleSPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -560,7 +560,7 @@ func handleSPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("*-1\r\n\r\n"), nil
+		return []byte("*-1\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -579,7 +579,7 @@ func handleSPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	for i, m := range members {
 		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(m), m)
 		if i == len(members)-1 {
-			res += "\r\n\r\n"
+			res += "\r\n"
 		}
 	}
 
@@ -604,7 +604,7 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("*-1\r\n\r\n"), nil
+		return []byte("*-1\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -623,7 +623,7 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 	for i, m := range members {
 		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(m), m)
 		if i == len(members)-1 {
-			res += "\r\n\r\n"
+			res += "\r\n"
 		}
 	}
 
@@ -640,7 +640,7 @@ func handleSREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	members := cmd[2:]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -655,7 +655,7 @@ func handleSREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	count := set.Remove(members)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
 func handleSUNION(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -702,7 +702,7 @@ func handleSUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 	for i, e := range union.GetAll() {
 		res = fmt.Sprintf("%s\r\n$%d\r\n%s", res, len(e), e)
 		if i == len(union.GetAll())-1 {
-			res += "\r\n\r\n"
+			res += "\r\n"
 		}
 	}
 
@@ -763,7 +763,7 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	defer server.KeyUnlock(destination)
 
 	server.SetValue(ctx, destination, union)
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", union.Cardinality())), nil
+	return []byte(fmt.Sprintf(":%d\r\n", union.Cardinality())), nil
 }
 
 func Commands() []utils.Command {

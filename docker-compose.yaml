@@ -19,7 +19,7 @@ services:
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
       - TLS=true
-      - MTLS=true
+      - MTLS=false
       - BOOTSTRAP_CLUSTER=false
       - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=true
@@ -36,7 +36,7 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
-      - "7479:7480"
+      - "7480:7480"
       - "7946:7946"
       - "7999:8000"
     volumes:
@@ -76,7 +76,7 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
-      - "7480:7480"
+      - "7481:7480"
       - "7945:7946"
       - "8000:8000"
     volumes:
@@ -117,7 +117,7 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
-      - "7481:7480"
+      - "7482:7480"
       - "7947:7946"
       - "8001:8000"
     volumes:
@@ -158,7 +158,7 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
-      - "7482:7480"
+      - "7483:7480"
       - "7948:7946"
       - "8002:8000"
     volumes:
@@ -199,7 +199,7 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
-      - "7483:7480"
+      - "7484:7480"
       - "7949:7946"
       - "8003:8000"
     volumes:
@@ -240,7 +240,7 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
-      - "7484:7480"
+      - "7485:7480"
       - "7950:7946"
       - "8004:8000"
     volumes:

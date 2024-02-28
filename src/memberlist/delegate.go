@@ -7,6 +7,7 @@ import (
 	"github.com/echovault/echovault/src/utils"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	"log"
 	"time"
 )
 
@@ -79,14 +80,12 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 
 		cmd, err := utils.Decode(msg.Content)
 		if err != nil {
-			// TODO: Log error to configured logger
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 
 		if _, err := delegate.options.applyMutate(ctx, cmd); err != nil {
-			// TODO: Log error to configured logger
-			fmt.Println(err)
+			log.Println(err)
 		}
 	}
 }

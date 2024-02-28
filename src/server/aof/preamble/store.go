@@ -125,6 +125,10 @@ func (store *PreambleStore) Restore() error {
 		return err
 	}
 
+	if len(b) <= 0 {
+		return nil
+	}
+
 	state := make(map[string]interface{})
 
 	if err = json.Unmarshal(b, &state); err != nil {

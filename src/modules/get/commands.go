@@ -15,7 +15,7 @@ func handleGet(ctx context.Context, cmd []string, server utils.Server, conn *net
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte("+nil\r\n\r\n"), nil
+		return []byte("$-1\r\n"), nil
 	}
 
 	_, err = server.KeyRLock(ctx, key)
@@ -26,7 +26,7 @@ func handleGet(ctx context.Context, cmd []string, server utils.Server, conn *net
 
 	value := server.GetValue(key)
 
-	return []byte(fmt.Sprintf("+%v\r\n\r\n", value)), nil
+	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
 }
 
 func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -51,7 +51,7 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 			locks[key] = true
 			continue
 		}
-		values[key] = "nil"
+		values[key] = ""
 	}
 	defer func() {
 		for key, locked := range locks {
@@ -69,10 +69,12 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	bytes := []byte(fmt.Sprintf("*%d\r\n", len(cmd[1:])))
 
 	for _, key := range cmd[1:] {
+		if values[key] == "" {
+			bytes = append(bytes, []byte("$-1\r\n")...)
+			continue
+		}
 		bytes = append(bytes, []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(values[key]), values[key]))...)
 	}
-
-	bytes = append(bytes, []byte("\r\n")...)
 
 	return bytes, nil
 }

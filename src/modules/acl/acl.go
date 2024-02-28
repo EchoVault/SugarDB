@@ -105,9 +105,10 @@ func NewACL(config utils.Config) *ACL {
 
 func (acl *ACL) RegisterConnection(conn *net.Conn) {
 	// This is called only when a connection is established.
-	defaultUser := utils.Filter(acl.Users, func(elem *User) bool {
-		return elem.Username == "default"
-	})[0]
+	defaultUserIdx := slices.IndexFunc(acl.Users, func(user *User) bool {
+		return user.Username == "default"
+	})
+	defaultUser := acl.Users[defaultUserIdx]
 	acl.Connections[conn] = Connection{
 		Authenticated: defaultUser.NoPassword,
 		User:          defaultUser,
@@ -167,7 +168,7 @@ func (acl *ACL) DeleteUser(ctx context.Context, usernames []string) error {
 			}
 		}
 		// Delete the user from the ACL
-		acl.Users = utils.Filter(acl.Users, func(u *User) bool {
+		acl.Users = slices.DeleteFunc(acl.Users, func(u *User) bool {
 			return u.Username != user.Username
 		})
 	}
@@ -188,9 +189,10 @@ func (acl *ACL) AuthenticateConnection(ctx context.Context, conn *net.Conn, cmd 
 			{PasswordType: "SHA256", PasswordValue: string(h.Sum(nil))},
 		}
 		// Authenticate with default user
-		user = utils.Filter(acl.Users, func(user *User) bool {
+		idx := slices.IndexFunc(acl.Users, func(user *User) bool {
 			return user.Username == "default"
-		})[0]
+		})
+		user = acl.Users[idx]
 	}
 	if len(cmd) == 3 {
 		// Process AUTH <username> <password>
