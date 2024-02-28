@@ -36,6 +36,8 @@ func (server *Server) handleCommand(ctx context.Context, message []byte, conn *n
 		return nil, err
 	}
 
+	fmt.Println(cmd)
+
 	command, err := server.getCommand(cmd[0])
 	if err != nil {
 		return nil, err

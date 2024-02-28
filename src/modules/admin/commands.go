@@ -152,6 +152,10 @@ func handleCommandList(ctx context.Context, cmd []string, server utils.Server, _
 	}
 }
 
+func handleCommandDocs(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	return []byte("*0\r\n"), nil
+}
+
 // func handleConfigGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 // 	return nil, errors.New("command not yet implemented")
 // }
@@ -189,7 +193,7 @@ func Commands() []utils.Command {
 					Description:       "Get command documentation",
 					Sync:              false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
-					HandlerFunc:       handleGetAllCommands,
+					HandlerFunc:       handleCommandDocs,
 				},
 				{
 					Command:           "count",
