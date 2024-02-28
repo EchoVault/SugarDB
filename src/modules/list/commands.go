@@ -144,7 +144,6 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *
 		} else {
 			i--
 		}
-
 	}
 
 	return bytes, nil

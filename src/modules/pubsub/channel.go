@@ -83,19 +83,31 @@ func (ch *Channel) Subscribe(conn *net.Conn) {
 	}
 }
 
-func (ch *Channel) Unsubscribe(conn *net.Conn, waitGroup *sync.WaitGroup) {
+func (ch *Channel) Unsubscribe(conn *net.Conn) bool {
 	ch.subscribersRWMut.Lock()
 	defer ch.subscribersRWMut.Unlock()
 
+	var removed bool
+
 	ch.subscribers = slices.DeleteFunc(ch.subscribers, func(c *net.Conn) bool {
-		return c == conn
+		if c == conn {
+			removed = true
+			return true
+		}
+		return false
 	})
 
-	if waitGroup != nil {
-		waitGroup.Done()
-	}
+	return removed
 }
 
 func (ch *Channel) Publish(message string) {
 	*ch.messageChan <- message
+}
+
+func (ch *Channel) IsActive() bool {
+	return len(ch.subscribers) > 0
+}
+
+func (ch *Channel) NumSubs() int {
+	return len(ch.subscribers)
 }
