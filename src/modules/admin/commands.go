@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/src/utils"
+	"github.com/gobwas/glob"
 	"net"
+	"slices"
+	"strings"
 )
 
 func handleGetAllCommands(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
@@ -53,29 +56,113 @@ func handleGetAllCommands(ctx context.Context, cmd []string, server utils.Server
 	return []byte(res), nil
 }
 
-func handleCommandDocs(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-	return []byte("*0\r\n"), nil
-}
-
 func handleCommandCount(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-	return nil, errors.New("command not yet implemented")
+	var count int
+
+	commands := server.GetAllCommands(ctx)
+	for _, command := range commands {
+		if command.SubCommands != nil && len(command.SubCommands) > 0 {
+			for _, _ = range command.SubCommands {
+				count += 1
+			}
+			continue
+		}
+		count += 1
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
 func handleCommandList(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-	return nil, errors.New("command not yet implemented")
+	switch len(cmd) {
+	case 2:
+		// Command is COMMAND LIST
+		var count int
+		var res string
+		commands := server.GetAllCommands(ctx)
+		for _, command := range commands {
+			if command.SubCommands != nil && len(command.SubCommands) > 0 {
+				for _, subcommand := range command.SubCommands {
+					comm := fmt.Sprintf("%s %s", command.Command, subcommand.Command)
+					res += fmt.Sprintf("$%d\r\n%s\r\n", len(comm), comm)
+					count += 1
+				}
+				continue
+			}
+			res += fmt.Sprintf("$%d\r\n%s\r\n", len(command.Command), command.Command)
+			count += 1
+		}
+		res = fmt.Sprintf("*%d\r\n%s", count, res)
+		return []byte(res), nil
+
+	case 5:
+		var count int
+		var res string
+		// Command has filter
+		if !strings.EqualFold("FILTERBY", cmd[2]) {
+			return nil, fmt.Errorf("expected FILTERBY, got %s", strings.ToUpper(cmd[2]))
+		}
+		if strings.EqualFold("ACLCAT", cmd[3]) {
+			// ACL Category filter
+			commands := server.GetAllCommands(ctx)
+			category := strings.ToLower(cmd[4])
+			for _, command := range commands {
+				if command.SubCommands != nil && len(command.SubCommands) > 0 {
+					for _, subcommand := range command.SubCommands {
+						if slices.Contains(subcommand.Categories, category) {
+							comm := fmt.Sprintf("%s %s", command.Command, subcommand.Command)
+							res += fmt.Sprintf("$%d\r\n%s\r\n", len(comm), comm)
+							count += 1
+						}
+					}
+					continue
+				}
+				if slices.Contains(command.Categories, category) {
+					res += fmt.Sprintf("$%d\r\n%s\r\n", len(command.Command), command.Command)
+					count += 1
+				}
+			}
+		} else if strings.EqualFold("PATTERN", cmd[3]) {
+			// Pattern filter
+			commands := server.GetAllCommands(ctx)
+			g := glob.MustCompile(cmd[4])
+			for _, command := range commands {
+				if command.SubCommands != nil && len(command.SubCommands) > 0 {
+					for _, subcommand := range command.SubCommands {
+						comm := fmt.Sprintf("%s %s", command.Command, subcommand.Command)
+						if g.Match(comm) {
+							res += fmt.Sprintf("$%d\r\n%s\r\n", len(comm), comm)
+							count += 1
+						}
+					}
+					continue
+				}
+				if g.Match(command.Command) {
+					res += fmt.Sprintf("$%d\r\n%s\r\n", len(command.Command), command.Command)
+					count += 1
+				}
+			}
+		} else {
+			return nil, fmt.Errorf("expected filter to be ACLCAT or PATTERN, got %s", strings.ToUpper(cmd[3]))
+		}
+		res = fmt.Sprintf("*%d\r\n%s", count, res)
+		return []byte(res), nil
+	default:
+		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+	}
 }
 
-func handleConfigGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-	return nil, errors.New("command not yet implemented")
-}
-
-func handleConfigRewrite(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
-	return nil, errors.New("command not yet implemented")
-}
-
-func handleConfigSet(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
-	return nil, errors.New("command not yet implemented")
-}
+// func handleConfigGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+// 	return nil, errors.New("command not yet implemented")
+// }
+//
+// func handleConfigRewrite(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
+// 	return nil, errors.New("command not yet implemented")
+// }
+//
+// func handleConfigSet(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
+// 	return nil, errors.New("command not yet implemented")
+// }
 
 func Commands() []utils.Command {
 	return []utils.Command{
@@ -102,7 +189,24 @@ func Commands() []utils.Command {
 					Description:       "Get command documentation",
 					Sync:              false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
-					HandlerFunc:       handleCommandDocs,
+					HandlerFunc:       handleGetAllCommands,
+				},
+				{
+					Command:           "count",
+					Categories:        []string{utils.SlowCategory},
+					Description:       "Get the dumber of commands in the server",
+					Sync:              false,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
+					HandlerFunc:       handleCommandCount,
+				},
+				{
+					Command:    "list",
+					Categories: []string{utils.SlowCategory},
+					Description: `(COMMAND LIST [FILTERBY <ACLCAT category | PATTERN pattern>]) Get the list of command names.
+Allows for filtering by ACL category or glob pattern.`,
+					Sync:              false,
+					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
+					HandlerFunc:       handleCommandList,
 				},
 			},
 		},

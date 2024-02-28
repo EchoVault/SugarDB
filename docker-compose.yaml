@@ -18,7 +18,7 @@ services:
       - PLUGIN_DIR=/usr/local/lib/echovault
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
-      - TLS=false
+      - TLS=true
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
       - ACL_CONFIG=/etc/config/echovault/acl.yml
