@@ -134,7 +134,7 @@ func Commands() []utils.Command {
 				if msec == 0 {
 					return nil, errors.New("no snapshot")
 				}
-				return []byte(fmt.Sprintf(":%d\r\n\r\n", msec)), nil
+				return []byte(fmt.Sprintf(":%d\r\n", msec)), nil
 			},
 		},
 		{

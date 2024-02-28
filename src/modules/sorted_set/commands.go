@@ -159,7 +159,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	set := NewSortedSet(members)
 	server.SetValue(ctx, key, set)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", set.Cardinality())), nil
+	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
 
 func handleZCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {

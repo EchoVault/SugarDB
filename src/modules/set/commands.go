@@ -69,7 +69,7 @@ func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 
 	cardinality := set.Cardinality()
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", cardinality)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", cardinality)), nil
 }
 
 func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
