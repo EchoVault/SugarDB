@@ -128,7 +128,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	if server.KeyExists(key) {
 		// Key exists
-		_, err := server.KeyLock(ctx, key)
+		_, err = server.KeyLock(ctx, key)
 		if err != nil {
 			return nil, err
 		}
@@ -144,10 +144,10 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		// If INCR option is provided, return the new score value
 		if incr != nil {
 			m := set.Get(members[0].value)
-			return []byte(fmt.Sprintf("+%f\r\n\r\n", m.score)), nil
+			return []byte(fmt.Sprintf("+%f\r\n", m.score)), nil
 		}
 
-		return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
+		return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 	}
 
 	// Key does not exist
@@ -170,7 +170,7 @@ func handleZCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -183,7 +183,7 @@ func handleZCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", set.Cardinality())), nil
+	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
 
 func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -231,7 +231,7 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -251,7 +251,7 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", len(members))), nil
+	return []byte(fmt.Sprintf(":%d\r\n", len(members))), nil
 }
 
 func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -265,7 +265,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 	maximum := cmd[3]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -283,7 +283,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 	// Check if all members has the same score
 	for i := 0; i < len(members)-2; i++ {
 		if members[i].score != members[i+1].score {
-			return []byte(":0\r\n\r\n"), nil
+			return []byte(":0\r\n"), nil
 		}
 	}
 
@@ -296,7 +296,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 		}
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", count)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
 func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -324,7 +324,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 	// Extract base set
 	if !server.KeyExists(keys[0]) {
 		// If base set does not exist, return an empty array
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
 		return nil, err
@@ -367,7 +367,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 		}
 	}
 
-	res += "\r\n\r\n"
+	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -392,7 +392,7 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 	// Extract base set
 	if !server.KeyExists(keys[0]) {
 		// If base set does not exist, return 0
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
 		return nil, err
@@ -433,7 +433,7 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 
 	server.SetValue(ctx, destination, diff)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", diff.Cardinality())), nil
+	return []byte(fmt.Sprintf(":%d\r\n", diff.Cardinality())), nil
 }
 
 func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -473,7 +473,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		}
 		server.SetValue(ctx, key, NewSortedSet([]MemberParam{{value: member, score: increment}}))
 		server.KeyUnlock(key)
-		return []byte(fmt.Sprintf("+%s\r\n\r\n", strconv.FormatFloat(float64(increment), 'f', -1, 64))), nil
+		return []byte(fmt.Sprintf("+%s\r\n", strconv.FormatFloat(float64(increment), 'f', -1, 64))), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -493,7 +493,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		"incr"); err != nil {
 		return nil, err
 	}
-	return []byte(fmt.Sprintf("+%s\r\n\r\n",
+	return []byte(fmt.Sprintf("+%s\r\n",
 		strconv.FormatFloat(float64(set.Get(member).score), 'f', -1, 64))), nil
 }
 
@@ -522,7 +522,7 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	for i := 0; i < len(keys); i++ {
 		if !server.KeyExists(keys[i]) {
 			// If any of the keys is non-existent, return an empty array as there's no intersect
-			return []byte("*0\r\n\r\n"), nil
+			return []byte("*0\r\n"), nil
 		}
 		if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 			return nil, err
@@ -552,7 +552,7 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 	}
 
-	res += "\r\n\r\n"
+	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -588,7 +588,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 
 	for i := 0; i < len(keys); i++ {
 		if !server.KeyExists(keys[i]) {
-			return []byte(":0\r\n\r\n"), nil
+			return []byte(":0\r\n"), nil
 		}
 		if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 			return nil, err
@@ -619,7 +619,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 
 	server.SetValue(ctx, destination, intersect)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", intersect.Cardinality())), nil
+	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
 func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -691,13 +691,13 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *n
 				res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 			}
 
-			res += "\r\n\r\n"
+			res += "\r\n"
 
 			return []byte(res), nil
 		}
 	}
 
-	return []byte("*0\r\n\r\n"), nil
+	return []byte("*0\r\n"), nil
 }
 
 func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -723,7 +723,7 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -746,7 +746,7 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
 	}
 
-	res += "\r\n\r\n"
+	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -760,7 +760,7 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server, conn 
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -788,7 +788,7 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server, conn 
 		}
 	}
 
-	res += "\r\n\r\n"
+	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -819,7 +819,7 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("$-1\r\n\r\n"), nil
+		return []byte("$-1\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -843,7 +843,7 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 		}
 	}
 
-	res += "\r\n\r\n"
+	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -863,7 +863,7 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("$-1\r\n\r\n"), nil
+		return []byte("$-1\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -888,14 +888,14 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *n
 		if members[i].value == Value(member) {
 			if withscores {
 				score := strconv.FormatFloat(float64(members[i].score), 'f', -1, 64)
-				return []byte(fmt.Sprintf("*2\r\n:%d\r\n$%d\r\n%s\r\n\r\n", i, len(score), score)), nil
+				return []byte(fmt.Sprintf("*2\r\n:%d\r\n$%d\r\n%s\r\n", i, len(score), score)), nil
 			} else {
-				return []byte(fmt.Sprintf("*1\r\n:%d\r\n\r\n", i)), nil
+				return []byte(fmt.Sprintf("*1\r\n:%d\r\n", i)), nil
 			}
 		}
 	}
 
-	return []byte("$-1\r\n\r\n"), nil
+	return []byte("$-1\r\n"), nil
 }
 
 func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -907,7 +907,7 @@ func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -927,7 +927,7 @@ func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		}
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
 func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -939,7 +939,7 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *
 	key := keys[0]
 
 	if !server.KeyExists(key) {
-		return []byte("$-1\r\n\r\n"), nil
+		return []byte("$-1\r\n"), nil
 	}
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
@@ -951,12 +951,12 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 	member := set.Get(Value(cmd[2]))
 	if !member.exists {
-		return []byte("$-1\r\n\r\n"), nil
+		return []byte("$-1\r\n"), nil
 	}
 
 	score := strconv.FormatFloat(float64(member.score), 'f', -1, 64)
 
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(score), score)), nil
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(score), score)), nil
 }
 
 func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -980,7 +980,7 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Serv
 	}
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -1000,7 +1000,7 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Serv
 		}
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
 func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -1022,7 +1022,7 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 	}
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -1065,7 +1065,7 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 		}
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
 func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -1079,7 +1079,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	maximum := cmd[3]
 
 	if !server.KeyExists(key) {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
@@ -1097,7 +1097,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	// Check if all the members have the same score. If not, return 0
 	for i := 0; i < len(members)-1; i++ {
 		if members[i].score != members[i+1].score {
-			return []byte(":0\r\n\r\n"), nil
+			return []byte(":0\r\n"), nil
 		}
 	}
 
@@ -1112,7 +1112,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 		}
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", deletedCount)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
 func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -1177,7 +1177,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 
 	if !server.KeyExists(key) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
@@ -1191,7 +1191,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 
 	if offset > set.Cardinality() {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 	if count < 0 {
 		count = set.Cardinality() - offset
@@ -1211,7 +1211,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 		// If policy is BYLEX, all the elements must have the same score
 		for i := 0; i < len(members)-1; i++ {
 			if members[i].score != members[i+1].score {
-				return []byte("*0\r\n\r\n"), nil
+				return []byte("*0\r\n"), nil
 			}
 		}
 		slices.SortFunc(members, func(a, b MemberParam) int {
@@ -1241,9 +1241,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 
 	res := fmt.Sprintf("*%d", len(resultMembers))
-	if len(resultMembers) == 0 {
-		res += "\r\n\r\n"
-	}
+
 	for _, m := range resultMembers {
 		if withscores {
 			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
@@ -1252,7 +1250,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 	}
 
-	res += "\r\n\r\n"
+	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -1316,7 +1314,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 	}
 
 	if !server.KeyExists(source) {
-		return []byte("*0\r\n\r\n"), nil
+		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, source); err != nil {
@@ -1330,7 +1328,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 	}
 
 	if offset > set.Cardinality() {
-		return []byte(":0\r\n\r\n"), nil
+		return []byte(":0\r\n"), nil
 	}
 	if count < 0 {
 		count = set.Cardinality() - offset
@@ -1350,7 +1348,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 		// If policy is BYLEX, all the elements must have the same score
 		for i := 0; i < len(members)-1; i++ {
 			if members[i].score != members[i+1].score {
-				return []byte(":0\r\n\r\n"), nil
+				return []byte(":0\r\n"), nil
 			}
 		}
 		slices.SortFunc(members, func(a, b MemberParam) int {
@@ -1394,7 +1392,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 
 	server.SetValue(ctx, destination, newSortedSet)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", newSortedSet.Cardinality())), nil
+	return []byte(fmt.Sprintf(":%d\r\n", newSortedSet.Cardinality())), nil
 }
 
 func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -1446,7 +1444,7 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 	}
 
-	res += "\r\n\r\n"
+	res += "\r\n"
 
 	return []byte(res), nil
 }
@@ -1512,7 +1510,7 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 
 	server.SetValue(ctx, destination, union)
 
-	return []byte(fmt.Sprintf(":%d\r\n\r\n", union.Cardinality())), nil
+	return []byte(fmt.Sprintf(":%d\r\n", union.Cardinality())), nil
 }
 
 func Commands() []utils.Command {
