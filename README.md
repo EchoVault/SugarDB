@@ -82,6 +82,9 @@ flags
 
 # Clients
 
+EchoVault uses RESP, which makes it compatible with existing 
+Redis clients.
+
 - [CLI Client](https://github.com/EchoVault/EchoVault-CLI)
 - Go (Coming Soon)
 - JavaScript/TypeScript (Coming Soon)
