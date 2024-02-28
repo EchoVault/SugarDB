@@ -72,7 +72,7 @@ func ReadMessage(r io.Reader) ([]byte, error) {
 		clear(chunk)
 	}
 
-	return res, nil
+	return bytes.Trim(res, "\x00"), nil
 }
 
 func RetryBackoff(b retry.Backoff, maxRetries uint64, jitter, cappedDuration, maxDuration time.Duration) retry.Backoff {

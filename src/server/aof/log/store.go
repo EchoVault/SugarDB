@@ -15,7 +15,7 @@ import (
 )
 
 type AppendReadWriter interface {
-	io.ReadWriter
+	io.ReadWriteSeeker
 	io.Closer
 	Truncate(size int64) error
 	Sync() error
@@ -101,7 +101,9 @@ func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
 func (store *AppendStore) Write(command []byte) error {
 	store.mut.Lock()
 	defer store.mut.Unlock()
-	if _, err := store.rw.Write(command); err != nil {
+	// Add new line before writing to AOF file.
+	out := append(command, []byte("\r\n")...)
+	if _, err := store.rw.Write(out); err != nil {
 		return err
 	}
 	if strings.EqualFold(store.strategy, "always") {
@@ -158,6 +160,10 @@ func (store *AppendStore) Truncate() error {
 	store.mut.Lock()
 	defer store.mut.Unlock()
 	if err := store.rw.Truncate(0); err != nil {
+		return err
+	}
+	// Seek to the beginning of the file after truncating
+	if _, err := store.rw.Seek(0, 0); err != nil {
 		return err
 	}
 	return nil
