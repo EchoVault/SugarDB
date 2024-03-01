@@ -183,7 +183,7 @@ func handleLSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	list[index] = utils.AdaptType(cmd[3])
 	server.SetValue(ctx, key, list)
 
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleLTrim(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -224,11 +224,11 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server, conn *n
 
 	if end == -1 || end > len(list) {
 		server.SetValue(ctx, key, list[start:])
-		return []byte(utils.OK_RESPONSE), nil
+		return []byte(utils.OkResponse), nil
 	}
 
 	server.SetValue(ctx, key, list[start:end])
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -294,7 +294,7 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	server.SetValue(ctx, key, list)
 
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -351,7 +351,7 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *n
 		}
 	}
 
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -393,7 +393,7 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 
 	server.SetValue(ctx, key, append(newElems, l...))
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -436,7 +436,7 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 
 	server.SetValue(ctx, key, append(l, newElems...))
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handlePop(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {

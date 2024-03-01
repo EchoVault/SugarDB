@@ -95,13 +95,13 @@ func Test_HandleSetRange(t *testing.T) {
 			preset:           false,
 			command:          []string{"SETRANGE", "key"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
 			command:          []string{"SETRANGE", "key", "offset", "value", "value1"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -182,7 +182,7 @@ func Test_HandleStrLen(t *testing.T) {
 			presetValue:      "",
 			command:          []string{"STRLEN"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Too many args
 			preset:           false,
@@ -190,7 +190,7 @@ func Test_HandleStrLen(t *testing.T) {
 			presetValue:      "",
 			command:          []string{"STRLEN", "test4", "test5"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -286,12 +286,12 @@ func Test_HandleSubStr(t *testing.T) {
 		},
 		{ // Command too short
 			command:       []string{"SUBSTR", "key", "10"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{
 			// Command too long
 			command:       []string{"SUBSTR", "key", "10", "15", "20"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // Start index is not an integer
 			command:       []string{"SUBSTR", "key", "start", "10"},

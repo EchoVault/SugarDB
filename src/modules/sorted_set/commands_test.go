@@ -196,7 +196,7 @@ func Test_HandleZADD(t *testing.T) {
 			command:          []string{"ZADD", "key11"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 12. Throw error when score/member entries are do not match
 			preset:           false,
@@ -303,7 +303,7 @@ func Test_HandleZCARD(t *testing.T) {
 			command:          []string{"ZCARD"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 4. Command too long
 			preset:           false,
@@ -312,7 +312,7 @@ func Test_HandleZCARD(t *testing.T) {
 			command:          []string{"ZCARD", "key4", "key5"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Return error when not a sorted set
 			preset:           true,
@@ -442,7 +442,7 @@ func Test_HandleZCOUNT(t *testing.T) {
 			command:          []string{"ZCOUNT"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 7. Command too long
 			preset:           false,
@@ -451,7 +451,7 @@ func Test_HandleZCOUNT(t *testing.T) {
 			command:          []string{"ZCOUNT", "key4", "min", "max", "count"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 8. Throw error when value at the key is not a sorted set
 			preset:           true,
@@ -564,7 +564,7 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 			command:          []string{"ZLEXCOUNT"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:           false,
@@ -573,7 +573,7 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 			command:          []string{"ZLEXCOUNT", "key6", "min", "max", "count"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -724,7 +724,7 @@ func Test_HandleZDIFF(t *testing.T) {
 			preset:           false,
 			command:          []string{"ZDIFF"},
 			expectedResponse: [][]string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -899,7 +899,7 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"ZDIFFSTORE", "destination6"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -1109,13 +1109,13 @@ func Test_HandleZINCRBY(t *testing.T) {
 			key:              "key11",
 			command:          []string{"ZINCRBY", "key11", "one"},
 			expectedResponse: "",
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 12. Command too long
 			key:              "key12",
 			command:          []string{"ZINCRBY", "key12", "one", "1", "2"},
 			expectedResponse: "",
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -1335,7 +1335,7 @@ func Test_HandleZMPOP(t *testing.T) {
 		{ // 9. Command too short
 			preset:        false,
 			command:       []string{"ZMPOP"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -1501,12 +1501,12 @@ func Test_HandleZPOP(t *testing.T) {
 		{ // 6. Command too short
 			preset:        false,
 			command:       []string{"ZPOPMAX"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 7. Command too long
 			preset:        false,
 			command:       []string{"ZPOPMAX", "key7", "6", "3"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -1606,7 +1606,7 @@ func Test_HandleZMSCORE(t *testing.T) {
 		{ // 9. Command too short
 			preset:        false,
 			command:       []string{"ZMSCORE"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -1701,12 +1701,12 @@ func Test_HandleZSCORE(t *testing.T) {
 		{ // 5. Command too short
 			preset:        false,
 			command:       []string{"ZSCORE"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
 			command:       []string{"ZSCORE", "key5", "one", "two"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -1806,12 +1806,12 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 		{ // 5. Command too short
 			preset:        false,
 			command:       []string{"ZRANDMEMBER"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
 			command:       []string{"ZRANDMEMBER", "source5", "source6", "member1", "member2"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 7. Throw error when count is not an integer
 			preset:        false,
@@ -1971,12 +1971,12 @@ func Test_HandleZRANK(t *testing.T) {
 		{ // 5. Command too short
 			preset:        false,
 			command:       []string{"ZRANK"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
 			command:       []string{"ZRANK", "key5", "one", "WITHSCORES", "two"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -2074,7 +2074,7 @@ func Test_HandleZREM(t *testing.T) {
 		{ // 9. Command too short
 			preset:        false,
 			command:       []string{"ZREM"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -2175,12 +2175,12 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 		{ // 4. Command too short
 			preset:        false,
 			command:       []string{"ZREMRANGEBYSCORE", "key4", "3"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:        false,
 			command:       []string{"ZREMRANGEBYSCORE", "key5", "4", "5", "8"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -2303,7 +2303,7 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 		{ // 4. Command too short
 			preset:        false,
 			command:       []string{"ZREMRANGEBYRANK", "key4", "3"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Return error when start index is out of bounds
 			preset: true,
@@ -2340,7 +2340,7 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 		{ // 7. Command too long
 			preset:        false,
 			command:       []string{"ZREMRANGEBYRANK", "key7", "4", "5", "8"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -2466,12 +2466,12 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 		{ // 4. Command too short
 			preset:        false,
 			command:       []string{"ZREMRANGEBYLEX", "key4", "a"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:        false,
 			command:       []string{"ZREMRANGEBYLEX", "key5", "a", "b", "c"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -2709,14 +2709,14 @@ func Test_HandleZRANGE(t *testing.T) {
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "key15", "1"},
 			expectedResponse: [][]string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 16 Command too long
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "key16", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9", "REV", "WITHSCORES"},
 			expectedResponse: [][]string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -2991,14 +2991,14 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "key15", "1"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 16 Command too long
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "destination16", "key16", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9", "REV", "WITHSCORES"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -3272,7 +3272,7 @@ func Test_HandleZINTER(t *testing.T) {
 			},
 			command:          []string{"ZINTER", "WEIGHTS", "5", "4"},
 			expectedResponse: nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
@@ -3312,7 +3312,7 @@ func Test_HandleZINTER(t *testing.T) {
 			preset:           false,
 			command:          []string{"ZINTER"},
 			expectedResponse: [][]string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -3617,7 +3617,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			},
 			command:          []string{"ZINTERSTORE", "WEIGHTS", "5", "4"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
@@ -3657,7 +3657,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"ZINTERSTORE"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -3956,7 +3956,7 @@ func Test_HandleZUNION(t *testing.T) {
 			},
 			command:          []string{"ZUNION", "WEIGHTS", "5", "4"},
 			expectedResponse: nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
@@ -3998,7 +3998,7 @@ func Test_HandleZUNION(t *testing.T) {
 		{ // 13. Command too short
 			preset:        false,
 			command:       []string{"ZUNION"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -4335,7 +4335,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			},
 			command:          []string{"ZUNIONSTORE", "WEIGHTS", "5", "4"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
@@ -4382,7 +4382,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"ZUNIONSTORE"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 

@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math/big"
 	"net"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -129,4 +131,32 @@ func AbsInt(n int) int {
 		return -n
 	}
 	return n
+}
+
+// ParseMemory returns an integer representing the bytes in the memory string
+func ParseMemory(memory string) (int, error) {
+	// Parse memory strings such as "100mb", "16gb"
+	memString := memory[0 : len(memory)-2]
+	bytesInt, err := strconv.ParseInt(memString, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	memUnit := strings.ToLower(memory[len(memory)-2:])
+	switch memUnit {
+	case "kb":
+		bytesInt *= 1024
+	case "mb":
+		bytesInt *= 1024 * 1024
+	case "gb":
+		bytesInt *= 1024 * 1024 * 1024
+	case "tb":
+		bytesInt *= 1024 * 1024 * 1024 * 1024
+	case "pb":
+		bytesInt *= 1024 * 1024 * 1024 * 1024 * 1024
+	default:
+		return 0, fmt.Errorf("memory unit %s not supported, use (kb, mb, gb, tb, pb) ", memUnit)
+	}
+
+	return int(bytesInt), nil
 }

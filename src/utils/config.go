@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -37,6 +38,8 @@ type Config struct {
 	RestoreSnapshot    bool          `json:"RestoreSnapshot" yaml:"RestoreSnapshot"`
 	RestoreAOF         bool          `json:"RestoreAOF" yaml:"RestoreAOF"`
 	AOFSyncStrategy    string        `json:"AOFSyncStrategy" yaml:"AOFSyncStrategy"`
+	MaxMemory          int           `json:"MaxMemory" yaml:"MaxMemory"`
+	EvictionPolicy     string        `json:"EvictionPolicy" yaml:"EvictionPolicy"`
 }
 
 func GetConfig() (Config, error) {
@@ -75,7 +78,41 @@ The options are 'always' for syncing on each command, 'everysec' to sync every s
 			return nil
 		})
 
-	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false")
+	maxMemory := -1
+	flag.Func("max-memory", `Upper memory limit before triggering eviction. 
+Supported units (kb, mb, gb, tb, pb). There is no limit by default.`, func(memory string) error {
+		b, err := ParseMemory(memory)
+		if err != nil {
+			return err
+		}
+		maxMemory = b
+		return nil
+	})
+
+	evictionPolicy := NoEviction
+	flag.Func("eviction-policy", `The eviction policy used to remove keys when max-memory is reached. The options are: 
+1) noeviction - Do not evict any keys even when max-memory is exceeded.
+2) allkeys-lfu - Evict the least frequently used keys.
+3) allkeys-lru - Evict the least recently used keys.
+4) volatile-lfu - Evict the least frequently used keys with an expiration.
+5) volatile-lru - Evict the least recently used keys with an expiration.
+6) allkeys-random - Evict random keys until we get under the max-memory limit.
+7) volatile-random - Evict random keys with an expiration.
+8) volatile-ttl - Evict the keys with the shortest remaining ttl.`, func(policy string) error {
+		policies := []string{
+			NoEviction,
+			AllKeysLFU, AllKeysLRU, AllKeysRandom,
+			VolatileLFU, VolatileLRU, VolatileRandom, VolatileTTL,
+		}
+		policyIdx := slices.Index(policies, strings.ToLower(policy))
+		if policyIdx == -1 {
+			return fmt.Errorf("policy %s is not a valid policy", policy)
+		}
+		evictionPolicy = strings.ToLower(policy)
+		return nil
+	})
+
+	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false.")
 	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
 	serverId := flag.String("server-id", "1", "Server ID in raft cluster. Leave empty for client.")
@@ -138,6 +175,8 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		RestoreSnapshot:    *restoreSnapshot,
 		RestoreAOF:         *restoreAOF,
 		AOFSyncStrategy:    aofSyncStrategy,
+		MaxMemory:          maxMemory,
+		EvictionPolicy:     evictionPolicy,
 	}
 
 	if len(*config) > 0 {

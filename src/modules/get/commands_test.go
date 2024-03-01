@@ -68,11 +68,11 @@ func Test_HandleGET(t *testing.T) {
 	}{
 		{
 			command:  []string{"GET"},
-			expected: utils.WRONG_ARGS_RESPONSE,
+			expected: utils.WrongArgsResponse,
 		},
 		{
 			command:  []string{"GET", "key", "test"},
-			expected: utils.WRONG_ARGS_RESPONSE,
+			expected: utils.WrongArgsResponse,
 		},
 	}
 	for _, test := range errorTests {
@@ -115,7 +115,7 @@ func Test_HandleMGET(t *testing.T) {
 			presetValues:  []string{"value5"},
 			command:       []string{"MGET"},
 			expected:      nil,
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 

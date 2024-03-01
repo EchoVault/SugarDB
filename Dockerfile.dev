@@ -32,6 +32,7 @@ CMD "./server" \
   "--restore-snapshot=${RESTORE_SNAPSHOT}" \
   "--restore-aof=${RESTORE_AOF}" \
   "--aof-sync-strategy=${AOF_SYNC_STRATEGY}" \
+  "--max-memory=${MAX_MEMORY}" \
   # List of server cert/key pairs
   "--cert-key-pair=${CERT_KEY_PAIR_1}" \
   "--cert-key-pair=${CERT_KEY_PAIR_2}" \

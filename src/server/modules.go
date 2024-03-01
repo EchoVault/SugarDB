@@ -36,8 +36,6 @@ func (server *Server) handleCommand(ctx context.Context, message []byte, conn *n
 		return nil, err
 	}
 
-	fmt.Println(cmd)
-
 	command, err := server.getCommand(cmd[0])
 	if err != nil {
 		return nil, err
@@ -96,7 +94,7 @@ func (server *Server) handleCommand(ctx context.Context, message []byte, conn *n
 	// Forward message to leader and return immediate OK response
 	if server.Config.ForwardCommand {
 		server.memberList.ForwardDataMutation(ctx, message)
-		return []byte(utils.OK_RESPONSE), nil
+		return []byte(utils.OkResponse), nil
 	}
 
 	return nil, errors.New("not cluster leader, cannot carry out command")

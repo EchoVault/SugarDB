@@ -272,7 +272,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, co
 		return strings.EqualFold(s, "limit")
 	})
 	if limitIdx >= 0 && limitIdx < 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 	if limitIdx != -1 {
 		limitIdx += 1

@@ -309,7 +309,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 		return strings.EqualFold(s, "withscores")
 	})
 	if withscoresIndex > -1 && withscoresIndex < 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
 	locks := make(map[string]bool)
@@ -638,7 +638,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *n
 	})
 	if countIdx != -1 {
 		if countIdx < 2 {
-			return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+			return nil, errors.New(utils.WrongArgsResponse)
 		}
 		if countIdx == len(cmd)-1 {
 			return nil, errors.New("count must be a positive integer")
@@ -660,7 +660,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *n
 	})
 	if policyIdx != -1 {
 		if policyIdx < 2 {
-			return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+			return nil, errors.New(utils.WrongArgsResponse)
 		}
 		policy = strings.ToLower(cmd[policyIdx])
 		if modifierIdx == -1 || (policyIdx < modifierIdx) {

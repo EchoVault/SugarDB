@@ -55,7 +55,7 @@ func Test_HandleSADD(t *testing.T) {
 			command:          []string{"SADD", "key4"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -148,7 +148,7 @@ func Test_HandleSCARD(t *testing.T) {
 			command:          []string{"SCARD"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:           false,
@@ -156,7 +156,7 @@ func Test_HandleSCARD(t *testing.T) {
 			command:          []string{"SCARD", "key5", "key5"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -256,7 +256,7 @@ func Test_HandleSDIFF(t *testing.T) {
 			preset:           false,
 			command:          []string{"SDIFF"},
 			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -372,7 +372,7 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"SDIFFSTORE", "destination6"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -489,7 +489,7 @@ func Test_HandleSINTER(t *testing.T) {
 			preset:           false,
 			command:          []string{"SINTER"},
 			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -604,7 +604,7 @@ func Test_HandleSINTERCARD(t *testing.T) {
 			preset:           false,
 			command:          []string{"SINTERSTORE"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -718,7 +718,7 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"SINTERSTORE", "destination6"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -808,14 +808,14 @@ func Test_HandleSISMEMBER(t *testing.T) {
 			key:              "key4",
 			command:          []string{"SISMEMBER", "key4"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:           false,
 			key:              "key5",
 			command:          []string{"SISMEMBER", "key5", "one", "two", "three"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -887,13 +887,13 @@ func Test_HandleSMEMBERS(t *testing.T) {
 			preset:           false,
 			command:          []string{"SMEMBERS"},
 			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:           false,
 			command:          []string{"SMEMBERS", "key5", "key6"},
 			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -975,7 +975,7 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 			key:              "key4",
 			command:          []string{"SMISMEMBER", "key4"},
 			expectedResponse: nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -1081,12 +1081,12 @@ func Test_HandleSMOVE(t *testing.T) {
 		{ // 5. Command too short
 			preset:        false,
 			command:       []string{"SMOVE", "source5", "source6"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
 			command:       []string{"SMOVE", "source5", "source6", "member1", "member2"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -1176,12 +1176,12 @@ func Test_HandleSPOP(t *testing.T) {
 		{ // 5. Command too short
 			preset:        false,
 			command:       []string{"SPOP"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
 			command:       []string{"SPOP", "source5", "source6", "member1", "member2"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 7. Throw error when count is not an integer
 			preset:        false,
@@ -1287,12 +1287,12 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 		{ // 5. Command too short
 			preset:        false,
 			command:       []string{"SRANDMEMBER"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
 			command:       []string{"SRANDMEMBER", "source5", "source6", "member1", "member2"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 7. Throw error when count is not an integer
 			preset:        false,
@@ -1403,7 +1403,7 @@ func Test_HandleSREM(t *testing.T) {
 		{ // 4. Command too short
 			preset:        false,
 			command:       []string{"SREM", "key"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -1511,7 +1511,7 @@ func Test_HandleSUNION(t *testing.T) {
 			preset:           false,
 			command:          []string{"SUNION"},
 			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
@@ -1605,7 +1605,7 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"SUNIONSTORE", "destination6"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 

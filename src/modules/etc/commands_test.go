@@ -41,13 +41,13 @@ func Test_HandleSET(t *testing.T) {
 			command:          []string{"SET"},
 			expectedResponse: "",
 			expectedValue:    nil,
-			expectedErr:      errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedErr:      errors.New(utils.WrongArgsResponse),
 		},
 		{
 			command:          []string{"SET", "test", "one", "two", "three"},
 			expectedResponse: "",
 			expectedValue:    nil,
-			expectedErr:      errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedErr:      errors.New(utils.WrongArgsResponse),
 		},
 	}
 

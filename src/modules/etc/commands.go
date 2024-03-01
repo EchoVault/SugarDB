@@ -28,7 +28,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, conn *net
 		}
 		server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
 		server.KeyUnlock(key)
-		return []byte(utils.OK_RESPONSE), nil
+		return []byte(utils.OkResponse), nil
 	}
 
 	if _, err := server.KeyLock(ctx, key); err != nil {
@@ -38,7 +38,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, conn *net
 	server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
 	server.KeyUnlock(key)
 
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleSetNX(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -57,7 +57,7 @@ func handleSetNX(ctx context.Context, cmd []string, server utils.Server, conn *n
 	server.SetValue(ctx, key, utils.AdaptType(cmd[2]))
 	server.KeyUnlock(key)
 
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleMSet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -111,7 +111,7 @@ func handleMSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		server.SetValue(ctx, k, v.value)
 	}
 
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleCopy(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
