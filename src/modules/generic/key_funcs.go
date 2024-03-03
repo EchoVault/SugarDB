@@ -1,4 +1,4 @@
-package etc
+package generic
 
 import (
 	"errors"
@@ -6,14 +6,7 @@ import (
 )
 
 func setKeyFunc(cmd []string) ([]string, error) {
-	if len(cmd) != 3 {
-		return nil, errors.New(utils.WrongArgsResponse)
-	}
-	return []string{cmd[1]}, nil
-}
-
-func setNXKeyFunc(cmd []string) ([]string, error) {
-	if len(cmd) != 3 {
+	if len(cmd) < 3 || len(cmd) > 7 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 	return []string{cmd[1]}, nil
@@ -30,4 +23,18 @@ func msetKeyFunc(cmd []string) ([]string, error) {
 		}
 	}
 	return keys, nil
+}
+
+func getKeyFunc(cmd []string) ([]string, error) {
+	if len(cmd) != 2 {
+		return nil, errors.New(utils.WrongArgsResponse)
+	}
+	return []string{cmd[1]}, nil
+}
+
+func mgetKeyFunc(cmd []string) ([]string, error) {
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WrongArgsResponse)
+	}
+	return cmd[1:], nil
 }

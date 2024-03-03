@@ -1,4 +1,4 @@
-package ping
+package connection
 
 import (
 	"bytes"

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/src/aof"
+	"github.com/echovault/echovault/src/eviction"
 	"github.com/echovault/echovault/src/memberlist"
 	"github.com/echovault/echovault/src/raft"
 	"github.com/echovault/echovault/src/snapshot"
@@ -28,6 +29,9 @@ type Server struct {
 	store           map[string]interface{}
 	keyLocks        map[string]*sync.RWMutex
 	keyCreationLock *sync.Mutex
+	keyExpiry       map[string]time.Time
+	lfuCache        *eviction.CacheLFU
+	lruCache        *eviction.CacheLRU
 
 	Commands []utils.Command
 
@@ -66,6 +70,7 @@ func NewServer(opts Opts) *Server {
 		store:           make(map[string]interface{}),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
+		keyExpiry:       make(map[string]time.Time),
 	}
 	if server.IsInCluster() {
 		server.raft = raft.NewRaft(raft.Opts{
@@ -117,6 +122,11 @@ func NewServer(opts Opts) *Server {
 			}),
 		)
 	}
+
+	// Set up lfu and lru caches
+	server.lfuCache = eviction.NewCacheLFU()
+	server.lruCache = eviction.NewCacheLRU()
+
 	return server
 }
 

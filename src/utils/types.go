@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"net"
+	"time"
 )
 
 type Server interface {
@@ -14,6 +15,8 @@ type Server interface {
 	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
 	GetValue(key string) interface{}
 	SetValue(ctx context.Context, key string, value interface{})
+	SetKeyExpiry(key string, expire time.Time, touch bool)
+	RemoveKeyExpiry(key string)
 	GetState() map[string]interface{}
 	GetAllCommands(ctx context.Context) []Command
 	GetACL() interface{}

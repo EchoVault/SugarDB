@@ -11,47 +11,80 @@ type EntryLFU struct {
 	index int    // The index of the entry in the heap
 }
 
-type Cache []*EntryLFU
-
-func (cache *Cache) Len() int {
-	return len(*cache)
+type CacheLFU struct {
+	keys    map[string]bool
+	entries []*EntryLFU
 }
 
-func (cache *Cache) Less(i, j int) bool {
-	return (*cache)[i].count > (*cache)[j].count
+func NewCacheLFU() *CacheLFU {
+	cache := &CacheLFU{
+		keys:    make(map[string]bool),
+		entries: make([]*EntryLFU, 0),
+	}
+	heap.Init(cache)
+	return cache
 }
 
-func (cache *Cache) Swap(i, j int) {
-	(*cache)[i], (*cache)[j] = (*cache)[j], (*cache)[i]
-	(*cache)[i].index = i
-	(*cache)[j].index = j
+func (cache *CacheLFU) Len() int {
+	return len(cache.entries)
 }
 
-func (cache *Cache) Push(key any) {
-	n := len(*cache)
-	*cache = append(*cache, &EntryLFU{
+func (cache *CacheLFU) Less(i, j int) bool {
+	return cache.entries[i].count < cache.entries[j].count
+}
+
+func (cache *CacheLFU) Swap(i, j int) {
+	cache.entries[i], cache.entries[j] = cache.entries[j], cache.entries[i]
+	cache.entries[i].index = i
+	cache.entries[j].index = j
+}
+
+func (cache *CacheLFU) Push(key any) {
+	n := len(cache.entries)
+	cache.entries = append(cache.entries, &EntryLFU{
 		key:   key.(string),
 		count: 1,
 		index: n,
 	})
+	cache.keys[key.(string)] = true
 }
 
-func (cache *Cache) Pop() any {
-	old := *cache
+func (cache *CacheLFU) Pop() any {
+	old := cache.entries
 	n := len(old)
 	entry := old[n-1]
 	old[n-1] = nil
 	entry.index = -1
-	*cache = old[0 : n-1]
+	cache.entries = old[0 : n-1]
+	delete(cache.keys, entry.key)
 	return entry.key
 }
 
-func (cache *Cache) Update(key string) {
+func (cache *CacheLFU) Update(key string) {
+	// If the key is not contained in the cache, push it.
+	if !cache.contains(key) {
+		heap.Push(cache, key)
+		return
+	}
 	// Get the item with key
-	entryIdx := slices.IndexFunc(*cache, func(e *EntryLFU) bool {
+	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLFU) bool {
 		return e.key == key
 	})
-	entry := (*cache)[entryIdx]
+	entry := cache.entries[entryIdx]
 	entry.count += 1
 	heap.Fix(cache, entryIdx)
+}
+
+func (cache *CacheLFU) Delete(key string) {
+	entryIdx := slices.IndexFunc(cache.entries, func(entry *EntryLFU) bool {
+		return entry.key == key
+	})
+	if entryIdx > -1 {
+		heap.Remove(cache, cache.entries[entryIdx].index)
+	}
+}
+
+func (cache *CacheLFU) contains(key string) bool {
+	_, ok := cache.keys[key]
+	return ok
 }

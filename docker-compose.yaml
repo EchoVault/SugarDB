@@ -18,7 +18,7 @@ services:
       - PLUGIN_DIR=/usr/local/lib/echovault
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
-      - TLS=true
+      - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
       - ACL_CONFIG=/etc/config/echovault/acl.yml
@@ -31,6 +31,7 @@ services:
       - RESTORE_AOF=true
       - AOF_SYNC_STRATEGY=everysec
       - MAX_MEMORY=100kb
+      - EVICTION_POLICY=allkeys-lfu
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -55,15 +56,15 @@ services:
 #      - PORT=7480
 #      - RAFT_PORT=8000
 #      - ML_PORT=7946
-#      - KEY=/etc/ssl/certs/echovault/server1.key
-#      - CERT=/etc/ssl/certs/echovault/server1.crt
+#      - KEY=/generic/ssl/certs/echovault/server1.key
+#      - CERT=/generic/ssl/certs/echovault/server1.crt
 #      - SERVER_ID=1
 #      - DATA_DIR=/var/lib/echovault
 #      - IN_MEMORY=false
 #      - TLS=true
 #      - MTLS=true
 #      - BOOTSTRAP_CLUSTER=true
-#      - ACL_CONFIG=/etc/config/echovault/acl.yml
+#      - ACL_CONFIG=/generic/config/echovault/acl.yml
 #      - REQUIRE_PASS=false
 #      - FORWARD_COMMAND=true
 #      - SNAPSHOT_THRESHOLD=1000
@@ -72,16 +73,16 @@ services:
 #      - RESTORE_AOF=false
 #      - AOF_SYNC_STRATEGY=everysec
 #      # List of server cert/key pairs
-#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+#      - CERT_KEY_PAIR_1=/generic/ssl/certs/echovault/server/server1.crt,/generic/ssl/certs/echovault/server/server1.key
+#      - CERT_KEY_PAIR_2=/generic/ssl/certs/echovault/server/server2.crt,/generic/ssl/certs/echovault/server/server2.key
 #      # List of client certificate authorities
-#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+#      - CLIENT_CA_1=/generic/ssl/certs/echovault/client/rootCA.crt
 #    ports:
 #      - "7481:7480"
 #      - "7945:7946"
 #      - "8000:8000"
 #    volumes:
-#      - ./config/acl.yml:/etc/config/echovault/acl.yml
+#      - ./config/acl.yml:/generic/config/echovault/acl.yml
 #      - ./volumes/cluster_node_1:/var/lib/echovault
 #    networks:
 #      - testnet
@@ -95,8 +96,8 @@ services:
 #      - PORT=7480
 #      - RAFT_PORT=8000
 #      - ML_PORT=7946
-#      - KEY=/etc/ssl/certs/echovault/server1.key
-#      - CERT=/etc/ssl/certs/echovault/server1.crt
+#      - KEY=/generic/ssl/certs/echovault/server1.key
+#      - CERT=/generic/ssl/certs/echovault/server1.crt
 #      - SERVER_ID=2
 #      - JOIN_ADDR=cluster_node_1:7946
 #      - DATA_DIR=/var/lib/echovault
@@ -104,7 +105,7 @@ services:
 #      - TLS=true
 #      - MTLS=true
 #      - BOOTSTRAP_CLUSTER=false
-#      - ACL_CONFIG=/etc/config/echovault/acl.yml
+#      - ACL_CONFIG=/generic/config/echovault/acl.yml
 #      - REQUIRE_PASS=false
 #      - FORWARD_COMMAND=true
 #      - SNAPSHOT_THRESHOLD=1000
@@ -113,16 +114,16 @@ services:
 #      - RESTORE_AOF=false
 #      - AOF_SYNC_STRATEGY=everysec
 #      # List of server cert/key pairs
-#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+#      - CERT_KEY_PAIR_1=/generic/ssl/certs/echovault/server/server1.crt,/generic/ssl/certs/echovault/server/server1.key
+#      - CERT_KEY_PAIR_2=/generic/ssl/certs/echovault/server/server2.crt,/generic/ssl/certs/echovault/server/server2.key
 #      # List of client certificate authorities
-#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+#      - CLIENT_CA_1=/generic/ssl/certs/echovault/client/rootCA.crt
 #    ports:
 #      - "7482:7480"
 #      - "7947:7946"
 #      - "8001:8000"
 #    volumes:
-#      - ./config/acl.yml:/etc/config/echovault/acl.yml
+#      - ./config/acl.yml:/generic/config/echovault/acl.yml
 #      - ./volumes/cluster_node_2:/var/lib/echovault
 #    networks:
 #      - testnet
@@ -136,8 +137,8 @@ services:
 #      - PORT=7480
 #      - RAFT_PORT=8000
 #      - ML_PORT=7946
-#      - KEY=/etc/ssl/certs/echovault/server1.key
-#      - CERT=/etc/ssl/certs/echovault/server1.crt
+#      - KEY=/generic/ssl/certs/echovault/server1.key
+#      - CERT=/generic/ssl/certs/echovault/server1.crt
 #      - SERVER_ID=3
 #      - JOIN_ADDR=cluster_node_1:7946
 #      - DATA_DIR=/var/lib/echovault
@@ -145,7 +146,7 @@ services:
 #      - TLS=true
 #      - MTLS=true
 #      - BOOTSTRAP_CLUSTER=false
-#      - ACL_CONFIG=/etc/config/echovault/acl.yml
+#      - ACL_CONFIG=/generic/config/echovault/acl.yml
 #      - REQUIRE_PASS=false
 #      - FORWARD_COMMAND=true
 #      - SNAPSHOT_THRESHOLD=1000
@@ -154,16 +155,16 @@ services:
 #      - RESTORE_AOF=false
 #      - AOF_SYNC_STRATEGY=everysec
 #      # List of server cert/key pairs
-#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+#      - CERT_KEY_PAIR_1=/generic/ssl/certs/echovault/server/server1.crt,/generic/ssl/certs/echovault/server/server1.key
+#      - CERT_KEY_PAIR_2=/generic/ssl/certs/echovault/server/server2.crt,/generic/ssl/certs/echovault/server/server2.key
 #      # List of client certificate authorities
-#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+#      - CLIENT_CA_1=/generic/ssl/certs/echovault/client/rootCA.crt
 #    ports:
 #      - "7483:7480"
 #      - "7948:7946"
 #      - "8002:8000"
 #    volumes:
-#      - ./config/acl.yml:/etc/config/echovault/acl.yml
+#      - ./config/acl.yml:/generic/config/echovault/acl.yml
 #      - ./volumes/cluster_node_3:/var/lib/echovault
 #    networks:
 #      - testnet
@@ -177,8 +178,8 @@ services:
 #      - PORT=7480
 #      - RAFT_PORT=8000
 #      - ML_PORT=7946
-#      - KEY=/etc/ssl/certs/echovault/server1.key
-#      - CERT=/etc/ssl/certs/echovault/server1.crt
+#      - KEY=/generic/ssl/certs/echovault/server1.key
+#      - CERT=/generic/ssl/certs/echovault/server1.crt
 #      - SERVER_ID=4
 #      - JOIN_ADDR=cluster_node_1:7946
 #      - DATA_DIR=/var/lib/echovault
@@ -186,7 +187,7 @@ services:
 #      - TLS=true
 #      - MTLS=true
 #      - BOOTSTRAP_CLUSTER=false
-#      - ACL_CONFIG=/etc/config/echovault/acl.yml
+#      - ACL_CONFIG=/generic/config/echovault/acl.yml
 #      - REQUIRE_PASS=false
 #      - FORWARD_COMMAND=true
 #      - SNAPSHOT_THRESHOLD=1000
@@ -195,16 +196,16 @@ services:
 #      - RESTORE_AOF=false
 #      - AOF_SYNC_STRATEGY=everysec
 #      # List of server cert/key pairs
-#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+#      - CERT_KEY_PAIR_1=/generic/ssl/certs/echovault/server/server1.crt,/generic/ssl/certs/echovault/server/server1.key
+#      - CERT_KEY_PAIR_2=/generic/ssl/certs/echovault/server/server2.crt,/generic/ssl/certs/echovault/server/server2.key
 #      # List of client certificate authorities
-#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+#      - CLIENT_CA_1=/generic/ssl/certs/echovault/client/rootCA.crt
 #    ports:
 #      - "7484:7480"
 #      - "7949:7946"
 #      - "8003:8000"
 #    volumes:
-#      - ./config/acl.yml:/etc/config/echovault/acl.yml
+#      - ./config/acl.yml:/generic/config/echovault/acl.yml
 #      - ./volumes/cluster_node_4:/var/lib/echovault
 #    networks:
 #      - testnet
@@ -218,8 +219,8 @@ services:
 #      - PORT=7480
 #      - RAFT_PORT=8000
 #      - ML_PORT=7946
-#      - KEY=/etc/ssl/certs/echovault/server1.key
-#      - CERT=/etc/ssl/certs/echovault/server1.crt
+#      - KEY=/generic/ssl/certs/echovault/server1.key
+#      - CERT=/generic/ssl/certs/echovault/server1.crt
 #      - SERVER_ID=5
 #      - JOIN_ADDR=cluster_node_1:7946
 #      - DATA_DIR=/var/lib/echovault
@@ -227,7 +228,7 @@ services:
 #      - TLS=true
 #      - MTLS=true
 #      - BOOTSTRAP_CLUSTER=false
-#      - ACL_CONFIG=/etc/config/echovault/acl.yml
+#      - ACL_CONFIG=/generic/config/echovault/acl.yml
 #      - REQUIRE_PASS=false
 #      - FORWARD_COMMAND=true
 #      - SNAPSHOT_THRESHOLD=1000
@@ -236,16 +237,16 @@ services:
 #      - RESTORE_AOF=false
 #      - AOF_SYNC_STRATEGY=everysec
 #      # List of server cert/key pairs
-#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+#      - CERT_KEY_PAIR_1=/generic/ssl/certs/echovault/server/server1.crt,/generic/ssl/certs/echovault/server/server1.key
+#      - CERT_KEY_PAIR_2=/generic/ssl/certs/echovault/server/server2.crt,/generic/ssl/certs/echovault/server/server2.key
 #      # List of client certificate authorities
-#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+#      - CLIENT_CA_1=/generic/ssl/certs/echovault/client/rootCA.crt
 #    ports:
 #      - "7485:7480"
 #      - "7950:7946"
 #      - "8004:8000"
 #    volumes:
-#      - ./config/acl.yml:/etc/config/echovault/acl.yml
+#      - ./config/acl.yml:/generic/config/echovault/acl.yml
 #      - ./volumes/cluster_node_5:/var/lib/echovault
 #    networks:
 #      - testnet

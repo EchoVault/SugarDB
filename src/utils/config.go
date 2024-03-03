@@ -121,7 +121,7 @@ Supported units (kb, mb, gb, tb, pb). There is no limit by default.`, func(memor
 	raftBindPort := flag.Uint("raft-port", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	mlBindPort := flag.Uint("memberlist-port", 7946, "Port to use for memberlist communication.")
 	inMemory := flag.Bool("in-memory", false, "Whether to use memory or persistent storage for raft logs and snapshots.")
-	dataDir := flag.String("data-dir", "/var/lib/echovault", "Directory to store raft snapshots and logs.")
+	dataDir := flag.String("data-dir", "/var/lib/echovault", "Directory to store snapshots and logs.")
 	bootstrapCluster := flag.Bool("bootstrap-cluster", false, "Whether this instance should bootstrap a new cluster.")
 	aclConfig := flag.String("acl-config", "", "ACL config file path.")
 	snapshotThreshold := flag.Uint64("snapshot-threshold", 1000, "The number of entries that trigger a snapshot. Default is 1000.")
@@ -213,7 +213,7 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 	var err error = nil
 
 	if conf.RequirePass && conf.Password == "" {
-		err = errors.New("password cannot be empty if requirePass is etc to true")
+		err = errors.New("password cannot be empty if requirePass is generic to true")
 	}
 
 	return conf, err

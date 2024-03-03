@@ -21,6 +21,8 @@ CMD "./server" \
   "--data-dir" "${DATA_DIR}" \
   "--snapshot-threshold" "${SNAPSHOT_THRESHOLD}" \
   "--snapshot-interval" "${SNAPSHOT_INTERVAL}" \
+  "--max-memory" "${MAX_MEMORY}" \
+  "--eviction-policy" "${EVICTION_POLICY}" \
   "--tls=${TLS}" \
   "--mtls=${MTLS}" \
   "--in-memory=${IN_MEMORY}" \
@@ -32,7 +34,6 @@ CMD "./server" \
   "--restore-snapshot=${RESTORE_SNAPSHOT}" \
   "--restore-aof=${RESTORE_AOF}" \
   "--aof-sync-strategy=${AOF_SYNC_STRATEGY}" \
-  "--max-memory=${MAX_MEMORY}" \
   # List of server cert/key pairs
   "--cert-key-pair=${CERT_KEY_PAIR_1}" \
   "--cert-key-pair=${CERT_KEY_PAIR_2}" \

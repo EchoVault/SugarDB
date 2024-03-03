@@ -4,11 +4,10 @@ import (
 	"context"
 	"github.com/echovault/echovault/src/modules/acl"
 	"github.com/echovault/echovault/src/modules/admin"
-	"github.com/echovault/echovault/src/modules/etc"
-	"github.com/echovault/echovault/src/modules/get"
+	"github.com/echovault/echovault/src/modules/connection"
+	"github.com/echovault/echovault/src/modules/generic"
 	"github.com/echovault/echovault/src/modules/hash"
 	"github.com/echovault/echovault/src/modules/list"
-	"github.com/echovault/echovault/src/modules/ping"
 	"github.com/echovault/echovault/src/modules/pubsub"
 	"github.com/echovault/echovault/src/modules/set"
 	"github.com/echovault/echovault/src/modules/sorted_set"
@@ -25,11 +24,10 @@ func GetCommands() []utils.Command {
 	var commands []utils.Command
 	commands = append(commands, acl.Commands()...)
 	commands = append(commands, admin.Commands()...)
-	commands = append(commands, etc.Commands()...)
-	commands = append(commands, get.Commands()...)
+	commands = append(commands, generic.Commands()...)
 	commands = append(commands, hash.Commands()...)
 	commands = append(commands, list.Commands()...)
-	commands = append(commands, ping.Commands()...)
+	commands = append(commands, connection.Commands()...)
 	commands = append(commands, pubsub.Commands()...)
 	commands = append(commands, set.Commands()...)
 	commands = append(commands, sorted_set.Commands()...)

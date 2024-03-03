@@ -32,7 +32,7 @@ const (
 const (
 	NoEviction     = "noeviction"
 	AllKeysLRU     = "allkeys-lru"
-	AllKeysLFU     = "allkeys=lfu"
+	AllKeysLFU     = "allkeys-lfu"
 	VolatileLRU    = "volatile-lru"
 	VolatileLFU    = "volatile-lfu"
 	AllKeysRandom  = "allkeys-random"

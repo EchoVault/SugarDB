@@ -271,8 +271,8 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return nil
 	}
 
-	// Skip ping
-	if strings.EqualFold(comm, "ping") {
+	// Skip connection
+	if strings.EqualFold(comm, "connection") {
 		return nil
 	}
 

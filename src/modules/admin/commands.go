@@ -156,18 +156,6 @@ func handleCommandDocs(ctx context.Context, cmd []string, server utils.Server, _
 	return []byte("*0\r\n"), nil
 }
 
-// func handleConfigGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-// 	return nil, errors.New("command not yet implemented")
-// }
-//
-// func handleConfigRewrite(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
-// 	return nil, errors.New("command not yet implemented")
-// }
-//
-// func handleConfigSet(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
-// 	return nil, errors.New("command not yet implemented")
-// }
-
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
