@@ -127,6 +127,8 @@ func NewServer(opts Opts) *Server {
 	server.lfuCache = eviction.NewCacheLFU()
 	server.lruCache = eviction.NewCacheLRU()
 
+	// TODO: Start goroutine that continuously reads the mem stats before triggering purge once max-memory is reached
+
 	return server
 }
 

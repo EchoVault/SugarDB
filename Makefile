@@ -4,7 +4,7 @@ build-server:
 build:
 	env CC=x86_64-linux-musl-gcc GOOS=linux GOARCH=amd64 DEST=bin/linux/x86_64 make build-server
 
-make run:
+run:
 	make build && docker-compose up --build
 
 test:

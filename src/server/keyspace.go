@@ -86,6 +86,8 @@ func (server *Server) GetValue(key string) interface{} {
 // This count triggers a snapshot when the threshold is reached.
 // The key must be locked prior to calling this function.
 func (server *Server) SetValue(_ context.Context, key string, value interface{}) {
+	// TODO: If max-memory is exceeded and eviction policy is noeviction, do not store the new value
+
 	server.store[key] = value
 
 	server.updateKeyInCache(key)
@@ -157,4 +159,5 @@ func (server *Server) updateKeyInCache(key string) {
 			server.lruCache.Update(key)
 		}
 	}
+	// TODO: Check if memory usage is above max-memory. If it is, pop items from the cache until we get under the limit.
 }

@@ -134,7 +134,7 @@ func AbsInt(n int) int {
 }
 
 // ParseMemory returns an integer representing the bytes in the memory string
-func ParseMemory(memory string) (int, error) {
+func ParseMemory(memory string) (uint64, error) {
 	// Parse memory strings such as "100mb", "16gb"
 	memString := memory[0 : len(memory)-2]
 	bytesInt, err := strconv.ParseInt(memString, 10, 64)
@@ -158,5 +158,5 @@ func ParseMemory(memory string) (int, error) {
 		return 0, fmt.Errorf("memory unit %s not supported, use (kb, mb, gb, tb, pb) ", memUnit)
 	}
 
-	return int(bytesInt), nil
+	return uint64(bytesInt), nil
 }

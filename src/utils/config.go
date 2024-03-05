@@ -38,7 +38,7 @@ type Config struct {
 	RestoreSnapshot    bool          `json:"RestoreSnapshot" yaml:"RestoreSnapshot"`
 	RestoreAOF         bool          `json:"RestoreAOF" yaml:"RestoreAOF"`
 	AOFSyncStrategy    string        `json:"AOFSyncStrategy" yaml:"AOFSyncStrategy"`
-	MaxMemory          int           `json:"MaxMemory" yaml:"MaxMemory"`
+	MaxMemory          uint64        `json:"MaxMemory" yaml:"MaxMemory"`
 	EvictionPolicy     string        `json:"EvictionPolicy" yaml:"EvictionPolicy"`
 }
 
@@ -78,7 +78,7 @@ The options are 'always' for syncing on each command, 'everysec' to sync every s
 			return nil
 		})
 
-	maxMemory := -1
+	var maxMemory uint64 = 0
 	flag.Func("max-memory", `Upper memory limit before triggering eviction. 
 Supported units (kb, mb, gb, tb, pb). There is no limit by default.`, func(memory string) error {
 		b, err := ParseMemory(memory)

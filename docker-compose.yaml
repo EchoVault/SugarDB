@@ -30,7 +30,7 @@ services:
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=true
       - AOF_SYNC_STRATEGY=everysec
-      - MAX_MEMORY=100kb
+      - MAX_MEMORY=2000kb
       - EVICTION_POLICY=allkeys-lfu
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
