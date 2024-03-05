@@ -5,4 +5,4 @@ volumes
 /coverage/
 
 dist/
-aof/
+src/modules/*/aof
