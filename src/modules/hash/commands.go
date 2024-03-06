@@ -30,12 +30,14 @@ func handleHSET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 
 	if !server.KeyExists(key) {
-		_, err := server.CreateKeyAndLock(ctx, key)
+		_, err = server.CreateKeyAndLock(ctx, key)
 		if err != nil {
 			return nil, err
 		}
 		defer server.KeyUnlock(key)
-		server.SetValue(ctx, key, entries)
+		if err = server.SetValue(ctx, key, entries); err != nil {
+			return nil, err
+		}
 		return []byte(fmt.Sprintf(":%d\r\n", len(entries))), nil
 	}
 
@@ -61,7 +63,9 @@ func handleHSET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		hash[field] = value
 		count += 1
 	}
-	server.SetValue(ctx, key, hash)
+	if err = server.SetValue(ctx, key, hash); err != nil {
+		return nil, err
+	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
@@ -414,11 +418,15 @@ func handleHINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		hash := make(map[string]interface{})
 		if strings.EqualFold(cmd[0], "hincrbyfloat") {
 			hash[field] = floatIncrement
-			server.SetValue(ctx, key, hash)
+			if err = server.SetValue(ctx, key, hash); err != nil {
+				return nil, err
+			}
 			return []byte(fmt.Sprintf("+%s\r\n", strconv.FormatFloat(floatIncrement, 'f', -1, 64))), nil
 		} else {
 			hash[field] = intIncrement
-			server.SetValue(ctx, key, hash)
+			if err = server.SetValue(ctx, key, hash); err != nil {
+				return nil, err
+			}
 			return []byte(fmt.Sprintf(":%d\r\n", intIncrement)), nil
 		}
 	}
@@ -456,7 +464,9 @@ func handleHINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		}
 	}
 
-	server.SetValue(ctx, key, hash)
+	if err = server.SetValue(ctx, key, hash); err != nil {
+		return nil, err
+	}
 
 	if f, ok := hash[field].(float64); ok {
 		return []byte(fmt.Sprintf("+%s\r\n", strconv.FormatFloat(f, 'f', -1, 64))), nil
@@ -568,7 +578,9 @@ func handleHDEL(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		}
 	}
 
-	server.SetValue(ctx, key, hash)
+	if err = server.SetValue(ctx, key, hash); err != nil {
+		return nil, err
+	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }

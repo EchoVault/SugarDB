@@ -24,10 +24,12 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 	newStr := cmd[3]
 
 	if !server.KeyExists(key) {
-		if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+		if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 			return nil, err
 		}
-		server.SetValue(ctx, key, newStr)
+		if err = server.SetValue(ctx, key, newStr); err != nil {
+			return nil, err
+		}
 		server.KeyUnlock(key)
 		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
 	}
@@ -45,14 +47,18 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 	// If the offset  >= length of the string, append the new string to the old one.
 	if offset >= len(str) {
 		newStr = str + newStr
-		server.SetValue(ctx, key, newStr)
+		if err = server.SetValue(ctx, key, newStr); err != nil {
+			return nil, err
+		}
 		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
 	}
 
 	// If the offset is < 0, prepend the new string to the old one.
 	if offset < 0 {
 		newStr = newStr + str
-		server.SetValue(ctx, key, newStr)
+		if err = server.SetValue(ctx, key, newStr); err != nil {
+			return nil, err
+		}
 		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
 	}
 
@@ -70,7 +76,9 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 		break
 	}
 
-	server.SetValue(ctx, key, string(strRunes))
+	if err = server.SetValue(ctx, key, string(strRunes)); err != nil {
+		return nil, err
+	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", len(strRunes))), nil
 }

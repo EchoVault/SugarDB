@@ -66,7 +66,9 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	}
 	defer server.KeyUnlock(key)
 
-	server.SetValue(ctx, key, utils.AdaptType(value))
+	if err = server.SetValue(ctx, key, utils.AdaptType(value)); err != nil {
+		return nil, err
+	}
 
 	// If expiresAt is set, set the key's expiry time as well
 	if params.expireAt != nil {
@@ -124,7 +126,9 @@ func handleMSet(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 
 	// Set all the values
 	for k, v := range entries {
-		server.SetValue(ctx, k, v.value)
+		if err := server.SetValue(ctx, k, v.value); err != nil {
+			return nil, err
+		}
 	}
 
 	return []byte(utils.OkResponse), nil

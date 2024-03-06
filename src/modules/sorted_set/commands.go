@@ -151,13 +151,15 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 
 	// Key does not exist
-	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+	if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
 
 	set := NewSortedSet(members)
-	server.SetValue(ctx, key, set)
+	if err = server.SetValue(ctx, key, set); err != nil {
+		return nil, err
+	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
@@ -431,7 +433,9 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 	}
 	defer server.KeyUnlock(destination)
 
-	server.SetValue(ctx, destination, diff)
+	if err = server.SetValue(ctx, destination, diff); err != nil {
+		return nil, err
+	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", diff.Cardinality())), nil
 }
@@ -471,7 +475,9 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 			return nil, err
 		}
-		server.SetValue(ctx, key, NewSortedSet([]MemberParam{{value: member, score: increment}}))
+		if err = server.SetValue(ctx, key, NewSortedSet([]MemberParam{{value: member, score: increment}})); err != nil {
+			return nil, err
+		}
 		server.KeyUnlock(key)
 		return []byte(fmt.Sprintf("+%s\r\n", strconv.FormatFloat(float64(increment), 'f', -1, 64))), nil
 	}
@@ -617,7 +623,9 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	}
 	defer server.KeyUnlock(destination)
 
-	server.SetValue(ctx, destination, intersect)
+	if err = server.SetValue(ctx, destination, intersect); err != nil {
+		return nil, err
+	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
@@ -1390,7 +1398,9 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 	}
 	defer server.KeyUnlock(destination)
 
-	server.SetValue(ctx, destination, newSortedSet)
+	if err = server.SetValue(ctx, destination, newSortedSet); err != nil {
+		return nil, err
+	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", newSortedSet.Cardinality())), nil
 }
@@ -1508,7 +1518,9 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	}
 	defer server.KeyUnlock(destination)
 
-	server.SetValue(ctx, destination, union)
+	if err = server.SetValue(ctx, destination, union); err != nil {
+		return nil, err
+	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", union.Cardinality())), nil
 }

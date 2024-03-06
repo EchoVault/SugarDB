@@ -25,7 +25,9 @@ func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		if ok, err := server.CreateKeyAndLock(ctx, key); !ok && err != nil {
 			return nil, err
 		}
-		server.SetValue(ctx, key, set)
+		if err = server.SetValue(ctx, key, set); err != nil {
+			return nil, err
+		}
 		server.KeyUnlock(key)
 		return []byte(fmt.Sprintf(":%d\r\n", len(cmd[2:]))), nil
 	}
@@ -191,7 +193,9 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
-		server.SetValue(ctx, destination, diff)
+		if err = server.SetValue(ctx, destination, diff); err != nil {
+			return nil, err
+		}
 		server.KeyUnlock(destination)
 		return []byte(res), nil
 	}
@@ -199,7 +203,9 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 	if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
 		return nil, err
 	}
-	server.SetValue(ctx, destination, diff)
+	if err = server.SetValue(ctx, destination, diff); err != nil {
+		return nil, err
+	}
 	server.KeyUnlock(destination)
 
 	return []byte(res), nil
@@ -377,7 +383,9 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 		}
 	}
 
-	server.SetValue(ctx, destination, intersect)
+	if err = server.SetValue(ctx, destination, intersect); err != nil {
+		return nil, err
+	}
 	server.KeyUnlock(destination)
 
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
@@ -523,7 +531,9 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *n
 		}
 		defer server.KeyUnlock(destination)
 		destinationSet = NewSet([]string{})
-		server.SetValue(ctx, destination, destinationSet)
+		if err = server.SetValue(ctx, destination, destinationSet); err != nil {
+			return nil, err
+		}
 	} else {
 		// Destination key exists
 		if _, err := server.KeyLock(ctx, destination); err != nil {
@@ -762,7 +772,9 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	}
 	defer server.KeyUnlock(destination)
 
-	server.SetValue(ctx, destination, union)
+	if err = server.SetValue(ctx, destination, union); err != nil {
+		return nil, err
+	}
 	return []byte(fmt.Sprintf(":%d\r\n", union.Cardinality())), nil
 }
 
