@@ -95,9 +95,16 @@ func NewServer(opts Opts) *Server {
 			GetState:                      server.GetState,
 			SetLatestSnapshotMilliseconds: server.SetLatestSnapshot,
 			GetLatestSnapshotMilliseconds: server.GetLatestSnapshot,
-			CreateKeyAndLock:              server.CreateKeyAndLock,
-			KeyUnlock:                     server.KeyUnlock,
-			SetValue:                      server.SetValue,
+			SetValue: func(key string, value interface{}) error {
+				if _, err := server.CreateKeyAndLock(context.Background(), key); err != nil {
+					return err
+				}
+				if err := server.SetValue(context.Background(), key, value); err != nil {
+					return err
+				}
+				server.KeyUnlock(key)
+				return nil
+			},
 		})
 		// Set up standalone AOF engine
 		server.AOFEngine = aof.NewAOFEngine(
@@ -106,13 +113,15 @@ func NewServer(opts Opts) *Server {
 			aof.WithStartRewriteFunc(server.StartRewriteAOF),
 			aof.WithFinishRewriteFunc(server.FinishRewriteAOF),
 			aof.WithGetStateFunc(server.GetState),
-			aof.WithSetValueFunc(func(key string, value interface{}) {
+			aof.WithSetValueFunc(func(key string, value interface{}) error {
 				if _, err := server.CreateKeyAndLock(context.Background(), key); err != nil {
-					log.Println(err)
-					return
+					return err
 				}
-				server.SetValue(context.Background(), key, value)
+				if err := server.SetValue(context.Background(), key, value); err != nil {
+					return err
+				}
 				server.KeyUnlock(key)
+				return nil
 			}),
 			aof.WithHandleCommandFunc(func(command []byte) {
 				_, err := server.handleCommand(context.Background(), command, nil, true)

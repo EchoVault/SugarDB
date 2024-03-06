@@ -30,9 +30,7 @@ type Opts struct {
 	GetState                      func() map[string]interface{}
 	SetLatestSnapshotMilliseconds func(msec int64)
 	GetLatestSnapshotMilliseconds func() int64
-	CreateKeyAndLock              func(ctx context.Context, key string) (bool, error)
-	KeyUnlock                     func(key string)
-	SetValue                      func(ctx context.Context, key string, value interface{})
+	SetValue                      func(key string, value interface{}) error
 }
 
 type Engine struct {
@@ -264,11 +262,9 @@ func (engine *Engine) Restore(ctx context.Context) error {
 	engine.options.SetLatestSnapshotMilliseconds(snapshotObject.LatestSnapshotMilliseconds)
 
 	for key, value := range snapshotObject.State {
-		if _, err = engine.options.CreateKeyAndLock(ctx, key); err != nil {
-			log.Println(fmt.Errorf("could not load value at key %s with error: %s", key, err.Error()))
+		if err = engine.options.SetValue(key, value); err != nil {
+			return fmt.Errorf("snapshot engine -> restore: %+v", err)
 		}
-		engine.options.SetValue(ctx, key, value)
-		engine.options.KeyUnlock(key)
 	}
 
 	log.Println("successfully restored latest snapshot")

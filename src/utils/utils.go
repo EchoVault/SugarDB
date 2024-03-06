@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/big"
 	"net"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -159,4 +160,23 @@ func ParseMemory(memory string) (uint64, error) {
 	}
 
 	return uint64(bytesInt), nil
+}
+
+// IsMaxMemoryExceeded checks whether we have exceeded the current maximum memory limit
+func IsMaxMemoryExceeded(config Config) bool {
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+
+	// If we're currently using less than the configured max memory, return false
+	if memStats.HeapInuse < config.MaxMemory {
+		return false
+	}
+
+	// If we're currently using more than max memory, force a garbage collection before we start deleting keys.
+	// This measure is to prevent deleting keys that may be important when some memory can be reclaimed
+	// by just collecting garbage.
+	runtime.GC()
+
+	// Return true when whe are above or equal to max memory.
+	return memStats.HeapInuse >= config.MaxMemory
 }

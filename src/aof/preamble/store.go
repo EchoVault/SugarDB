@@ -22,7 +22,7 @@ type PreambleStore struct {
 	mut       sync.Mutex
 	directory string
 	getState  func() map[string]interface{}
-	setValue  func(key string, value interface{})
+	setValue  func(key string, value interface{}) error
 }
 
 func WithReadWriter(rw PreambleReadWriter) func(store *PreambleStore) {
@@ -37,7 +37,7 @@ func WithGetStateFunc(f func() map[string]interface{}) func(store *PreambleStore
 	}
 }
 
-func WithSetValueFunc(f func(key string, value interface{})) func(store *PreambleStore) {
+func WithSetValueFunc(f func(key string, value interface{}) error) func(store *PreambleStore) {
 	return func(store *PreambleStore) {
 		store.setValue = f
 	}
@@ -58,8 +58,9 @@ func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 			// No-Op by default
 			return nil
 		},
-		setValue: func(key string, value interface{}) {
+		setValue: func(key string, value interface{}) error {
 			// No-Op by default
+			return nil
 		},
 	}
 
@@ -71,7 +72,7 @@ func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 	if store.rw == nil {
 		err := os.MkdirAll(path.Join(store.directory, "aof"), os.ModePerm)
 		if err != nil {
-			log.Println(fmt.Errorf("new preamle store -> mkdir error: %+v", err))
+			log.Println(fmt.Errorf("new preamble store -> mkdir error: %+v", err))
 		}
 		f, err := os.OpenFile(path.Join(store.directory, "aof", "preamble.bin"), os.O_RDWR|os.O_CREATE, os.ModePerm)
 		if err != nil {
@@ -136,7 +137,9 @@ func (store *PreambleStore) Restore() error {
 	}
 
 	for key, value := range state {
-		store.setValue(key, value)
+		if err = store.setValue(key, value); err != nil {
+			return fmt.Errorf("preamble store -> restore: %+v", err)
+		}
 	}
 
 	return nil

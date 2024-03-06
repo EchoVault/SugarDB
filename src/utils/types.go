@@ -14,7 +14,7 @@ type Server interface {
 	KeyExists(key string) bool
 	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
 	GetValue(key string) interface{}
-	SetValue(ctx context.Context, key string, value interface{})
+	SetValue(ctx context.Context, key string, value interface{}) error
 	SetKeyExpiry(key string, expire time.Time, touch bool)
 	RemoveKeyExpiry(key string)
 	GetState() map[string]interface{}

@@ -26,7 +26,7 @@ type Engine struct {
 	startRewrite  func()
 	finishRewrite func()
 	getState      func() map[string]interface{}
-	setValue      func(key string, value interface{})
+	setValue      func(key string, value interface{}) error
 	handleCommand func(command []byte)
 }
 
@@ -60,7 +60,7 @@ func WithGetStateFunc(f func() map[string]interface{}) func(engine *Engine) {
 	}
 }
 
-func WithSetValueFunc(f func(key string, value interface{})) func(engine *Engine) {
+func WithSetValueFunc(f func(key string, value interface{}) error) func(engine *Engine) {
 	return func(engine *Engine) {
 		engine.setValue = f
 	}
@@ -94,7 +94,10 @@ func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 		startRewrite:  func() {},
 		finishRewrite: func() {},
 		getState:      func() map[string]interface{} { return nil },
-		setValue:      func(key string, value interface{}) {},
+		setValue: func(key string, value interface{}) error {
+			// No-Op by default
+			return nil
+		},
 		handleCommand: func(command []byte) {},
 	}
 

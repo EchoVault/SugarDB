@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"github.com/echovault/echovault/src/utils"
 	"slices"
 	"strings"
@@ -60,6 +61,10 @@ func (server *Server) KeyExists(key string) bool {
 // CreateKeyAndLock creates a new key lock and immediately locks it if the key does not exist.
 // If the key exists, the existing key is locked.
 func (server *Server) CreateKeyAndLock(ctx context.Context, key string) (bool, error) {
+	if utils.IsMaxMemoryExceeded() && server.Config.EvictionPolicy == utils.NoEviction {
+		return false, errors.New("max memory reached, key not created")
+	}
+
 	server.keyCreationLock.Lock()
 	defer server.keyCreationLock.Unlock()
 
@@ -85,8 +90,10 @@ func (server *Server) GetValue(key string) interface{} {
 // in the snapshot engine.
 // This count triggers a snapshot when the threshold is reached.
 // The key must be locked prior to calling this function.
-func (server *Server) SetValue(_ context.Context, key string, value interface{}) {
-	// TODO: If max-memory is exceeded and eviction policy is noeviction, do not store the new value
+func (server *Server) SetValue(_ context.Context, key string, value interface{}) error {
+	if utils.IsMaxMemoryExceeded() && server.Config.EvictionPolicy == utils.NoEviction {
+		return errors.New("max memory reached, key value not set")
+	}
 
 	server.store[key] = value
 
@@ -95,6 +102,8 @@ func (server *Server) SetValue(_ context.Context, key string, value interface{})
 	if !server.IsInCluster() {
 		server.SnapshotEngine.IncrementChangeCount()
 	}
+
+	return nil
 }
 
 // The SetKeyExpiry receiver function sets the expiry time of a key.
