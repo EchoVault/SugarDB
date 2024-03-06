@@ -61,7 +61,7 @@ func (server *Server) KeyExists(key string) bool {
 // CreateKeyAndLock creates a new key lock and immediately locks it if the key does not exist.
 // If the key exists, the existing key is locked.
 func (server *Server) CreateKeyAndLock(ctx context.Context, key string) (bool, error) {
-	if utils.IsMaxMemoryExceeded() && server.Config.EvictionPolicy == utils.NoEviction {
+	if utils.IsMaxMemoryExceeded(server.Config) && server.Config.EvictionPolicy == utils.NoEviction {
 		return false, errors.New("max memory reached, key not created")
 	}
 
@@ -91,7 +91,7 @@ func (server *Server) GetValue(key string) interface{} {
 // This count triggers a snapshot when the threshold is reached.
 // The key must be locked prior to calling this function.
 func (server *Server) SetValue(_ context.Context, key string, value interface{}) error {
-	if utils.IsMaxMemoryExceeded() && server.Config.EvictionPolicy == utils.NoEviction {
+	if utils.IsMaxMemoryExceeded(server.Config) && server.Config.EvictionPolicy == utils.NoEviction {
 		return errors.New("max memory reached, key value not set")
 	}
 
