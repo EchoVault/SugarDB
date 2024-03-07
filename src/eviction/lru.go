@@ -17,12 +17,12 @@ type CacheLRU struct {
 	entries []*EntryLRU
 }
 
-func NewCacheLRU() *CacheLRU {
-	cache := &CacheLRU{
+func NewCacheLRU() CacheLRU {
+	cache := CacheLRU{
 		keys:    make(map[string]bool),
 		entries: make([]*EntryLRU, 0),
 	}
-	heap.Init(cache)
+	heap.Init(&cache)
 	return cache
 }
 

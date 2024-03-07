@@ -18,12 +18,12 @@ type CacheLFU struct {
 	entries []*EntryLFU
 }
 
-func NewCacheLFU() *CacheLFU {
-	cache := &CacheLFU{
+func NewCacheLFU() CacheLFU {
+	cache := CacheLFU{
 		keys:    make(map[string]bool),
 		entries: make([]*EntryLFU, 0),
 	}
-	heap.Init(cache)
+	heap.Init(&cache)
 	return cache
 }
 

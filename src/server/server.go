@@ -30,8 +30,14 @@ type Server struct {
 	keyLocks        map[string]*sync.RWMutex
 	keyCreationLock *sync.Mutex
 	keyExpiry       map[string]time.Time
-	lfuCache        *eviction.CacheLFU
-	lruCache        *eviction.CacheLRU
+	lfuCache        struct {
+		mutex sync.Mutex
+		cache eviction.CacheLFU
+	}
+	lruCache struct {
+		mutex sync.Mutex
+		cache eviction.CacheLRU
+	}
 
 	Commands []utils.Command
 
@@ -132,9 +138,22 @@ func NewServer(opts Opts) *Server {
 		)
 	}
 
-	// Set up lfu and lru caches
-	server.lfuCache = eviction.NewCacheLFU()
-	server.lruCache = eviction.NewCacheLRU()
+	// Set up LFU cache
+	server.lfuCache = struct {
+		mutex sync.Mutex
+		cache eviction.CacheLFU
+	}{
+		mutex: sync.Mutex{},
+		cache: eviction.NewCacheLFU(),
+	}
+	// set up LRU cache
+	server.lruCache = struct {
+		mutex sync.Mutex
+		cache eviction.CacheLRU
+	}{
+		mutex: sync.Mutex{},
+		cache: eviction.NewCacheLRU(),
+	}
 
 	// TODO: If eviction policy is volatile-ttl, start goroutine that continuously reads the mem stats
 	// TODO: before triggering purge once max-memory is reached
