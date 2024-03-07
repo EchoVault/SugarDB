@@ -37,7 +37,7 @@ func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyUnlock(key)
 
-	set, ok := server.GetValue(key).(*Set)
+	set, ok := server.GetValue(ctx, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -64,7 +64,7 @@ func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*Set)
+	set, ok := server.GetValue(ctx, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -88,7 +88,7 @@ func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 		return nil, err
 	}
 	defer server.KeyRUnlock(keys[0])
-	baseSet, ok := server.GetValue(keys[0]).(*Set)
+	baseSet, ok := server.GetValue(ctx, keys[0]).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", keys[0])
 	}
@@ -114,7 +114,7 @@ func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 
 	var sets []*Set
 	for _, key := range cmd[2:] {
-		set, ok := server.GetValue(key).(*Set)
+		set, ok := server.GetValue(ctx, key).(*Set)
 		if !ok {
 			continue
 		}
@@ -151,7 +151,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 		return nil, err
 	}
 	defer server.KeyRUnlock(keys[1])
-	baseSet, ok := server.GetValue(keys[1]).(*Set)
+	baseSet, ok := server.GetValue(ctx, keys[1]).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", keys[1])
 	}
@@ -177,7 +177,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 
 	var sets []*Set
 	for _, key := range keys[2:] {
-		set, ok := server.GetValue(key).(*Set)
+		set, ok := server.GetValue(ctx, key).(*Set)
 		if !ok {
 			continue
 		}
@@ -240,7 +240,7 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	var sets []*Set
 
 	for key, _ := range locks {
-		set, ok := server.GetValue(key).(*Set)
+		set, ok := server.GetValue(ctx, key).(*Set)
 		if !ok {
 			// If the value at the key is not a set, return error
 			return nil, fmt.Errorf("value at key %s is not a set", key)
@@ -316,7 +316,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, co
 	var sets []*Set
 
 	for key, _ := range locks {
-		set, ok := server.GetValue(key).(*Set)
+		set, ok := server.GetValue(ctx, key).(*Set)
 		if !ok {
 			// If the value at the key is not a set, return error
 			return nil, fmt.Errorf("value at key %s is not a set", key)
@@ -362,7 +362,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	var sets []*Set
 
 	for key, _ := range locks {
-		set, ok := server.GetValue(key).(*Set)
+		set, ok := server.GetValue(ctx, key).(*Set)
 		if !ok {
 			// If the value at the key is not a set, return error
 			return nil, fmt.Errorf("value at key %s is not a set", key)
@@ -408,7 +408,7 @@ func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server, con
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*Set)
+	set, ok := server.GetValue(ctx, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -437,7 +437,7 @@ func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server, conn
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*Set)
+	set, ok := server.GetValue(ctx, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -480,7 +480,7 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server, co
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*Set)
+	set, ok := server.GetValue(ctx, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -517,7 +517,7 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 	defer server.KeyUnlock(source)
 
-	sourceSet, ok := server.GetValue(source).(*Set)
+	sourceSet, ok := server.GetValue(ctx, source).(*Set)
 	if !ok {
 		return nil, errors.New("source is not a set")
 	}
@@ -540,7 +540,7 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *n
 			return nil, err
 		}
 		defer server.KeyUnlock(destination)
-		ds, ok := server.GetValue(destination).(*Set)
+		ds, ok := server.GetValue(ctx, destination).(*Set)
 		if !ok {
 			return nil, errors.New("destination is not a set")
 		}
@@ -578,7 +578,7 @@ func handleSPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyUnlock(key)
 
-	set, ok := server.GetValue(key).(*Set)
+	set, ok := server.GetValue(ctx, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a set", key)
 	}
@@ -622,7 +622,7 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 	}
 	defer server.KeyUnlock(key)
 
-	set, ok := server.GetValue(key).(*Set)
+	set, ok := server.GetValue(ctx, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a set", key)
 	}
@@ -658,7 +658,7 @@ func handleSREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyUnlock(key)
 
-	set, ok := server.GetValue(key).(*Set)
+	set, ok := server.GetValue(ctx, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -699,7 +699,7 @@ func handleSUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 		if !locked {
 			continue
 		}
-		set, ok := server.GetValue(key).(*Set)
+		set, ok := server.GetValue(ctx, key).(*Set)
 		if !ok {
 			return nil, fmt.Errorf("value at key %s is not a set", key)
 		}
@@ -750,7 +750,7 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 		if !locked {
 			continue
 		}
-		set, ok := server.GetValue(key).(*Set)
+		set, ok := server.GetValue(ctx, key).(*Set)
 		if !ok {
 			return nil, fmt.Errorf("value at key %s is not a set", key)
 		}

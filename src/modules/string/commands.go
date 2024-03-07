@@ -39,7 +39,7 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 	}
 	defer server.KeyUnlock(key)
 
-	str, ok := server.GetValue(key).(string)
+	str, ok := server.GetValue(ctx, key).(string)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a string", key)
 	}
@@ -100,7 +100,7 @@ func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 	defer server.KeyRUnlock(key)
 
-	value, ok := server.GetValue(key).(string)
+	value, ok := server.GetValue(ctx, key).(string)
 
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a string", key)
@@ -134,7 +134,7 @@ func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 	defer server.KeyRUnlock(key)
 
-	value, ok := server.GetValue(key).(string)
+	value, ok := server.GetValue(ctx, key).(string)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a string", key)
 	}

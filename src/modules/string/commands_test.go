@@ -138,7 +138,7 @@ func Test_HandleSetRange(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		value, ok := mockServer.GetValue(test.key).(string)
+		value, ok := mockServer.GetValue(context.Background(), test.key).(string)
 		if !ok {
 			t.Error("expected string data type, got another type")
 		}

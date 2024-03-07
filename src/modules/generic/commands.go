@@ -35,7 +35,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 		if !server.KeyExists(key) {
 			res = []byte("$-1\r\n")
 		} else {
-			res = []byte(fmt.Sprintf("+%v\r\n", server.GetValue(key)))
+			res = []byte(fmt.Sprintf("+%v\r\n", server.GetValue(ctx, key)))
 		}
 	}
 
@@ -72,7 +72,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 
 	// If expiresAt is set, set the key's expiry time as well
 	if params.expireAt != nil {
-		server.SetKeyExpiry(key, params.expireAt.(time.Time), false)
+		server.SetKeyExpiry(ctx, key, params.expireAt.(time.Time), false)
 	}
 
 	return res, nil
@@ -151,7 +151,7 @@ func handleGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	}
 	defer server.KeyRUnlock(key)
 
-	value := server.GetValue(key)
+	value := server.GetValue(ctx, key)
 
 	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
 }
@@ -190,7 +190,7 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 	}()
 
 	for key, _ := range locks {
-		values[key] = fmt.Sprintf("%v", server.GetValue(key))
+		values[key] = fmt.Sprintf("%v", server.GetValue(ctx, key))
 	}
 
 	bytes := []byte(fmt.Sprintf("*%d\r\n", len(cmd[1:])))

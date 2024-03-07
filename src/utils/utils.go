@@ -163,12 +163,16 @@ func ParseMemory(memory string) (uint64, error) {
 }
 
 // IsMaxMemoryExceeded checks whether we have exceeded the current maximum memory limit
-func IsMaxMemoryExceeded(config Config) bool {
+func IsMaxMemoryExceeded(maxMemory uint64) bool {
+	if maxMemory == 0 {
+		return false
+	}
+
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
 	// If we're currently using less than the configured max memory, return false
-	if memStats.HeapInuse < config.MaxMemory {
+	if memStats.HeapInuse < maxMemory {
 		return false
 	}
 
@@ -176,7 +180,8 @@ func IsMaxMemoryExceeded(config Config) bool {
 	// This measure is to prevent deleting keys that may be important when some memory can be reclaimed
 	// by just collecting garbage.
 	runtime.GC()
+	runtime.ReadMemStats(&memStats)
 
 	// Return true when whe are above or equal to max memory.
-	return memStats.HeapInuse >= config.MaxMemory
+	return memStats.HeapInuse >= maxMemory
 }

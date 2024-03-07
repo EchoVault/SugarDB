@@ -80,7 +80,8 @@ The options are 'always' for syncing on each command, 'everysec' to sync every s
 
 	var maxMemory uint64 = 0
 	flag.Func("max-memory", `Upper memory limit before triggering eviction. 
-Supported units (kb, mb, gb, tb, pb). There is no limit by default.`, func(memory string) error {
+Supported units (kb, mb, gb, tb, pb). When 0 is passed, there will be no memory limit.
+There is no limit by default.`, func(memory string) error {
 		b, err := ParseMemory(memory)
 		if err != nil {
 			return err

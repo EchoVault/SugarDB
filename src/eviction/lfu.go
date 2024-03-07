@@ -3,12 +3,14 @@ package eviction
 import (
 	"container/heap"
 	"slices"
+	"time"
 )
 
 type EntryLFU struct {
-	key   string // The key, matching the key in the store
-	count int    // The number of times this key has been accessed
-	index int    // The index of the entry in the heap
+	key       string // The key, matching the key in the store
+	count     int    // The number of times this key has been accessed
+	addedTime int64  // The time this entry was added to the cache in unix milliseconds
+	index     int    // The index of the entry in the heap
 }
 
 type CacheLFU struct {
@@ -30,6 +32,11 @@ func (cache *CacheLFU) Len() int {
 }
 
 func (cache *CacheLFU) Less(i, j int) bool {
+	// If 2 entries have the same count, return the older one
+	if cache.entries[i].count == cache.entries[j].count {
+		return cache.entries[i].addedTime > cache.entries[j].addedTime
+	}
+	// Otherwise, return the one with a lower count
 	return cache.entries[i].count < cache.entries[j].count
 }
 
@@ -42,9 +49,10 @@ func (cache *CacheLFU) Swap(i, j int) {
 func (cache *CacheLFU) Push(key any) {
 	n := len(cache.entries)
 	cache.entries = append(cache.entries, &EntryLFU{
-		key:   key.(string),
-		count: 1,
-		index: n,
+		key:       key.(string),
+		count:     1,
+		addedTime: time.Now().UnixMilli(),
+		index:     n,
 	})
 	cache.keys[key.(string)] = true
 }

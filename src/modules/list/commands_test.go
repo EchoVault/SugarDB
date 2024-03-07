@@ -512,7 +512,7 @@ func Test_HandleLSET(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(context.Background(), test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -670,7 +670,7 @@ func Test_HandleLTRIM(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(context.Background(), test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -789,7 +789,7 @@ func Test_HandleLREM(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(context.Background(), test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -999,7 +999,7 @@ func Test_HandleLMOVE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
 				t.Error(err)
 			}
-			list, ok := mockServer.GetValue(key).([]interface{})
+			list, ok := mockServer.GetValue(context.Background(), key).([]interface{})
 			if !ok {
 				t.Error("expected value to be list, got another type")
 			}
@@ -1105,7 +1105,7 @@ func Test_HandleLPUSH(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(context.Background(), test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -1206,7 +1206,7 @@ func Test_HandleRPUSH(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(context.Background(), test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -1316,7 +1316,7 @@ func Test_HandlePop(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(context.Background(), test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}

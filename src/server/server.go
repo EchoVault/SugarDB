@@ -43,13 +43,13 @@ type Server struct {
 	ACL    utils.ACL
 	PubSub utils.PubSub
 
-	SnapshotInProgress         atomic.Bool
-	RewriteAOFInProgress       atomic.Bool
-	StateCopyInProgress        atomic.Bool
-	StateMutationInProgress    atomic.Bool
-	LatestSnapshotMilliseconds atomic.Int64 // Unix epoch in milliseconds
-	SnapshotEngine             *snapshot.Engine
-	AOFEngine                  *aof.Engine
+	SnapshotInProgress         atomic.Bool      // Atomic boolean that's true when actively taking a snapshot.
+	RewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
+	StateCopyInProgress        atomic.Bool      // Atomic boolean that's true when actively copying state for snapshotting or preamble generation.
+	StateMutationInProgress    atomic.Bool      // Atomic boolean that is set to true when state mutation is in progress.
+	LatestSnapshotMilliseconds atomic.Int64     // Unix epoch in milliseconds
+	SnapshotEngine             *snapshot.Engine // Snapshot engine for standalone mode
+	AOFEngine                  *aof.Engine      // AOF engine for standalone mode
 }
 
 type Opts struct {
@@ -136,7 +136,8 @@ func NewServer(opts Opts) *Server {
 	server.lfuCache = eviction.NewCacheLFU()
 	server.lruCache = eviction.NewCacheLRU()
 
-	// TODO: Start goroutine that continuously reads the mem stats before triggering purge once max-memory is reached
+	// TODO: If eviction policy is volatile-ttl, start goroutine that continuously reads the mem stats
+	// TODO: before triggering purge once max-memory is reached
 
 	return server
 }

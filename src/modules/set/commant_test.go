@@ -88,7 +88,7 @@ func Test_HandleSADD(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		set, ok := mockServer.GetValue(test.key).(*Set)
+		set, ok := mockServer.GetValue(context.Background(), test.key).(*Set)
 		if !ok {
 			t.Errorf("expected set value at key \"%s\"", test.key)
 		}
@@ -408,7 +408,7 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*Set)
+			set, ok := mockServer.GetValue(context.Background(), test.destination).(*Set)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -754,7 +754,7 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*Set)
+			set, ok := mockServer.GetValue(context.Background(), test.destination).(*Set)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -1126,7 +1126,7 @@ func Test_HandleSMOVE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
 				t.Error(key)
 			}
-			set, ok := mockServer.GetValue(key).(*Set)
+			set, ok := mockServer.GetValue(context.Background(), key).(*Set)
 			if !ok {
 				t.Errorf("expected set \"%s\" to be a set, got another type", key)
 			}
@@ -1223,7 +1223,7 @@ func Test_HandleSPOP(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		set, ok := mockServer.GetValue(test.key).(*Set)
+		set, ok := mockServer.GetValue(context.Background(), test.key).(*Set)
 		if !ok {
 			t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
 		}
@@ -1334,7 +1334,7 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		set, ok := mockServer.GetValue(test.key).(*Set)
+		set, ok := mockServer.GetValue(context.Background(), test.key).(*Set)
 		if !ok {
 			t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
 		}
@@ -1437,7 +1437,7 @@ func Test_HandleSREM(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.key).(*Set)
+			set, ok := mockServer.GetValue(context.Background(), test.key).(*Set)
 			if !ok {
 				t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
 			}
@@ -1641,7 +1641,7 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*Set)
+			set, ok := mockServer.GetValue(context.Background(), test.destination).(*Set)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}

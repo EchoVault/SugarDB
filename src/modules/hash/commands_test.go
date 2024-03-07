@@ -125,7 +125,7 @@ func Test_HandleHSET(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		hash, ok := mockServer.GetValue(test.key).(map[string]interface{})
+		hash, ok := mockServer.GetValue(context.Background(), test.key).(map[string]interface{})
 		if !ok {
 			t.Errorf("value at key \"%s\" is not a hash map", test.key)
 		}
@@ -278,7 +278,7 @@ func Test_HandleHINCRBY(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		hash, ok := mockServer.GetValue(test.key).(map[string]interface{})
+		hash, ok := mockServer.GetValue(context.Background(), test.key).(map[string]interface{})
 		if !ok {
 			t.Errorf("value at key \"%s\" is not a hash map", test.key)
 		}
@@ -1255,7 +1255,7 @@ func Test_HandleHDEL(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		if hash, ok := mockServer.GetValue(test.key).(map[string]interface{}); ok {
+		if hash, ok := mockServer.GetValue(context.Background(), test.key).(map[string]interface{}); ok {
 			for field, value := range hash {
 				if value != test.expectedValue[field] {
 					t.Errorf("expected value \"%+v\", got \"%+v\"", test.expectedValue[field], value)

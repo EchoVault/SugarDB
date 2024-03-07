@@ -248,7 +248,7 @@ func Test_HandleZADD(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		sortedSet, ok := mockServer.GetValue(test.key).(*SortedSet)
+		sortedSet, ok := mockServer.GetValue(context.Background(), test.key).(*SortedSet)
 		if !ok {
 			t.Errorf("expected the value at key \"%s\" to be a sorted set, got another type", test.key)
 		}
@@ -935,7 +935,7 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(context.Background(), test.destination).(*SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -1149,7 +1149,7 @@ func Test_HandleZINCRBY(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.key).(*SortedSet)
+			set, ok := mockServer.GetValue(context.Background(), test.key).(*SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.key)
 			}
@@ -1384,7 +1384,7 @@ func Test_HandleZMPOP(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(key).(*SortedSet)
+			set, ok := mockServer.GetValue(context.Background(), key).(*SortedSet)
 			if !ok {
 				t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
 			}
@@ -1555,7 +1555,7 @@ func Test_HandleZPOP(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(key).(*SortedSet)
+			set, ok := mockServer.GetValue(context.Background(), key).(*SortedSet)
 			if !ok {
 				t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
 			}
@@ -1869,7 +1869,7 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
 			t.Error(err)
 		}
-		set, ok := mockServer.GetValue(test.key).(*SortedSet)
+		set, ok := mockServer.GetValue(context.Background(), test.key).(*SortedSet)
 		if !ok {
 			t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
 		}
@@ -2112,7 +2112,7 @@ func Test_HandleZREM(t *testing.T) {
 				if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(key).(*SortedSet)
+				set, ok := mockServer.GetValue(context.Background(), key).(*SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2218,7 +2218,7 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 				if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(key).(*SortedSet)
+				set, ok := mockServer.GetValue(context.Background(), key).(*SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2378,7 +2378,7 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 				if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(key).(*SortedSet)
+				set, ok := mockServer.GetValue(context.Background(), key).(*SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2509,7 +2509,7 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 				if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(key).(*SortedSet)
+				set, ok := mockServer.GetValue(context.Background(), key).(*SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -3034,7 +3034,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(context.Background(), test.destination).(*SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -3693,7 +3693,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(context.Background(), test.destination).(*SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -4418,7 +4418,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(context.Background(), test.destination).(*SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}

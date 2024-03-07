@@ -133,7 +133,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 			return nil, err
 		}
 		defer server.KeyUnlock(key)
-		set, ok := server.GetValue(key).(*SortedSet)
+		set, ok := server.GetValue(ctx, key).(*SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", key)
 		}
@@ -180,7 +180,7 @@ func handleZCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -241,7 +241,7 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -275,7 +275,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -332,7 +332,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 		return nil, err
 	}
 	defer server.KeyRUnlock(keys[0])
-	baseSortedSet, ok := server.GetValue(keys[0]).(*SortedSet)
+	baseSortedSet, ok := server.GetValue(ctx, keys[0]).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", keys[0])
 	}
@@ -349,7 +349,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 			return nil, err
 		}
 		locks[keys[i]] = locked
-		set, ok := server.GetValue(keys[i]).(*SortedSet)
+		set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 		}
@@ -400,7 +400,7 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 		return nil, err
 	}
 	defer server.KeyRUnlock(keys[0])
-	baseSortedSet, ok := server.GetValue(keys[0]).(*SortedSet)
+	baseSortedSet, ok := server.GetValue(ctx, keys[0]).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", keys[0])
 	}
@@ -412,7 +412,7 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 			if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 				return nil, err
 			}
-			set, ok := server.GetValue(keys[i]).(*SortedSet)
+			set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}
@@ -486,7 +486,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		return nil, err
 	}
 	defer server.KeyUnlock(key)
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -534,7 +534,7 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 			return nil, err
 		}
 		locks[keys[i]] = true
-		set, ok := server.GetValue(keys[i]).(*SortedSet)
+		set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 		}
@@ -600,7 +600,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 			return nil, err
 		}
 		locks[keys[i]] = true
-		set, ok := server.GetValue(keys[i]).(*SortedSet)
+		set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 		}
@@ -681,7 +681,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *n
 			if _, err = server.KeyLock(ctx, keys[i]); err != nil {
 				continue
 			}
-			v, ok := server.GetValue(keys[i]).(*SortedSet)
+			v, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
 			if !ok || v.Cardinality() == 0 {
 				server.KeyUnlock(keys[i])
 				continue
@@ -739,7 +739,7 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a sorted set", key)
 	}
@@ -776,7 +776,7 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server, conn 
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -835,7 +835,7 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -879,7 +879,7 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -923,7 +923,7 @@ func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -953,7 +953,7 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, err
 	}
 	defer server.KeyRUnlock(key)
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -996,7 +996,7 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Serv
 	}
 	defer server.KeyUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -1038,7 +1038,7 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 	}
 	defer server.KeyUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -1095,7 +1095,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	}
 	defer server.KeyUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -1193,7 +1193,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 	defer server.KeyRUnlock(key)
 
-	set, ok := server.GetValue(key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -1330,7 +1330,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 	}
 	defer server.KeyRUnlock(source)
 
-	set, ok := server.GetValue(source).(*SortedSet)
+	set, ok := server.GetValue(ctx, source).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", source)
 	}
@@ -1432,7 +1432,7 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 				return nil, err
 			}
 			locks[keys[i]] = true
-			set, ok := server.GetValue(keys[i]).(*SortedSet)
+			set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}
@@ -1494,7 +1494,7 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 				return nil, err
 			}
 			locks[keys[i]] = true
-			set, ok := server.GetValue(keys[i]).(*SortedSet)
+			set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}

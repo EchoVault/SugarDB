@@ -29,7 +29,7 @@ func handleLLen(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 	}
 	defer server.KeyRUnlock(key)
 
-	if list, ok := server.GetValue(key).([]interface{}); ok {
+	if list, ok := server.GetValue(ctx, key).([]interface{}); ok {
 		return []byte(fmt.Sprintf(":%d\r\n", len(list))), nil
 	}
 
@@ -56,7 +56,7 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.Server, conn *
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	list, ok := server.GetValue(key).([]interface{})
+	list, ok := server.GetValue(ctx, key).([]interface{})
 	server.KeyRUnlock(key)
 
 	if !ok {
@@ -93,7 +93,7 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *
 	}
 	defer server.KeyRUnlock(key)
 
-	list, ok := server.GetValue(key).([]interface{})
+	list, ok := server.GetValue(ctx, key).([]interface{})
 	if !ok {
 		return nil, errors.New("LRANGE command on non-list item")
 	}
@@ -171,7 +171,7 @@ func handleLSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyUnlock(key)
 
-	list, ok := server.GetValue(key).([]interface{})
+	list, ok := server.GetValue(ctx, key).([]interface{})
 	if !ok {
 		return nil, errors.New("LSET command on non-list item")
 	}
@@ -215,7 +215,7 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 	defer server.KeyUnlock(key)
 
-	list, ok := server.GetValue(key).([]interface{})
+	list, ok := server.GetValue(ctx, key).([]interface{})
 	if !ok {
 		return nil, errors.New("LTRIM command on non-list item")
 	}
@@ -262,7 +262,7 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyUnlock(key)
 
-	list, ok := server.GetValue(key).([]interface{})
+	list, ok := server.GetValue(ctx, key).([]interface{})
 	if !ok {
 		return nil, errors.New("LREM command on non-list item")
 	}
@@ -335,8 +335,8 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 	defer server.KeyUnlock(destination)
 
-	sourceList, sourceOk := server.GetValue(source).([]interface{})
-	destinationList, destinationOk := server.GetValue(destination).([]interface{})
+	sourceList, sourceOk := server.GetValue(ctx, source).([]interface{})
+	destinationList, destinationOk := server.GetValue(ctx, destination).([]interface{})
 
 	if !sourceOk || !destinationOk {
 		return nil, errors.New("both source and destination must be lists")
@@ -399,7 +399,7 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 	defer server.KeyUnlock(key)
 
-	currentList := server.GetValue(key)
+	currentList := server.GetValue(ctx, key)
 
 	l, ok := currentList.([]interface{})
 	if !ok {
@@ -446,7 +446,7 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 		defer server.KeyUnlock(key)
 	}
 
-	currentList := server.GetValue(key)
+	currentList := server.GetValue(ctx, key)
 
 	l, ok := currentList.([]interface{})
 
@@ -477,7 +477,7 @@ func handlePop(ctx context.Context, cmd []string, server utils.Server, conn *net
 	}
 	defer server.KeyUnlock(key)
 
-	list, ok := server.GetValue(key).([]interface{})
+	list, ok := server.GetValue(ctx, key).([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
 	}

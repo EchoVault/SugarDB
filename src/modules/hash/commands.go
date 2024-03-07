@@ -46,7 +46,7 @@ func handleHSET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -88,7 +88,7 @@ func handleHGET(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyRUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -139,7 +139,7 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server utils.Server, conn 
 	}
 	defer server.KeyRUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -189,7 +189,7 @@ func handleHVALS(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 	defer server.KeyRUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -251,7 +251,7 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.Server, co
 	}
 	defer server.KeyRUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -346,7 +346,7 @@ func handleHLEN(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyRUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -371,7 +371,7 @@ func handleHKEYS(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 	defer server.KeyRUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -436,7 +436,7 @@ func handleHINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 	}
 	defer server.KeyUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -493,7 +493,7 @@ func handleHGETALL(ctx context.Context, cmd []string, server utils.Server, conn 
 	}
 	defer server.KeyRUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -534,7 +534,7 @@ func handleHEXISTS(ctx context.Context, cmd []string, server utils.Server, conn 
 	}
 	defer server.KeyRUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -564,7 +564,7 @@ func handleHDEL(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	}
 	defer server.KeyUnlock(key)
 
-	hash, ok := server.GetValue(key).(map[string]interface{})
+	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}

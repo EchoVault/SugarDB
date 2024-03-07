@@ -71,7 +71,7 @@ func Test_HandleSET(t *testing.T) {
 		if rv.String() != test.expectedResponse {
 			t.Errorf("expected response %s, got %s", test.expectedResponse, rv.String())
 		}
-		value := mockServer.GetValue(test.command[1])
+		value := mockServer.GetValue(context.Background(), test.command[1])
 		switch value.(type) {
 		default:
 			t.Error("unexpected type for expectedValue")
@@ -151,7 +151,7 @@ func Test_HandleMSET(t *testing.T) {
 				t.Error("unexpected type for expectedValue")
 			case int:
 				ev, _ := expectedValue.(int)
-				value, ok := mockServer.GetValue(key).(int)
+				value, ok := mockServer.GetValue(context.Background(), key).(int)
 				if !ok {
 					t.Errorf("expected integer type for key %s, got another type", key)
 				}
@@ -160,7 +160,7 @@ func Test_HandleMSET(t *testing.T) {
 				}
 			case float64:
 				ev, _ := expectedValue.(float64)
-				value, ok := mockServer.GetValue(key).(float64)
+				value, ok := mockServer.GetValue(context.Background(), key).(float64)
 				if !ok {
 					t.Errorf("expected float type for key %s, got another type", key)
 				}
@@ -169,7 +169,7 @@ func Test_HandleMSET(t *testing.T) {
 				}
 			case string:
 				ev, _ := expectedValue.(string)
-				value, ok := mockServer.GetValue(key).(string)
+				value, ok := mockServer.GetValue(context.Background(), key).(string)
 				if !ok {
 					t.Errorf("expected string type for key %s, got another type", key)
 				}
