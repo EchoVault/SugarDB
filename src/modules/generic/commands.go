@@ -315,7 +315,7 @@ turning it from a volatile key to a persistent key.`,
 			Description: `(EXPIRETIME key) Returns the absolute unix time in seconds when the key will expire.
 Return -1 if the key exists but has no associated expiry time.
 Returns -2 if the key does not exist.`,
-			Sync:              true,
+			Sync:              false,
 			KeyExtractionFunc: expireTimeKeyFunc,
 			HandlerFunc:       handleExpireTime,
 		},
@@ -325,7 +325,7 @@ Returns -2 if the key does not exist.`,
 			Description: `(PEXPIRETIME key) Returns the absolute unix time in milliseconds when the key will expire.
 Return -1 if the key exists but has no associated expiry time.
 Returns -2 if the key does not exist.`,
-			Sync:              true,
+			Sync:              false,
 			KeyExtractionFunc: expireTimeKeyFunc,
 			HandlerFunc:       handleExpireTime,
 		},
@@ -335,7 +335,7 @@ Returns -2 if the key does not exist.`,
 			Description: `(TTL key) Returns the remaining time to live for a key that has an expiry time in seconds.
 If the key exists but does not have an associated expiry time, -1 is returned.
 If the key does not exist, -2 is returned.`,
-			Sync:              true,
+			Sync:              false,
 			KeyExtractionFunc: ttlKeyFunc,
 			HandlerFunc:       handleTTL,
 		},
@@ -345,7 +345,7 @@ If the key does not exist, -2 is returned.`,
 			Description: `(PTTL key) Returns the remaining time to live for a key that has an expiry time in milliseconds.
 If the key exists but does not have an associated expiry time, -1 is returned.
 If the key does not exist, -2 is returned.`,
-			Sync:              true,
+			Sync:              false,
 			KeyExtractionFunc: ttlKeyFunc,
 			HandlerFunc:       handleTTL,
 		},
