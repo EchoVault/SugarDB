@@ -185,6 +185,10 @@ func (server *Server) DeleteKey(ctx context.Context, key string) error {
 // updateKeyInCache updates either the key access count or the most recent access time in the cache
 // depending on whether an LFU or LRU strategy was used.
 func (server *Server) updateKeyInCache(ctx context.Context, key string) error {
+	// Only update cache when in standalone mode or when raft leader
+	if server.IsInCluster() || (server.IsInCluster() && !server.raft.IsRaftLeader()) {
+		return nil
+	}
 	// If max memory is 0, there's no max so no need to update caches
 	if server.Config.MaxMemory == 0 {
 		return nil

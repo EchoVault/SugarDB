@@ -138,26 +138,6 @@ func NewServer(opts Opts) *Server {
 		)
 	}
 
-	// Set up LFU cache
-	server.lfuCache = struct {
-		mutex sync.Mutex
-		cache eviction.CacheLFU
-	}{
-		mutex: sync.Mutex{},
-		cache: eviction.NewCacheLFU(),
-	}
-	// set up LRU cache
-	server.lruCache = struct {
-		mutex sync.Mutex
-		cache eviction.CacheLRU
-	}{
-		mutex: sync.Mutex{},
-		cache: eviction.NewCacheLRU(),
-	}
-
-	// TODO: If eviction policy is volatile-ttl, start goroutine that continuously reads the mem stats
-	// TODO: before triggering purge once max-memory is reached
-
 	return server
 }
 
@@ -319,7 +299,13 @@ func (server *Server) Start(ctx context.Context) {
 		// Initialise raft and memberlist
 		server.raft.RaftInit(ctx)
 		server.memberList.MemberListInit(ctx)
-	} else {
+		if server.raft.IsRaftLeader() {
+			server.InitialiseCaches()
+		}
+	}
+
+	if !server.IsInCluster() {
+		server.InitialiseCaches()
 		// Restore from AOF by default if it's enabled
 		if conf.RestoreAOF {
 			err := server.AOFEngine.Restore()
@@ -405,4 +391,25 @@ func (server *Server) ShutDown(ctx context.Context) {
 		server.raft.RaftShutdown(ctx)
 		server.memberList.MemberListShutdown(ctx)
 	}
+}
+
+func (server *Server) InitialiseCaches() {
+	// Set up LFU cache
+	server.lfuCache = struct {
+		mutex sync.Mutex
+		cache eviction.CacheLFU
+	}{
+		mutex: sync.Mutex{},
+		cache: eviction.NewCacheLFU(),
+	}
+	// set up LRU cache
+	server.lruCache = struct {
+		mutex sync.Mutex
+		cache eviction.CacheLRU
+	}{
+		mutex: sync.Mutex{},
+		cache: eviction.NewCacheLRU(),
+	}
+	// TODO: If eviction policy is volatile-ttl, start goroutine that continuously reads the mem stats
+	// TODO: before triggering purge once max-memory is reached
 }

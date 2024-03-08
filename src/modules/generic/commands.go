@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/echovault/echovault/src/utils"
+	"log"
 	"net"
 	"strings"
 	"time"
@@ -206,6 +207,23 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 	return bytes, nil
 }
 
+func handleDel(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	keys, err := delKeyFunc(cmd)
+	if err != nil {
+		return nil, err
+	}
+	count := 0
+	for _, key := range keys {
+		err = server.DeleteKey(ctx, key)
+		if err != nil {
+			log.Printf("could not delete key %s due to error: %+v\n", key, err)
+			continue
+		}
+		count += 1
+	}
+	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
+}
+
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
@@ -248,6 +266,14 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 			Sync:              false,
 			KeyExtractionFunc: mgetKeyFunc,
 			HandlerFunc:       handleMGet,
+		},
+		{
+			Command:           "del",
+			Categories:        []string{utils.KeyspaceCategory, utils.WriteCategory, utils.SlowCategory},
+			Description:       "(DEL) Removes one or more keys from the store.",
+			Sync:              true,
+			KeyExtractionFunc: delKeyFunc,
+			HandlerFunc:       handleDel,
 		},
 	}
 }

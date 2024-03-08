@@ -57,7 +57,7 @@ func (server *Server) handleCommand(ctx context.Context, message []byte, conn *n
 		}
 	}
 
-	// If we're not in cluster mode and command/subcommand is a write command, wait for state copy to finish.
+	// If the command is a write command, wait for state copy to finish.
 	if utils.IsWriteCommand(command, subCommand) {
 		for {
 			if !server.StateCopyInProgress.Load() {

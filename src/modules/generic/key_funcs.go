@@ -38,3 +38,10 @@ func mgetKeyFunc(cmd []string) ([]string, error) {
 	}
 	return cmd[1:], nil
 }
+
+func delKeyFunc(cmd []string) ([]string, error) {
+	if len(cmd) < 2 {
+		return nil, errors.New(utils.WrongArgsResponse)
+	}
+	return cmd[1:], nil
+}
