@@ -21,15 +21,19 @@ import (
 	"time"
 )
 
+type KeyData struct {
+	value    interface{}
+	expireAt time.Time
+}
+
 type Server struct {
 	Config utils.Config
 
 	ConnID atomic.Uint64
 
-	store           map[string]interface{}
+	store           map[string]KeyData
 	keyLocks        map[string]*sync.RWMutex
 	keyCreationLock *sync.Mutex
-	keyExpiry       map[string]time.Time
 	lfuCache        struct {
 		mutex sync.Mutex
 		cache eviction.CacheLFU
@@ -73,10 +77,9 @@ func NewServer(opts Opts) *Server {
 		PubSub:          opts.PubSub,
 		CancelCh:        opts.CancelCh,
 		Commands:        opts.Commands,
-		store:           make(map[string]interface{}),
+		store:           make(map[string]KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
-		keyExpiry:       make(map[string]time.Time),
 	}
 	if server.IsInCluster() {
 		server.raft = raft.NewRaft(raft.Opts{

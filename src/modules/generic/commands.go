@@ -2,6 +2,7 @@ package generic
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"log"
@@ -224,6 +225,30 @@ func handleDel(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
+func handlePersist(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	return nil, errors.New("command not implemented yet")
+}
+
+func handleExpireTime(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	// Handle EXPIRETIME and PEXPIRETIME
+	return nil, errors.New("command not implemented yet")
+}
+
+func handleTTL(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	// Handle TTL and PTTL
+	return nil, errors.New("command not implemented yet")
+}
+
+func handleExpire(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	// Handle EXPIRE and PEXPIRE
+	return nil, errors.New("command not implemented yet")
+}
+
+func handleExpireAt(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+	// Handle EXPIREAT and PEXPIREAT
+	return nil, errors.New("command not implemented yet")
+}
+
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
@@ -269,11 +294,114 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:           "del",
-			Categories:        []string{utils.KeyspaceCategory, utils.WriteCategory, utils.SlowCategory},
+			Categories:        []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(DEL) Removes one or more keys from the store.",
 			Sync:              true,
 			KeyExtractionFunc: delKeyFunc,
 			HandlerFunc:       handleDel,
+		},
+		{
+			Command:    "persist",
+			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Description: `(PERSIST key) Removes the TTl associated with a key, 
+turning it from a volatile key to a persistent key.`,
+			Sync:              true,
+			KeyExtractionFunc: persistKeyFunc,
+			HandlerFunc:       handlePersist,
+		},
+		{
+			Command:    "expiretime",
+			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
+			Description: `(EXPIRETIME key) Returns the absolute unix time in seconds when the key will expire.
+Return -1 if the key exists but has no associated expiry time.
+Returns -2 if the key does not exist.`,
+			Sync:              true,
+			KeyExtractionFunc: expireTimeKeyFunc,
+			HandlerFunc:       handleExpireTime,
+		},
+		{
+			Command:    "pexpiretime",
+			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
+			Description: `(PEXPIRETIME key) Returns the absolute unix time in milliseconds when the key will expire.
+Return -1 if the key exists but has no associated expiry time.
+Returns -2 if the key does not exist.`,
+			Sync:              true,
+			KeyExtractionFunc: expireTimeKeyFunc,
+			HandlerFunc:       handleExpireTime,
+		},
+		{
+			Command:    "ttl",
+			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
+			Description: `(TTL key) Returns the remaining time to live for a key that has an expiry time in seconds.
+If the key exists but does not have an associated expiry time, -1 is returned.
+If the key does not exist, -2 is returned.`,
+			Sync:              true,
+			KeyExtractionFunc: ttlKeyFunc,
+			HandlerFunc:       handleTTL,
+		},
+		{
+			Command:    "pttl",
+			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
+			Description: `(PTTL key) Returns the remaining time to live for a key that has an expiry time in milliseconds.
+If the key exists but does not have an associated expiry time, -1 is returned.
+If the key does not exist, -2 is returned.`,
+			Sync:              true,
+			KeyExtractionFunc: ttlKeyFunc,
+			HandlerFunc:       handleTTL,
+		},
+		{
+			Command:    "expire",
+			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Description: `(EXPIRE key seconds [NX | XX | GT | LT])
+Expire the key in the specified number of seconds. This commands turns a key into a volatile one.
+NX - Only set the expiry time if the key has no associated expiry.
+XX - Only set the expiry time if the key already has an expiry time.
+GT - Only set the expiry time if the current expiry time is greater than the specified expiry time.
+LT - Only set the expiry time if the current expiry time is less than the specified expiry time.`,
+			Sync:              true,
+			KeyExtractionFunc: expireKeyFunc,
+			HandlerFunc:       handleExpire,
+		},
+		{
+			Command:    "pexpire",
+			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Description: `(PEXPIRE key milliseconds [NX | XX | GT | LT])
+Expire the key in the specified number of milliseconds. This commands turns a key into a volatile one.
+NX - Only set the expiry time if the key has no associated expiry.
+XX - Only set the expiry time if the key already has an expiry time.
+GT - Only set the expiry time if the current expiry time is greater than the specified expiry time.
+LT - Only set the expiry time if the current expiry time is less than the specified expiry time.`,
+			Sync:              true,
+			KeyExtractionFunc: expireKeyFunc,
+			HandlerFunc:       handleExpire,
+		},
+		{
+			Command:    "expireat",
+			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Description: `(EXPIREAT key unix-time-seconds [NX | XX | GT | LT])
+Expire the key in at the exact unix time in seconds. 
+This commands turns a key into a volatile one.
+NX - Only set the expiry time if the key has no associated expiry.
+XX - Only set the expiry time if the key already has an expiry time.
+GT - Only set the expiry time if the current expiry time is greater than the specified expiry time.
+LT - Only set the expiry time if the current expiry time is less than the specified expiry time.`,
+			Sync:              true,
+			KeyExtractionFunc: expireAtKeyFunc,
+			HandlerFunc:       handleExpireAt,
+		},
+		{
+			Command:    "pexpireat",
+			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Description: `(PEXPIREAT key unix-time-milliseconds [NX | XX | GT | LT])
+Expire the key in at the exact unix time in milliseconds. 
+This commands turns a key into a volatile one.
+NX - Only set the expiry time if the key has no associated expiry.
+XX - Only set the expiry time if the key already has an expiry time.
+GT - Only set the expiry time if the current expiry time is greater than the specified expiry time.
+LT - Only set the expiry time if the current expiry time is less than the specified expiry time.`,
+			Sync:              true,
+			KeyExtractionFunc: expireAtKeyFunc,
+			HandlerFunc:       handleExpireAt,
 		},
 	}
 }

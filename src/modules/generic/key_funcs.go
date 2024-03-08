@@ -45,3 +45,38 @@ func delKeyFunc(cmd []string) ([]string, error) {
 	}
 	return cmd[1:], nil
 }
+
+func persistKeyFunc(cmd []string) ([]string, error) {
+	if len(cmd) != 2 {
+		return nil, errors.New(utils.WrongArgsResponse)
+	}
+	return cmd[1:], nil
+}
+
+func expireTimeKeyFunc(cmd []string) ([]string, error) {
+	if len(cmd) != 2 {
+		return nil, errors.New(utils.WrongArgsResponse)
+	}
+	return cmd[1:], nil
+}
+
+func ttlKeyFunc(cmd []string) ([]string, error) {
+	if len(cmd) != 2 {
+		return nil, errors.New(utils.WrongArgsResponse)
+	}
+	return cmd[1:], nil
+}
+
+func expireKeyFunc(cmd []string) ([]string, error) {
+	if len(cmd) != 4 {
+		return nil, errors.New(utils.WrongArgsResponse)
+	}
+	return []string{cmd[1]}, nil
+}
+
+func expireAtKeyFunc(cmd []string) ([]string, error) {
+	if len(cmd) != 4 {
+		return nil, errors.New(utils.WrongArgsResponse)
+	}
+	return []string{cmd[1]}, nil
+}

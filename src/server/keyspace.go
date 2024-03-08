@@ -79,9 +79,15 @@ func (server *Server) CreateKeyAndLock(ctx context.Context, key string) (bool, e
 	defer server.keyCreationLock.Unlock()
 
 	if !server.KeyExists(key) {
+		// Create Lock
 		keyLock := &sync.RWMutex{}
 		keyLock.Lock()
 		server.keyLocks[key] = keyLock
+		// Create key entry
+		server.store[key] = KeyData{
+			value:    nil,
+			expireAt: time.Time{},
+		}
 		return true, nil
 	}
 
@@ -95,7 +101,7 @@ func (server *Server) GetValue(ctx context.Context, key string) interface{} {
 	if err != nil {
 		log.Printf("GetValue error: %+v\n", err)
 	}
-	return server.store[key]
+	return server.store[key].value
 }
 
 // SetValue updates the value in the store at the specified key with the given value.
@@ -108,7 +114,10 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 		return errors.New("max memory reached, key value not set")
 	}
 
-	server.store[key] = value
+	server.store[key] = KeyData{
+		value:    value,
+		expireAt: server.store[key].expireAt,
+	}
 
 	err := server.updateKeyInCache(ctx, key)
 	if err != nil {
@@ -128,8 +137,12 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 // The touch parameter determines whether to update the keys access count on lfu eviction policy,
 // or the access time on lru eviction policy.
 // The key must be locked prior to calling this function.
-func (server *Server) SetKeyExpiry(ctx context.Context, key string, expire time.Time, touch bool) {
-	server.keyExpiry[key] = expire
+func (server *Server) SetKeyExpiry(ctx context.Context, key string, expireAt time.Time, touch bool) {
+	server.store[key] = KeyData{
+		value:    server.store[key].value,
+		expireAt: expireAt,
+	}
+
 	if touch {
 		err := server.updateKeyInCache(ctx, key)
 		if err != nil {
@@ -141,7 +154,10 @@ func (server *Server) SetKeyExpiry(ctx context.Context, key string, expire time.
 // RemoveKeyExpiry is called by commands that remove key expiry (e.g. PERSIST).
 // The key must be locked prior ro calling this function.
 func (server *Server) RemoveKeyExpiry(key string) {
-	delete(server.keyExpiry, key)
+	server.store[key] = KeyData{
+		value:    server.store[key].value,
+		expireAt: time.Time{},
+	}
 	switch {
 	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, server.Config.EvictionPolicy):
 		server.lfuCache.cache.Delete(key)
@@ -177,7 +193,6 @@ func (server *Server) DeleteKey(ctx context.Context, key string) error {
 	}
 	// Delete the keys
 	delete(server.store, key)
-	delete(server.keyExpiry, key)
 	delete(server.keyLocks, key)
 	return nil
 }
@@ -205,13 +220,13 @@ func (server *Server) updateKeyInCache(ctx context.Context, key string) error {
 	case utils.VolatileLFU:
 		server.lfuCache.mutex.Lock()
 		defer server.lfuCache.mutex.Unlock()
-		if _, ok := server.keyExpiry[key]; ok {
+		if server.store[key].expireAt != (time.Time{}) {
 			server.lfuCache.cache.Update(key)
 		}
 	case utils.VolatileLRU:
 		server.lruCache.mutex.Lock()
 		defer server.lruCache.mutex.Unlock()
-		if _, ok := server.keyExpiry[key]; ok {
+		if server.store[key].expireAt != (time.Time{}) {
 			server.lruCache.cache.Update(key)
 		}
 	}
@@ -320,16 +335,15 @@ func (server *Server) adjustMemoryUsage(ctx context.Context) error {
 		// Remove random keys with expiry time until we're below the max memory limit
 		// or there are no more keys with expiry time.
 		for {
-			// If there are no volatile keys, return error
-			if len(server.keyExpiry) == 0 {
-				err := errors.New("no volatile keys to evict")
-				return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
-			}
 			// Get random volatile key
-			idx := rand.Intn(len(server.keyExpiry))
-			for key, _ := range server.keyExpiry {
+			idx := rand.Intn(len(server.keyLocks))
+			for key, _ := range server.keyLocks {
 				if idx == 0 {
-					// Lock the key
+					// If the key is not volatile, break the loop
+					if server.store[key].expireAt == (time.Time{}) {
+						break
+					}
+					// Delete the key
 					if err := server.DeleteKey(ctx, key); err != nil {
 						return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
 					}
