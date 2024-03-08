@@ -74,7 +74,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 
 	// If expiresAt is set, set the key's expiry time as well
 	if params.expireAt != nil {
-		server.SetKeyExpiry(ctx, key, params.expireAt.(time.Time), false)
+		server.SetExpiry(ctx, key, params.expireAt.(time.Time), false)
 	}
 
 	return res, nil
@@ -226,17 +226,96 @@ func handleDel(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 }
 
 func handlePersist(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-	return nil, errors.New("command not implemented yet")
+	keys, err := persistKeyFunc(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys[0]
+
+	if !server.KeyExists(key) {
+		return []byte(":0\r\n"), nil
+	}
+
+	if _, err = server.KeyLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	expireAt := server.GetExpiry(ctx, key)
+	if expireAt == (time.Time{}) {
+		return []byte(":0\r\n"), nil
+	}
+
+	server.SetExpiry(ctx, key, time.Time{}, false)
+
+	return []byte(":1\r\n"), nil
 }
 
 func handleExpireTime(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-	// Handle EXPIRETIME and PEXPIRETIME
-	return nil, errors.New("command not implemented yet")
+	keys, err := expireTimeKeyFunc(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys[0]
+
+	if !server.KeyExists(key) {
+		return []byte(":-2\r\n"), nil
+	}
+
+	if _, err = server.KeyRLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	expireAt := server.GetExpiry(ctx, key)
+
+	if expireAt == (time.Time{}) {
+		return []byte(":-1\r\n"), nil
+	}
+
+	t := expireAt.Unix()
+	if strings.ToLower(cmd[0]) == "pexpiretime" {
+		t = expireAt.UnixMilli()
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n", t)), nil
 }
 
 func handleTTL(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-	// Handle TTL and PTTL
-	return nil, errors.New("command not implemented yet")
+	keys, err := ttlKeyFunc(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys[0]
+
+	if !server.KeyExists(key) {
+		return []byte(":-2\r\n"), nil
+	}
+
+	if _, err = server.KeyRLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyRUnlock(key)
+
+	expireAt := server.GetExpiry(ctx, key)
+
+	if expireAt == (time.Time{}) {
+		return []byte(":-1\r\n"), nil
+	}
+
+	t := expireAt.Unix() - time.Now().Unix()
+	if strings.ToLower(cmd[0]) == "pttl" {
+		t = expireAt.UnixMilli() - time.Now().UnixMilli()
+	}
+
+	if t <= 0 {
+		return []byte(":0\r\n"), nil
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n", t)), nil
 }
 
 func handleExpire(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {

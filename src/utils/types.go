@@ -15,8 +15,9 @@ type Server interface {
 	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
 	GetValue(ctx context.Context, key string) interface{}
 	SetValue(ctx context.Context, key string, value interface{}) error
-	SetKeyExpiry(ctx context.Context, key string, expire time.Time, touch bool)
-	RemoveKeyExpiry(key string)
+	GetExpiry(ctx context.Context, key string) time.Time
+	SetExpiry(ctx context.Context, key string, expire time.Time, touch bool)
+	RemoveExpiry(key string)
 	DeleteKey(ctx context.Context, key string) error
 	GetState() map[string]interface{}
 	GetAllCommands(ctx context.Context) []Command

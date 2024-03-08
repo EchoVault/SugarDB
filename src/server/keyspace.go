@@ -97,8 +97,7 @@ func (server *Server) CreateKeyAndLock(ctx context.Context, key string) (bool, e
 // GetValue retrieves the current value at the specified key.
 // The key must be read-locked before calling this function.
 func (server *Server) GetValue(ctx context.Context, key string) interface{} {
-	err := server.updateKeyInCache(ctx, key)
-	if err != nil {
+	if err := server.updateKeyInCache(ctx, key); err != nil {
 		log.Printf("GetValue error: %+v\n", err)
 	}
 	return server.store[key].value
@@ -131,18 +130,26 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 	return nil
 }
 
-// The SetKeyExpiry receiver function sets the expiry time of a key.
+// The GetExpiry function returns the expiry time associated with the provided key.
+// The key must be read locked before calling this function.
+func (server *Server) GetExpiry(ctx context.Context, key string) time.Time {
+	if err := server.updateKeyInCache(ctx, key); err != nil {
+		log.Printf("GetKeyExpiry error: %+v\n", err)
+	}
+	return server.store[key].expireAt
+}
+
+// The SetExpiry receiver function sets the expiry time of a key.
 // The key parameter represents the key whose expiry time is to be set/updated.
 // The expire parameter is the new expiry time.
 // The touch parameter determines whether to update the keys access count on lfu eviction policy,
 // or the access time on lru eviction policy.
 // The key must be locked prior to calling this function.
-func (server *Server) SetKeyExpiry(ctx context.Context, key string, expireAt time.Time, touch bool) {
+func (server *Server) SetExpiry(ctx context.Context, key string, expireAt time.Time, touch bool) {
 	server.store[key] = KeyData{
 		value:    server.store[key].value,
 		expireAt: expireAt,
 	}
-
 	if touch {
 		err := server.updateKeyInCache(ctx, key)
 		if err != nil {
@@ -151,9 +158,9 @@ func (server *Server) SetKeyExpiry(ctx context.Context, key string, expireAt tim
 	}
 }
 
-// RemoveKeyExpiry is called by commands that remove key expiry (e.g. PERSIST).
+// RemoveExpiry is called by commands that remove key expiry (e.g. PERSIST).
 // The key must be locked prior ro calling this function.
-func (server *Server) RemoveKeyExpiry(key string) {
+func (server *Server) RemoveExpiry(key string) {
 	server.store[key] = KeyData{
 		value:    server.store[key].value,
 		expireAt: time.Time{},
