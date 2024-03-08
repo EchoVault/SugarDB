@@ -17,6 +17,7 @@ type Server interface {
 	SetValue(ctx context.Context, key string, value interface{}) error
 	SetKeyExpiry(ctx context.Context, key string, expire time.Time, touch bool)
 	RemoveKeyExpiry(key string)
+	DeleteKey(ctx context.Context, key string) error
 	GetState() map[string]interface{}
 	GetAllCommands(ctx context.Context) []Command
 	GetACL() interface{}
