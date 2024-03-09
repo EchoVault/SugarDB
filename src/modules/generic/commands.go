@@ -388,8 +388,71 @@ func handleExpire(ctx context.Context, cmd []string, server utils.Server, _ *net
 }
 
 func handleExpireAt(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-	// Handle EXPIREAT and PEXPIREAT
-	return nil, errors.New("command not implemented yet")
+	keys, err := expireKeyFunc(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys[0]
+
+	// Extract time
+	n, err := strconv.ParseInt(cmd[2], 10, 64)
+	if err != nil {
+		return nil, errors.New("expire time must be integer")
+	}
+	expireAt := time.Unix(n, 0)
+	if strings.ToLower(cmd[0]) == "pexpireat" {
+		expireAt = time.UnixMilli(n)
+	}
+
+	if !server.KeyExists(key) {
+		return []byte(":0\r\n"), nil
+	}
+
+	if _, err = server.KeyLock(ctx, key); err != nil {
+		return nil, err
+	}
+	defer server.KeyUnlock(key)
+
+	if len(cmd) == 3 {
+		server.SetExpiry(ctx, key, expireAt, true)
+		return []byte(":1\r\n"), nil
+	}
+
+	currentExpireAt := server.GetExpiry(ctx, key)
+
+	switch strings.ToLower(cmd[3]) {
+	case "nx":
+		if currentExpireAt != (time.Time{}) {
+			return []byte(":0\r\n"), nil
+		}
+		server.SetExpiry(ctx, key, expireAt, false)
+	case "xx":
+		if currentExpireAt == (time.Time{}) {
+			return []byte(":0\r\n"), nil
+		}
+		server.SetExpiry(ctx, key, expireAt, false)
+	case "gt":
+		if currentExpireAt == (time.Time{}) {
+			return []byte(":0\r\n"), nil
+		}
+		if expireAt.Before(currentExpireAt) {
+			return []byte(":0\r\n"), nil
+		}
+		server.SetExpiry(ctx, key, expireAt, false)
+	case "lt":
+		if currentExpireAt != (time.Time{}) {
+			if currentExpireAt.Before(expireAt) {
+				return []byte(":0\r\n"), nil
+			}
+			server.SetExpiry(ctx, key, expireAt, false)
+		}
+		server.SetExpiry(ctx, key, expireAt, false)
+	default:
+		return nil, fmt.Errorf("unknown option %s", strings.ToUpper(cmd[0]))
+	}
+
+	return []byte(":1\r\n"), nil
 }
 
 func Commands() []utils.Command {
