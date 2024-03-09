@@ -68,14 +68,14 @@ func ttlKeyFunc(cmd []string) ([]string, error) {
 }
 
 func expireKeyFunc(cmd []string) ([]string, error) {
-	if len(cmd) != 4 {
+	if len(cmd) < 3 || len(cmd) > 4 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 	return []string{cmd[1]}, nil
 }
 
 func expireAtKeyFunc(cmd []string) ([]string, error) {
-	if len(cmd) != 4 {
+	if len(cmd) < 3 || len(cmd) > 4 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 	return []string{cmd[1]}, nil
