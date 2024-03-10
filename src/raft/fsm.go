@@ -28,6 +28,8 @@ func NewFSM(opts FSMOpts) raft.FSM {
 // Apply Implements raft.FSM interface
 func (fsm *FSM) Apply(log *raft.Log) interface{} {
 	switch log.Type {
+	default:
+		// No-Op
 	case raft.LogCommand:
 		var request utils.ApplyRequest
 

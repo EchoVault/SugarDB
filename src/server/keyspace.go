@@ -177,6 +177,15 @@ func (server *Server) SetExpiry(ctx context.Context, key string, expireAt time.T
 		Value:    server.store[key].Value,
 		ExpireAt: expireAt,
 	}
+
+	// If the slice of keys associated with expiry time does not contain the current key, add the key.
+	server.keysWithExpiry.rwMutex.Lock()
+	if !slices.Contains(server.keysWithExpiry.keys, key) {
+		server.keysWithExpiry.keys = append(server.keysWithExpiry.keys, key)
+	}
+	server.keysWithExpiry.rwMutex.Unlock()
+
+	// If touch is true, update the keys status in the cache.
 	if touch {
 		err := server.updateKeyInCache(ctx, key)
 		if err != nil {
@@ -188,16 +197,18 @@ func (server *Server) SetExpiry(ctx context.Context, key string, expireAt time.T
 // RemoveExpiry is called by commands that remove key expiry (e.g. PERSIST).
 // The key must be locked prior ro calling this function.
 func (server *Server) RemoveExpiry(key string) {
+	// Reset expiry time
 	server.store[key] = utils.KeyData{
 		Value:    server.store[key].Value,
 		ExpireAt: time.Time{},
 	}
-	switch {
-	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, server.Config.EvictionPolicy):
-		server.lfuCache.cache.Delete(key)
-	case slices.Contains([]string{utils.AllKeysLRU, utils.VolatileLRU}, server.Config.EvictionPolicy):
-		server.lruCache.cache.Delete(key)
-	}
+
+	// Remove key from slice of keys associated with expiry
+	server.keysWithExpiry.rwMutex.Lock()
+	defer server.keysWithExpiry.rwMutex.Unlock()
+	server.keysWithExpiry.keys = slices.DeleteFunc(server.keysWithExpiry.keys, func(k string) bool {
+		return k == key
+	})
 }
 
 // GetState creates a deep copy of the store map.
@@ -225,11 +236,22 @@ func (server *Server) DeleteKey(ctx context.Context, key string) error {
 	if _, err := server.KeyLock(ctx, key); err != nil {
 		return fmt.Errorf("deleteKey: %+v", err)
 	}
+
 	// Remove key expiry
 	server.RemoveExpiry(key)
+
 	// Delete the key from keyLocks and store
 	delete(server.keyLocks, key)
 	delete(server.store, key)
+
+	// Remove the key from the cache
+	switch {
+	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, server.Config.EvictionPolicy):
+		server.lfuCache.cache.Delete(key)
+	case slices.Contains([]string{utils.AllKeysLRU, utils.VolatileLRU}, server.Config.EvictionPolicy):
+		server.lruCache.cache.Delete(key)
+	}
+
 	return nil
 }
 
@@ -368,30 +390,26 @@ func (server *Server) adjustMemoryUsage(ctx context.Context) error {
 			}
 		}
 	case slices.Contains([]string{utils.VolatileRandom}, strings.ToLower(server.Config.EvictionPolicy)):
-		// Remove random keys with expiry time until we're below the max memory limit
+		// Remove random keys with an associated expiry time until we're below the max memory limit
 		// or there are no more keys with expiry time.
 		for {
 			// Get random volatile key
-			idx := rand.Intn(len(server.keyLocks))
-			for key, _ := range server.keyLocks {
-				if idx == 0 {
-					// If the key is not volatile, break the loop
-					if server.store[key].ExpireAt == (time.Time{}) {
-						break
-					}
-					// Delete the key
-					if err := server.DeleteKey(ctx, key); err != nil {
-						return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
-					}
-					// Run garbage collection
-					runtime.GC()
-					// Return if we're below max memory
-					runtime.ReadMemStats(&memStats)
-					if memStats.HeapInuse < server.Config.MaxMemory {
-						return nil
-					}
-				}
-				idx--
+			server.keysWithExpiry.rwMutex.RLock()
+			idx := rand.Intn(len(server.keysWithExpiry.keys))
+			key := server.keysWithExpiry.keys[idx]
+			server.keysWithExpiry.rwMutex.RUnlock()
+
+			// Delete the key
+			if err := server.DeleteKey(ctx, key); err != nil {
+				return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
+			}
+
+			// Run garbage collection
+			runtime.GC()
+			// Return if we're below max memory
+			runtime.ReadMemStats(&memStats)
+			if memStats.HeapInuse < server.Config.MaxMemory {
+				return nil
 			}
 		}
 	default:

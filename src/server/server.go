@@ -22,26 +22,39 @@ import (
 )
 
 type Server struct {
+	// Config holds the server configuration variables.
 	Config utils.Config
 
+	// The current index for the latest connection id.
+	// This number is incremented everytime there's a new connection and
+	// the new number is the new connection's ID.
 	ConnID atomic.Uint64
 
-	store           map[string]utils.KeyData
-	keyLocks        map[string]*sync.RWMutex
-	keyCreationLock *sync.Mutex
-	lfuCache        struct {
-		mutex sync.Mutex
-		cache eviction.CacheLFU
+	store           map[string]utils.KeyData // Data store to hold the keys and their associated data, expiry time, etc.
+	keyLocks        map[string]*sync.RWMutex // Map to hold all the individual key locks.
+	keyCreationLock *sync.Mutex              // The mutex for creating a new key. Only one goroutine should be able to create a key at a time.
+
+	// Holds all the keys that are currently associated with an expiry.
+	keysWithExpiry struct {
+		rwMutex sync.RWMutex // Mutex as only one process should be able to update this list at a time.
+		keys    []string     // string slice of the volatile keys
 	}
+	// LFU cache used when eviction policy is allkeys-lfu or volatile-lfu
+	lfuCache struct {
+		mutex sync.Mutex        // Mutex as only one goroutine can edit the LFU cache at a time.
+		cache eviction.CacheLFU // LFU cache represented by a min head.
+	}
+	// LRU cache used when eviction policy is allkeys-lru or volatile-lru
 	lruCache struct {
-		mutex sync.Mutex
-		cache eviction.CacheLRU
+		mutex sync.Mutex        // Mutex as only one goroutine can edit the LRU at a time.
+		cache eviction.CacheLRU // LRU cache represented by a max head.
 	}
 
+	// Holds the list of all commands supported by the server.
 	Commands []utils.Command
 
-	raft       *raft.Raft
-	memberList *memberlist.MemberList
+	raft       *raft.Raft             // The raft replication layer for the server.
+	memberList *memberlist.MemberList // The memberlist layer for the server.
 
 	CancelCh *chan os.Signal
 
@@ -137,6 +150,10 @@ func NewServer(opts Opts) *Server {
 			}),
 		)
 	}
+
+	// TODO
+	// If eviction policy is not noeviction and the server is in standalone mode,
+	// start a goroutine to evict keys every 100 milliseconds.
 
 	return server
 }
