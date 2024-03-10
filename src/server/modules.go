@@ -84,7 +84,8 @@ func (server *Server) handleCommand(ctx context.Context, message []byte, conn *n
 
 	// Handle other commands that need to be synced across the cluster
 	if server.raft.IsRaftLeader() {
-		res, err := server.raftApply(ctx, cmd)
+		var res []byte
+		res, err = server.raftApplyCommand(ctx, cmd)
 		if err != nil {
 			return nil, err
 		}

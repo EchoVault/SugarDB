@@ -3,10 +3,12 @@ package raft
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/hashicorp/raft"
 	"io"
 	"log"
+	"strings"
 )
 
 type FSMOpts struct {
@@ -43,31 +45,43 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 		ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), request.ServerID)
 		ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"), request.ConnectionID)
 
-		// Handle command
-		command, err := fsm.options.GetCommand(request.CMD[0])
-		if err != nil {
+		switch strings.ToLower(request.Type) {
+		default:
 			return utils.ApplyResponse{
-				Error:    err,
+				Error:    fmt.Errorf("unsupported raft command type %s", request.Type),
 				Response: nil,
 			}
-		}
 
-		handler := command.HandlerFunc
+		case "delete-key":
+			// TODO: Handle key deletion
 
-		subCommand, ok := utils.GetSubCommand(command, request.CMD).(utils.SubCommand)
-		if ok {
-			handler = subCommand.HandlerFunc
-		}
-
-		if res, err := handler(ctx, request.CMD, fsm.options.Server, nil); err != nil {
-			return utils.ApplyResponse{
-				Error:    err,
-				Response: nil,
+		case "command":
+			// Handle command
+			command, err := fsm.options.GetCommand(request.CMD[0])
+			if err != nil {
+				return utils.ApplyResponse{
+					Error:    err,
+					Response: nil,
+				}
 			}
-		} else {
-			return utils.ApplyResponse{
-				Error:    nil,
-				Response: res,
+
+			handler := command.HandlerFunc
+
+			subCommand, ok := utils.GetSubCommand(command, request.CMD).(utils.SubCommand)
+			if ok {
+				handler = subCommand.HandlerFunc
+			}
+
+			if res, err := handler(ctx, request.CMD, fsm.options.Server, nil); err != nil {
+				return utils.ApplyResponse{
+					Error:    err,
+					Response: nil,
+				}
+			} else {
+				return utils.ApplyResponse{
+					Error:    nil,
+					Response: res,
+				}
 			}
 		}
 	}

@@ -41,9 +41,11 @@ type ContextServerID string
 type ContextConnID string
 
 type ApplyRequest struct {
+	Type         string   `json:"Type"` // command | delete-key
 	ServerID     string   `json:"ServerID"`
 	ConnectionID string   `json:"ConnectionID"`
 	CMD          []string `json:"CMD"`
+	Key          string   `json:"Key"`
 }
 
 type ApplyResponse struct {

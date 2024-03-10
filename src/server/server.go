@@ -101,7 +101,7 @@ func NewServer(opts Opts) *Server {
 			AddVoter:         server.raft.AddVoter,
 			RemoveRaftServer: server.raft.RemoveServer,
 			IsRaftLeader:     server.raft.IsRaftLeader,
-			ApplyMutate:      server.raftApply,
+			ApplyMutate:      server.raftApplyCommand,
 		})
 	} else {
 		// Set up standalone snapshot engine

@@ -202,7 +202,6 @@ func (server *Server) RemoveExpiry(key string) {
 		Value:    server.store[key].Value,
 		ExpireAt: time.Time{},
 	}
-
 	// Remove key from slice of keys associated with expiry
 	server.keysWithExpiry.rwMutex.Lock()
 	defer server.keysWithExpiry.rwMutex.Unlock()
@@ -294,6 +293,7 @@ func (server *Server) updateKeyInCache(ctx context.Context, key string) error {
 	return nil
 }
 
+// adjustMemoryUsage should only be called from standalone server or from raft cluster leader.
 func (server *Server) adjustMemoryUsage(ctx context.Context) error {
 	// If max memory is 0, there's no need to adjust memory usage.
 	if server.Config.MaxMemory == 0 {
@@ -327,10 +327,20 @@ func (server *Server) adjustMemoryUsage(ctx context.Context) error {
 			if server.lfuCache.cache.Len() == 0 {
 				return fmt.Errorf("adjsutMemoryUsage -> LFU cache empty")
 			}
+
 			key := server.lfuCache.cache.Pop().(string)
-			if err := server.DeleteKey(ctx, key); err != nil {
-				return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
+			if !server.IsInCluster() {
+				// If in standalone mode, directly delete the key
+				if err := server.DeleteKey(ctx, key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
+				}
+			} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+				// If in raft cluster, send command to delete key from cluster
+				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
+				}
 			}
+
 			// Run garbage collection
 			runtime.GC()
 			// Return if we're below max memory
@@ -349,10 +359,21 @@ func (server *Server) adjustMemoryUsage(ctx context.Context) error {
 			if server.lruCache.cache.Len() == 0 {
 				return fmt.Errorf("adjsutMemoryUsage -> LRU cache empty")
 			}
+
 			key := server.lruCache.cache.Pop().(string)
-			if err := server.DeleteKey(ctx, key); err != nil {
-				return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
+			if !server.IsInCluster() {
+				// If in standalone mode, directly delete the key.
+				if err := server.DeleteKey(ctx, key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
+				}
+			} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+				// If in cluster mode and the node is a cluster leader,
+				// send command to delete the key from the cluster.
+				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
+				}
 			}
+
 			// Run garbage collection
 			runtime.GC()
 			// Return if we're below max memory
@@ -374,9 +395,15 @@ func (server *Server) adjustMemoryUsage(ctx context.Context) error {
 			idx := rand.Intn(len(server.keyLocks))
 			for key, _ := range server.keyLocks {
 				if idx == 0 {
-					// Lock the key
-					if err := server.DeleteKey(ctx, key); err != nil {
-						return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
+					if !server.IsInCluster() {
+						// If in standalone mode, directly delete the key
+						if err := server.DeleteKey(ctx, key); err != nil {
+							return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
+						}
+					} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+						if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+							return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
+						}
 					}
 					// Run garbage collection
 					runtime.GC()
@@ -399,9 +426,15 @@ func (server *Server) adjustMemoryUsage(ctx context.Context) error {
 			key := server.keysWithExpiry.keys[idx]
 			server.keysWithExpiry.rwMutex.RUnlock()
 
-			// Delete the key
-			if err := server.DeleteKey(ctx, key); err != nil {
-				return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
+			if !server.IsInCluster() {
+				// If in standalone mode, directly delete the key
+				if err := server.DeleteKey(ctx, key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
+				}
+			} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> volatile keys randome: %+v", err)
+				}
 			}
 
 			// Run garbage collection
