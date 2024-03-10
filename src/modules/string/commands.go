@@ -23,21 +23,21 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 
 	newStr := cmd[3]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 			return nil, err
 		}
 		if err = server.SetValue(ctx, key, newStr); err != nil {
 			return nil, err
 		}
-		server.KeyUnlock(key)
+		server.KeyUnlock(ctx, key)
 		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
 	}
 
 	if _, err := server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	str, ok := server.GetValue(ctx, key).(string)
 	if !ok {
@@ -91,14 +91,14 @@ func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *
 
 	key := keys[0]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err := server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	value, ok := server.GetValue(ctx, key).(string)
 
@@ -125,14 +125,14 @@ func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *
 		return nil, errors.New("start and end indices must be integers")
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return nil, fmt.Errorf("key %s does not exist", key)
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	value, ok := server.GetValue(ctx, key).(string)
 	if !ok {

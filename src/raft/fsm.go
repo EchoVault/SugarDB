@@ -98,19 +98,21 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 		LatestSnapshotMilliseconds: 0,
 	}
 
-	if err := json.Unmarshal(b, &data); err != nil {
+	if err = json.Unmarshal(b, &data); err != nil {
 		log.Fatal(err)
 		return err
 	}
 
 	// Set state
+	ctx := context.Background()
 	for k, v := range data.State {
-		_, err := fsm.options.Server.CreateKeyAndLock(context.Background(), k)
-		if err != nil {
+		if _, err = fsm.options.Server.CreateKeyAndLock(ctx, k); err != nil {
 			log.Fatal(err)
 		}
-		fsm.options.Server.SetValue(context.Background(), k, v)
-		fsm.options.Server.KeyUnlock(k)
+		if err = fsm.options.Server.SetValue(ctx, k, v); err != nil {
+			log.Fatal(err)
+		}
+		fsm.options.Server.KeyUnlock(ctx, k)
 	}
 	// Set latest snapshot milliseconds
 	fsm.options.Server.SetLatestSnapshot(data.LatestSnapshotMilliseconds)

@@ -37,5 +37,4 @@ const (
 	VolatileLFU    = "volatile-lfu"
 	AllKeysRandom  = "allkeys-random"
 	VolatileRandom = "volatile-random"
-	VolatileTTL    = "volatile-ttl"
 )

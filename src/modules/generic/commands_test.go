@@ -177,7 +177,7 @@ func Test_HandleMSET(t *testing.T) {
 					t.Errorf("expected value %s for key %s, got %s", ev, key, value)
 				}
 			}
-			mockServer.KeyRUnlock(key)
+			mockServer.KeyRUnlock(context.Background(), key)
 		}
 	}
 }
@@ -211,8 +211,10 @@ func Test_HandleGET(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(ctx, key, value)
-			mockServer.KeyUnlock(key)
+			if err = mockServer.SetValue(ctx, key, value); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, key)
 
 			res, err := handleGet(ctx, []string{"GET", key}, mockServer, nil)
 			if err != nil {
@@ -297,8 +299,10 @@ func Test_HandleMGET(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), key, test.presetValues[i])
-			mockServer.KeyUnlock(key)
+			if err = mockServer.SetValue(context.Background(), key, test.presetValues[i]); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(context.Background(), key)
 		}
 		// Test the command and its results
 		res, err := handleMGet(context.Background(), test.command, mockServer, nil)

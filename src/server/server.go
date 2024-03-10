@@ -21,17 +21,12 @@ import (
 	"time"
 )
 
-type KeyData struct {
-	value    interface{}
-	expireAt time.Time
-}
-
 type Server struct {
 	Config utils.Config
 
 	ConnID atomic.Uint64
 
-	store           map[string]KeyData
+	store           map[string]utils.KeyData
 	keyLocks        map[string]*sync.RWMutex
 	keyCreationLock *sync.Mutex
 	lfuCache        struct {
@@ -77,7 +72,7 @@ func NewServer(opts Opts) *Server {
 		PubSub:          opts.PubSub,
 		CancelCh:        opts.CancelCh,
 		Commands:        opts.Commands,
-		store:           make(map[string]KeyData),
+		store:           make(map[string]utils.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
 	}
@@ -105,13 +100,14 @@ func NewServer(opts Opts) *Server {
 			SetLatestSnapshotMilliseconds: server.SetLatestSnapshot,
 			GetLatestSnapshotMilliseconds: server.GetLatestSnapshot,
 			SetValue: func(key string, value interface{}) error {
-				if _, err := server.CreateKeyAndLock(context.Background(), key); err != nil {
+				ctx := context.Background()
+				if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
 					return err
 				}
-				if err := server.SetValue(context.Background(), key, value); err != nil {
+				if err := server.SetValue(ctx, key, value); err != nil {
 					return err
 				}
-				server.KeyUnlock(key)
+				server.KeyUnlock(ctx, key)
 				return nil
 			},
 		})
@@ -123,13 +119,14 @@ func NewServer(opts Opts) *Server {
 			aof.WithFinishRewriteFunc(server.FinishRewriteAOF),
 			aof.WithGetStateFunc(server.GetState),
 			aof.WithSetValueFunc(func(key string, value interface{}) error {
-				if _, err := server.CreateKeyAndLock(context.Background(), key); err != nil {
+				ctx := context.Background()
+				if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
 					return err
 				}
-				if err := server.SetValue(context.Background(), key, value); err != nil {
+				if err := server.SetValue(ctx, key, value); err != nil {
 					return err
 				}
-				server.KeyUnlock(key)
+				server.KeyUnlock(ctx, key)
 				return nil
 			}),
 			aof.WithHandleCommandFunc(func(command []byte) {

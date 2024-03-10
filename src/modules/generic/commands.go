@@ -35,7 +35,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	// If GET is provided, the response should be the current stored value.
 	// If there's no current value, then the response should be nil.
 	if params.get {
-		if !server.KeyExists(key) {
+		if !server.KeyExists(ctx, key) {
 			res = []byte("$-1\r\n")
 		} else {
 			res = []byte(fmt.Sprintf("+%v\r\n", server.GetValue(ctx, key)))
@@ -44,19 +44,19 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 
 	if "xx" == strings.ToLower(params.exists) {
 		// If XX is specified, make sure the key exists.
-		if !server.KeyExists(key) {
+		if !server.KeyExists(ctx, key) {
 			return nil, fmt.Errorf("key %s does not exist", key)
 		}
 		_, err = server.KeyLock(ctx, key)
 	} else if "nx" == strings.ToLower(params.exists) {
 		// If NX is specified, make sure that the key does not currently exist.
-		if server.KeyExists(key) {
+		if server.KeyExists(ctx, key) {
 			return nil, fmt.Errorf("key %s already exists", key)
 		}
 		_, err = server.CreateKeyAndLock(ctx, key)
 	} else {
 		// Neither XX not NX are specified, lock or create the lock
-		if !server.KeyExists(key) {
+		if !server.KeyExists(ctx, key) {
 			// Key does not exist, create it
 			_, err = server.CreateKeyAndLock(ctx, key)
 		} else {
@@ -67,7 +67,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	if err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	if err = server.SetValue(ctx, key, utils.AdaptType(value)); err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func handleMSet(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 	defer func() {
 		for k, v := range entries {
 			if v.locked {
-				server.KeyUnlock(k)
+				server.KeyUnlock(ctx, k)
 				entries[k] = KeyObject{
 					value:  v.value,
 					locked: false,
@@ -114,7 +114,7 @@ func handleMSet(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 	// Acquire all the locks for each key first
 	// If any key cannot be acquired, abandon transaction and release all currently held keys
 	for k, v := range entries {
-		if server.KeyExists(k) {
+		if server.KeyExists(ctx, k) {
 			if _, err := server.KeyLock(ctx, k); err != nil {
 				return nil, err
 			}
@@ -144,7 +144,7 @@ func handleGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	}
 	key := keys[0]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte("$-1\r\n"), nil
 	}
 
@@ -152,7 +152,7 @@ func handleGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	if err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	value := server.GetValue(ctx, key)
 
@@ -173,7 +173,7 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 			// Skip if we have already locked this key
 			continue
 		}
-		if server.KeyExists(key) {
+		if server.KeyExists(ctx, key) {
 			_, err = server.KeyRLock(ctx, key)
 			if err != nil {
 				return nil, fmt.Errorf("could not obtain lock for %s key", key)
@@ -186,7 +186,7 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(key)
+				server.KeyRUnlock(ctx, key)
 				locks[key] = false
 			}
 		}
@@ -234,14 +234,14 @@ func handlePersist(ctx context.Context, cmd []string, server utils.Server, _ *ne
 
 	key := keys[0]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	expireAt := server.GetExpiry(ctx, key)
 	if expireAt == (time.Time{}) {
@@ -261,14 +261,14 @@ func handleExpireTime(ctx context.Context, cmd []string, server utils.Server, _ 
 
 	key := keys[0]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":-2\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	expireAt := server.GetExpiry(ctx, key)
 
@@ -292,14 +292,14 @@ func handleTTL(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 
 	key := keys[0]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":-2\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	expireAt := server.GetExpiry(ctx, key)
 
@@ -337,14 +337,14 @@ func handleExpire(ctx context.Context, cmd []string, server utils.Server, _ *net
 		expireAt = time.Now().Add(time.Duration(n) * time.Millisecond)
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	if len(cmd) == 3 {
 		server.SetExpiry(ctx, key, expireAt, true)
@@ -405,14 +405,14 @@ func handleExpireAt(ctx context.Context, cmd []string, server utils.Server, _ *n
 		expireAt = time.UnixMilli(n)
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	if len(cmd) == 3 {
 		server.SetExpiry(ctx, key, expireAt, true)

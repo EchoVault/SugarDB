@@ -126,13 +126,13 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		}
 	}
 
-	if server.KeyExists(key) {
+	if server.KeyExists(ctx, key) {
 		// Key exists
 		_, err = server.KeyLock(ctx, key)
 		if err != nil {
 			return nil, err
 		}
-		defer server.KeyUnlock(key)
+		defer server.KeyUnlock(ctx, key)
 		set, ok := server.GetValue(ctx, key).(*SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", key)
@@ -154,7 +154,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	set := NewSortedSet(members)
 	if err = server.SetValue(ctx, key, set); err != nil {
@@ -171,14 +171,14 @@ func handleZCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 	key := keys[0]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -232,14 +232,14 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *
 		maximum = Score(s)
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -266,14 +266,14 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 	minimum := cmd[2]
 	maximum := cmd[3]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -318,20 +318,20 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(key)
+				server.KeyRUnlock(ctx, key)
 			}
 		}
 	}()
 
 	// Extract base set
-	if !server.KeyExists(keys[0]) {
+	if !server.KeyExists(ctx, keys[0]) {
 		// If base set does not exist, return an empty array
 		return []byte("*0\r\n"), nil
 	}
 	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(keys[0])
+	defer server.KeyRUnlock(ctx, keys[0])
 	baseSortedSet, ok := server.GetValue(ctx, keys[0]).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", keys[0])
@@ -341,7 +341,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 	var sets []*SortedSet
 
 	for i := 1; i < len(keys); i++ {
-		if !server.KeyExists(keys[i]) {
+		if !server.KeyExists(ctx, keys[i]) {
 			continue
 		}
 		locked, err := server.KeyRLock(ctx, keys[i])
@@ -386,20 +386,20 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(key)
+				server.KeyRUnlock(ctx, key)
 			}
 		}
 	}()
 
 	// Extract base set
-	if !server.KeyExists(keys[0]) {
+	if !server.KeyExists(ctx, keys[0]) {
 		// If base set does not exist, return 0
 		return []byte(":0\r\n"), nil
 	}
 	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(keys[0])
+	defer server.KeyRUnlock(ctx, keys[0])
 	baseSortedSet, ok := server.GetValue(ctx, keys[0]).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", keys[0])
@@ -408,7 +408,7 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 	var sets []*SortedSet
 
 	for i := 1; i < len(keys); i++ {
-		if server.KeyExists(keys[i]) {
+		if server.KeyExists(ctx, keys[i]) {
 			if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 				return nil, err
 			}
@@ -422,7 +422,7 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 
 	diff := baseSortedSet.Subtract(sets)
 
-	if server.KeyExists(destination) {
+	if server.KeyExists(ctx, destination) {
 		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
@@ -431,7 +431,7 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 			return nil, err
 		}
 	}
-	defer server.KeyUnlock(destination)
+	defer server.KeyUnlock(ctx, destination)
 
 	if err = server.SetValue(ctx, destination, diff); err != nil {
 		return nil, err
@@ -469,7 +469,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		increment = Score(s)
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		// If the key does not exist, create a new sorted set at the key with
 		// the member and increment as the first value
 		if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
@@ -478,14 +478,14 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		if err = server.SetValue(ctx, key, NewSortedSet([]MemberParam{{value: member, score: increment}})); err != nil {
 			return nil, err
 		}
-		server.KeyUnlock(key)
+		server.KeyUnlock(ctx, key)
 		return []byte(fmt.Sprintf("+%s\r\n", strconv.FormatFloat(float64(increment), 'f', -1, 64))), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
@@ -518,7 +518,7 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(key)
+				server.KeyRUnlock(ctx, key)
 			}
 		}
 	}()
@@ -526,7 +526,7 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	var setParams []SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
-		if !server.KeyExists(keys[i]) {
+		if !server.KeyExists(ctx, keys[i]) {
 			// If any of the keys is non-existent, return an empty array as there's no intersect
 			return []byte("*0\r\n"), nil
 		}
@@ -585,7 +585,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(key)
+				server.KeyRUnlock(ctx, key)
 			}
 		}
 	}()
@@ -593,7 +593,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	var setParams []SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
-		if !server.KeyExists(keys[i]) {
+		if !server.KeyExists(ctx, keys[i]) {
 			return []byte(":0\r\n"), nil
 		}
 		if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
@@ -612,7 +612,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 
 	intersect := Intersect(aggregate, setParams...)
 
-	if server.KeyExists(destination) && intersect.Cardinality() > 0 {
+	if server.KeyExists(ctx, destination) && intersect.Cardinality() > 0 {
 		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
@@ -621,7 +621,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 			return nil, err
 		}
 	}
-	defer server.KeyUnlock(destination)
+	defer server.KeyUnlock(ctx, destination)
 
 	if err = server.SetValue(ctx, destination, intersect); err != nil {
 		return nil, err
@@ -677,21 +677,21 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *n
 	}
 
 	for i := 0; i < len(keys); i++ {
-		if server.KeyExists(keys[i]) {
+		if server.KeyExists(ctx, keys[i]) {
 			if _, err = server.KeyLock(ctx, keys[i]); err != nil {
 				continue
 			}
 			v, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
 			if !ok || v.Cardinality() == 0 {
-				server.KeyUnlock(keys[i])
+				server.KeyUnlock(ctx, keys[i])
 				continue
 			}
 			popped, err := v.Pop(count, policy)
 			if err != nil {
-				server.KeyUnlock(keys[i])
+				server.KeyUnlock(ctx, keys[i])
 				return nil, err
 			}
-			server.KeyUnlock(keys[i])
+			server.KeyUnlock(ctx, keys[i])
 
 			res := fmt.Sprintf("*%d", popped.Cardinality())
 
@@ -730,14 +730,14 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		count = c
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -767,14 +767,14 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server, conn 
 
 	key := keys[0]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -826,14 +826,14 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 		}
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte("$-1\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -870,14 +870,14 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *n
 		withscores = true
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte("$-1\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -914,14 +914,14 @@ func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	key := keys[0]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -946,13 +946,13 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *
 
 	key := keys[0]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte("$-1\r\n"), nil
 	}
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
@@ -987,14 +987,14 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Serv
 		return nil, err
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -1029,14 +1029,14 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 		return nil, err
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -1086,14 +1086,14 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	minimum := cmd[2]
 	maximum := cmd[3]
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
 	}
 
 	if _, err = server.KeyLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(key)
+	defer server.KeyUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -1184,14 +1184,14 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 		}
 	}
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(key)
+	defer server.KeyRUnlock(ctx, key)
 
 	set, ok := server.GetValue(ctx, key).(*SortedSet)
 	if !ok {
@@ -1321,14 +1321,14 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 		}
 	}
 
-	if !server.KeyExists(source) {
+	if !server.KeyExists(ctx, source) {
 		return []byte("*0\r\n"), nil
 	}
 
 	if _, err = server.KeyRLock(ctx, source); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(source)
+	defer server.KeyRUnlock(ctx, source)
 
 	set, ok := server.GetValue(ctx, source).(*SortedSet)
 	if !ok {
@@ -1387,7 +1387,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 
 	newSortedSet := NewSortedSet(resultMembers)
 
-	if server.KeyExists(destination) {
+	if server.KeyExists(ctx, destination) {
 		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
@@ -1396,7 +1396,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 			return nil, err
 		}
 	}
-	defer server.KeyUnlock(destination)
+	defer server.KeyUnlock(ctx, destination)
 
 	if err = server.SetValue(ctx, destination, newSortedSet); err != nil {
 		return nil, err
@@ -1419,7 +1419,7 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(key)
+				server.KeyRUnlock(ctx, key)
 			}
 		}
 	}()
@@ -1427,7 +1427,7 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 	var setParams []SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
-		if server.KeyExists(keys[i]) {
+		if server.KeyExists(ctx, keys[i]) {
 			if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 				return nil, err
 			}
@@ -1481,7 +1481,7 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(key)
+				server.KeyRUnlock(ctx, key)
 			}
 		}
 	}()
@@ -1489,7 +1489,7 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	var setParams []SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
-		if server.KeyExists(keys[i]) {
+		if server.KeyExists(ctx, keys[i]) {
 			if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 				return nil, err
 			}
@@ -1507,7 +1507,7 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 
 	union := Union(aggregate, setParams...)
 
-	if server.KeyExists(destination) {
+	if server.KeyExists(ctx, destination) {
 		if _, err = server.KeyLock(ctx, destination); err != nil {
 			return nil, err
 		}
@@ -1516,7 +1516,7 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, c
 			return nil, err
 		}
 	}
-	defer server.KeyUnlock(destination)
+	defer server.KeyUnlock(ctx, destination)
 
 	if err = server.SetValue(ctx, destination, union); err != nil {
 		return nil, err

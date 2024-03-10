@@ -6,12 +6,18 @@ import (
 	"time"
 )
 
+// KeyData holds the structure of the in-memory data stored at a string key.
+type KeyData struct {
+	Value    interface{}
+	ExpireAt time.Time
+}
+
 type Server interface {
 	KeyLock(ctx context.Context, key string) (bool, error)
-	KeyUnlock(key string)
+	KeyUnlock(ctx context.Context, key string)
 	KeyRLock(ctx context.Context, key string) (bool, error)
-	KeyRUnlock(key string)
-	KeyExists(key string) bool
+	KeyRUnlock(ctx context.Context, key string)
+	KeyExists(ctx context.Context, key string) bool
 	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
 	GetValue(ctx context.Context, key string) interface{}
 	SetValue(ctx context.Context, key string, value interface{}) error

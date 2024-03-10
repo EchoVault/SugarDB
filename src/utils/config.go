@@ -98,12 +98,11 @@ There is no limit by default.`, func(memory string) error {
 4) volatile-lfu - Evict the least frequently used keys with an expiration.
 5) volatile-lru - Evict the least recently used keys with an expiration.
 6) allkeys-random - Evict random keys until we get under the max-memory limit.
-7) volatile-random - Evict random keys with an expiration.
-8) volatile-ttl - Evict the keys with the shortest remaining ttl.`, func(policy string) error {
+7) volatile-random - Evict random keys with an expiration.`, func(policy string) error {
 		policies := []string{
 			NoEviction,
 			AllKeysLFU, AllKeysLRU, AllKeysRandom,
-			VolatileLFU, VolatileLRU, VolatileRandom, VolatileTTL,
+			VolatileLFU, VolatileLRU, VolatileRandom,
 		}
 		policyIdx := slices.Index(policies, strings.ToLower(policy))
 		if policyIdx == -1 {

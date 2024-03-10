@@ -33,8 +33,8 @@ func (server *Server) KeyLock(ctx context.Context, key string) (bool, error) {
 	}
 }
 
-func (server *Server) KeyUnlock(key string) {
-	if server.KeyExists(key) {
+func (server *Server) KeyUnlock(ctx context.Context, key string) {
+	if _, ok := server.keyLocks[key]; ok {
 		server.keyLocks[key].Unlock()
 	}
 }
@@ -58,14 +58,27 @@ func (server *Server) KeyRLock(ctx context.Context, key string) (bool, error) {
 	}
 }
 
-func (server *Server) KeyRUnlock(key string) {
-	if server.KeyExists(key) {
+func (server *Server) KeyRUnlock(ctx context.Context, key string) {
+	if _, ok := server.keyLocks[key]; ok {
 		server.keyLocks[key].RUnlock()
 	}
 }
 
-func (server *Server) KeyExists(key string) bool {
-	return server.keyLocks[key] != nil
+func (server *Server) KeyExists(ctx context.Context, key string) bool {
+	entry, ok := server.store[key]
+	if !ok {
+		return false
+	}
+
+	if entry.ExpireAt != (time.Time{}) && entry.ExpireAt.Before(time.Now()) {
+		err := server.DeleteKey(ctx, key)
+		if err != nil {
+			log.Printf("keyExists: %+v\n", err)
+		}
+		return false
+	}
+
+	return true
 }
 
 // CreateKeyAndLock creates a new key lock and immediately locks it if the key does not exist.
@@ -78,15 +91,15 @@ func (server *Server) CreateKeyAndLock(ctx context.Context, key string) (bool, e
 	server.keyCreationLock.Lock()
 	defer server.keyCreationLock.Unlock()
 
-	if !server.KeyExists(key) {
+	if !server.KeyExists(ctx, key) {
 		// Create Lock
 		keyLock := &sync.RWMutex{}
 		keyLock.Lock()
 		server.keyLocks[key] = keyLock
 		// Create key entry
-		server.store[key] = KeyData{
-			value:    nil,
-			expireAt: time.Time{},
+		server.store[key] = utils.KeyData{
+			Value:    nil,
+			ExpireAt: time.Time{},
 		}
 		return true, nil
 	}
@@ -100,7 +113,7 @@ func (server *Server) GetValue(ctx context.Context, key string) interface{} {
 	if err := server.updateKeyInCache(ctx, key); err != nil {
 		log.Printf("GetValue error: %+v\n", err)
 	}
-	return server.store[key].value
+	return server.store[key].Value
 }
 
 // SetValue updates the value in the store at the specified key with the given value.
@@ -113,9 +126,9 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 		return errors.New("max memory reached, key value not set")
 	}
 
-	server.store[key] = KeyData{
-		value:    value,
-		expireAt: server.store[key].expireAt,
+	server.store[key] = utils.KeyData{
+		Value:    value,
+		ExpireAt: server.store[key].ExpireAt,
 	}
 
 	err := server.updateKeyInCache(ctx, key)
@@ -136,7 +149,7 @@ func (server *Server) GetExpiry(ctx context.Context, key string) time.Time {
 	if err := server.updateKeyInCache(ctx, key); err != nil {
 		log.Printf("GetKeyExpiry error: %+v\n", err)
 	}
-	return server.store[key].expireAt
+	return server.store[key].ExpireAt
 }
 
 // The SetExpiry receiver function sets the expiry time of a key.
@@ -146,9 +159,9 @@ func (server *Server) GetExpiry(ctx context.Context, key string) time.Time {
 // or the access time on lru eviction policy.
 // The key must be locked prior to calling this function.
 func (server *Server) SetExpiry(ctx context.Context, key string, expireAt time.Time, touch bool) {
-	server.store[key] = KeyData{
-		value:    server.store[key].value,
-		expireAt: expireAt,
+	server.store[key] = utils.KeyData{
+		Value:    server.store[key].Value,
+		ExpireAt: expireAt,
 	}
 	if touch {
 		err := server.updateKeyInCache(ctx, key)
@@ -161,9 +174,9 @@ func (server *Server) SetExpiry(ctx context.Context, key string, expireAt time.T
 // RemoveExpiry is called by commands that remove key expiry (e.g. PERSIST).
 // The key must be locked prior ro calling this function.
 func (server *Server) RemoveExpiry(key string) {
-	server.store[key] = KeyData{
-		value:    server.store[key].value,
-		expireAt: time.Time{},
+	server.store[key] = utils.KeyData{
+		Value:    server.store[key].Value,
+		ExpireAt: time.Time{},
 	}
 	switch {
 	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, server.Config.EvictionPolicy):
@@ -198,9 +211,11 @@ func (server *Server) DeleteKey(ctx context.Context, key string) error {
 	if _, err := server.KeyLock(ctx, key); err != nil {
 		return fmt.Errorf("deleteKey: %+v", err)
 	}
-	// Delete the keys
-	delete(server.store, key)
+	// Remove key expiry
+	server.RemoveExpiry(key)
+	// Delete the key from keyLocks and store
 	delete(server.keyLocks, key)
+	delete(server.store, key)
 	return nil
 }
 
@@ -227,13 +242,13 @@ func (server *Server) updateKeyInCache(ctx context.Context, key string) error {
 	case utils.VolatileLFU:
 		server.lfuCache.mutex.Lock()
 		defer server.lfuCache.mutex.Unlock()
-		if server.store[key].expireAt != (time.Time{}) {
+		if server.store[key].ExpireAt != (time.Time{}) {
 			server.lfuCache.cache.Update(key)
 		}
 	case utils.VolatileLRU:
 		server.lruCache.mutex.Lock()
 		defer server.lruCache.mutex.Unlock()
-		if server.store[key].expireAt != (time.Time{}) {
+		if server.store[key].ExpireAt != (time.Time{}) {
 			server.lruCache.cache.Update(key)
 		}
 	}
@@ -347,7 +362,7 @@ func (server *Server) adjustMemoryUsage(ctx context.Context) error {
 			for key, _ := range server.keyLocks {
 				if idx == 0 {
 					// If the key is not volatile, break the loop
-					if server.store[key].expireAt == (time.Time{}) {
+					if server.store[key].ExpireAt == (time.Time{}) {
 						break
 					}
 					// Delete the key
