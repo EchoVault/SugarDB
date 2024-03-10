@@ -17,6 +17,13 @@ import (
 // KeyLock tries to acquire the write lock for the specified key.
 // If the context passed to the function finishes before the lock is acquired, an error is returned.
 func (server *Server) KeyLock(ctx context.Context, key string) (bool, error) {
+	// If context did not set deadline, set the default deadline
+	var cancelFunc context.CancelFunc
+	if _, ok := ctx.Deadline(); !ok {
+		ctx, cancelFunc = context.WithTimeoutCause(ctx, 250*time.Millisecond, fmt.Errorf("timeout for key %s", key))
+		defer cancelFunc()
+	}
+	// Attempt to acquire the lock until lock is acquired or deadline is reached.
 	for {
 		select {
 		default:
@@ -42,6 +49,13 @@ func (server *Server) KeyUnlock(ctx context.Context, key string) {
 // KeyRLock tries to acquire the read lock for the specified key.
 // If the context passed to the function finishes before the lock is acquired, an error is returned.
 func (server *Server) KeyRLock(ctx context.Context, key string) (bool, error) {
+	// If context did not set deadline, set the default deadline
+	var cancelFunc context.CancelFunc
+	if _, ok := ctx.Deadline(); !ok {
+		ctx, cancelFunc = context.WithTimeoutCause(ctx, 250*time.Millisecond, fmt.Errorf("timeout for key %s", key))
+		defer cancelFunc()
+	}
+	// Attempt to acquire the lock until lock is acquired or deadline is reached.
 	for {
 		select {
 		default:
