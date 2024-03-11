@@ -245,20 +245,20 @@ func (server *Server) GetState() map[string]interface{} {
 	return data
 }
 
-// DeleteKey removes the key from store, keyLocks and keyExpiry maps
+// DeleteKey removes the key from store, keyLocks and keyExpiry maps.
 func (server *Server) DeleteKey(ctx context.Context, key string) error {
 	if _, err := server.KeyLock(ctx, key); err != nil {
-		return fmt.Errorf("deleteKey: %+v", err)
+		return fmt.Errorf("deleteKey error: %+v", err)
 	}
 
-	// Remove key expiry
+	// Remove key expiry.
 	server.RemoveExpiry(key)
 
-	// Delete the key from keyLocks and store
+	// Delete the key from keyLocks and store.
 	delete(server.keyLocks, key)
 	delete(server.store, key)
 
-	// Remove the key from the cache
+	// Remove the key from the cache.
 	switch {
 	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, server.Config.EvictionPolicy):
 		server.lfuCache.cache.Delete(key)
@@ -465,4 +465,87 @@ func (server *Server) adjustMemoryUsage(ctx context.Context) error {
 	default:
 		return nil
 	}
+}
+
+// evictKeysWithExpiredTTL is a function that samples keys with an associated TTL
+// and evicts keys that are currently expired.
+// This function will sample 20 keys from the list of keys with an associated TTL,
+// if the key is expired, it will be evicted.
+// This function is only executed in standalone mode or by the raft cluster leader.
+func (server *Server) evictKeysWithExpiredTTL(ctx context.Context) error {
+	// Only execute this if we're in standalone mode, or raft cluster leader.
+	if server.IsInCluster() && !server.raft.IsRaftLeader() {
+		return nil
+	}
+
+	server.keysWithExpiry.rwMutex.RLock()
+
+	// Sample size should be the configured sample size, or the size of the keys with expiry,
+	// whichever one is smaller.
+	sampleSize := int(server.Config.EvictionSample)
+	if len(server.keysWithExpiry.keys) < sampleSize {
+		sampleSize = len(server.keysWithExpiry.keys)
+	}
+	keys := make([]string, sampleSize)
+
+	deletedCount := 0
+	thresholdPercentage := 20
+
+	var idx int
+	var key string
+	for i := 0; i < len(keys); i++ {
+		for {
+			// Retry retrieval of a random key until we find a key that is not already in the list of sampled keys.
+			idx = rand.Intn(len(server.keysWithExpiry.keys))
+			key = server.keysWithExpiry.keys[idx]
+			if !slices.Contains(keys, key) {
+				keys[i] = key
+				break
+			}
+		}
+	}
+	server.keysWithExpiry.rwMutex.RUnlock()
+
+	// Loop through the keys and delete them if they're expired
+	for _, k := range keys {
+		if _, err := server.KeyRLock(ctx, k); err != nil {
+			continue
+		}
+
+		// If the current key is not expired, skip to the next key
+		if server.store[k].ExpireAt.After(time.Now()) {
+			server.KeyRUnlock(ctx, k)
+			continue
+		}
+
+		// Delete the expired key
+		deletedCount += 1
+		server.KeyRUnlock(ctx, k)
+		if !server.IsInCluster() {
+			if err := server.DeleteKey(ctx, k); err != nil {
+				return fmt.Errorf("evictKeysWithExpiredTTL -> standalone delete: %+v", err)
+			}
+		} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+			if err := server.raftApplyDeleteKey(ctx, k); err != nil {
+				return fmt.Errorf("evictKeysWithExpiredTTL -> cluster delete: %+v", err)
+			}
+		}
+	}
+
+	// If sampleSize is 0, there's no need to calculate deleted percentage.
+	if sampleSize == 0 {
+		log.Println("no keys to sample, skipping eviction")
+		return nil
+	}
+
+	log.Printf("%d keys sampled, %d keys deleted\n", sampleSize, deletedCount)
+
+	// If the deleted percentage is over 20% of the sample size, execute the function again immediately.
+	if (deletedCount/sampleSize)*100 >= thresholdPercentage {
+		log.Printf("deletion ratio (%d percent) reached threshold (%d percent), sampling again\n",
+			(deletedCount/sampleSize)*100, thresholdPercentage)
+		return server.evictKeysWithExpiredTTL(ctx)
+	}
+
+	return nil
 }

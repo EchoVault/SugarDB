@@ -121,10 +121,6 @@ func (r *Raft) RaftInit(ctx context.Context) {
 	}
 
 	r.raft = raftServer
-
-	// TODO
-	// Listen on leadership change channel and initiate key eviction goroutine
-	// if current node is the leader.
 }
 
 func (r *Raft) Apply(cmd []byte, timeout time.Duration) raft.ApplyFuture {

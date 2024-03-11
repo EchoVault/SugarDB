@@ -23,6 +23,8 @@ CMD "./server" \
   "--snapshot-interval" "${SNAPSHOT_INTERVAL}" \
   "--max-memory" "${MAX_MEMORY}" \
   "--eviction-policy" "${EVICTION_POLICY}" \
+  "--eviction-sample" "${EVICTION_SAMPLE}" \
+  "--eviction-interval" "${EVICTION_INTERVAL}" \
   "--tls=${TLS}" \
   "--mtls=${MTLS}" \
   "--in-memory=${IN_MEMORY}" \

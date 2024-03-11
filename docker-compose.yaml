@@ -32,6 +32,8 @@ services:
       - AOF_SYNC_STRATEGY=everysec
       - MAX_MEMORY=2000kb
       - EVICTION_POLICY=allkeys-lfu
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -74,6 +76,8 @@ services:
       - AOF_SYNC_STRATEGY=everysec
       - MAX_MEMORY=2000kb
       - EVICTION_POLICY=allkeys-lfu
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/generic/ssl/certs/echovault/server/server1.crt,/generic/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/generic/ssl/certs/echovault/server/server2.crt,/generic/ssl/certs/echovault/server/server2.key
@@ -117,6 +121,8 @@ services:
       - AOF_SYNC_STRATEGY=everysec
       - MAX_MEMORY=2000kb
       - EVICTION_POLICY=allkeys-lfu
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/generic/ssl/certs/echovault/server/server1.crt,/generic/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/generic/ssl/certs/echovault/server/server2.crt,/generic/ssl/certs/echovault/server/server2.key
@@ -160,6 +166,8 @@ services:
       - AOF_SYNC_STRATEGY=everysec
       - MAX_MEMORY=2000kb
       - EVICTION_POLICY=allkeys-lfu
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/generic/ssl/certs/echovault/server/server1.crt,/generic/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/generic/ssl/certs/echovault/server/server2.crt,/generic/ssl/certs/echovault/server/server2.key
@@ -203,6 +211,8 @@ services:
       - AOF_SYNC_STRATEGY=everysec
       - MAX_MEMORY=2000kb
       - EVICTION_POLICY=allkeys-lfu
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/generic/ssl/certs/echovault/server/server1.crt,/generic/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/generic/ssl/certs/echovault/server/server2.crt,/generic/ssl/certs/echovault/server/server2.key
@@ -246,6 +256,8 @@ services:
       - AOF_SYNC_STRATEGY=everysec
       - MAX_MEMORY=2000kb
       - EVICTION_POLICY=allkeys-lfu
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/generic/ssl/certs/echovault/server/server1.crt,/generic/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/generic/ssl/certs/echovault/server/server2.crt,/generic/ssl/certs/echovault/server/server2.key

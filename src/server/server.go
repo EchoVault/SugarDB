@@ -153,9 +153,17 @@ func NewServer(opts Opts) *Server {
 		)
 	}
 
-	// TODO
-	// If eviction policy is not noeviction and the server is in standalone mode,
-	// start a goroutine to evict keys every 100 milliseconds.
+	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
+	if server.Config.EvictionPolicy != utils.NoEviction {
+		go func() {
+			for {
+				<-time.After(server.Config.EvictionInterval)
+				if err := server.evictKeysWithExpiredTTL(context.Background()); err != nil {
+					log.Println(err)
+				}
+			}
+		}()
+	}
 
 	return server
 }
