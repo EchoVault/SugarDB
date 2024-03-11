@@ -94,14 +94,16 @@ func NewServer(opts Opts) *Server {
 			Config:     opts.Config,
 			Server:     server,
 			GetCommand: server.getCommand,
+			DeleteKey:  server.DeleteKey,
 		})
-		server.memberList = memberlist.NewMemberList(memberlist.MemberlistOpts{
+		server.memberList = memberlist.NewMemberList(memberlist.Opts{
 			Config:           opts.Config,
 			HasJoinedCluster: server.raft.HasJoinedCluster,
 			AddVoter:         server.raft.AddVoter,
 			RemoveRaftServer: server.raft.RemoveServer,
 			IsRaftLeader:     server.raft.IsRaftLeader,
 			ApplyMutate:      server.raftApplyCommand,
+			ApplyDeleteKey:   server.raftApplyDeleteKey,
 		})
 	} else {
 		// Set up standalone snapshot engine

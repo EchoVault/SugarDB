@@ -85,10 +85,25 @@ func (server *Server) KeyExists(ctx context.Context, key string) bool {
 	}
 
 	if entry.ExpireAt != (time.Time{}) && entry.ExpireAt.Before(time.Now()) {
-		err := server.DeleteKey(ctx, key)
-		if err != nil {
-			log.Printf("keyExists: %+v\n", err)
+		if !server.IsInCluster() {
+			// If in standalone mode, delete the key directly.
+			err := server.DeleteKey(ctx, key)
+			if err != nil {
+				log.Printf("keyExists: %+v\n", err)
+			}
+		} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+			// If we're in a raft cluster, and we're the leader, send command to delete the key in the cluster.
+			err := server.raftApplyDeleteKey(ctx, key)
+			if err != nil {
+				log.Printf("keyExists: %+v\n", err)
+			}
+		} else if server.IsInCluster() && !server.raft.IsRaftLeader() {
+			// Forward message to leader to initiate key deletion.
+			// This is always called regardless of ForwardCommand config value
+			// because we always want to remove expired keys.
+			server.memberList.ForwardDeleteKey(ctx, key)
 		}
+
 		return false
 	}
 
@@ -250,6 +265,8 @@ func (server *Server) DeleteKey(ctx context.Context, key string) error {
 	case slices.Contains([]string{utils.AllKeysLRU, utils.VolatileLRU}, server.Config.EvictionPolicy):
 		server.lruCache.cache.Delete(key)
 	}
+
+	log.Printf("deleted key %s\n", key)
 
 	return nil
 }

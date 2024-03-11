@@ -20,6 +20,7 @@ type Opts struct {
 	Config     utils.Config
 	Server     utils.Server
 	GetCommand func(command string) (utils.Command, error)
+	DeleteKey  func(ctx context.Context, key string) error
 }
 
 type Raft struct {
@@ -94,6 +95,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 			Config:     r.options.Config,
 			Server:     r.options.Server,
 			GetCommand: r.options.GetCommand,
+			DeleteKey:  r.options.DeleteKey,
 		}),
 		logStore,
 		stableStore,

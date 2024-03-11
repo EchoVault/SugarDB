@@ -15,6 +15,7 @@ type FSMOpts struct {
 	Config     utils.Config
 	Server     utils.Server
 	GetCommand func(command string) (utils.Command, error)
+	DeleteKey  func(ctx context.Context, key string) error
 }
 
 type FSM struct {
@@ -53,7 +54,16 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 			}
 
 		case "delete-key":
-			// TODO: Handle key deletion
+			if err := fsm.options.DeleteKey(ctx, request.Key); err != nil {
+				return utils.ApplyResponse{
+					Error:    err,
+					Response: nil,
+				}
+			}
+			return utils.ApplyResponse{
+				Error:    nil,
+				Response: []byte("OK"),
+			}
 
 		case "command":
 			// Handle command
