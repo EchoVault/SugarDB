@@ -89,11 +89,11 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 			log.Fatal(err)
 		}
 
-		m.broadcastRaftAddress(ctx)
+		m.broadcastRaftAddress()
 	}
 }
 
-func (m *MemberList) broadcastRaftAddress(ctx context.Context) {
+func (m *MemberList) broadcastRaftAddress() {
 	msg := BroadcastMessage{
 		Action: "RaftJoin",
 		NodeMeta: NodeMeta{

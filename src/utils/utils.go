@@ -171,7 +171,7 @@ func IsMaxMemoryExceeded(maxMemory uint64) bool {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	// If we're currently using less than the configured max memory, return false
+	// If we're currently using less than the configured max memory, return false.
 	if memStats.HeapInuse < maxMemory {
 		return false
 	}
