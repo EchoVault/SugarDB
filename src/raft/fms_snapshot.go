@@ -10,7 +10,7 @@ import (
 
 type SnapshotOpts struct {
 	config            utils.Config
-	data              map[string]interface{}
+	data              map[string]utils.KeyData
 	startSnapshot     func()
 	finishSnapshot    func()
 	setLatestSnapshot func(msec int64)
@@ -32,24 +32,24 @@ func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
 
 	msec, err := strconv.Atoi(strings.Split(sink.ID(), "-")[2])
 	if err != nil {
-		sink.Cancel()
+		_ = sink.Cancel()
 		return err
 	}
 
 	snapshotObject := utils.SnapshotObject{
-		State:                      s.options.data,
+		State:                      utils.FilterExpiredKeys(s.options.data),
 		LatestSnapshotMilliseconds: int64(msec),
 	}
 
 	o, err := json.Marshal(snapshotObject)
 
 	if err != nil {
-		sink.Cancel()
+		_ = sink.Cancel()
 		return err
 	}
 
 	if _, err = sink.Write(o); err != nil {
-		sink.Cancel()
+		_ = sink.Cancel()
 		return err
 	}
 

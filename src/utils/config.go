@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -37,6 +38,10 @@ type Config struct {
 	RestoreSnapshot    bool          `json:"RestoreSnapshot" yaml:"RestoreSnapshot"`
 	RestoreAOF         bool          `json:"RestoreAOF" yaml:"RestoreAOF"`
 	AOFSyncStrategy    string        `json:"AOFSyncStrategy" yaml:"AOFSyncStrategy"`
+	MaxMemory          uint64        `json:"MaxMemory" yaml:"MaxMemory"`
+	EvictionPolicy     string        `json:"EvictionPolicy" yaml:"EvictionPolicy"`
+	EvictionSample     uint          `json:"EvictionSample" yaml:"EvictionSample"`
+	EvictionInterval   time.Duration `json:"EvictionInterval" yaml:"EvictionInterval"`
 }
 
 func GetConfig() (Config, error) {
@@ -75,7 +80,41 @@ The options are 'always' for syncing on each command, 'everysec' to sync every s
 			return nil
 		})
 
-	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false")
+	var maxMemory uint64 = 0
+	flag.Func("max-memory", `Upper memory limit before triggering eviction. 
+Supported units (kb, mb, gb, tb, pb). When 0 is passed, there will be no memory limit.
+There is no limit by default.`, func(memory string) error {
+		b, err := ParseMemory(memory)
+		if err != nil {
+			return err
+		}
+		maxMemory = b
+		return nil
+	})
+
+	evictionPolicy := NoEviction
+	flag.Func("eviction-policy", `The eviction policy used to remove keys when max-memory is reached. The options are: 
+1) noeviction - Do not evict any keys even when max-memory is exceeded.
+2) allkeys-lfu - Evict the least frequently used keys.
+3) allkeys-lru - Evict the least recently used keys.
+4) volatile-lfu - Evict the least frequently used keys with an expiration.
+5) volatile-lru - Evict the least recently used keys with an expiration.
+6) allkeys-random - Evict random keys until we get under the max-memory limit.
+7) volatile-random - Evict random keys with an expiration.`, func(policy string) error {
+		policies := []string{
+			NoEviction,
+			AllKeysLFU, AllKeysLRU, AllKeysRandom,
+			VolatileLFU, VolatileLRU, VolatileRandom,
+		}
+		policyIdx := slices.Index(policies, strings.ToLower(policy))
+		if policyIdx == -1 {
+			return fmt.Errorf("policy %s is not a valid policy", policy)
+		}
+		evictionPolicy = strings.ToLower(policy)
+		return nil
+	})
+
+	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false.")
 	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
 	serverId := flag.String("server-id", "1", "Server ID in raft cluster. Leave empty for client.")
@@ -84,13 +123,15 @@ The options are 'always' for syncing on each command, 'everysec' to sync every s
 	raftBindPort := flag.Uint("raft-port", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	mlBindPort := flag.Uint("memberlist-port", 7946, "Port to use for memberlist communication.")
 	inMemory := flag.Bool("in-memory", false, "Whether to use memory or persistent storage for raft logs and snapshots.")
-	dataDir := flag.String("data-dir", "/var/lib/echovault", "Directory to store raft snapshots and logs.")
+	dataDir := flag.String("data-dir", "/var/lib/echovault", "Directory to store snapshots and logs.")
 	bootstrapCluster := flag.Bool("bootstrap-cluster", false, "Whether this instance should bootstrap a new cluster.")
 	aclConfig := flag.String("acl-config", "", "ACL config file path.")
 	snapshotThreshold := flag.Uint64("snapshot-threshold", 1000, "The number of entries that trigger a snapshot. Default is 1000.")
 	snapshotInterval := flag.Duration("snapshot-interval", 5*time.Minute, "The time interval between snapshots (in seconds). Default is 5 minutes.")
 	restoreSnapshot := flag.Bool("restore-snapshot", false, "This flag prompts the server to restore state from snapshot when set to true. Only works in standalone mode. Higher priority than restoreAOF.")
 	restoreAOF := flag.Bool("restore-aof", false, "This flag prompts the server to restore state from append-only logs. Only works in standalone mode. Lower priority than restoreSnapshot.")
+	evictionSample := flag.Uint("eviction-sample", 20, "An integer specifying the number of keys to sample when checking for expired keys.")
+	evictionInterval := flag.Duration("eviction-interval", 100*time.Millisecond, "The interval between each sampling of keys to evict.")
 	forwardCommand := flag.Bool(
 		"forward-commands",
 		false,
@@ -138,6 +179,10 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		RestoreSnapshot:    *restoreSnapshot,
 		RestoreAOF:         *restoreAOF,
 		AOFSyncStrategy:    aofSyncStrategy,
+		MaxMemory:          maxMemory,
+		EvictionPolicy:     evictionPolicy,
+		EvictionSample:     *evictionSample,
+		EvictionInterval:   *evictionInterval,
 	}
 
 	if len(*config) > 0 {
@@ -154,27 +199,24 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 			ext := path.Ext(f.Name())
 
 			if ext == ".json" {
-				err := json.NewDecoder(f).Decode(&conf)
-				if err != nil {
+				if err = json.NewDecoder(f).Decode(&conf); err != nil {
 					return Config{}, nil
 				}
 			}
 
 			if ext == ".yaml" || ext == ".yml" {
-				err := yaml.NewDecoder(f).Decode(&conf)
-				if err != nil {
+				if err = yaml.NewDecoder(f).Decode(&conf); err != nil {
 					return Config{}, err
 				}
 			}
 		}
-
 	}
 
 	// If requirePass is set to true, then password must be provided as well
 	var err error = nil
 
 	if conf.RequirePass && conf.Password == "" {
-		err = errors.New("password cannot be empty if requirePass is etc to true")
+		err = errors.New("password cannot be empty if requirePass is generic to true")
 	}
 
 	return conf, err

@@ -1,4 +1,4 @@
-package ping
+package connection
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 func handlePing(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	switch len(cmd) {
 	default:
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	case 1:
 		return []byte("+PONG\r\n"), nil
 	case 2:
@@ -22,7 +22,7 @@ func handlePing(ctx context.Context, cmd []string, server utils.Server, conn *ne
 func Commands() []utils.Command {
 	return []utils.Command{
 		{
-			Command:     "ping",
+			Command:     "connection",
 			Categories:  []string{utils.FastCategory, utils.ConnectionCategory},
 			Description: "(PING [value]) Ping the server. If a value is provided, the value will be echoed.",
 			Sync:        false,

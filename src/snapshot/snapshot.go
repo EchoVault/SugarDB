@@ -27,12 +27,11 @@ type Opts struct {
 	Config                        utils.Config
 	StartSnapshot                 func()
 	FinishSnapshot                func()
-	GetState                      func() map[string]interface{}
+	GetState                      func() map[string]utils.KeyData
 	SetLatestSnapshotMilliseconds func(msec int64)
 	GetLatestSnapshotMilliseconds func() int64
-	CreateKeyAndLock              func(ctx context.Context, key string) (bool, error)
-	KeyUnlock                     func(key string)
-	SetValue                      func(ctx context.Context, key string, value interface{})
+	SetValue                      func(key string, value interface{}) error
+	SetExpiry                     func(key string, expireAt time.Time) error
 }
 
 type Engine struct {
@@ -127,7 +126,7 @@ func (engine *Engine) TakeSnapshot() error {
 
 	// Get current state
 	snapshotObject := utils.SnapshotObject{
-		State:                      engine.options.GetState(),
+		State:                      utils.FilterExpiredKeys(engine.options.GetState()),
 		LatestSnapshotMilliseconds: engine.options.GetLatestSnapshotMilliseconds(),
 	}
 	out, err := json.Marshal(snapshotObject)
@@ -263,12 +262,13 @@ func (engine *Engine) Restore(ctx context.Context) error {
 
 	engine.options.SetLatestSnapshotMilliseconds(snapshotObject.LatestSnapshotMilliseconds)
 
-	for key, value := range snapshotObject.State {
-		if _, err = engine.options.CreateKeyAndLock(ctx, key); err != nil {
-			log.Println(fmt.Errorf("could not load value at key %s with error: %s", key, err.Error()))
+	for key, value := range utils.FilterExpiredKeys(snapshotObject.State) {
+		if err = engine.options.SetValue(key, value.Value); err != nil {
+			return fmt.Errorf("snapshot engine -> restore value: %+v", err)
 		}
-		engine.options.SetValue(ctx, key, value)
-		engine.options.KeyUnlock(key)
+		if err = engine.options.SetExpiry(key, value.ExpireAt); err != nil {
+			return fmt.Errorf("snapshot engine -> restore expiry: %+v", err)
+		}
 	}
 
 	log.Println("successfully restored latest snapshot")

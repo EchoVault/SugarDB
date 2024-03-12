@@ -18,18 +18,22 @@ services:
       - PLUGIN_DIR=/usr/local/lib/echovault
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
-      - TLS=true
+      - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
       - ACL_CONFIG=/etc/config/echovault/acl.yml
-      - REQUIRE_PASS=true
+      - REQUIRE_PASS=false
       - PASSWORD=default_password
       - FORWARD_COMMAND=false
       - SNAPSHOT_THRESHOLD=1000
       - SNAPSHOT_INTERVAL=5m30s
-      - RESTORE_SNAPSHOT=false
-      - RESTORE_AOF=true
+      - RESTORE_SNAPSHOT=true
+      - RESTORE_AOF=false
       - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=2000kb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -54,13 +58,12 @@ services:
       - PORT=7480
       - RAFT_PORT=8000
       - ML_PORT=7946
-      - KEY=/etc/ssl/certs/echovault/server1.key
-      - CERT=/etc/ssl/certs/echovault/server1.crt
       - SERVER_ID=1
+      - JOIN_ADDR=cluster_node_2:7946
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
-      - TLS=true
-      - MTLS=true
+      - TLS=false
+      - MTLS=false
       - BOOTSTRAP_CLUSTER=true
       - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
@@ -70,6 +73,10 @@ services:
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=false
       - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=100mb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -94,14 +101,12 @@ services:
       - PORT=7480
       - RAFT_PORT=8000
       - ML_PORT=7946
-      - KEY=/etc/ssl/certs/echovault/server1.key
-      - CERT=/etc/ssl/certs/echovault/server1.crt
       - SERVER_ID=2
-      - JOIN_ADDR=cluster_node_1:7946
+      - JOIN_ADDR=cluster_node_3:7946
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
-      - TLS=true
-      - MTLS=true
+      - TLS=false
+      - MTLS=false
       - BOOTSTRAP_CLUSTER=false
       - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
@@ -111,6 +116,10 @@ services:
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=false
       - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=100mb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -135,14 +144,12 @@ services:
       - PORT=7480
       - RAFT_PORT=8000
       - ML_PORT=7946
-      - KEY=/etc/ssl/certs/echovault/server1.key
-      - CERT=/etc/ssl/certs/echovault/server1.crt
       - SERVER_ID=3
-      - JOIN_ADDR=cluster_node_1:7946
+      - JOIN_ADDR=cluster_node_4:7946
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
-      - TLS=true
-      - MTLS=true
+      - TLS=false
+      - MTLS=false
       - BOOTSTRAP_CLUSTER=false
       - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
@@ -152,6 +159,10 @@ services:
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=false
       - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=100mb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -176,14 +187,12 @@ services:
       - PORT=7480
       - RAFT_PORT=8000
       - ML_PORT=7946
-      - KEY=/etc/ssl/certs/echovault/server1.key
-      - CERT=/etc/ssl/certs/echovault/server1.crt
       - SERVER_ID=4
-      - JOIN_ADDR=cluster_node_1:7946
+      - JOIN_ADDR=cluster_node_5:7946
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
-      - TLS=true
-      - MTLS=true
+      - TLS=false
+      - MTLS=false
       - BOOTSTRAP_CLUSTER=false
       - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
@@ -193,6 +202,10 @@ services:
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=false
       - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=100mb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
@@ -217,14 +230,12 @@ services:
       - PORT=7480
       - RAFT_PORT=8000
       - ML_PORT=7946
-      - KEY=/etc/ssl/certs/echovault/server1.key
-      - CERT=/etc/ssl/certs/echovault/server1.crt
       - SERVER_ID=5
       - JOIN_ADDR=cluster_node_1:7946
       - DATA_DIR=/var/lib/echovault
       - IN_MEMORY=false
-      - TLS=true
-      - MTLS=true
+      - TLS=false
+      - MTLS=false
       - BOOTSTRAP_CLUSTER=false
       - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
@@ -234,6 +245,10 @@ services:
       - RESTORE_SNAPSHOT=false
       - RESTORE_AOF=false
       - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=100mb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
       # List of server cert/key pairs
       - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
       - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key

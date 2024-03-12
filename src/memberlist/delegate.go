@@ -21,6 +21,7 @@ type DelegateOpts struct {
 	addVoter       func(id raft.ServerID, address raft.ServerAddress, prevIndex uint64, timeout time.Duration) error
 	isRaftLeader   func() bool
 	applyMutate    func(ctx context.Context, cmd []string) ([]byte, error)
+	applyDeleteKey func(ctx context.Context, key string) error
 }
 
 func NewDelegate(opts DelegateOpts) *Delegate {
@@ -67,6 +68,24 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 		if err != nil {
 			fmt.Println(err)
 		}
+
+	case "DeleteKey":
+		// If the current node is not a cluster leader, re-broadcast the message
+		if !delegate.options.isRaftLeader() {
+			delegate.options.broadcastQueue.QueueBroadcast(&msg)
+			return
+		}
+		// Current node is the cluster leader, handle the key deletion
+		ctx := context.WithValue(
+			context.WithValue(context.Background(), utils.ContextServerID("ServerID"), string(msg.ServerID)),
+			utils.ContextConnID("ConnectionID"), msg.ConnId)
+
+		key := string(msg.Content)
+
+		if err := delegate.options.applyDeleteKey(ctx, key); err != nil {
+			log.Println(err)
+		}
+
 	case "MutateData":
 		// If the current node is not a cluster leader, re-broadcast the message
 		if !delegate.options.isRaftLeader() {

@@ -3,16 +3,19 @@ package raft
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/hashicorp/raft"
 	"io"
 	"log"
+	"strings"
 )
 
 type FSMOpts struct {
 	Config     utils.Config
 	Server     utils.Server
 	GetCommand func(command string) (utils.Command, error)
+	DeleteKey  func(ctx context.Context, key string) error
 }
 
 type FSM struct {
@@ -28,6 +31,8 @@ func NewFSM(opts FSMOpts) raft.FSM {
 // Apply Implements raft.FSM interface
 func (fsm *FSM) Apply(log *raft.Log) interface{} {
 	switch log.Type {
+	default:
+		// No-Op
 	case raft.LogCommand:
 		var request utils.ApplyRequest
 
@@ -41,31 +46,52 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 		ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), request.ServerID)
 		ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"), request.ConnectionID)
 
-		// Handle command
-		command, err := fsm.options.GetCommand(request.CMD[0])
-		if err != nil {
+		switch strings.ToLower(request.Type) {
+		default:
 			return utils.ApplyResponse{
-				Error:    err,
+				Error:    fmt.Errorf("unsupported raft command type %s", request.Type),
 				Response: nil,
 			}
-		}
 
-		handler := command.HandlerFunc
-
-		subCommand, ok := utils.GetSubCommand(command, request.CMD).(utils.SubCommand)
-		if ok {
-			handler = subCommand.HandlerFunc
-		}
-
-		if res, err := handler(ctx, request.CMD, fsm.options.Server, nil); err != nil {
-			return utils.ApplyResponse{
-				Error:    err,
-				Response: nil,
+		case "delete-key":
+			if err := fsm.options.DeleteKey(ctx, request.Key); err != nil {
+				return utils.ApplyResponse{
+					Error:    err,
+					Response: nil,
+				}
 			}
-		} else {
 			return utils.ApplyResponse{
 				Error:    nil,
-				Response: res,
+				Response: []byte("OK"),
+			}
+
+		case "command":
+			// Handle command
+			command, err := fsm.options.GetCommand(request.CMD[0])
+			if err != nil {
+				return utils.ApplyResponse{
+					Error:    err,
+					Response: nil,
+				}
+			}
+
+			handler := command.HandlerFunc
+
+			subCommand, ok := utils.GetSubCommand(command, request.CMD).(utils.SubCommand)
+			if ok {
+				handler = subCommand.HandlerFunc
+			}
+
+			if res, err := handler(ctx, request.CMD, fsm.options.Server, nil); err != nil {
+				return utils.ApplyResponse{
+					Error:    err,
+					Response: nil,
+				}
+			} else {
+				return utils.ApplyResponse{
+					Error:    nil,
+					Response: res,
+				}
 			}
 		}
 	}
@@ -94,23 +120,26 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 	}
 
 	data := utils.SnapshotObject{
-		State:                      make(map[string]interface{}),
+		State:                      make(map[string]utils.KeyData),
 		LatestSnapshotMilliseconds: 0,
 	}
 
-	if err := json.Unmarshal(b, &data); err != nil {
+	if err = json.Unmarshal(b, &data); err != nil {
 		log.Fatal(err)
 		return err
 	}
 
 	// Set state
-	for k, v := range data.State {
-		_, err := fsm.options.Server.CreateKeyAndLock(context.Background(), k)
-		if err != nil {
+	ctx := context.Background()
+	for k, v := range utils.FilterExpiredKeys(data.State) {
+		if _, err = fsm.options.Server.CreateKeyAndLock(ctx, k); err != nil {
 			log.Fatal(err)
 		}
-		fsm.options.Server.SetValue(context.Background(), k, v)
-		fsm.options.Server.KeyUnlock(k)
+		if err = fsm.options.Server.SetValue(ctx, k, v.Value); err != nil {
+			log.Fatal(err)
+		}
+		fsm.options.Server.SetExpiry(ctx, k, v.ExpireAt, false)
+		fsm.options.Server.KeyUnlock(ctx, k)
 	}
 	// Set latest snapshot milliseconds
 	fsm.options.Server.SetLatestSnapshot(data.LatestSnapshotMilliseconds)

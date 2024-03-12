@@ -6,10 +6,11 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/src/aof"
+	"github.com/echovault/echovault/src/eviction"
 	"github.com/echovault/echovault/src/memberlist"
 	"github.com/echovault/echovault/src/raft"
-	"github.com/echovault/echovault/src/server/aof"
-	"github.com/echovault/echovault/src/server/snapshot"
+	"github.com/echovault/echovault/src/snapshot"
 	"github.com/echovault/echovault/src/utils"
 	"io"
 	"log"
@@ -21,31 +22,52 @@ import (
 )
 
 type Server struct {
+	// Config holds the server configuration variables.
 	Config utils.Config
 
+	// The current index for the latest connection id.
+	// This number is incremented everytime there's a new connection and
+	// the new number is the new connection's ID.
 	ConnID atomic.Uint64
 
-	store           map[string]interface{}
-	keyLocks        map[string]*sync.RWMutex
-	keyCreationLock *sync.Mutex
+	store           map[string]utils.KeyData // Data store to hold the keys and their associated data, expiry time, etc.
+	keyLocks        map[string]*sync.RWMutex // Map to hold all the individual key locks.
+	keyCreationLock *sync.Mutex              // The mutex for creating a new key. Only one goroutine should be able to create a key at a time.
 
+	// Holds all the keys that are currently associated with an expiry.
+	keysWithExpiry struct {
+		rwMutex sync.RWMutex // Mutex as only one process should be able to update this list at a time.
+		keys    []string     // string slice of the volatile keys
+	}
+	// LFU cache used when eviction policy is allkeys-lfu or volatile-lfu
+	lfuCache struct {
+		mutex sync.Mutex        // Mutex as only one goroutine can edit the LFU cache at a time.
+		cache eviction.CacheLFU // LFU cache represented by a min head.
+	}
+	// LRU cache used when eviction policy is allkeys-lru or volatile-lru
+	lruCache struct {
+		mutex sync.Mutex        // Mutex as only one goroutine can edit the LRU at a time.
+		cache eviction.CacheLRU // LRU cache represented by a max head.
+	}
+
+	// Holds the list of all commands supported by the server.
 	Commands []utils.Command
 
-	raft       *raft.Raft
-	memberList *memberlist.MemberList
+	raft       *raft.Raft             // The raft replication layer for the server.
+	memberList *memberlist.MemberList // The memberlist layer for the server.
 
 	CancelCh *chan os.Signal
 
 	ACL    utils.ACL
 	PubSub utils.PubSub
 
-	SnapshotInProgress         atomic.Bool
-	RewriteAOFInProgress       atomic.Bool
-	StateCopyInProgress        atomic.Bool
-	StateMutationInProgress    atomic.Bool
-	LatestSnapshotMilliseconds atomic.Int64 // Unix epoch in milliseconds
-	SnapshotEngine             *snapshot.Engine
-	AOFEngine                  *aof.Engine
+	SnapshotInProgress         atomic.Bool      // Atomic boolean that's true when actively taking a snapshot.
+	RewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
+	StateCopyInProgress        atomic.Bool      // Atomic boolean that's true when actively copying state for snapshotting or preamble generation.
+	StateMutationInProgress    atomic.Bool      // Atomic boolean that is set to true when state mutation is in progress.
+	LatestSnapshotMilliseconds atomic.Int64     // Unix epoch in milliseconds
+	SnapshotEngine             *snapshot.Engine // Snapshot engine for standalone mode
+	AOFEngine                  *aof.Engine      // AOF engine for standalone mode
 }
 
 type Opts struct {
@@ -63,7 +85,7 @@ func NewServer(opts Opts) *Server {
 		PubSub:          opts.PubSub,
 		CancelCh:        opts.CancelCh,
 		Commands:        opts.Commands,
-		store:           make(map[string]interface{}),
+		store:           make(map[string]utils.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
 	}
@@ -72,14 +94,16 @@ func NewServer(opts Opts) *Server {
 			Config:     opts.Config,
 			Server:     server,
 			GetCommand: server.getCommand,
+			DeleteKey:  server.DeleteKey,
 		})
-		server.memberList = memberlist.NewMemberList(memberlist.MemberlistOpts{
+		server.memberList = memberlist.NewMemberList(memberlist.Opts{
 			Config:           opts.Config,
 			HasJoinedCluster: server.raft.HasJoinedCluster,
 			AddVoter:         server.raft.AddVoter,
 			RemoveRaftServer: server.raft.RemoveServer,
 			IsRaftLeader:     server.raft.IsRaftLeader,
-			ApplyMutate:      server.raftApply,
+			ApplyMutate:      server.raftApplyCommand,
+			ApplyDeleteKey:   server.raftApplyDeleteKey,
 		})
 	} else {
 		// Set up standalone snapshot engine
@@ -90,9 +114,26 @@ func NewServer(opts Opts) *Server {
 			GetState:                      server.GetState,
 			SetLatestSnapshotMilliseconds: server.SetLatestSnapshot,
 			GetLatestSnapshotMilliseconds: server.GetLatestSnapshot,
-			CreateKeyAndLock:              server.CreateKeyAndLock,
-			KeyUnlock:                     server.KeyUnlock,
-			SetValue:                      server.SetValue,
+			SetValue: func(key string, value interface{}) error {
+				ctx := context.Background()
+				if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+					return err
+				}
+				if err := server.SetValue(ctx, key, value); err != nil {
+					return err
+				}
+				server.KeyUnlock(ctx, key)
+				return nil
+			},
+			SetExpiry: func(key string, expireAt time.Time) error {
+				ctx := context.Background()
+				if _, err := server.KeyLock(ctx, key); err != nil {
+					return err
+				}
+				server.SetExpiry(ctx, key, expireAt, false)
+				server.KeyUnlock(ctx, key)
+				return nil
+			},
 		})
 		// Set up standalone AOF engine
 		server.AOFEngine = aof.NewAOFEngine(
@@ -101,13 +142,25 @@ func NewServer(opts Opts) *Server {
 			aof.WithStartRewriteFunc(server.StartRewriteAOF),
 			aof.WithFinishRewriteFunc(server.FinishRewriteAOF),
 			aof.WithGetStateFunc(server.GetState),
-			aof.WithSetValueFunc(func(key string, value interface{}) {
-				if _, err := server.CreateKeyAndLock(context.Background(), key); err != nil {
-					log.Println(err)
-					return
+			aof.WithSetValueFunc(func(key string, value interface{}) error {
+				ctx := context.Background()
+				if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+					return err
 				}
-				server.SetValue(context.Background(), key, value)
-				server.KeyUnlock(key)
+				if err := server.SetValue(ctx, key, value); err != nil {
+					return err
+				}
+				server.KeyUnlock(ctx, key)
+				return nil
+			}),
+			aof.WithSetExpiryFunc(func(key string, expireAt time.Time) error {
+				ctx := context.Background()
+				if _, err := server.KeyLock(ctx, key); err != nil {
+					return err
+				}
+				server.SetExpiry(ctx, key, expireAt, false)
+				server.KeyUnlock(ctx, key)
+				return nil
 			}),
 			aof.WithHandleCommandFunc(func(command []byte) {
 				_, err := server.handleCommand(context.Background(), command, nil, true)
@@ -117,6 +170,19 @@ func NewServer(opts Opts) *Server {
 			}),
 		)
 	}
+
+	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
+	if server.Config.EvictionPolicy != utils.NoEviction {
+		go func() {
+			for {
+				<-time.After(server.Config.EvictionInterval)
+				if err := server.evictKeysWithExpiredTTL(context.Background()); err != nil {
+					log.Println(err)
+				}
+			}
+		}()
+	}
+
 	return server
 }
 
@@ -278,7 +344,13 @@ func (server *Server) Start(ctx context.Context) {
 		// Initialise raft and memberlist
 		server.raft.RaftInit(ctx)
 		server.memberList.MemberListInit(ctx)
-	} else {
+		if server.raft.IsRaftLeader() {
+			server.InitialiseCaches()
+		}
+	}
+
+	if !server.IsInCluster() {
+		server.InitialiseCaches()
 		// Restore from AOF by default if it's enabled
 		if conf.RestoreAOF {
 			err := server.AOFEngine.Restore()
@@ -364,4 +436,25 @@ func (server *Server) ShutDown(ctx context.Context) {
 		server.raft.RaftShutdown(ctx)
 		server.memberList.MemberListShutdown(ctx)
 	}
+}
+
+func (server *Server) InitialiseCaches() {
+	// Set up LFU cache
+	server.lfuCache = struct {
+		mutex sync.Mutex
+		cache eviction.CacheLFU
+	}{
+		mutex: sync.Mutex{},
+		cache: eviction.NewCacheLFU(),
+	}
+	// set up LRU cache
+	server.lruCache = struct {
+		mutex sync.Mutex
+		cache eviction.CacheLRU
+	}{
+		mutex: sync.Mutex{},
+		cache: eviction.NewCacheLRU(),
+	}
+	// TODO: If eviction policy is volatile-ttl, start goroutine that continuously reads the mem stats
+	// TODO: before triggering purge once max-memory is reached
 }

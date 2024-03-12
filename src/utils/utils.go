@@ -4,11 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math/big"
 	"net"
+	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -129,4 +132,75 @@ func AbsInt(n int) int {
 		return -n
 	}
 	return n
+}
+
+// ParseMemory returns an integer representing the bytes in the memory string
+func ParseMemory(memory string) (uint64, error) {
+	// Parse memory strings such as "100mb", "16gb"
+	memString := memory[0 : len(memory)-2]
+	bytesInt, err := strconv.ParseInt(memString, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	memUnit := strings.ToLower(memory[len(memory)-2:])
+	switch memUnit {
+	case "kb":
+		bytesInt *= 1024
+	case "mb":
+		bytesInt *= 1024 * 1024
+	case "gb":
+		bytesInt *= 1024 * 1024 * 1024
+	case "tb":
+		bytesInt *= 1024 * 1024 * 1024 * 1024
+	case "pb":
+		bytesInt *= 1024 * 1024 * 1024 * 1024 * 1024
+	default:
+		return 0, fmt.Errorf("memory unit %s not supported, use (kb, mb, gb, tb, pb) ", memUnit)
+	}
+
+	return uint64(bytesInt), nil
+}
+
+// IsMaxMemoryExceeded checks whether we have exceeded the current maximum memory limit.
+func IsMaxMemoryExceeded(maxMemory uint64) bool {
+	if maxMemory == 0 {
+		return false
+	}
+
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+
+	// If we're currently using less than the configured max memory, return false.
+	if memStats.HeapInuse < maxMemory {
+		return false
+	}
+
+	// If we're currently using more than max memory, force a garbage collection before we start deleting keys.
+	// This measure is to prevent deleting keys that may be important when some memory can be reclaimed
+	// by just collecting garbage.
+	runtime.GC()
+	runtime.ReadMemStats(&memStats)
+
+	// Return true when whe are above or equal to max memory.
+	return memStats.HeapInuse >= maxMemory
+}
+
+// FilterExpiredKeys filters out keys that are already expired, so they are not persisted.
+func FilterExpiredKeys(state map[string]KeyData) map[string]KeyData {
+	var keysToDelete []string
+	for k, v := range state {
+		// Skip keys with no expiry time.
+		if v.ExpireAt == (time.Time{}) {
+			continue
+		}
+		// If the key is already expired, mark it for deletion.
+		if v.ExpireAt.Before(time.Now()) {
+			keysToDelete = append(keysToDelete, k)
+		}
+	}
+	for _, key := range keysToDelete {
+		delete(state, key)
+	}
+	return state
 }

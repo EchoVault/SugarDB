@@ -2,10 +2,12 @@ package aof
 
 import (
 	"fmt"
-	logstore "github.com/echovault/echovault/src/server/aof/log"
-	"github.com/echovault/echovault/src/server/aof/preamble"
+	logstore "github.com/echovault/echovault/src/aof/log"
+	"github.com/echovault/echovault/src/aof/preamble"
+	"github.com/echovault/echovault/src/utils"
 	"log"
 	"sync"
+	"time"
 )
 
 // This package handles AOF logging in standalone mode only.
@@ -25,8 +27,9 @@ type Engine struct {
 
 	startRewrite  func()
 	finishRewrite func()
-	getState      func() map[string]interface{}
-	setValue      func(key string, value interface{})
+	getState      func() map[string]utils.KeyData
+	setValue      func(key string, value interface{}) error
+	setExpiry     func(key string, expireAt time.Time) error
 	handleCommand func(command []byte)
 }
 
@@ -54,15 +57,21 @@ func WithFinishRewriteFunc(f func()) func(engine *Engine) {
 	}
 }
 
-func WithGetStateFunc(f func() map[string]interface{}) func(engine *Engine) {
+func WithGetStateFunc(f func() map[string]utils.KeyData) func(engine *Engine) {
 	return func(engine *Engine) {
 		engine.getState = f
 	}
 }
 
-func WithSetValueFunc(f func(key string, value interface{})) func(engine *Engine) {
+func WithSetValueFunc(f func(key string, value interface{}) error) func(engine *Engine) {
 	return func(engine *Engine) {
 		engine.setValue = f
+	}
+}
+
+func WithSetExpiryFunc(f func(key string, expireAt time.Time) error) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.setExpiry = f
 	}
 }
 
@@ -93,8 +102,12 @@ func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 		logCount:      0,
 		startRewrite:  func() {},
 		finishRewrite: func() {},
-		getState:      func() map[string]interface{} { return nil },
-		setValue:      func(key string, value interface{}) {},
+		getState:      func() map[string]utils.KeyData { return nil },
+		setValue: func(key string, value interface{}) error {
+			// No-Op by default
+			return nil
+		},
+		setExpiry:     func(key string, expireAt time.Time) error { return nil },
 		handleCommand: func(command []byte) {},
 	}
 
@@ -108,6 +121,7 @@ func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 		preamble.WithReadWriter(engine.preambleRW),
 		preamble.WithGetStateFunc(engine.getState),
 		preamble.WithSetValueFunc(engine.setValue),
+		preamble.WithSetExpiryFunc(engine.setExpiry),
 	)
 
 	// Setup AOF log store engine

@@ -18,7 +18,7 @@ func handleSubscribe(ctx context.Context, cmd []string, server utils.Server, con
 	channels := cmd[1:]
 
 	if len(channels) == 0 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
 	switch strings.ToLower(cmd[0]) {
@@ -55,15 +55,15 @@ func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn 
 		return nil, errors.New("could not load pubsub module")
 	}
 	if len(cmd) != 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 	pubsub.Publish(ctx, cmd[2], cmd[1])
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handlePubSubChannels(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
 	pubsub, ok := server.GetPubSub().(*PubSub)
@@ -106,7 +106,7 @@ func Commands() []utils.Command {
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				// Treat the channels as keys
 				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+					return nil, errors.New(utils.WrongArgsResponse)
 				}
 				return cmd[1:], nil
 			},
@@ -120,7 +120,7 @@ func Commands() []utils.Command {
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				// Treat the patterns as keys
 				if len(cmd) < 2 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+					return nil, errors.New(utils.WrongArgsResponse)
 				}
 				return cmd[1:], nil
 			},
@@ -134,7 +134,7 @@ func Commands() []utils.Command {
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				// Treat the channel as a key
 				if len(cmd) != 3 {
-					return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+					return nil, errors.New(utils.WrongArgsResponse)
 				}
 				return []string{cmd[1]}, nil
 			},

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
@@ -94,19 +95,22 @@ func Test_HandleHSET(t *testing.T) {
 			command:          []string{"HSET", "field1"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HSET/HSETNX, %d", i))
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHSET(context.Background(), test.command, mockServer, nil)
+		res, err := handleHSET(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -122,10 +126,10 @@ func Test_HandleHSET(t *testing.T) {
 			t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, rv.Integer())
 		}
 		// Check that all the values are what is expected
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		hash, ok := mockServer.GetValue(test.key).(map[string]interface{})
+		hash, ok := mockServer.GetValue(ctx, test.key).(map[string]interface{})
 		if !ok {
 			t.Errorf("value at key \"%s\" is not a hash map", test.key)
 		}
@@ -193,7 +197,7 @@ func Test_HandleHINCRBY(t *testing.T) {
 			command:          []string{"HINCRBY", "key5"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -202,7 +206,7 @@ func Test_HandleHINCRBY(t *testing.T) {
 			command:          []string{"HINCRBY", "key6", "field1", "23", "45"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Error when increment by float does not pass valid float
 			preset:           false,
@@ -242,15 +246,19 @@ func Test_HandleHINCRBY(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HINCRBY, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHINCRBY(context.Background(), test.command, mockServer, nil)
+		res, err := handleHINCRBY(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -275,10 +283,10 @@ func Test_HandleHINCRBY(t *testing.T) {
 			}
 		}
 		// Check that all the values are what is expected
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		hash, ok := mockServer.GetValue(test.key).(map[string]interface{})
+		hash, ok := mockServer.GetValue(ctx, test.key).(map[string]interface{})
 		if !ok {
 			t.Errorf("value at key \"%s\" is not a hash map", test.key)
 		}
@@ -336,19 +344,23 @@ func Test_HandleHGET(t *testing.T) {
 			command:          []string{"HGET", "key4"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HINCRBY, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHGET(context.Background(), test.command, mockServer, nil)
+		res, err := handleHGET(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -427,7 +439,7 @@ func Test_HandleHSTRLEN(t *testing.T) {
 			command:          []string{"HSTRLEN", "key3"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -440,15 +452,19 @@ func Test_HandleHSTRLEN(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HSTRLEN, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHSTRLEN(context.Background(), test.command, mockServer, nil)
+		res, err := handleHSTRLEN(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -513,7 +529,7 @@ func Test_HandleHVALS(t *testing.T) {
 			command:          []string{"HVALS"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -522,7 +538,7 @@ func Test_HandleHVALS(t *testing.T) {
 			command:          []string{"HVALS", "key4", "key4"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -535,15 +551,19 @@ func Test_HandleHVALS(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HVALS, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHVALS(context.Background(), test.command, mockServer, nil)
+		res, err := handleHVALS(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -695,14 +715,14 @@ func Test_HandleHRANDFIELD(t *testing.T) {
 			key:           "key10",
 			presetValue:   map[string]interface{}{},
 			command:       []string{"HRANDFIELD"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:        false,
 			key:           "key11",
 			presetValue:   map[string]interface{}{},
 			command:       []string{"HRANDFIELD", "key11", "key11", "key11", "key11"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get random field on a non hash map returns error
 			preset:        true,
@@ -727,15 +747,19 @@ func Test_HandleHRANDFIELD(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HRANDFIELD, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHRANDFIELD(context.Background(), test.command, mockServer, nil)
+		res, err := handleHRANDFIELD(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -819,7 +843,7 @@ func Test_HandleHLEN(t *testing.T) {
 			command:          []string{"HLEN"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -828,7 +852,7 @@ func Test_HandleHLEN(t *testing.T) {
 			command:          []string{"HLEN", "key4", "key4"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -841,15 +865,19 @@ func Test_HandleHLEN(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HLEN, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHLEN(context.Background(), test.command, mockServer, nil)
+		res, err := handleHLEN(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -909,7 +937,7 @@ func Test_HandleHKeys(t *testing.T) {
 			command:          []string{"HKEYS"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -918,7 +946,7 @@ func Test_HandleHKeys(t *testing.T) {
 			command:          []string{"HKEYS", "key4", "key4"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -931,15 +959,19 @@ func Test_HandleHKeys(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HKEYS, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHKEYS(context.Background(), test.command, mockServer, nil)
+		res, err := handleHKEYS(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1006,7 +1038,7 @@ func Test_HandleHGETALL(t *testing.T) {
 			command:          []string{"HGETALL"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -1015,7 +1047,7 @@ func Test_HandleHGETALL(t *testing.T) {
 			command:          []string{"HGETALL", "key4", "key4"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -1028,15 +1060,19 @@ func Test_HandleHGETALL(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HGETALL, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHGETALL(context.Background(), test.command, mockServer, nil)
+		res, err := handleHGETALL(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1114,7 +1150,7 @@ func Test_HandleHEXISTS(t *testing.T) {
 			command:          []string{"HEXISTS", "key3"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -1123,7 +1159,7 @@ func Test_HandleHEXISTS(t *testing.T) {
 			command:          []string{"HEXISTS", "key4", "field1", "field2"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -1136,15 +1172,19 @@ func Test_HandleHEXISTS(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HEXISTS, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHEXISTS(context.Background(), test.command, mockServer, nil)
+		res, err := handleHEXISTS(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1213,7 +1253,7 @@ func Test_HandleHDEL(t *testing.T) {
 			command:          []string{"HDEL", "key4"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -1226,15 +1266,19 @@ func Test_HandleHDEL(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("HDEL, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleHDEL(context.Background(), test.command, mockServer, nil)
+		res, err := handleHDEL(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1252,10 +1296,10 @@ func Test_HandleHDEL(t *testing.T) {
 			}
 			continue
 		}
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		if hash, ok := mockServer.GetValue(test.key).(map[string]interface{}); ok {
+		if hash, ok := mockServer.GetValue(ctx, test.key).(map[string]interface{}); ok {
 			for field, value := range hash {
 				if value != test.expectedValue[field] {
 					t.Errorf("expected value \"%+v\", got \"%+v\"", test.expectedValue[field], value)

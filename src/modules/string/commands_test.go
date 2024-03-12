@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
@@ -95,27 +96,31 @@ func Test_HandleSetRange(t *testing.T) {
 			preset:           false,
 			command:          []string{"SETRANGE", "key"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
 			command:          []string{"SETRANGE", "key", "offset", "value", "value1"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SETRANGE, %d", i))
+
 		// If there's a preset step, carry it out here
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, utils.AdaptType(test.presetValue))
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, utils.AdaptType(test.presetValue)); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
 
-		res, err := handleSetRange(context.Background(), test.command, mockServer, nil)
+		res, err := handleSetRange(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -135,17 +140,17 @@ func Test_HandleSetRange(t *testing.T) {
 		}
 
 		// Get the value from the server and check against the expected value
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		value, ok := mockServer.GetValue(test.key).(string)
+		value, ok := mockServer.GetValue(ctx, test.key).(string)
 		if !ok {
 			t.Error("expected string data type, got another type")
 		}
 		if value != test.expectedValue {
 			t.Errorf("expected value \"%s\", got \"%s\"", test.expectedValue, value)
 		}
-		mockServer.KeyRUnlock(test.key)
+		mockServer.KeyRUnlock(ctx, test.key)
 	}
 }
 
@@ -182,7 +187,7 @@ func Test_HandleStrLen(t *testing.T) {
 			presetValue:      "",
 			command:          []string{"STRLEN"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Too many args
 			preset:           false,
@@ -190,20 +195,24 @@ func Test_HandleStrLen(t *testing.T) {
 			presetValue:      "",
 			command:          []string{"STRLEN", "test4", "test5"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("STRLEN, %d", i))
+
 		if test.preset {
-			_, err := mockServer.CreateKeyAndLock(context.Background(), test.key)
+			_, err := mockServer.CreateKeyAndLock(ctx, test.key)
 			if err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleStrLen(context.Background(), test.command, mockServer, nil)
+		res, err := handleStrLen(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -286,12 +295,12 @@ func Test_HandleSubStr(t *testing.T) {
 		},
 		{ // Command too short
 			command:       []string{"SUBSTR", "key", "10"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{
 			// Command too long
 			command:       []string{"SUBSTR", "key", "10", "15", "20"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // Start index is not an integer
 			command:       []string{"SUBSTR", "key", "start", "10"},
@@ -307,16 +316,19 @@ func Test_HandleSubStr(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SUBSTR, %d", i))
+
 		if test.preset {
-			_, err := mockServer.CreateKeyAndLock(context.Background(), test.key)
-			if err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleSubStr(context.Background(), test.command, mockServer, nil)
+		res, err := handleSubStr(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())

@@ -16,7 +16,7 @@ import (
 
 func handleAuth(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 	acl, ok := server.GetACL().(*ACL)
 	if !ok {
@@ -25,12 +25,12 @@ func handleAuth(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	if err := acl.AuthenticateConnection(ctx, conn, cmd); err != nil {
 		return nil, err
 	}
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
 	acl, ok := server.GetACL().(*ACL)
@@ -146,7 +146,7 @@ func handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn 
 
 func handleCat(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
 	categories := make(map[string][]string)
@@ -225,12 +225,12 @@ func handleSetUser(ctx context.Context, cmd []string, server utils.Server, conn 
 	if err := acl.SetUser(ctx, cmd[2:]); err != nil {
 		return nil, err
 	}
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleDelUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 	acl, ok := server.GetACL().(*ACL)
 	if !ok {
@@ -239,7 +239,7 @@ func handleDelUser(ctx context.Context, cmd []string, server utils.Server, conn 
 	if err := acl.DeleteUser(ctx, cmd[2:]); err != nil {
 		return nil, err
 	}
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleWhoAmI(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -253,7 +253,7 @@ func handleWhoAmI(ctx context.Context, cmd []string, server utils.Server, conn *
 
 func handleList(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) > 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 	acl, ok := server.GetACL().(*ACL)
 	if !ok {
@@ -349,7 +349,7 @@ func handleList(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 func handleLoad(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
 	acl, ok := server.GetACL().(*ACL)
@@ -409,12 +409,12 @@ func handleLoad(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		}
 	}
 
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func handleSave(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) > 2 {
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
 	acl, ok := server.GetACL().(*ACL)
@@ -465,7 +465,7 @@ func handleSave(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		return nil, err
 	}
 
-	return []byte(utils.OK_RESPONSE), nil
+	return []byte(utils.OkResponse), nil
 }
 
 func Commands() []utils.Command {

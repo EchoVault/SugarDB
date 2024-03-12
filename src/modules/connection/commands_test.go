@@ -1,4 +1,4 @@
-package ping
+package connection
 
 import (
 	"bytes"
@@ -32,7 +32,7 @@ func Test_HandlePing(t *testing.T) {
 		{
 			command:     []string{"PING", "Hello, world!", "Once more"},
 			expected:    "",
-			expectedErr: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedErr: errors.New(utils.WrongArgsResponse),
 		},
 	}
 

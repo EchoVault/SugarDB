@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
@@ -47,7 +48,7 @@ func Test_HandleLLEN(t *testing.T) {
 			command:          []string{"LLEN"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -56,7 +57,7 @@ func Test_HandleLLEN(t *testing.T) {
 			command:          []string{"LLEN", "key4", "key4"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non-list returns error
 			preset:           true,
@@ -69,15 +70,19 @@ func Test_HandleLLEN(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("LLEN, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleLLen(context.Background(), test.command, mockServer, nil)
+		res, err := handleLLen(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -150,7 +155,7 @@ func Test_HandleLINDEX(t *testing.T) {
 			command:          []string{"LINDEX", "key3"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -159,7 +164,7 @@ func Test_HandleLINDEX(t *testing.T) {
 			command:          []string{"LINDEX", "key4", "0", "20"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get element by index on a non-list returns error
 			preset:           true,
@@ -199,15 +204,19 @@ func Test_HandleLINDEX(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("LINDEX, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleLIndex(context.Background(), test.command, mockServer, nil)
+		res, err := handleLIndex(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -283,7 +292,7 @@ func Test_HandleLRANGE(t *testing.T) {
 			command:          []string{"LRANGE", "key5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -292,7 +301,7 @@ func Test_HandleLRANGE(t *testing.T) {
 			command:          []string{"LRANGE", "key6", "0", "element", "element"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Error when executing command on non-list command
 			preset:           true,
@@ -350,15 +359,19 @@ func Test_HandleLRANGE(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("LRANGE, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleLRange(context.Background(), test.command, mockServer, nil)
+		res, err := handleLRange(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -437,7 +450,7 @@ func Test_HandleLSET(t *testing.T) {
 			command:          []string{"LSET", "key5"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -446,7 +459,7 @@ func Test_HandleLSET(t *testing.T) {
 			command:          []string{"LSET", "key6", "0", "element", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get element by index on a non-list returns error
 			preset:           true,
@@ -486,15 +499,19 @@ func Test_HandleLSET(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("LSET, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleLSet(context.Background(), test.command, mockServer, nil)
+		res, err := handleLSet(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -509,10 +526,10 @@ func Test_HandleLSET(t *testing.T) {
 		if rv.String() != test.expectedResponse {
 			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
 		}
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -524,7 +541,7 @@ func Test_HandleLSET(t *testing.T) {
 				t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
 			}
 		}
-		mockServer.KeyRUnlock(test.key)
+		mockServer.KeyRUnlock(ctx, test.key)
 	}
 }
 
@@ -586,7 +603,7 @@ func Test_HandleLTRIM(t *testing.T) {
 			command:          []string{"LTRIM", "key5"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -595,7 +612,7 @@ func Test_HandleLTRIM(t *testing.T) {
 			command:          []string{"LTRIM", "key6", "0", "element", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get element by index on a non-list returns error
 			preset:           true,
@@ -644,15 +661,19 @@ func Test_HandleLTRIM(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("LTRIM, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleLTrim(context.Background(), test.command, mockServer, nil)
+		res, err := handleLTrim(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -667,10 +688,10 @@ func Test_HandleLTRIM(t *testing.T) {
 		if rv.String() != test.expectedResponse {
 			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
 		}
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -682,7 +703,7 @@ func Test_HandleLTRIM(t *testing.T) {
 				t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
 			}
 		}
-		mockServer.KeyRUnlock(test.key)
+		mockServer.KeyRUnlock(ctx, test.key)
 	}
 }
 
@@ -723,7 +744,7 @@ func Test_HandleLREM(t *testing.T) {
 			command:          []string{"LREM", "key5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -732,7 +753,7 @@ func Test_HandleLREM(t *testing.T) {
 			command:          []string{"LREM", "key6", "0", "element", "element"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Throw error when count is not an integer
 			preset:           false,
@@ -763,15 +784,19 @@ func Test_HandleLREM(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("LREM, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleLRem(context.Background(), test.command, mockServer, nil)
+		res, err := handleLRem(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -786,10 +811,10 @@ func Test_HandleLREM(t *testing.T) {
 		if rv.String() != test.expectedResponse {
 			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
 		}
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -801,7 +826,7 @@ func Test_HandleLREM(t *testing.T) {
 				t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
 			}
 		}
-		mockServer.KeyRUnlock(test.key)
+		mockServer.KeyRUnlock(ctx, test.key)
 	}
 }
 
@@ -939,7 +964,7 @@ func Test_HandleLMOVE(t *testing.T) {
 			command:          []string{"LMOVE", "source9", "destination9"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{
 			// 10. Throw error when command is too long
@@ -948,7 +973,7 @@ func Test_HandleLMOVE(t *testing.T) {
 			command:          []string{"LMOVE", "source10", "destination10", "LEFT", "LEFT", "RIGHT"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{
 			// 11. Throw error when WHEREFROM argument is not LEFT/RIGHT
@@ -970,17 +995,21 @@ func Test_HandleLMOVE(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("LMOVE, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValue {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleLMove(context.Background(), test.command, mockServer, nil)
+		res, err := handleLMove(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -996,10 +1025,10 @@ func Test_HandleLMOVE(t *testing.T) {
 			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
 		}
 		for key, value := range test.expectedValue {
-			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+			if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 				t.Error(err)
 			}
-			list, ok := mockServer.GetValue(key).([]interface{})
+			list, ok := mockServer.GetValue(ctx, key).([]interface{})
 			if !ok {
 				t.Error("expected value to be list, got another type")
 			}
@@ -1015,7 +1044,7 @@ func Test_HandleLMOVE(t *testing.T) {
 					t.Errorf("expected element at index %d to be %+v, got %+v", i, expectedList[i], list[i])
 				}
 			}
-			mockServer.KeyRUnlock(key)
+			mockServer.KeyRUnlock(ctx, key)
 		}
 	}
 }
@@ -1066,7 +1095,7 @@ func Test_HandleLPUSH(t *testing.T) {
 			command:          []string{"LPUSH", "key5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // LPUSHX command returns error on non-existent list
 			preset:           false,
@@ -1079,15 +1108,19 @@ func Test_HandleLPUSH(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("LPUSH/LPUSHX, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleLPush(context.Background(), test.command, mockServer, nil)
+		res, err := handleLPush(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1102,10 +1135,10 @@ func Test_HandleLPUSH(t *testing.T) {
 		if rv.String() != test.expectedResponse {
 			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
 		}
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -1117,7 +1150,7 @@ func Test_HandleLPUSH(t *testing.T) {
 				t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
 			}
 		}
-		mockServer.KeyRUnlock(test.key)
+		mockServer.KeyRUnlock(ctx, test.key)
 	}
 }
 
@@ -1167,7 +1200,7 @@ func Test_HandleRPUSH(t *testing.T) {
 			command:          []string{"RPUSH", "key5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // RPUSHX command returns error on non-existent list
 			preset:           false,
@@ -1180,15 +1213,19 @@ func Test_HandleRPUSH(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("RPUSH/RPUSHX, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleRPush(context.Background(), test.command, mockServer, nil)
+		res, err := handleRPush(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1203,10 +1240,10 @@ func Test_HandleRPUSH(t *testing.T) {
 		if rv.String() != test.expectedResponse {
 			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
 		}
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -1218,7 +1255,7 @@ func Test_HandleRPUSH(t *testing.T) {
 				t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
 			}
 		}
-		mockServer.KeyRUnlock(test.key)
+		mockServer.KeyRUnlock(ctx, test.key)
 	}
 }
 
@@ -1259,7 +1296,7 @@ func Test_HandlePop(t *testing.T) {
 			command:          []string{"LPOP"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -1268,7 +1305,7 @@ func Test_HandlePop(t *testing.T) {
 			command:          []string{"LPOP", "key4", "key4"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to execute LPOP from a non-list item return an error
 			preset:           true,
@@ -1290,15 +1327,19 @@ func Test_HandlePop(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("LPOP/RPOP, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handlePop(context.Background(), test.command, mockServer, nil)
+		res, err := handlePop(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1313,10 +1354,10 @@ func Test_HandlePop(t *testing.T) {
 		if rv.String() != test.expectedResponse {
 			t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
 		}
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		list, ok := mockServer.GetValue(test.key).([]interface{})
+		list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 		if !ok {
 			t.Error("expected value to be list, got another type")
 		}
@@ -1328,6 +1369,6 @@ func Test_HandlePop(t *testing.T) {
 				t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
 			}
 		}
-		mockServer.KeyRUnlock(test.key)
+		mockServer.KeyRUnlock(ctx, test.key)
 	}
 }

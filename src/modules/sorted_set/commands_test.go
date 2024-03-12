@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
@@ -196,7 +197,7 @@ func Test_HandleZADD(t *testing.T) {
 			command:          []string{"ZADD", "key11"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 12. Throw error when score/member entries are do not match
 			preset:           false,
@@ -218,15 +219,19 @@ func Test_HandleZADD(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZADD, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleZADD(context.Background(), test.command, mockServer, nil)
+		res, err := handleZADD(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -245,10 +250,10 @@ func Test_HandleZADD(t *testing.T) {
 			t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
 		}
 		// Fetch the sorted set from the server and check it against the expected result
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		sortedSet, ok := mockServer.GetValue(test.key).(*SortedSet)
+		sortedSet, ok := mockServer.GetValue(ctx, test.key).(*SortedSet)
 		if !ok {
 			t.Errorf("expected the value at key \"%s\" to be a sorted set, got another type", test.key)
 		}
@@ -258,7 +263,7 @@ func Test_HandleZADD(t *testing.T) {
 		if !sortedSet.Equals(test.expectedValue) {
 			t.Errorf("expected sorted set %+v, got %+v", test.expectedValue, sortedSet)
 		}
-		mockServer.KeyRUnlock(test.key)
+		mockServer.KeyRUnlock(ctx, test.key)
 	}
 }
 
@@ -303,7 +308,7 @@ func Test_HandleZCARD(t *testing.T) {
 			command:          []string{"ZCARD"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 4. Command too long
 			preset:           false,
@@ -312,7 +317,7 @@ func Test_HandleZCARD(t *testing.T) {
 			command:          []string{"ZCARD", "key4", "key5"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Return error when not a sorted set
 			preset:           true,
@@ -325,15 +330,19 @@ func Test_HandleZCARD(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZCARD, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleZCARD(context.Background(), test.command, mockServer, nil)
+		res, err := handleZCARD(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -442,7 +451,7 @@ func Test_HandleZCOUNT(t *testing.T) {
 			command:          []string{"ZCOUNT"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 7. Command too long
 			preset:           false,
@@ -451,7 +460,7 @@ func Test_HandleZCOUNT(t *testing.T) {
 			command:          []string{"ZCOUNT", "key4", "min", "max", "count"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 8. Throw error when value at the key is not a sorted set
 			preset:           true,
@@ -464,15 +473,19 @@ func Test_HandleZCOUNT(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZCARD, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleZCOUNT(context.Background(), test.command, mockServer, nil)
+		res, err := handleZCOUNT(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -564,7 +577,7 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 			command:          []string{"ZLEXCOUNT"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:           false,
@@ -573,19 +586,23 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 			command:          []string{"ZLEXCOUNT", "key6", "min", "max", "count"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZLEXCOUNT, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleZLEXCOUNT(context.Background(), test.command, mockServer, nil)
+		res, err := handleZLEXCOUNT(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -724,21 +741,25 @@ func Test_HandleZDIFF(t *testing.T) {
 			preset:           false,
 			command:          []string{"ZDIFF"},
 			expectedResponse: [][]string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZDIFF, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZDIFF(context.Background(), test.command, mockServer, nil)
+		res, err := handleZDIFF(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -899,21 +920,25 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"ZDIFFSTORE", "destination6"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZDIFFSTORE, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZDIFFSTORE(context.Background(), test.command, mockServer, nil)
+		res, err := handleZDIFFSTORE(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -932,10 +957,10 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
 		}
 		if test.expectedValue != nil {
-			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
+			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, test.destination).(*SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -944,7 +969,7 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 					t.Errorf("could not find element %s in the expected values", elem.value)
 				}
 			}
-			mockServer.KeyRUnlock(test.destination)
+			mockServer.KeyRUnlock(ctx, test.destination)
 		}
 	}
 }
@@ -1109,25 +1134,29 @@ func Test_HandleZINCRBY(t *testing.T) {
 			key:              "key11",
 			command:          []string{"ZINCRBY", "key11", "one"},
 			expectedResponse: "",
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 12. Command too long
 			key:              "key12",
 			command:          []string{"ZINCRBY", "key12", "one", "1", "2"},
 			expectedResponse: "",
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZINCRBY, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleZINCRBY(context.Background(), test.command, mockServer, nil)
+		res, err := handleZINCRBY(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1146,10 +1175,10 @@ func Test_HandleZINCRBY(t *testing.T) {
 			t.Errorf("expected response integer %s, got %s", test.expectedResponse, rv.String())
 		}
 		if test.expectedValue != nil {
-			if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.key).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, test.key).(*SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.key)
 			}
@@ -1165,7 +1194,7 @@ func Test_HandleZINCRBY(t *testing.T) {
 					)
 				}
 			}
-			mockServer.KeyRUnlock(test.key)
+			mockServer.KeyRUnlock(ctx, test.key)
 		}
 	}
 }
@@ -1335,21 +1364,25 @@ func Test_HandleZMPOP(t *testing.T) {
 		{ // 9. Command too short
 			preset:        false,
 			command:       []string{"ZMPOP"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZMPOP, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZMPOP(context.Background(), test.command, mockServer, nil)
+		res, err := handleZMPOP(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1381,10 +1414,10 @@ func Test_HandleZMPOP(t *testing.T) {
 			}
 		}
 		for key, expectedSortedSet := range test.expectedValues {
-			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+			if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(key).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
 			if !ok {
 				t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
 			}
@@ -1501,26 +1534,30 @@ func Test_HandleZPOP(t *testing.T) {
 		{ // 6. Command too short
 			preset:        false,
 			command:       []string{"ZPOPMAX"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 7. Command too long
 			preset:        false,
 			command:       []string{"ZPOPMAX", "key7", "6", "3"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZPOPMIN/ZPOPMAX, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZPOP(context.Background(), test.command, mockServer, nil)
+		res, err := handleZPOP(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1552,10 +1589,10 @@ func Test_HandleZPOP(t *testing.T) {
 			}
 		}
 		for key, expectedSortedSet := range test.expectedValues {
-			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+			if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(key).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
 			if !ok {
 				t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
 			}
@@ -1606,21 +1643,25 @@ func Test_HandleZMSCORE(t *testing.T) {
 		{ // 9. Command too short
 			preset:        false,
 			command:       []string{"ZMSCORE"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZMSCORE, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZMSCORE(context.Background(), test.command, mockServer, nil)
+		res, err := handleZMSCORE(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1701,26 +1742,30 @@ func Test_HandleZSCORE(t *testing.T) {
 		{ // 5. Command too short
 			preset:        false,
 			command:       []string{"ZSCORE"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
 			command:       []string{"ZSCORE", "key5", "one", "two"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZSCORE, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZSCORE(context.Background(), test.command, mockServer, nil)
+		res, err := handleZSCORE(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1806,12 +1851,12 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 		{ // 5. Command too short
 			preset:        false,
 			command:       []string{"ZRANDMEMBER"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
 			command:       []string{"ZRANDMEMBER", "source5", "source6", "member1", "member2"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 7. Throw error when count is not an integer
 			preset:        false,
@@ -1825,15 +1870,19 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANDMEMBER, %d", i))
+
 		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(context.Background(), test.key); err != nil {
+			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			mockServer.SetValue(context.Background(), test.key, test.presetValue)
-			mockServer.KeyUnlock(test.key)
+			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				t.Error(err)
+			}
+			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleZRANDMEMBER(context.Background(), test.command, mockServer, nil)
+		res, err := handleZRANDMEMBER(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1866,10 +1915,10 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 			}
 		}
 		// 2. Fetch the set and check if its cardinality is what we expect.
-		if _, err = mockServer.KeyRLock(context.Background(), test.key); err != nil {
+		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		set, ok := mockServer.GetValue(test.key).(*SortedSet)
+		set, ok := mockServer.GetValue(ctx, test.key).(*SortedSet)
 		if !ok {
 			t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
 		}
@@ -1971,26 +2020,30 @@ func Test_HandleZRANK(t *testing.T) {
 		{ // 5. Command too short
 			preset:        false,
 			command:       []string{"ZRANK"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
 			command:       []string{"ZRANK", "key5", "one", "WITHSCORES", "two"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANK, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZRANK(context.Background(), test.command, mockServer, nil)
+		res, err := handleZRANK(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2074,21 +2127,25 @@ func Test_HandleZREM(t *testing.T) {
 		{ // 9. Command too short
 			preset:        false,
 			command:       []string{"ZREM"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREM, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZREM(context.Background(), test.command, mockServer, nil)
+		res, err := handleZREM(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2109,10 +2166,10 @@ func Test_HandleZREM(t *testing.T) {
 		// Check if the expected sorted set is the same at the current one
 		if test.expectedValues != nil {
 			for key, expectedSet := range test.expectedValues {
-				if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(key).(*SortedSet)
+				set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2175,26 +2232,30 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 		{ // 4. Command too short
 			preset:        false,
 			command:       []string{"ZREMRANGEBYSCORE", "key4", "3"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:        false,
 			command:       []string{"ZREMRANGEBYSCORE", "key5", "4", "5", "8"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREMRANGEBYSCORE, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZREMRANGEBYSCORE(context.Background(), test.command, mockServer, nil)
+		res, err := handleZREMRANGEBYSCORE(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2215,10 +2276,10 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 		// Check if the expected values are the same
 		if test.expectedValues != nil {
 			for key, expectedSet := range test.expectedValues {
-				if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(key).(*SortedSet)
+				set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2303,7 +2364,7 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 		{ // 4. Command too short
 			preset:        false,
 			command:       []string{"ZREMRANGEBYRANK", "key4", "3"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Return error when start index is out of bounds
 			preset: true,
@@ -2340,21 +2401,25 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 		{ // 7. Command too long
 			preset:        false,
 			command:       []string{"ZREMRANGEBYRANK", "key7", "4", "5", "8"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREMRANGEBYRANK, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZREMRANGEBYRANK(context.Background(), test.command, mockServer, nil)
+		res, err := handleZREMRANGEBYRANK(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2375,10 +2440,10 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 		// Check if the expected values are the same
 		if test.expectedValues != nil {
 			for key, expectedSet := range test.expectedValues {
-				if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(key).(*SortedSet)
+				set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2466,26 +2531,30 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 		{ // 4. Command too short
 			preset:        false,
 			command:       []string{"ZREMRANGEBYLEX", "key4", "a"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:        false,
 			command:       []string{"ZREMRANGEBYLEX", "key5", "a", "b", "c"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREMRANGEBYLEX, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZREMRANGEBYLEX(context.Background(), test.command, mockServer, nil)
+		res, err := handleZREMRANGEBYLEX(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2506,10 +2575,10 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 		// Check if the expected values are the same
 		if test.expectedValues != nil {
 			for key, expectedSet := range test.expectedValues {
-				if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(key).(*SortedSet)
+				set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2709,28 +2778,32 @@ func Test_HandleZRANGE(t *testing.T) {
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "key15", "1"},
 			expectedResponse: [][]string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 16 Command too long
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "key16", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9", "REV", "WITHSCORES"},
 			expectedResponse: [][]string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANGE, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZRANGE(context.Background(), test.command, mockServer, nil)
+		res, err := handleZRANGE(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2790,7 +2863,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 				}),
 			},
 			destination:      "destination1",
-			command:          []string{"ZRANGE", "destination1", "key1", "3", "7", "BYSCORE"},
+			command:          []string{"ZRANGESTORE", "destination1", "key1", "3", "7", "BYSCORE"},
 			expectedResponse: 5,
 			expectedValue: NewSortedSet([]MemberParam{
 				{value: "three", score: 3}, {value: "four", score: 4}, {value: "five", score: 5},
@@ -2809,7 +2882,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 				}),
 			},
 			destination:      "destination2",
-			command:          []string{"ZRANGE", "destination2", "key2", "3", "7", "BYSCORE", "WITHSCORES"},
+			command:          []string{"ZRANGESTORE", "destination2", "key2", "3", "7", "BYSCORE", "WITHSCORES"},
 			expectedResponse: 5,
 			expectedValue: NewSortedSet([]MemberParam{
 				{value: "three", score: 3}, {value: "four", score: 4}, {value: "five", score: 5},
@@ -2829,7 +2902,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 				}),
 			},
 			destination:      "destination3",
-			command:          []string{"ZRANGE", "destination3", "key3", "3", "7", "BYSCORE", "WITHSCORES", "LIMIT", "2", "4"},
+			command:          []string{"ZRANGESTORE", "destination3", "key3", "3", "7", "BYSCORE", "WITHSCORES", "LIMIT", "2", "4"},
 			expectedResponse: 3,
 			expectedValue: NewSortedSet([]MemberParam{
 				{value: "three", score: 3}, {value: "four", score: 4}, {value: "five", score: 5},
@@ -2849,7 +2922,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 				}),
 			},
 			destination:      "destination4",
-			command:          []string{"ZRANGE", "destination4", "key4", "3", "7", "BYSCORE", "WITHSCORES", "LIMIT", "2", "4", "REV"},
+			command:          []string{"ZRANGESTORE", "destination4", "key4", "3", "7", "BYSCORE", "WITHSCORES", "LIMIT", "2", "4", "REV"},
 			expectedResponse: 3,
 			expectedValue: NewSortedSet([]MemberParam{
 				{value: "six", score: 6}, {value: "five", score: 5}, {value: "four", score: 4},
@@ -2867,7 +2940,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 				}),
 			},
 			destination:      "destination5",
-			command:          []string{"ZRANGE", "destination5", "key5", "c", "g", "BYLEX"},
+			command:          []string{"ZRANGESTORE", "destination5", "key5", "c", "g", "BYLEX"},
 			expectedResponse: 5,
 			expectedValue: NewSortedSet([]MemberParam{
 				{value: "c", score: 1}, {value: "d", score: 1}, {value: "e", score: 1},
@@ -2886,7 +2959,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 				}),
 			},
 			destination:      "destination6",
-			command:          []string{"ZRANGE", "destination6", "key6", "a", "f", "BYLEX", "WITHSCORES"},
+			command:          []string{"ZRANGESTORE", "destination6", "key6", "a", "f", "BYLEX", "WITHSCORES"},
 			expectedResponse: 6,
 			expectedValue: NewSortedSet([]MemberParam{
 				{value: "a", score: 1}, {value: "b", score: 1}, {value: "c", score: 1},
@@ -2906,7 +2979,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 				}),
 			},
 			destination:      "destination7",
-			command:          []string{"ZRANGE", "destination7", "key7", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
+			command:          []string{"ZRANGESTORE", "destination7", "key7", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
 			expectedResponse: 3,
 			expectedValue: NewSortedSet([]MemberParam{
 				{value: "c", score: 1}, {value: "d", score: 1}, {value: "e", score: 1},
@@ -2926,7 +2999,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 				}),
 			},
 			destination:      "destination8",
-			command:          []string{"ZRANGE", "destination8", "key8", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4", "REV"},
+			command:          []string{"ZRANGESTORE", "destination8", "key8", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4", "REV"},
 			expectedResponse: 3,
 			expectedValue: NewSortedSet([]MemberParam{
 				{value: "f", score: 1}, {value: "e", score: 1}, {value: "d", score: 1},
@@ -2944,7 +3017,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 				}),
 			},
 			destination:      "destination9",
-			command:          []string{"ZRANGE", "destination9", "key9", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
+			command:          []string{"ZRANGESTORE", "destination9", "key9", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    nil,
@@ -2952,28 +3025,28 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 		{ // 10. Throw error when limit does not provide both offset and limit
 			preset:           false,
 			presetValues:     nil,
-			command:          []string{"ZRANGE", "destination10", "key10", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2"},
+			command:          []string{"ZRANGESTORE", "destination10", "key10", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2"},
 			expectedResponse: 0,
 			expectedError:    errors.New("limit should contain offset and count as integers"),
 		},
 		{ // 11. Throw error when offset is not a valid integer
 			preset:           false,
 			presetValues:     nil,
-			command:          []string{"ZRANGE", "destination11", "key11", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "offset", "4"},
+			command:          []string{"ZRANGESTORE", "destination11", "key11", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "offset", "4"},
 			expectedResponse: 0,
 			expectedError:    errors.New("limit offset must be integer"),
 		},
 		{ // 12. Throw error when limit is not a valid integer
 			preset:           false,
 			presetValues:     nil,
-			command:          []string{"ZRANGE", "destination12", "key12", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "4", "limit"},
+			command:          []string{"ZRANGESTORE", "destination12", "key12", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "4", "limit"},
 			expectedResponse: 0,
 			expectedError:    errors.New("limit count must be integer"),
 		},
 		{ // 13. Throw error when offset is negative
 			preset:           false,
 			presetValues:     nil,
-			command:          []string{"ZRANGE", "destination13", "key13", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9"},
+			command:          []string{"ZRANGESTORE", "destination13", "key13", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9"},
 			expectedResponse: 0,
 			expectedError:    errors.New("limit offset must be >= 0"),
 		},
@@ -2982,37 +3055,41 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			presetValues: map[string]interface{}{
 				"key14": "Default value",
 			},
-			command:          []string{"ZRANGE", "destination14", "key14", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
+			command:          []string{"ZRANGESTORE", "destination14", "key14", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
 			expectedResponse: 0,
 			expectedError:    errors.New("value at key14 is not a sorted set"),
 		},
 		{ // 15. Command too short
 			preset:           false,
 			presetValues:     nil,
-			command:          []string{"ZRANGE", "key15", "1"},
+			command:          []string{"ZRANGESTORE", "key15", "1"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 16 Command too long
 			preset:           false,
 			presetValues:     nil,
-			command:          []string{"ZRANGE", "destination16", "key16", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9", "REV", "WITHSCORES"},
+			command:          []string{"ZRANGESTORE", "destination16", "key16", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9", "REV", "WITHSCORES"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANGESTORE, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZRANGESTORE(context.Background(), test.command, mockServer, nil)
+		res, err := handleZRANGESTORE(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -3031,17 +3108,17 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
 		}
 		if test.expectedValue != nil {
-			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
+			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, test.destination).(*SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
 			if !set.Equals(test.expectedValue) {
 				t.Errorf("expected sorted set %+v, got %+v", test.expectedValue, set)
 			}
-			mockServer.KeyRUnlock(test.destination)
+			mockServer.KeyRUnlock(ctx, test.destination)
 		}
 	}
 }
@@ -3272,7 +3349,7 @@ func Test_HandleZINTER(t *testing.T) {
 			},
 			command:          []string{"ZINTER", "WEIGHTS", "5", "4"},
 			expectedResponse: nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
@@ -3312,21 +3389,25 @@ func Test_HandleZINTER(t *testing.T) {
 			preset:           false,
 			command:          []string{"ZINTER"},
 			expectedResponse: [][]string{},
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZINTER, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZINTER(context.Background(), test.command, mockServer, nil)
+		res, err := handleZINTER(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -3617,7 +3698,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			},
 			command:          []string{"ZINTERSTORE", "WEIGHTS", "5", "4"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
@@ -3657,21 +3738,25 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"ZINTERSTORE"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZINTERSTORE, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZINTERSTORE(context.Background(), test.command, mockServer, nil)
+		res, err := handleZINTERSTORE(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -3690,10 +3775,10 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
 		}
 		if test.expectedValue != nil {
-			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
+			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, test.destination).(*SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -3702,7 +3787,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 					t.Errorf("could not find element %s in the expected values", elem.value)
 				}
 			}
-			mockServer.KeyRUnlock(test.destination)
+			mockServer.KeyRUnlock(ctx, test.destination)
 		}
 	}
 }
@@ -3956,7 +4041,7 @@ func Test_HandleZUNION(t *testing.T) {
 			},
 			command:          []string{"ZUNION", "WEIGHTS", "5", "4"},
 			expectedResponse: nil,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
@@ -3998,21 +4083,25 @@ func Test_HandleZUNION(t *testing.T) {
 		{ // 13. Command too short
 			preset:        false,
 			command:       []string{"ZUNION"},
-			expectedError: errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZUNION, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZUNION(context.Background(), test.command, mockServer, nil)
+		res, err := handleZUNION(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -4335,7 +4424,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			},
 			command:          []string{"ZUNIONSTORE", "WEIGHTS", "5", "4"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
@@ -4382,21 +4471,25 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"ZUNIONSTORE"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WRONG_ARGS_RESPONSE),
+			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZUNIONSTORE, %d", i))
+
 		if test.preset {
 			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(context.Background(), key); err != nil {
+				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				mockServer.SetValue(context.Background(), key, value)
-				mockServer.KeyUnlock(key)
+				if err := mockServer.SetValue(ctx, key, value); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, key)
 			}
 		}
-		res, err := handleZUNIONSTORE(context.Background(), test.command, mockServer, nil)
+		res, err := handleZUNIONSTORE(ctx, test.command, mockServer, nil)
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -4415,10 +4508,10 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
 		}
 		if test.expectedValue != nil {
-			if _, err = mockServer.KeyRLock(context.Background(), test.destination); err != nil {
+			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, test.destination).(*SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -4427,7 +4520,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 					t.Errorf("could not find element %s in the expected values", elem.value)
 				}
 			}
-			mockServer.KeyRUnlock(test.destination)
+			mockServer.KeyRUnlock(ctx, test.destination)
 		}
 	}
 }

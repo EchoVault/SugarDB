@@ -25,6 +25,16 @@ const (
 )
 
 const (
-	OK_RESPONSE         = "+OK\r\n"
-	WRONG_ARGS_RESPONSE = "wrong number of arguments"
+	OkResponse        = "+OK\r\n"
+	WrongArgsResponse = "wrong number of arguments"
+)
+
+const (
+	NoEviction     = "noeviction"
+	AllKeysLRU     = "allkeys-lru"
+	AllKeysLFU     = "allkeys-lfu"
+	VolatileLRU    = "volatile-lru"
+	VolatileLFU    = "volatile-lfu"
+	AllKeysRandom  = "allkeys-random"
+	VolatileRandom = "volatile-random"
 )

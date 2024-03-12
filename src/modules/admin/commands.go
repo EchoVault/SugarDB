@@ -148,25 +148,13 @@ func handleCommandList(ctx context.Context, cmd []string, server utils.Server, _
 		res = fmt.Sprintf("*%d\r\n%s", count, res)
 		return []byte(res), nil
 	default:
-		return nil, errors.New(utils.WRONG_ARGS_RESPONSE)
+		return nil, errors.New(utils.WrongArgsResponse)
 	}
 }
 
 func handleCommandDocs(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	return []byte("*0\r\n"), nil
 }
-
-// func handleConfigGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-// 	return nil, errors.New("command not yet implemented")
-// }
-//
-// func handleConfigRewrite(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
-// 	return nil, errors.New("command not yet implemented")
-// }
-//
-// func handleConfigSet(ctx context.Context, cmd []string, server *utils.Server, _ *net.Conn) ([]byte, error) {
-// 	return nil, errors.New("command not yet implemented")
-// }
 
 func Commands() []utils.Command {
 	return []utils.Command{
@@ -226,7 +214,7 @@ Allows for filtering by ACL category or glob pattern.`,
 				if err := server.TakeSnapshot(); err != nil {
 					return nil, err
 				}
-				return []byte(utils.OK_RESPONSE), nil
+				return []byte(utils.OkResponse), nil
 			},
 		},
 		{
@@ -257,7 +245,7 @@ Allows for filtering by ACL category or glob pattern.`,
 				if err := server.RewriteAOF(); err != nil {
 					return nil, err
 				}
-				return []byte(utils.OK_RESPONSE), nil
+				return []byte(utils.OkResponse), nil
 			},
 		},
 	}

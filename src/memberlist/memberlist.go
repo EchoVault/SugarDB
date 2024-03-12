@@ -19,23 +19,24 @@ type NodeMeta struct {
 	RaftAddr       raft.ServerAddress `json:"RaftAddr"`
 }
 
-type MemberlistOpts struct {
+type Opts struct {
 	Config           utils.Config
 	HasJoinedCluster func() bool
 	AddVoter         func(id raft.ServerID, address raft.ServerAddress, prevIndex uint64, timeout time.Duration) error
 	RemoveRaftServer func(meta NodeMeta) error
 	IsRaftLeader     func() bool
 	ApplyMutate      func(ctx context.Context, cmd []string) ([]byte, error)
+	ApplyDeleteKey   func(ctx context.Context, key string) error
 }
 
 type MemberList struct {
-	options        MemberlistOpts
+	options        Opts
 	broadcastQueue *memberlist.TransmitLimitedQueue
 	numOfNodes     int
 	memberList     *memberlist.Memberlist
 }
 
-func NewMemberList(opts MemberlistOpts) *MemberList {
+func NewMemberList(opts Opts) *MemberList {
 	return &MemberList{
 		options:        opts,
 		broadcastQueue: new(memberlist.TransmitLimitedQueue),
@@ -53,6 +54,7 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 		addVoter:       m.options.AddVoter,
 		isRaftLeader:   m.options.IsRaftLeader,
 		applyMutate:    m.options.ApplyMutate,
+		applyDeleteKey: m.options.ApplyDeleteKey,
 	})
 	cfg.Events = NewEventDelegate(EventDelegateOpts{
 		incrementNodes:   func() { m.numOfNodes += 1 },
@@ -75,8 +77,8 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 	if m.options.Config.JoinAddr != "" {
 		backoffPolicy := utils.RetryBackoff(retry.NewFibonacci(1*time.Second), 5, 200*time.Millisecond, 0, 0)
 
-		err := retry.Do(ctx, backoffPolicy, func(ctx context.Context) error {
-			_, err := list.Join([]string{m.options.Config.JoinAddr})
+		err = retry.Do(ctx, backoffPolicy, func(ctx context.Context) error {
+			_, err = list.Join([]string{m.options.Config.JoinAddr})
 			if err != nil {
 				return retry.RetryableError(err)
 			}
@@ -87,11 +89,11 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 			log.Fatal(err)
 		}
 
-		m.broadcastRaftAddress(ctx)
+		m.broadcastRaftAddress()
 	}
 }
 
-func (m *MemberList) broadcastRaftAddress(ctx context.Context) {
+func (m *MemberList) broadcastRaftAddress() {
 	msg := BroadcastMessage{
 		Action: "RaftJoin",
 		NodeMeta: NodeMeta{
@@ -103,9 +105,26 @@ func (m *MemberList) broadcastRaftAddress(ctx context.Context) {
 	m.broadcastQueue.QueueBroadcast(&msg)
 }
 
+// The ForwardDeleteKey function is only called by non-leaders.
+// It uses the broadcast queue to forward a key eviction command within the cluster.
+func (m *MemberList) ForwardDeleteKey(ctx context.Context, key string) {
+	connId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
+	m.broadcastQueue.QueueBroadcast(&BroadcastMessage{
+		Action:      "DeleteKey",
+		Content:     []byte(key),
+		ContentHash: md5.Sum([]byte(key)),
+		ConnId:      connId,
+		NodeMeta: NodeMeta{
+			ServerID: raft.ServerID(m.options.Config.ServerID),
+			RaftAddr: raft.ServerAddress(fmt.Sprintf("%s:%d",
+				m.options.Config.BindAddr, m.options.Config.RaftBindPort)),
+		},
+	})
+}
+
+// The ForwardDataMutation function is only called by non-leaders.
+// It uses the broadcast queue to forward a data mutation within the cluster.
 func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd []byte) {
-	// This function is only called by non-leaders
-	// It uses the broadcast queue to forward a data mutation within the cluster
 	connId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
 	m.broadcastQueue.QueueBroadcast(&BroadcastMessage{
 		Action:      "MutateData",
