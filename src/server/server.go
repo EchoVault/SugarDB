@@ -125,6 +125,15 @@ func NewServer(opts Opts) *Server {
 				server.KeyUnlock(ctx, key)
 				return nil
 			},
+			SetExpiry: func(key string, expireAt time.Time) error {
+				ctx := context.Background()
+				if _, err := server.KeyLock(ctx, key); err != nil {
+					return err
+				}
+				server.SetExpiry(ctx, key, expireAt, false)
+				server.KeyUnlock(ctx, key)
+				return nil
+			},
 		})
 		// Set up standalone AOF engine
 		server.AOFEngine = aof.NewAOFEngine(
@@ -141,6 +150,15 @@ func NewServer(opts Opts) *Server {
 				if err := server.SetValue(ctx, key, value); err != nil {
 					return err
 				}
+				server.KeyUnlock(ctx, key)
+				return nil
+			}),
+			aof.WithSetExpiryFunc(func(key string, expireAt time.Time) error {
+				ctx := context.Background()
+				if _, err := server.KeyLock(ctx, key); err != nil {
+					return err
+				}
+				server.SetExpiry(ctx, key, expireAt, false)
 				server.KeyUnlock(ctx, key)
 				return nil
 			}),

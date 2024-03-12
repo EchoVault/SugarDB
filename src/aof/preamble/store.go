@@ -3,11 +3,13 @@ package preamble
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/echovault/echovault/src/utils"
 	"io"
 	"log"
 	"os"
 	"path"
 	"sync"
+	"time"
 )
 
 type PreambleReadWriter interface {
@@ -21,8 +23,9 @@ type PreambleStore struct {
 	rw        PreambleReadWriter
 	mut       sync.Mutex
 	directory string
-	getState  func() map[string]interface{}
+	getState  func() map[string]utils.KeyData
 	setValue  func(key string, value interface{}) error
+	setExpiry func(key string, expireAt time.Time) error
 }
 
 func WithReadWriter(rw PreambleReadWriter) func(store *PreambleStore) {
@@ -31,7 +34,7 @@ func WithReadWriter(rw PreambleReadWriter) func(store *PreambleStore) {
 	}
 }
 
-func WithGetStateFunc(f func() map[string]interface{}) func(store *PreambleStore) {
+func WithGetStateFunc(f func() map[string]utils.KeyData) func(store *PreambleStore) {
 	return func(store *PreambleStore) {
 		store.getState = f
 	}
@@ -40,6 +43,12 @@ func WithGetStateFunc(f func() map[string]interface{}) func(store *PreambleStore
 func WithSetValueFunc(f func(key string, value interface{}) error) func(store *PreambleStore) {
 	return func(store *PreambleStore) {
 		store.setValue = f
+	}
+}
+
+func WithSetExpiryFunc(f func(key string, expireAt time.Time) error) func(store *PreambleStore) {
+	return func(store *PreambleStore) {
+		store.setExpiry = f
 	}
 }
 
@@ -54,7 +63,7 @@ func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 		rw:        nil,
 		mut:       sync.Mutex{},
 		directory: "",
-		getState: func() map[string]interface{} {
+		getState: func() map[string]utils.KeyData {
 			// No-Op by default
 			return nil
 		},
@@ -62,6 +71,7 @@ func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 			// No-Op by default
 			return nil
 		},
+		setExpiry: func(key string, expireAt time.Time) error { return nil },
 	}
 
 	for _, option := range options {
@@ -89,7 +99,7 @@ func (store *PreambleStore) CreatePreamble() error {
 	store.mut.Unlock()
 
 	// Get current state.
-	state := store.getState()
+	state := store.filterExpiredKeys(store.getState())
 	o, err := json.Marshal(state)
 	if err != nil {
 		return err
@@ -130,16 +140,17 @@ func (store *PreambleStore) Restore() error {
 		return nil
 	}
 
-	state := make(map[string]interface{})
+	state := make(map[string]utils.KeyData)
 
 	if err = json.Unmarshal(b, &state); err != nil {
 		return err
 	}
 
-	for key, value := range state {
-		if err = store.setValue(key, value); err != nil {
+	for key, value := range store.filterExpiredKeys(state) {
+		if err = store.setValue(key, value.Value); err != nil {
 			return fmt.Errorf("preamble store -> restore: %+v", err)
 		}
+		store.setExpiry(key, value.ExpireAt)
 	}
 
 	return nil
@@ -149,4 +160,18 @@ func (store *PreambleStore) Close() error {
 	store.mut.Lock()
 	defer store.mut.Unlock()
 	return store.rw.Close()
+}
+
+// filterExpiredKeys filters out keys that are already expired, so they are not persisted.
+func (store *PreambleStore) filterExpiredKeys(state map[string]utils.KeyData) map[string]utils.KeyData {
+	var keysToDelete []string
+	for k, v := range state {
+		if v.ExpireAt.Before(time.Now()) {
+			keysToDelete = append(keysToDelete, k)
+		}
+	}
+	for _, key := range keysToDelete {
+		delete(state, key)
+	}
+	return state
 }

@@ -25,7 +25,7 @@ type Server interface {
 	SetExpiry(ctx context.Context, key string, expire time.Time, touch bool)
 	RemoveExpiry(key string)
 	DeleteKey(ctx context.Context, key string) error
-	GetState() map[string]interface{}
+	GetState() map[string]KeyData
 	GetAllCommands(ctx context.Context) []Command
 	GetACL() interface{}
 	GetPubSub() interface{}
@@ -89,6 +89,6 @@ type ACL interface {
 type PubSub interface{}
 
 type SnapshotObject struct {
-	State                      map[string]interface{}
+	State                      map[string]KeyData
 	LatestSnapshotMilliseconds int64
 }

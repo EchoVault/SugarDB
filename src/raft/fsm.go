@@ -120,7 +120,7 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 	}
 
 	data := utils.SnapshotObject{
-		State:                      make(map[string]interface{}),
+		State:                      make(map[string]utils.KeyData),
 		LatestSnapshotMilliseconds: 0,
 	}
 
@@ -131,13 +131,14 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 
 	// Set state
 	ctx := context.Background()
-	for k, v := range data.State {
+	for k, v := range utils.FilterExpiredKeys(data.State) {
 		if _, err = fsm.options.Server.CreateKeyAndLock(ctx, k); err != nil {
 			log.Fatal(err)
 		}
-		if err = fsm.options.Server.SetValue(ctx, k, v); err != nil {
+		if err = fsm.options.Server.SetValue(ctx, k, v.Value); err != nil {
 			log.Fatal(err)
 		}
+		fsm.options.Server.SetExpiry(ctx, k, v.ExpireAt, false)
 		fsm.options.Server.KeyUnlock(ctx, k)
 	}
 	// Set latest snapshot milliseconds

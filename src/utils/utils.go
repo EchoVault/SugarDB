@@ -185,3 +185,22 @@ func IsMaxMemoryExceeded(maxMemory uint64) bool {
 	// Return true when whe are above or equal to max memory.
 	return memStats.HeapInuse >= maxMemory
 }
+
+// FilterExpiredKeys filters out keys that are already expired, so they are not persisted.
+func FilterExpiredKeys(state map[string]KeyData) map[string]KeyData {
+	var keysToDelete []string
+	for k, v := range state {
+		// Skip keys with no expiry time.
+		if v.ExpireAt == (time.Time{}) {
+			continue
+		}
+		// If the key is already expired, mark it for deletion.
+		if v.ExpireAt.Before(time.Now()) {
+			keysToDelete = append(keysToDelete, k)
+		}
+	}
+	for _, key := range keysToDelete {
+		delete(state, key)
+	}
+	return state
+}

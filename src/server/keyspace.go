@@ -230,14 +230,15 @@ func (server *Server) RemoveExpiry(key string) {
 // functions that require a deep copy of the state.
 // The copy only starts when there's no current copy in progress (represented by StateCopyInProgress atomic boolean)
 // and when there's no current state mutation in progress (represented by StateMutationInProgress atomic boolean)
-func (server *Server) GetState() map[string]interface{} {
+func (server *Server) GetState() map[string]utils.KeyData {
+	// Wait unit there's no state mutation or copy in progress before starting a new copy process.
 	for {
 		if !server.StateCopyInProgress.Load() && !server.StateMutationInProgress.Load() {
 			server.StateCopyInProgress.Store(true)
 			break
 		}
 	}
-	data := make(map[string]interface{})
+	data := make(map[string]utils.KeyData)
 	for k, v := range server.store {
 		data[k] = v
 	}

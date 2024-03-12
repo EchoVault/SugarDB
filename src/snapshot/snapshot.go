@@ -27,10 +27,11 @@ type Opts struct {
 	Config                        utils.Config
 	StartSnapshot                 func()
 	FinishSnapshot                func()
-	GetState                      func() map[string]interface{}
+	GetState                      func() map[string]utils.KeyData
 	SetLatestSnapshotMilliseconds func(msec int64)
 	GetLatestSnapshotMilliseconds func() int64
 	SetValue                      func(key string, value interface{}) error
+	SetExpiry                     func(key string, expireAt time.Time) error
 }
 
 type Engine struct {
@@ -125,7 +126,7 @@ func (engine *Engine) TakeSnapshot() error {
 
 	// Get current state
 	snapshotObject := utils.SnapshotObject{
-		State:                      engine.options.GetState(),
+		State:                      utils.FilterExpiredKeys(engine.options.GetState()),
 		LatestSnapshotMilliseconds: engine.options.GetLatestSnapshotMilliseconds(),
 	}
 	out, err := json.Marshal(snapshotObject)
@@ -261,9 +262,12 @@ func (engine *Engine) Restore(ctx context.Context) error {
 
 	engine.options.SetLatestSnapshotMilliseconds(snapshotObject.LatestSnapshotMilliseconds)
 
-	for key, value := range snapshotObject.State {
-		if err = engine.options.SetValue(key, value); err != nil {
-			return fmt.Errorf("snapshot engine -> restore: %+v", err)
+	for key, value := range utils.FilterExpiredKeys(snapshotObject.State) {
+		if err = engine.options.SetValue(key, value.Value); err != nil {
+			return fmt.Errorf("snapshot engine -> restore value: %+v", err)
+		}
+		if err = engine.options.SetExpiry(key, value.ExpireAt); err != nil {
+			return fmt.Errorf("snapshot engine -> restore expiry: %+v", err)
 		}
 	}
 
