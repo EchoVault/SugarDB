@@ -311,7 +311,6 @@ func Test_HandleSET(t *testing.T) {
 		}
 
 		res, err := handleSet(ctx, test.command, mockServer, nil)
-
 		if test.expectedErr != nil {
 			if err == nil {
 				t.Errorf("expected error \"%s\", got nil", test.expectedErr.Error())
@@ -320,6 +319,9 @@ func Test_HandleSET(t *testing.T) {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedErr.Error(), err.Error())
 			}
 			continue
+		}
+		if err != nil {
+			t.Error(err)
 		}
 
 		rd := resp.NewReader(bytes.NewReader(res))
@@ -363,7 +365,11 @@ func Test_HandleSET(t *testing.T) {
 }
 
 func Test_HandleMSET(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{
+		Config: utils.Config{
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
 
 	tests := []struct {
 		command          []string
@@ -372,21 +378,22 @@ func Test_HandleMSET(t *testing.T) {
 		expectedErr      error
 	}{
 		{
-			command:          []string{"SET", "test1", "value1", "test2", "10", "test3", "3.142"},
+			command:          []string{"MSET", "test1", "value1", "test2", "10", "test3", "3.142"},
 			expectedResponse: "OK",
 			expectedValues:   map[string]interface{}{"test1": "value1", "test2": 10, "test3": 3.142},
 			expectedErr:      nil,
 		},
 		{
-			command:          []string{"SET", "test1", "value1", "test2", "10", "test3"},
+			command:          []string{"MSET", "test1", "value1", "test2", "10", "test3"},
 			expectedResponse: "",
 			expectedValues:   make(map[string]interface{}),
 			expectedErr:      errors.New("each key must be paired with a value"),
 		},
 	}
 
-	for _, test := range tests {
-		res, err := handleMSet(context.Background(), test.command, mockServer, nil)
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("MSET, %d", i))
+		res, err := handleMSet(ctx, test.command, mockServer, nil)
 		if test.expectedErr != nil {
 			if err.Error() != test.expectedErr.Error() {
 				t.Errorf("expected error %s, got %s", test.expectedErr.Error(), err.Error())
@@ -402,7 +409,7 @@ func Test_HandleMSET(t *testing.T) {
 			t.Errorf("expected response %s, got %s", test.expectedResponse, rv.String())
 		}
 		for key, expectedValue := range test.expectedValues {
-			if _, err = mockServer.KeyRLock(context.Background(), key); err != nil {
+			if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 				t.Error(err)
 			}
 			switch expectedValue.(type) {
@@ -410,7 +417,7 @@ func Test_HandleMSET(t *testing.T) {
 				t.Error("unexpected type for expectedValue")
 			case int:
 				ev, _ := expectedValue.(int)
-				value, ok := mockServer.GetValue(context.Background(), key).(int)
+				value, ok := mockServer.GetValue(ctx, key).(int)
 				if !ok {
 					t.Errorf("expected integer type for key %s, got another type", key)
 				}
@@ -419,7 +426,7 @@ func Test_HandleMSET(t *testing.T) {
 				}
 			case float64:
 				ev, _ := expectedValue.(float64)
-				value, ok := mockServer.GetValue(context.Background(), key).(float64)
+				value, ok := mockServer.GetValue(ctx, key).(float64)
 				if !ok {
 					t.Errorf("expected float type for key %s, got another type", key)
 				}
@@ -428,7 +435,7 @@ func Test_HandleMSET(t *testing.T) {
 				}
 			case string:
 				ev, _ := expectedValue.(string)
-				value, ok := mockServer.GetValue(context.Background(), key).(string)
+				value, ok := mockServer.GetValue(ctx, key).(string)
 				if !ok {
 					t.Errorf("expected string type for key %s, got another type", key)
 				}
@@ -436,13 +443,17 @@ func Test_HandleMSET(t *testing.T) {
 					t.Errorf("expected value %s for key %s, got %s", ev, key, value)
 				}
 			}
-			mockServer.KeyRUnlock(context.Background(), key)
+			mockServer.KeyRUnlock(ctx, key)
 		}
 	}
 }
 
 func Test_HandleGET(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{
+		Config: utils.Config{
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
 
 	tests := []struct {
 		key   string
@@ -462,9 +473,9 @@ func Test_HandleGET(t *testing.T) {
 		},
 	}
 	// Test successful GET command
-	for _, test := range tests {
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("GET, %d", i))
 		func(key, value string) {
-			ctx := context.Background()
 
 			_, err := mockServer.CreateKeyAndLock(ctx, key)
 			if err != nil {
@@ -519,7 +530,11 @@ func Test_HandleGET(t *testing.T) {
 }
 
 func Test_HandleMGET(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
+	mockServer := server.NewServer(server.Opts{
+		Config: utils.Config{
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
 
 	tests := []struct {
 		presetKeys    []string
@@ -593,6 +608,916 @@ func Test_HandleMGET(t *testing.T) {
 			if value.String() != test.expected[i] {
 				t.Errorf("expected value %s, got: %s", test.expected[i], value.String())
 			}
+		}
+	}
+}
+
+func Test_HandleDEL(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{
+		Config: utils.Config{
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
+
+	tests := []struct {
+		command          []string
+		presetValues     map[string]utils.KeyData
+		expectedResponse int
+		expectToExist    map[string]bool
+		expectedErr      error
+	}{
+		{
+			command: []string{"DEL", "key1", "key2", "key3", "key4", "key5"},
+			presetValues: map[string]utils.KeyData{
+				"key1": {Value: "value1", ExpireAt: time.Time{}},
+				"key2": {Value: "value2", ExpireAt: time.Time{}},
+				"key3": {Value: "value3", ExpireAt: time.Time{}},
+				"key4": {Value: "value4", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 4,
+			expectToExist: map[string]bool{
+				"key1": false,
+				"key2": false,
+				"key3": false,
+				"key4": false,
+				"key5": false,
+			},
+			expectedErr: nil,
+		},
+		{
+			command:          []string{"DEL"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectToExist:    nil,
+			expectedErr:      errors.New(utils.WrongArgsResponse),
+		},
+	}
+
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("DEL, %d", i))
+
+		if test.presetValues != nil {
+			for k, v := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
+				mockServer.KeyUnlock(ctx, k)
+			}
+		}
+
+		res, err := handleDel(ctx, test.command, mockServer, nil)
+		if test.expectedErr != nil {
+			if err == nil {
+				t.Errorf("exected error \"%s\", got nil", test.expectedErr.Error())
+			}
+			if test.expectedErr.Error() != err.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedErr.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+
+		rd := resp.NewReader(bytes.NewReader(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+		}
+
+		for k, expected := range test.expectToExist {
+			exists := mockServer.KeyExists(ctx, k)
+			if exists != expected {
+				t.Errorf("expected exists status to be %+v, got %+v", expected, exists)
+			}
+		}
+	}
+}
+
+func Test_HandlePERSIST(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{
+		Config: utils.Config{
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
+
+	tests := []struct {
+		command          []string
+		presetValues     map[string]utils.KeyData
+		expectedResponse int
+		expectedValues   map[string]utils.KeyData
+		expectedError    error
+	}{
+		{ // 1. Successfully persist a volatile key
+			command: []string{"PERSIST", "key1"},
+			presetValues: map[string]utils.KeyData{
+				"key1": {Value: "value1", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key1": {Value: "value1", ExpireAt: time.Time{}},
+			},
+			expectedError: nil,
+		},
+		{ // 2. Return 0 when trying to persist a non-existent key
+			command:          []string{"PERSIST", "key2"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    nil,
+		},
+		{ // 3. Return 0 when trying to persist a non-volatile key
+			command: []string{"PERSIST", "key3"},
+			presetValues: map[string]utils.KeyData{
+				"key3": {Value: "value3", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key3": {Value: "value3", ExpireAt: time.Time{}},
+			},
+			expectedError: nil,
+		},
+		{ // 4. Command too short
+			command:          []string{"PERSIST"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    errors.New(utils.WrongArgsResponse),
+		},
+		{ // 5. Command too long
+			command:          []string{"PERSIST", "key5", "key6"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    errors.New(utils.WrongArgsResponse),
+		},
+	}
+
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("PERSIST, %d", i))
+
+		if test.presetValues != nil {
+			for k, v := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
+				mockServer.KeyUnlock(ctx, k)
+			}
+		}
+
+		res, err := handlePersist(ctx, test.command, mockServer, nil)
+
+		if test.expectedError != nil {
+			if err == nil {
+				t.Errorf("expected error \"%s\", got nil", test.expectedError.Error())
+			}
+			if test.expectedError.Error() != err.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+
+		rd := resp.NewReader(bytes.NewReader(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+		}
+
+		if test.expectedValues == nil {
+			continue
+		}
+
+		for k, expected := range test.expectedValues {
+			if _, err = mockServer.KeyLock(ctx, k); err != nil {
+				t.Error(err)
+			}
+			value := mockServer.GetValue(ctx, k)
+			expiry := mockServer.GetExpiry(ctx, k)
+			if value != expected.Value {
+				t.Errorf("expected value %+v, got %+v", expected.Value, value)
+			}
+			if expiry.UnixMilli() != expected.ExpireAt.UnixMilli() {
+				t.Errorf("expected exiry %d, got %d", expected.ExpireAt.UnixMilli(), expiry.UnixMilli())
+			}
+			mockServer.KeyUnlock(ctx, k)
+		}
+	}
+}
+
+func Test_HandleEXPIRETIME(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{
+		Config: utils.Config{
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
+
+	tests := []struct {
+		command          []string
+		presetValues     map[string]utils.KeyData
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Return expire time in seconds
+			command: []string{"EXPIRETIME", "key1"},
+			presetValues: map[string]utils.KeyData{
+				"key1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
+			},
+			expectedResponse: int(timeNow().Add(100 * time.Second).Unix()),
+			expectedError:    nil,
+		},
+		{ // 2. Return expire time in milliseconds
+			command: []string{"PEXPIRETIME", "key2"},
+			presetValues: map[string]utils.KeyData{
+				"key2": {Value: "value2", ExpireAt: timeNow().Add(4096 * time.Millisecond)},
+			},
+			expectedResponse: int(timeNow().Add(4096 * time.Millisecond).UnixMilli()),
+			expectedError:    nil,
+		},
+		{ // 3. If the key is non-volatile, return -1
+			command: []string{"PEXPIRETIME", "key3"},
+			presetValues: map[string]utils.KeyData{
+				"key3": {Value: "value3", ExpireAt: time.Time{}},
+			},
+			expectedResponse: -1,
+			expectedError:    nil,
+		},
+		{ // 4. If the key is non-existent return -2
+			command:          []string{"PEXPIRETIME", "key4"},
+			presetValues:     nil,
+			expectedResponse: -2,
+			expectedError:    nil,
+		},
+		{ // 5. Command too short
+			command:          []string{"PEXPIRETIME"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WrongArgsResponse),
+		},
+		{ // 6. Command too long
+			command:          []string{"PEXPIRETIME", "key5", "key6"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WrongArgsResponse),
+		},
+	}
+
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("EXPIRETIME/PEXPIRETIME, %d", i))
+
+		if test.presetValues != nil {
+			for k, v := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
+				mockServer.KeyUnlock(ctx, k)
+			}
+		}
+
+		res, err := handleExpireTime(ctx, test.command, mockServer, nil)
+
+		if test.expectedError != nil {
+			if err == nil {
+				t.Errorf("expected error \"%s\", got nil", test.expectedError.Error())
+			}
+			if test.expectedError.Error() != err.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+
+		rd := resp.NewReader(bytes.NewReader(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+		}
+	}
+}
+
+func Test_HandleTTL(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{
+		Config: utils.Config{
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
+
+	tests := []struct {
+		command          []string
+		presetValues     map[string]utils.KeyData
+		expectedResponse int
+		expectedError    error
+	}{
+		{ // 1. Return TTL time in seconds
+			command: []string{"TTL", "key1"},
+			presetValues: map[string]utils.KeyData{
+				"key1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
+			},
+			expectedResponse: 100,
+			expectedError:    nil,
+		},
+		{ // 2. Return TTL time in milliseconds
+			command: []string{"PTTL", "key2"},
+			presetValues: map[string]utils.KeyData{
+				"key2": {Value: "value2", ExpireAt: timeNow().Add(4096 * time.Millisecond)},
+			},
+			expectedResponse: 4096,
+			expectedError:    nil,
+		},
+		{ // 3. If the key is non-volatile, return -1
+			command: []string{"TTL", "key3"},
+			presetValues: map[string]utils.KeyData{
+				"key3": {Value: "value3", ExpireAt: time.Time{}},
+			},
+			expectedResponse: -1,
+			expectedError:    nil,
+		},
+		{ // 4. If the key is non-existent return -2
+			command:          []string{"TTL", "key4"},
+			presetValues:     nil,
+			expectedResponse: -2,
+			expectedError:    nil,
+		},
+		{ // 5. Command too short
+			command:          []string{"TTL"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WrongArgsResponse),
+		},
+		{ // 6. Command too long
+			command:          []string{"TTL", "key5", "key6"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedError:    errors.New(utils.WrongArgsResponse),
+		},
+	}
+
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("TTL/PTTL, %d", i))
+
+		if test.presetValues != nil {
+			for k, v := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
+				mockServer.KeyUnlock(ctx, k)
+			}
+		}
+
+		res, err := handleTTL(ctx, test.command, mockServer, nil)
+
+		if test.expectedError != nil {
+			if err == nil {
+				t.Errorf("expected error \"%s\", got nil", test.expectedError.Error())
+			}
+			if test.expectedError.Error() != err.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+
+		rd := resp.NewReader(bytes.NewReader(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+		}
+	}
+}
+
+func Test_HandleEXPIRE(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{
+		Config: utils.Config{
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
+
+	tests := []struct {
+		command          []string
+		presetValues     map[string]utils.KeyData
+		expectedResponse int
+		expectedValues   map[string]utils.KeyData
+		expectedError    error
+	}{
+		{ // 1. Set new expire by seconds
+			command: []string{"EXPIRE", "key1", "100"},
+			presetValues: map[string]utils.KeyData{
+				"key1": {Value: "value1", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 2. Set new expire by milliseconds
+			command: []string{"PEXPIRE", "key2", "1000"},
+			presetValues: map[string]utils.KeyData{
+				"key2": {Value: "value2", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key2": {Value: "value2", ExpireAt: timeNow().Add(1000 * time.Millisecond)},
+			},
+			expectedError: nil,
+		},
+		{ // 3. Set new expire only when key does not have an expiry time with NX flag
+			command: []string{"EXPIRE", "key3", "1000", "NX"},
+			presetValues: map[string]utils.KeyData{
+				"key3": {Value: "value3", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key3": {Value: "value3", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 4. Return 0, when NX flag is provided and key already has an expiry time
+			command: []string{"EXPIRE", "key4", "1000", "NX"},
+			presetValues: map[string]utils.KeyData{
+				"key4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 5. Set new expire time from now key only when the key already has an expiry time with XX flag
+			command: []string{"EXPIRE", "key5", "1000", "XX"},
+			presetValues: map[string]utils.KeyData{
+				"key5": {Value: "value5", ExpireAt: timeNow().Add(30 * time.Second)},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key5": {Value: "value5", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 6. Return 0 when key does not have an expiry and the XX flag is provided
+			command: []string{"EXPIRE", "key6", "1000", "XX"},
+			presetValues: map[string]utils.KeyData{
+				"key6": {Value: "value6", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key6": {Value: "value6", ExpireAt: time.Time{}},
+			},
+			expectedError: nil,
+		},
+		{ // 7. Set expiry time when the provided time is after the current expiry time when GT flag is provided
+			command: []string{"EXPIRE", "key7", "1000", "GT"},
+			presetValues: map[string]utils.KeyData{
+				"key7": {Value: "value7", ExpireAt: timeNow().Add(30 * time.Second)},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key7": {Value: "value7", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 8. Return 0 when GT flag is passed and current expiry time is greater than provided time
+			command: []string{"EXPIRE", "key8", "1000", "GT"},
+			presetValues: map[string]utils.KeyData{
+				"key8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 9. Return 0 when GT flag is passed and key does not have an expiry time
+			command: []string{"EXPIRE", "key9", "1000", "GT"},
+			presetValues: map[string]utils.KeyData{
+				"key9": {Value: "value9", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key9": {Value: "value9", ExpireAt: time.Time{}},
+			},
+			expectedError: nil,
+		},
+		{ // 10. Set expiry time when the provided time is before the current expiry time when LT flag is provided
+			command: []string{"EXPIRE", "key10", "1000", "LT"},
+			presetValues: map[string]utils.KeyData{
+				"key10": {Value: "value10", ExpireAt: timeNow().Add(3000 * time.Second)},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key10": {Value: "value10", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 11. Return 0 when LT flag is passed and current expiry time is less than provided time
+			command: []string{"EXPIRE", "key11", "5000", "LT"},
+			presetValues: map[string]utils.KeyData{
+				"key11": {Value: "value11", ExpireAt: timeNow().Add(3000 * time.Second)},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key11": {Value: "value11", ExpireAt: timeNow().Add(3000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 12. Return 0 when LT flag is passed and key does not have an expiry time
+			command: []string{"EXPIRE", "key12", "1000", "LT"},
+			presetValues: map[string]utils.KeyData{
+				"key12": {Value: "value12", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key12": {Value: "value12", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 13. Return error when unknown flag is passed
+			command: []string{"EXPIRE", "key13", "1000", "UNKNOWN"},
+			presetValues: map[string]utils.KeyData{
+				"key13": {Value: "value13", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    errors.New("unknown option UNKNOWN"),
+		},
+		{ // 14. Return error when expire time is not a valid integer
+			command:          []string{"EXPIRE", "key14", "expire"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    errors.New("expire time must be integer"),
+		},
+		{ // 15. Command too short
+			command:          []string{"EXPIRE"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    errors.New(utils.WrongArgsResponse),
+		},
+		{ // 16. Command too long
+			command:          []string{"EXPIRE", "key16", "10", "NX", "GT"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    errors.New(utils.WrongArgsResponse),
+		},
+	}
+
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("PERSIST, %d", i))
+
+		if test.presetValues != nil {
+			for k, v := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
+				mockServer.KeyUnlock(ctx, k)
+			}
+		}
+
+		res, err := handleExpire(ctx, test.command, mockServer, nil)
+
+		if test.expectedError != nil {
+			if err == nil {
+				t.Errorf("expected error \"%s\", got nil", test.expectedError.Error())
+			}
+			if test.expectedError.Error() != err.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+
+		rd := resp.NewReader(bytes.NewReader(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+		}
+
+		if test.expectedValues == nil {
+			continue
+		}
+
+		for k, expected := range test.expectedValues {
+			if _, err = mockServer.KeyLock(ctx, k); err != nil {
+				t.Error(err)
+			}
+			value := mockServer.GetValue(ctx, k)
+			expiry := mockServer.GetExpiry(ctx, k)
+			if value != expected.Value {
+				t.Errorf("expected value %+v, got %+v", expected.Value, value)
+			}
+			if expiry.UnixMilli() != expected.ExpireAt.UnixMilli() {
+				t.Errorf("expected expiry %d, got %d", expected.ExpireAt.UnixMilli(), expiry.UnixMilli())
+			}
+			mockServer.KeyUnlock(ctx, k)
+		}
+	}
+}
+
+func Test_HandleEXPIREAT(t *testing.T) {
+	mockServer := server.NewServer(server.Opts{
+		Config: utils.Config{
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
+
+	tests := []struct {
+		command          []string
+		presetValues     map[string]utils.KeyData
+		expectedResponse int
+		expectedValues   map[string]utils.KeyData
+		expectedError    error
+	}{
+		{ // 1. Set new expire by unix seconds
+			command: []string{"EXPIREAT", "key1", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix())},
+			presetValues: map[string]utils.KeyData{
+				"key1": {Value: "value1", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key1": {Value: "value1", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+			},
+			expectedError: nil,
+		},
+		{ // 2. Set new expire by milliseconds
+			command: []string{"PEXPIREAT", "key2", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).UnixMilli())},
+			presetValues: map[string]utils.KeyData{
+				"key2": {Value: "value2", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key2": {Value: "value2", ExpireAt: time.UnixMilli(timeNow().Add(1000 * time.Second).UnixMilli())},
+			},
+			expectedError: nil,
+		},
+		{ // 3. Set new expire only when key does not have an expiry time with NX flag
+			command: []string{"EXPIREAT", "key3", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "NX"},
+			presetValues: map[string]utils.KeyData{
+				"key3": {Value: "value3", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key3": {Value: "value3", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+			},
+			expectedError: nil,
+		},
+		{ // 4. Return 0, when NX flag is provided and key already has an expiry time
+			command: []string{"EXPIREAT", "key4", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "NX"},
+			presetValues: map[string]utils.KeyData{
+				"key4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 5. Set new expire time from now key only when the key already has an expiry time with XX flag
+			command: []string{
+				"EXPIREAT", "key5",
+				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "XX",
+			},
+			presetValues: map[string]utils.KeyData{
+				"key5": {Value: "value5", ExpireAt: timeNow().Add(30 * time.Second)},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key5": {Value: "value5", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+			},
+			expectedError: nil,
+		},
+		{ // 6. Return 0 when key does not have an expiry and the XX flag is provided
+			command: []string{
+				"EXPIREAT", "key6",
+				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "XX",
+			},
+			presetValues: map[string]utils.KeyData{
+				"key6": {Value: "value6", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key6": {Value: "value6", ExpireAt: time.Time{}},
+			},
+			expectedError: nil,
+		},
+		{ // 7. Set expiry time when the provided time is after the current expiry time when GT flag is provided
+			command: []string{
+				"EXPIREAT", "key7",
+				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "GT",
+			},
+			presetValues: map[string]utils.KeyData{
+				"key7": {Value: "value7", ExpireAt: timeNow().Add(30 * time.Second)},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key7": {Value: "value7", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+			},
+			expectedError: nil,
+		},
+		{ // 8. Return 0 when GT flag is passed and current expiry time is greater than provided time
+			command: []string{
+				"EXPIREAT", "key8",
+				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "GT",
+			},
+			presetValues: map[string]utils.KeyData{
+				"key8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 9. Return 0 when GT flag is passed and key does not have an expiry time
+			command: []string{
+				"EXPIREAT", "key9",
+				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "GT",
+			},
+			presetValues: map[string]utils.KeyData{
+				"key9": {Value: "value9", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key9": {Value: "value9", ExpireAt: time.Time{}},
+			},
+			expectedError: nil,
+		},
+		{ // 10. Set expiry time when the provided time is before the current expiry time when LT flag is provided
+			command: []string{
+				"EXPIREAT", "key10",
+				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "LT",
+			},
+			presetValues: map[string]utils.KeyData{
+				"key10": {Value: "value10", ExpireAt: timeNow().Add(3000 * time.Second)},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key10": {Value: "value10", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+			},
+			expectedError: nil,
+		},
+		{ // 11. Return 0 when LT flag is passed and current expiry time is less than provided time
+			command: []string{
+				"EXPIREAT", "key11",
+				fmt.Sprintf("%d", timeNow().Add(3000*time.Second).Unix()), "LT",
+			},
+			presetValues: map[string]utils.KeyData{
+				"key11": {Value: "value11", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedResponse: 0,
+			expectedValues: map[string]utils.KeyData{
+				"key11": {Value: "value11", ExpireAt: timeNow().Add(1000 * time.Second)},
+			},
+			expectedError: nil,
+		},
+		{ // 12. Return 0 when LT flag is passed and key does not have an expiry time
+			command: []string{
+				"EXPIREAT", "key12",
+				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "LT",
+			},
+			presetValues: map[string]utils.KeyData{
+				"key12": {Value: "value12", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 1,
+			expectedValues: map[string]utils.KeyData{
+				"key12": {Value: "value12", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+			},
+			expectedError: nil,
+		},
+		{ // 13. Return error when unknown flag is passed
+			command: []string{"EXPIREAT", "key13", "1000", "UNKNOWN"},
+			presetValues: map[string]utils.KeyData{
+				"key13": {Value: "value13", ExpireAt: time.Time{}},
+			},
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    errors.New("unknown option UNKNOWN"),
+		},
+		{ // 14. Return error when expire time is not a valid integer
+			command:          []string{"EXPIREAT", "key14", "expire"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    errors.New("expire time must be integer"),
+		},
+		{ // 15. Command too short
+			command:          []string{"EXPIREAT"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    errors.New(utils.WrongArgsResponse),
+		},
+		{ // 16. Command too long
+			command:          []string{"EXPIREAT", "key16", "10", "NX", "GT"},
+			presetValues:     nil,
+			expectedResponse: 0,
+			expectedValues:   nil,
+			expectedError:    errors.New(utils.WrongArgsResponse),
+		},
+	}
+
+	for i, test := range tests {
+		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("PERSIST, %d", i))
+
+		if test.presetValues != nil {
+			for k, v := range test.presetValues {
+				if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					t.Error(err)
+				}
+				mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
+				mockServer.KeyUnlock(ctx, k)
+			}
+		}
+
+		res, err := handleExpireAt(ctx, test.command, mockServer, nil)
+
+		if test.expectedError != nil {
+			if err == nil {
+				t.Errorf("expected error \"%s\", got nil", test.expectedError.Error())
+			}
+			if test.expectedError.Error() != err.Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+
+		rd := resp.NewReader(bytes.NewReader(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if rv.Integer() != test.expectedResponse {
+			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+		}
+
+		if test.expectedValues == nil {
+			continue
+		}
+
+		for k, expected := range test.expectedValues {
+			if _, err = mockServer.KeyLock(ctx, k); err != nil {
+				t.Error(err)
+			}
+			value := mockServer.GetValue(ctx, k)
+			expiry := mockServer.GetExpiry(ctx, k)
+			if value != expected.Value {
+				t.Errorf("expected value %+v, got %+v", expected.Value, value)
+			}
+			if expiry.UnixMilli() != expected.ExpireAt.UnixMilli() {
+				t.Errorf("expected expiry %d, got %d", expected.ExpireAt.UnixMilli(), expiry.UnixMilli())
+			}
+			mockServer.KeyUnlock(ctx, k)
 		}
 	}
 }
