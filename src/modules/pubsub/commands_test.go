@@ -1,6 +1,21 @@
 package pubsub
 
-import "testing"
+import (
+	"github.com/echovault/echovault/src/server"
+	"github.com/echovault/echovault/src/utils"
+	"testing"
+)
+
+var mockServer *server.Server
+
+func init() {
+	mockServer = server.NewServer(server.Opts{
+		Config: utils.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
+}
 
 func Test_HandleSubscribe(t *testing.T) {
 

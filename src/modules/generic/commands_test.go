@@ -12,13 +12,18 @@ import (
 	"time"
 )
 
-func Test_HandleSET(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{
+var mockServer *server.Server
+
+func init() {
+	mockServer = server.NewServer(server.Opts{
 		Config: utils.Config{
+			DataDir:        "",
 			EvictionPolicy: utils.NoEviction,
 		},
 	})
+}
 
+func Test_HandleSET(t *testing.T) {
 	tests := []struct {
 		command          []string
 		presetValues     map[string]utils.KeyData
@@ -28,7 +33,7 @@ func Test_HandleSET(t *testing.T) {
 		expectedErr      error
 	}{
 		{ // 1. Set normal string value
-			command:          []string{"SET", "key1", "value1"},
+			command:          []string{"SET", "SetKey1", "value1"},
 			presetValues:     nil,
 			expectedResponse: "OK",
 			expectedValue:    "value1",
@@ -36,7 +41,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      nil,
 		},
 		{ // 2. Set normal integer value
-			command:          []string{"SET", "key2", "1245678910"},
+			command:          []string{"SET", "SetKey2", "1245678910"},
 			presetValues:     nil,
 			expectedResponse: "OK",
 			expectedValue:    1245678910,
@@ -44,7 +49,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      nil,
 		},
 		{ // 3. Set normal float value
-			command:          []string{"SET", "key3", "45782.11341"},
+			command:          []string{"SET", "SetKey3", "45782.11341"},
 			presetValues:     nil,
 			expectedResponse: "OK",
 			expectedValue:    45782.11341,
@@ -52,7 +57,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      nil,
 		},
 		{ // 4. Only set the value if the key does not exist
-			command:          []string{"SET", "key4", "value4", "NX"},
+			command:          []string{"SET", "SetKey4", "value4", "NX"},
 			presetValues:     nil,
 			expectedResponse: "OK",
 			expectedValue:    "value4",
@@ -60,9 +65,9 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      nil,
 		},
 		{ // 5. Throw error when value already exists with NX flag passed
-			command: []string{"SET", "key5", "value5", "NX"},
+			command: []string{"SET", "SetKey5", "value5", "NX"},
 			presetValues: map[string]utils.KeyData{
-				"key5": {
+				"SetKey5": {
 					Value:    "preset-value5",
 					ExpireAt: time.Time{},
 				},
@@ -70,12 +75,12 @@ func Test_HandleSET(t *testing.T) {
 			expectedResponse: nil,
 			expectedValue:    "preset-value5",
 			expectedExpiry:   time.Time{},
-			expectedErr:      errors.New("key key5 already exists"),
+			expectedErr:      errors.New("key SetKey5 already exists"),
 		},
 		{ // 6. Set new key value when key exists with XX flag passed
-			command: []string{"SET", "key6", "value6", "XX"},
+			command: []string{"SET", "SetKey6", "value6", "XX"},
 			presetValues: map[string]utils.KeyData{
-				"key6": {
+				"SetKey6": {
 					Value:    "preset-value6",
 					ExpireAt: time.Time{},
 				},
@@ -86,15 +91,15 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      nil,
 		},
 		{ // 7. Return error when setting non-existent key with XX flag
-			command:          []string{"SET", "key7", "value7", "XX"},
+			command:          []string{"SET", "SetKey7", "value7", "XX"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedExpiry:   time.Time{},
-			expectedErr:      errors.New("key key7 does not exist"),
+			expectedErr:      errors.New("key SetKey7 does not exist"),
 		},
 		{ // 8. Return error when NX flag is provided after XX flag
-			command:          []string{"SET", "key8", "value8", "XX", "NX"},
+			command:          []string{"SET", "SetKey8", "value8", "XX", "NX"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    nil,
@@ -102,7 +107,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("cannot specify NX when XX is already specified"),
 		},
 		{ // 9. Return error when XX flag is provided after NX flag
-			command:          []string{"SET", "key9", "value9", "NX", "XX"},
+			command:          []string{"SET", "SetKey9", "value9", "NX", "XX"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    nil,
@@ -110,7 +115,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("cannot specify XX when NX is already specified"),
 		},
 		{ // 10. Set expiry time on the key to 100 seconds from now
-			command:          []string{"SET", "key10", "value10", "EX", "100"},
+			command:          []string{"SET", "SetKey10", "value10", "EX", "100"},
 			presetValues:     nil,
 			expectedResponse: "OK",
 			expectedValue:    "value10",
@@ -118,7 +123,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      nil,
 		},
 		{ // 11. Return error when EX flag is passed without seconds value
-			command:          []string{"SET", "key11", "value11", "EX"},
+			command:          []string{"SET", "SetKey11", "value11", "EX"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    "",
@@ -126,7 +131,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("seconds value required after EX"),
 		},
 		{ // 12. Return error when EX flag is passed with invalid (non-integer) value
-			command:          []string{"SET", "key12", "value12", "EX", "seconds"},
+			command:          []string{"SET", "SetKey12", "value12", "EX", "seconds"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    "",
@@ -134,7 +139,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("seconds value should be an integer"),
 		},
 		{ // 13. Return error when trying to set expiry seconds when expiry is already set
-			command:          []string{"SET", "key13", "value13", "PX", "100000", "EX", "100"},
+			command:          []string{"SET", "SetKey13", "value13", "PX", "100000", "EX", "100"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    nil,
@@ -142,7 +147,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("cannot specify EX when expiry time is already set"),
 		},
 		{ // 14. Set expiry time on the key in unix milliseconds
-			command:          []string{"SET", "key14", "value14", "PX", "4096"},
+			command:          []string{"SET", "SetKey14", "value14", "PX", "4096"},
 			presetValues:     nil,
 			expectedResponse: "OK",
 			expectedValue:    "value14",
@@ -150,7 +155,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      nil,
 		},
 		{ // 15. Return error when PX flag is passed without milliseconds value
-			command:          []string{"SET", "key15", "value15", "PX"},
+			command:          []string{"SET", "SetKey15", "value15", "PX"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    "",
@@ -158,7 +163,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("milliseconds value required after PX"),
 		},
 		{ // 16. Return error when PX flag is passed with invalid (non-integer) value
-			command:          []string{"SET", "key16", "value16", "PX", "milliseconds"},
+			command:          []string{"SET", "SetKey16", "value16", "PX", "milliseconds"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    "",
@@ -166,7 +171,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("milliseconds value should be an integer"),
 		},
 		{ // 17. Return error when trying to set expiry milliseconds when expiry is already provided
-			command:          []string{"SET", "key17", "value17", "EX", "10", "PX", "1000000"},
+			command:          []string{"SET", "SetKey17", "value17", "EX", "10", "PX", "1000000"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    nil,
@@ -175,7 +180,7 @@ func Test_HandleSET(t *testing.T) {
 		},
 		{ // 18. Set exact expiry time in seconds from unix epoch
 			command: []string{
-				"SET", "key18", "value18",
+				"SET", "SetKey18", "value18",
 				"EXAT", fmt.Sprintf("%d", timeNow().Add(200*time.Second).Unix()),
 			},
 			presetValues:     nil,
@@ -186,7 +191,7 @@ func Test_HandleSET(t *testing.T) {
 		},
 		{ // 19. Return error when trying to set exact seconds expiry time when expiry time is already provided
 			command: []string{
-				"SET", "key19", "value19",
+				"SET", "SetKey19", "value19",
 				"EX", "10",
 				"EXAT", fmt.Sprintf("%d", timeNow().Add(200*time.Second).Unix()),
 			},
@@ -197,7 +202,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("cannot specify EXAT when expiry time is already set"),
 		},
 		{ // 20. Return error when no seconds value is provided after EXAT flag
-			command:          []string{"SET", "key20", "value20", "EXAT"},
+			command:          []string{"SET", "SetKey20", "value20", "EXAT"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    "",
@@ -205,7 +210,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("seconds value required after EXAT"),
 		},
 		{ // 21. Return error when invalid (non-integer) value is passed after EXAT flag
-			command:          []string{"SET", "key21", "value21", "EXAT", "seconds"},
+			command:          []string{"SET", "SekKey21", "value21", "EXAT", "seconds"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    "",
@@ -214,7 +219,7 @@ func Test_HandleSET(t *testing.T) {
 		},
 		{ // 22. Set exact expiry time in milliseconds from unix epoch
 			command: []string{
-				"SET", "key22", "value22",
+				"SET", "SetKey22", "value22",
 				"PXAT", fmt.Sprintf("%d", timeNow().Add(4096*time.Millisecond).UnixMilli()),
 			},
 			presetValues:     nil,
@@ -225,7 +230,7 @@ func Test_HandleSET(t *testing.T) {
 		},
 		{ // 23. Return error when trying to set exact milliseconds expiry time when expiry time is already provided
 			command: []string{
-				"SET", "key23", "value23",
+				"SET", "SetKey23", "value23",
 				"PX", "1000",
 				"PXAT", fmt.Sprintf("%d", timeNow().Add(4096*time.Millisecond).UnixMilli()),
 			},
@@ -236,7 +241,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("cannot specify PXAT when expiry time is already set"),
 		},
 		{ // 24. Return error when no milliseconds value is provided after PXAT flag
-			command:          []string{"SET", "key24", "value24", "PXAT"},
+			command:          []string{"SET", "SetKey24", "value24", "PXAT"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    "",
@@ -244,7 +249,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("milliseconds value required after PXAT"),
 		},
 		{ // 25. Return error when invalid (non-integer) value is passed after EXAT flag
-			command:          []string{"SET", "key25", "value25", "PXAT", "unix-milliseconds"},
+			command:          []string{"SET", "SetKey25", "value25", "PXAT", "unix-milliseconds"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    "",
@@ -252,9 +257,9 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New("milliseconds value should be an integer"),
 		},
 		{ // 26. Get the previous value when GET flag is passed
-			command: []string{"SET", "key26", "value26", "GET", "EX", "1000"},
+			command: []string{"SET", "SetKey26", "value26", "GET", "EX", "1000"},
 			presetValues: map[string]utils.KeyData{
-				"key26": {
+				"SetKey26": {
 					Value:    "previous-value",
 					ExpireAt: time.Time{},
 				},
@@ -265,7 +270,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      nil,
 		},
 		{ // 27. Return nil when GET value is passed and no previous value exists
-			command:          []string{"SET", "key27", "value27", "GET", "EX", "1000"},
+			command:          []string{"SET", "SetKey27", "value27", "GET", "EX", "1000"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    "value27",
@@ -273,7 +278,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      nil,
 		},
 		{ // 28. Throw error when unknown optional flag is passed to SET command.
-			command:          []string{"SET", "key28", "value28", "UNKNOWN-OPTION"},
+			command:          []string{"SET", "SetKey28", "value28", "UNKNOWN-OPTION"},
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    nil,
@@ -287,7 +292,7 @@ func Test_HandleSET(t *testing.T) {
 			expectedErr:      errors.New(utils.WrongArgsResponse),
 		},
 		{ // 30. Command too long
-			command:          []string{"SET", "key", "value1", "value2", "value3", "value4", "value5", "value6"},
+			command:          []string{"SET", "SetKey30", "value1", "value2", "value3", "value4", "value5", "value6"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedErr:      errors.New(utils.WrongArgsResponse),
@@ -365,12 +370,6 @@ func Test_HandleSET(t *testing.T) {
 }
 
 func Test_HandleMSET(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{
-		Config: utils.Config{
-			EvictionPolicy: utils.NoEviction,
-		},
-	})
-
 	tests := []struct {
 		command          []string
 		expectedResponse string
@@ -378,13 +377,13 @@ func Test_HandleMSET(t *testing.T) {
 		expectedErr      error
 	}{
 		{
-			command:          []string{"MSET", "test1", "value1", "test2", "10", "test3", "3.142"},
+			command:          []string{"MSET", "MsetKey1", "value1", "MsetKey2", "10", "MsetKey3", "3.142"},
 			expectedResponse: "OK",
-			expectedValues:   map[string]interface{}{"test1": "value1", "test2": 10, "test3": 3.142},
+			expectedValues:   map[string]interface{}{"MsetKey1": "value1", "MsetKey2": 10, "MsetKey3": 3.142},
 			expectedErr:      nil,
 		},
 		{
-			command:          []string{"MSET", "test1", "value1", "test2", "10", "test3"},
+			command:          []string{"MSET", "MsetKey1", "value1", "MsetKey2", "10", "MsetKey3"},
 			expectedResponse: "",
 			expectedValues:   make(map[string]interface{}),
 			expectedErr:      errors.New("each key must be paired with a value"),
@@ -449,26 +448,20 @@ func Test_HandleMSET(t *testing.T) {
 }
 
 func Test_HandleGET(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{
-		Config: utils.Config{
-			EvictionPolicy: utils.NoEviction,
-		},
-	})
-
 	tests := []struct {
 		key   string
 		value string
 	}{
 		{
-			key:   "test1",
+			key:   "GetKey1",
 			value: "value1",
 		},
 		{
-			key:   "test2",
+			key:   "GetKey2",
 			value: "10",
 		},
 		{
-			key:   "test3",
+			key:   "GetKey3",
 			value: "3.142",
 		},
 	}
@@ -514,7 +507,7 @@ func Test_HandleGET(t *testing.T) {
 			expected: utils.WrongArgsResponse,
 		},
 		{
-			command:  []string{"GET", "key", "test"},
+			command:  []string{"GET", "GetKey1", "test"},
 			expected: utils.WrongArgsResponse,
 		},
 	}
@@ -530,12 +523,6 @@ func Test_HandleGET(t *testing.T) {
 }
 
 func Test_HandleMGET(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{
-		Config: utils.Config{
-			EvictionPolicy: utils.NoEviction,
-		},
-	})
-
 	tests := []struct {
 		presetKeys    []string
 		presetValues  []string
@@ -544,21 +531,21 @@ func Test_HandleMGET(t *testing.T) {
 		expectedError error
 	}{
 		{
-			presetKeys:    []string{"test1", "test2", "test3", "test4"},
+			presetKeys:    []string{"MgetKey1", "MgetKey2", "MgetKey3", "MgetKey4"},
 			presetValues:  []string{"value1", "value2", "value3", "value4"},
-			command:       []string{"MGET", "test1", "test4", "test2", "test3", "test1"},
+			command:       []string{"MGET", "MgetKey1", "MgetKey4", "MgetKey2", "MgetKey3", "MgetKey1"},
 			expected:      []interface{}{"value1", "value4", "value2", "value3", "value1"},
 			expectedError: nil,
 		},
 		{
-			presetKeys:    []string{"test5", "test6", "test7"},
+			presetKeys:    []string{"MgetKey5", "MgetKey6", "MgetKey7"},
 			presetValues:  []string{"value5", "value6", "value7"},
-			command:       []string{"MGET", "test5", "test6", "non-existent", "non-existent", "test7", "non-existent"},
+			command:       []string{"MGET", "MgetKey5", "MgetKey6", "non-existent", "non-existent", "MgetKey7", "non-existent"},
 			expected:      []interface{}{"value5", "value6", nil, nil, "value7", nil},
 			expectedError: nil,
 		},
 		{
-			presetKeys:    []string{"test5"},
+			presetKeys:    []string{"MgetKey5"},
 			presetValues:  []string{"value5"},
 			command:       []string{"MGET"},
 			expected:      nil,
@@ -613,12 +600,6 @@ func Test_HandleMGET(t *testing.T) {
 }
 
 func Test_HandleDEL(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{
-		Config: utils.Config{
-			EvictionPolicy: utils.NoEviction,
-		},
-	})
-
 	tests := []struct {
 		command          []string
 		presetValues     map[string]utils.KeyData
@@ -627,20 +608,20 @@ func Test_HandleDEL(t *testing.T) {
 		expectedErr      error
 	}{
 		{
-			command: []string{"DEL", "key1", "key2", "key3", "key4", "key5"},
+			command: []string{"DEL", "DelKey1", "DelKey2", "DelKey3", "DelKey4", "DelKey5"},
 			presetValues: map[string]utils.KeyData{
-				"key1": {Value: "value1", ExpireAt: time.Time{}},
-				"key2": {Value: "value2", ExpireAt: time.Time{}},
-				"key3": {Value: "value3", ExpireAt: time.Time{}},
-				"key4": {Value: "value4", ExpireAt: time.Time{}},
+				"DelKey1": {Value: "value1", ExpireAt: time.Time{}},
+				"DelKey2": {Value: "value2", ExpireAt: time.Time{}},
+				"DelKey3": {Value: "value3", ExpireAt: time.Time{}},
+				"DelKey4": {Value: "value4", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 4,
 			expectToExist: map[string]bool{
-				"key1": false,
-				"key2": false,
-				"key3": false,
-				"key4": false,
-				"key5": false,
+				"DelKey1": false,
+				"DelKey2": false,
+				"DelKey3": false,
+				"DelKey4": false,
+				"DelKey5": false,
 			},
 			expectedErr: nil,
 		},
@@ -703,12 +684,6 @@ func Test_HandleDEL(t *testing.T) {
 }
 
 func Test_HandlePERSIST(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{
-		Config: utils.Config{
-			EvictionPolicy: utils.NoEviction,
-		},
-	})
-
 	tests := []struct {
 		command          []string
 		presetValues     map[string]utils.KeyData
@@ -717,31 +692,31 @@ func Test_HandlePERSIST(t *testing.T) {
 		expectedError    error
 	}{
 		{ // 1. Successfully persist a volatile key
-			command: []string{"PERSIST", "key1"},
+			command: []string{"PERSIST", "PersistKey1"},
 			presetValues: map[string]utils.KeyData{
-				"key1": {Value: "value1", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"PersistKey1": {Value: "value1", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key1": {Value: "value1", ExpireAt: time.Time{}},
+				"PersistKey1": {Value: "value1", ExpireAt: time.Time{}},
 			},
 			expectedError: nil,
 		},
 		{ // 2. Return 0 when trying to persist a non-existent key
-			command:          []string{"PERSIST", "key2"},
+			command:          []string{"PERSIST", "PersistKey2"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
 			expectedError:    nil,
 		},
 		{ // 3. Return 0 when trying to persist a non-volatile key
-			command: []string{"PERSIST", "key3"},
+			command: []string{"PERSIST", "PersistKey3"},
 			presetValues: map[string]utils.KeyData{
-				"key3": {Value: "value3", ExpireAt: time.Time{}},
+				"PersistKey3": {Value: "value3", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key3": {Value: "value3", ExpireAt: time.Time{}},
+				"PersistKey3": {Value: "value3", ExpireAt: time.Time{}},
 			},
 			expectedError: nil,
 		},
@@ -753,7 +728,7 @@ func Test_HandlePERSIST(t *testing.T) {
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Command too long
-			command:          []string{"PERSIST", "key5", "key6"},
+			command:          []string{"PERSIST", "PersistKey5", "key6"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
@@ -823,12 +798,6 @@ func Test_HandlePERSIST(t *testing.T) {
 }
 
 func Test_HandleEXPIRETIME(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{
-		Config: utils.Config{
-			EvictionPolicy: utils.NoEviction,
-		},
-	})
-
 	tests := []struct {
 		command          []string
 		presetValues     map[string]utils.KeyData
@@ -836,31 +805,31 @@ func Test_HandleEXPIRETIME(t *testing.T) {
 		expectedError    error
 	}{
 		{ // 1. Return expire time in seconds
-			command: []string{"EXPIRETIME", "key1"},
+			command: []string{"EXPIRETIME", "ExpireTimeKey1"},
 			presetValues: map[string]utils.KeyData{
-				"key1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
+				"ExpireTimeKey1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
 			},
 			expectedResponse: int(timeNow().Add(100 * time.Second).Unix()),
 			expectedError:    nil,
 		},
 		{ // 2. Return expire time in milliseconds
-			command: []string{"PEXPIRETIME", "key2"},
+			command: []string{"PEXPIRETIME", "ExpireTimeKey2"},
 			presetValues: map[string]utils.KeyData{
-				"key2": {Value: "value2", ExpireAt: timeNow().Add(4096 * time.Millisecond)},
+				"ExpireTimeKey2": {Value: "value2", ExpireAt: timeNow().Add(4096 * time.Millisecond)},
 			},
 			expectedResponse: int(timeNow().Add(4096 * time.Millisecond).UnixMilli()),
 			expectedError:    nil,
 		},
 		{ // 3. If the key is non-volatile, return -1
-			command: []string{"PEXPIRETIME", "key3"},
+			command: []string{"PEXPIRETIME", "ExpireTimeKey3"},
 			presetValues: map[string]utils.KeyData{
-				"key3": {Value: "value3", ExpireAt: time.Time{}},
+				"ExpireTimeKey3": {Value: "value3", ExpireAt: time.Time{}},
 			},
 			expectedResponse: -1,
 			expectedError:    nil,
 		},
 		{ // 4. If the key is non-existent return -2
-			command:          []string{"PEXPIRETIME", "key4"},
+			command:          []string{"PEXPIRETIME", "ExpireTimeKey4"},
 			presetValues:     nil,
 			expectedResponse: -2,
 			expectedError:    nil,
@@ -872,7 +841,7 @@ func Test_HandleEXPIRETIME(t *testing.T) {
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
-			command:          []string{"PEXPIRETIME", "key5", "key6"},
+			command:          []string{"PEXPIRETIME", "ExpireTimeKey5", "ExpireTimeKey6"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WrongArgsResponse),
@@ -922,12 +891,6 @@ func Test_HandleEXPIRETIME(t *testing.T) {
 }
 
 func Test_HandleTTL(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{
-		Config: utils.Config{
-			EvictionPolicy: utils.NoEviction,
-		},
-	})
-
 	tests := []struct {
 		command          []string
 		presetValues     map[string]utils.KeyData
@@ -935,31 +898,31 @@ func Test_HandleTTL(t *testing.T) {
 		expectedError    error
 	}{
 		{ // 1. Return TTL time in seconds
-			command: []string{"TTL", "key1"},
+			command: []string{"TTL", "TTLKey1"},
 			presetValues: map[string]utils.KeyData{
-				"key1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
+				"TTLKey1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
 			},
 			expectedResponse: 100,
 			expectedError:    nil,
 		},
 		{ // 2. Return TTL time in milliseconds
-			command: []string{"PTTL", "key2"},
+			command: []string{"PTTL", "TTLKey2"},
 			presetValues: map[string]utils.KeyData{
-				"key2": {Value: "value2", ExpireAt: timeNow().Add(4096 * time.Millisecond)},
+				"TTLKey2": {Value: "value2", ExpireAt: timeNow().Add(4096 * time.Millisecond)},
 			},
 			expectedResponse: 4096,
 			expectedError:    nil,
 		},
 		{ // 3. If the key is non-volatile, return -1
-			command: []string{"TTL", "key3"},
+			command: []string{"TTL", "TTLKey3"},
 			presetValues: map[string]utils.KeyData{
-				"key3": {Value: "value3", ExpireAt: time.Time{}},
+				"TTLKey3": {Value: "value3", ExpireAt: time.Time{}},
 			},
 			expectedResponse: -1,
 			expectedError:    nil,
 		},
 		{ // 4. If the key is non-existent return -2
-			command:          []string{"TTL", "key4"},
+			command:          []string{"TTL", "TTLKey4"},
 			presetValues:     nil,
 			expectedResponse: -2,
 			expectedError:    nil,
@@ -971,7 +934,7 @@ func Test_HandleTTL(t *testing.T) {
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
-			command:          []string{"TTL", "key5", "key6"},
+			command:          []string{"TTL", "TTLKey5", "TTLKey6"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WrongArgsResponse),
@@ -1021,12 +984,6 @@ func Test_HandleTTL(t *testing.T) {
 }
 
 func Test_HandleEXPIRE(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{
-		Config: utils.Config{
-			EvictionPolicy: utils.NoEviction,
-		},
-	})
-
 	tests := []struct {
 		command          []string
 		presetValues     map[string]utils.KeyData
@@ -1035,148 +992,148 @@ func Test_HandleEXPIRE(t *testing.T) {
 		expectedError    error
 	}{
 		{ // 1. Set new expire by seconds
-			command: []string{"EXPIRE", "key1", "100"},
+			command: []string{"EXPIRE", "ExpireKey1", "100"},
 			presetValues: map[string]utils.KeyData{
-				"key1": {Value: "value1", ExpireAt: time.Time{}},
+				"ExpireKey1": {Value: "value1", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
+				"ExpireKey1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 2. Set new expire by milliseconds
-			command: []string{"PEXPIRE", "key2", "1000"},
+			command: []string{"PEXPIRE", "ExpireKey2", "1000"},
 			presetValues: map[string]utils.KeyData{
-				"key2": {Value: "value2", ExpireAt: time.Time{}},
+				"ExpireKey2": {Value: "value2", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key2": {Value: "value2", ExpireAt: timeNow().Add(1000 * time.Millisecond)},
+				"ExpireKey2": {Value: "value2", ExpireAt: timeNow().Add(1000 * time.Millisecond)},
 			},
 			expectedError: nil,
 		},
 		{ // 3. Set new expire only when key does not have an expiry time with NX flag
-			command: []string{"EXPIRE", "key3", "1000", "NX"},
+			command: []string{"EXPIRE", "ExpireKey3", "1000", "NX"},
 			presetValues: map[string]utils.KeyData{
-				"key3": {Value: "value3", ExpireAt: time.Time{}},
+				"ExpireKey3": {Value: "value3", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key3": {Value: "value3", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey3": {Value: "value3", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 4. Return 0, when NX flag is provided and key already has an expiry time
-			command: []string{"EXPIRE", "key4", "1000", "NX"},
+			command: []string{"EXPIRE", "ExpireKey4", "1000", "NX"},
 			presetValues: map[string]utils.KeyData{
-				"key4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 5. Set new expire time from now key only when the key already has an expiry time with XX flag
-			command: []string{"EXPIRE", "key5", "1000", "XX"},
+			command: []string{"EXPIRE", "ExpireKey5", "1000", "XX"},
 			presetValues: map[string]utils.KeyData{
-				"key5": {Value: "value5", ExpireAt: timeNow().Add(30 * time.Second)},
+				"ExpireKey5": {Value: "value5", ExpireAt: timeNow().Add(30 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key5": {Value: "value5", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey5": {Value: "value5", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 6. Return 0 when key does not have an expiry and the XX flag is provided
-			command: []string{"EXPIRE", "key6", "1000", "XX"},
+			command: []string{"EXPIRE", "ExpireKey6", "1000", "XX"},
 			presetValues: map[string]utils.KeyData{
-				"key6": {Value: "value6", ExpireAt: time.Time{}},
+				"ExpireKey6": {Value: "value6", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key6": {Value: "value6", ExpireAt: time.Time{}},
+				"ExpireKey6": {Value: "value6", ExpireAt: time.Time{}},
 			},
 			expectedError: nil,
 		},
 		{ // 7. Set expiry time when the provided time is after the current expiry time when GT flag is provided
-			command: []string{"EXPIRE", "key7", "1000", "GT"},
+			command: []string{"EXPIRE", "ExpireKey7", "1000", "GT"},
 			presetValues: map[string]utils.KeyData{
-				"key7": {Value: "value7", ExpireAt: timeNow().Add(30 * time.Second)},
+				"ExpireKey7": {Value: "value7", ExpireAt: timeNow().Add(30 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key7": {Value: "value7", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey7": {Value: "value7", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 8. Return 0 when GT flag is passed and current expiry time is greater than provided time
-			command: []string{"EXPIRE", "key8", "1000", "GT"},
+			command: []string{"EXPIRE", "ExpireKey8", "1000", "GT"},
 			presetValues: map[string]utils.KeyData{
-				"key8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireKey8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireKey8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 9. Return 0 when GT flag is passed and key does not have an expiry time
-			command: []string{"EXPIRE", "key9", "1000", "GT"},
+			command: []string{"EXPIRE", "ExpireKey9", "1000", "GT"},
 			presetValues: map[string]utils.KeyData{
-				"key9": {Value: "value9", ExpireAt: time.Time{}},
+				"ExpireKey9": {Value: "value9", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key9": {Value: "value9", ExpireAt: time.Time{}},
+				"ExpireKey9": {Value: "value9", ExpireAt: time.Time{}},
 			},
 			expectedError: nil,
 		},
 		{ // 10. Set expiry time when the provided time is before the current expiry time when LT flag is provided
-			command: []string{"EXPIRE", "key10", "1000", "LT"},
+			command: []string{"EXPIRE", "ExpireKey10", "1000", "LT"},
 			presetValues: map[string]utils.KeyData{
-				"key10": {Value: "value10", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireKey10": {Value: "value10", ExpireAt: timeNow().Add(3000 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key10": {Value: "value10", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey10": {Value: "value10", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 11. Return 0 when LT flag is passed and current expiry time is less than provided time
-			command: []string{"EXPIRE", "key11", "5000", "LT"},
+			command: []string{"EXPIRE", "ExpireKey11", "5000", "LT"},
 			presetValues: map[string]utils.KeyData{
-				"key11": {Value: "value11", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireKey11": {Value: "value11", ExpireAt: timeNow().Add(3000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key11": {Value: "value11", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireKey11": {Value: "value11", ExpireAt: timeNow().Add(3000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 12. Return 0 when LT flag is passed and key does not have an expiry time
-			command: []string{"EXPIRE", "key12", "1000", "LT"},
+			command: []string{"EXPIRE", "ExpireKey12", "1000", "LT"},
 			presetValues: map[string]utils.KeyData{
-				"key12": {Value: "value12", ExpireAt: time.Time{}},
+				"ExpireKey12": {Value: "value12", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key12": {Value: "value12", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey12": {Value: "value12", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 13. Return error when unknown flag is passed
-			command: []string{"EXPIRE", "key13", "1000", "UNKNOWN"},
+			command: []string{"EXPIRE", "ExpireKey13", "1000", "UNKNOWN"},
 			presetValues: map[string]utils.KeyData{
-				"key13": {Value: "value13", ExpireAt: time.Time{}},
+				"ExpireKey13": {Value: "value13", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 0,
 			expectedValues:   nil,
 			expectedError:    errors.New("unknown option UNKNOWN"),
 		},
 		{ // 14. Return error when expire time is not a valid integer
-			command:          []string{"EXPIRE", "key14", "expire"},
+			command:          []string{"EXPIRE", "ExpireKey14", "expire"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
@@ -1190,7 +1147,7 @@ func Test_HandleEXPIRE(t *testing.T) {
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 16. Command too long
-			command:          []string{"EXPIRE", "key16", "10", "NX", "GT"},
+			command:          []string{"EXPIRE", "ExpireKey16", "10", "NX", "GT"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
@@ -1260,12 +1217,6 @@ func Test_HandleEXPIRE(t *testing.T) {
 }
 
 func Test_HandleEXPIREAT(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{
-		Config: utils.Config{
-			EvictionPolicy: utils.NoEviction,
-		},
-	})
-
 	tests := []struct {
 		command          []string
 		presetValues     map[string]utils.KeyData
@@ -1274,172 +1225,172 @@ func Test_HandleEXPIREAT(t *testing.T) {
 		expectedError    error
 	}{
 		{ // 1. Set new expire by unix seconds
-			command: []string{"EXPIREAT", "key1", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix())},
+			command: []string{"EXPIREAT", "ExpireAtKey1", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix())},
 			presetValues: map[string]utils.KeyData{
-				"key1": {Value: "value1", ExpireAt: time.Time{}},
+				"ExpireAtKey1": {Value: "value1", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key1": {Value: "value1", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey1": {Value: "value1", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 2. Set new expire by milliseconds
-			command: []string{"PEXPIREAT", "key2", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).UnixMilli())},
+			command: []string{"PEXPIREAT", "ExpireAtKey2", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).UnixMilli())},
 			presetValues: map[string]utils.KeyData{
-				"key2": {Value: "value2", ExpireAt: time.Time{}},
+				"ExpireAtKey2": {Value: "value2", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key2": {Value: "value2", ExpireAt: time.UnixMilli(timeNow().Add(1000 * time.Second).UnixMilli())},
+				"ExpireAtKey2": {Value: "value2", ExpireAt: time.UnixMilli(timeNow().Add(1000 * time.Second).UnixMilli())},
 			},
 			expectedError: nil,
 		},
 		{ // 3. Set new expire only when key does not have an expiry time with NX flag
-			command: []string{"EXPIREAT", "key3", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "NX"},
+			command: []string{"EXPIREAT", "ExpireAtKey3", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "NX"},
 			presetValues: map[string]utils.KeyData{
-				"key3": {Value: "value3", ExpireAt: time.Time{}},
+				"ExpireAtKey3": {Value: "value3", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key3": {Value: "value3", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey3": {Value: "value3", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 4. Return 0, when NX flag is provided and key already has an expiry time
-			command: []string{"EXPIREAT", "key4", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "NX"},
+			command: []string{"EXPIREAT", "ExpireAtKey4", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "NX"},
 			presetValues: map[string]utils.KeyData{
-				"key4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireAtKey4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireAtKey4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 5. Set new expire time from now key only when the key already has an expiry time with XX flag
 			command: []string{
-				"EXPIREAT", "key5",
+				"EXPIREAT", "ExpireAtKey5",
 				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "XX",
 			},
 			presetValues: map[string]utils.KeyData{
-				"key5": {Value: "value5", ExpireAt: timeNow().Add(30 * time.Second)},
+				"ExpireAtKey5": {Value: "value5", ExpireAt: timeNow().Add(30 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key5": {Value: "value5", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey5": {Value: "value5", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 6. Return 0 when key does not have an expiry and the XX flag is provided
 			command: []string{
-				"EXPIREAT", "key6",
+				"EXPIREAT", "ExpireAtKey6",
 				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "XX",
 			},
 			presetValues: map[string]utils.KeyData{
-				"key6": {Value: "value6", ExpireAt: time.Time{}},
+				"ExpireAtKey6": {Value: "value6", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key6": {Value: "value6", ExpireAt: time.Time{}},
+				"ExpireAtKey6": {Value: "value6", ExpireAt: time.Time{}},
 			},
 			expectedError: nil,
 		},
 		{ // 7. Set expiry time when the provided time is after the current expiry time when GT flag is provided
 			command: []string{
-				"EXPIREAT", "key7",
+				"EXPIREAT", "ExpireAtKey7",
 				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "GT",
 			},
 			presetValues: map[string]utils.KeyData{
-				"key7": {Value: "value7", ExpireAt: timeNow().Add(30 * time.Second)},
+				"ExpireAtKey7": {Value: "value7", ExpireAt: timeNow().Add(30 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key7": {Value: "value7", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey7": {Value: "value7", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 8. Return 0 when GT flag is passed and current expiry time is greater than provided time
 			command: []string{
-				"EXPIREAT", "key8",
+				"EXPIREAT", "ExpireAtKey8",
 				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "GT",
 			},
 			presetValues: map[string]utils.KeyData{
-				"key8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireAtKey8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireAtKey8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 9. Return 0 when GT flag is passed and key does not have an expiry time
 			command: []string{
-				"EXPIREAT", "key9",
+				"EXPIREAT", "ExpireAtKey9",
 				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "GT",
 			},
 			presetValues: map[string]utils.KeyData{
-				"key9": {Value: "value9", ExpireAt: time.Time{}},
+				"ExpireAtKey9": {Value: "value9", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key9": {Value: "value9", ExpireAt: time.Time{}},
+				"ExpireAtKey9": {Value: "value9", ExpireAt: time.Time{}},
 			},
 			expectedError: nil,
 		},
 		{ // 10. Set expiry time when the provided time is before the current expiry time when LT flag is provided
 			command: []string{
-				"EXPIREAT", "key10",
+				"EXPIREAT", "ExpireAtKey10",
 				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "LT",
 			},
 			presetValues: map[string]utils.KeyData{
-				"key10": {Value: "value10", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireAtKey10": {Value: "value10", ExpireAt: timeNow().Add(3000 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key10": {Value: "value10", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey10": {Value: "value10", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 11. Return 0 when LT flag is passed and current expiry time is less than provided time
 			command: []string{
-				"EXPIREAT", "key11",
+				"EXPIREAT", "ExpireAtKey11",
 				fmt.Sprintf("%d", timeNow().Add(3000*time.Second).Unix()), "LT",
 			},
 			presetValues: map[string]utils.KeyData{
-				"key11": {Value: "value11", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireAtKey11": {Value: "value11", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]utils.KeyData{
-				"key11": {Value: "value11", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireAtKey11": {Value: "value11", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 12. Return 0 when LT flag is passed and key does not have an expiry time
 			command: []string{
-				"EXPIREAT", "key12",
+				"EXPIREAT", "ExpireAtKey12",
 				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "LT",
 			},
 			presetValues: map[string]utils.KeyData{
-				"key12": {Value: "value12", ExpireAt: time.Time{}},
+				"ExpireAtKey12": {Value: "value12", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]utils.KeyData{
-				"key12": {Value: "value12", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey12": {Value: "value12", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 13. Return error when unknown flag is passed
-			command: []string{"EXPIREAT", "key13", "1000", "UNKNOWN"},
+			command: []string{"EXPIREAT", "ExpireAtKey13", "1000", "UNKNOWN"},
 			presetValues: map[string]utils.KeyData{
-				"key13": {Value: "value13", ExpireAt: time.Time{}},
+				"ExpireAtKey13": {Value: "value13", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 0,
 			expectedValues:   nil,
 			expectedError:    errors.New("unknown option UNKNOWN"),
 		},
 		{ // 14. Return error when expire time is not a valid integer
-			command:          []string{"EXPIREAT", "key14", "expire"},
+			command:          []string{"EXPIREAT", "ExpireAtKey14", "expire"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
@@ -1453,7 +1404,7 @@ func Test_HandleEXPIREAT(t *testing.T) {
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 16. Command too long
-			command:          []string{"EXPIREAT", "key16", "10", "NX", "GT"},
+			command:          []string{"EXPIREAT", "ExpireAtKey16", "10", "NX", "GT"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
