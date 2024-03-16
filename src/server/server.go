@@ -261,7 +261,10 @@ func (server *Server) StartTCP(ctx context.Context) {
 }
 
 func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
-	server.ACL.RegisterConnection(&conn)
+	// If ACL module is loaded, register the connection with the ACL
+	if server.ACL != nil {
+		server.ACL.RegisterConnection(&conn)
+	}
 
 	w, r := io.Writer(conn), io.Reader(conn)
 

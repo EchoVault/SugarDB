@@ -21,14 +21,9 @@ func handleSubscribe(ctx context.Context, cmd []string, server utils.Server, con
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
-	switch strings.ToLower(cmd[0]) {
-	case "subscribe":
-		return pubsub.Subscribe(ctx, conn, channels, false), nil
-	case "psubscribe":
-		return pubsub.Subscribe(ctx, conn, channels, true), nil
-	}
+	withPattern := strings.EqualFold(cmd[0], "psubscribe")
 
-	return []byte{}, nil
+	return pubsub.Subscribe(ctx, conn, channels, withPattern), nil
 }
 
 func handleUnsubscribe(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -39,14 +34,9 @@ func handleUnsubscribe(ctx context.Context, cmd []string, server utils.Server, c
 
 	channels := cmd[1:]
 
-	switch strings.ToLower(cmd[0]) {
-	case "unsubscribe":
-		return pubsub.Unsubscribe(ctx, conn, channels, false), nil
-	case "punsubscribe":
-		return pubsub.Unsubscribe(ctx, conn, channels, true), nil
-	default:
-		return []byte{}, nil
-	}
+	withPattern := strings.EqualFold(cmd[0], "punsubscribe")
+
+	return pubsub.Unsubscribe(ctx, conn, channels, withPattern), nil
 }
 
 func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -156,7 +146,7 @@ it's currently subscribe to.`,
 		{
 			Command:    "punsubscribe",
 			Categories: []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
-			Description: `(PUNSUBSCRIBE [channel [channel ...]]) Unsubscribe from a list of channels using patterns.
+			Description: `(PUNSUBSCRIBE [pattern [pattern ...]]) Unsubscribe from a list of channels using patterns.
 If the pattern list is not provided, then the connection will be unsubscribed from all the patterns that
 it's currently subscribe to.`,
 			Sync: false,

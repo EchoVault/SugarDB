@@ -67,30 +67,48 @@ func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channels []st
 
 	action := "unsubscribe"
 	if withPattern {
-		action = "subscribe"
+		action = "punsubscribe"
 	}
 
 	unsubscribed := make(map[int]string)
 	count := 1
 
-	// If the channels slice is empty, unsubscribe from all channels.
 	if len(channels) <= 0 {
-		for _, channel := range ps.channels {
-			if channel.Unsubscribe(conn) {
-				unsubscribed[1] = channel.name
-				count += 1
+		if !withPattern {
+			// If the channels slice is empty, and no pattern is provided
+			// only unsubscribe from all channels.
+			for _, channel := range ps.channels {
+				if channel.pattern != nil { // Skip pattern channels
+					continue
+				}
+				if channel.Unsubscribe(conn) {
+					unsubscribed[count] = channel.name
+					count += 1
+				}
+			}
+		} else {
+			// If the channels slice is empty, and pattern is provided
+			// only unsubscribe from all patterns.
+			for _, channel := range ps.channels {
+				if channel.pattern == nil { // Skip non-pattern channels
+					continue
+				}
+				if channel.Unsubscribe(conn) {
+					unsubscribed[count] = channel.name
+					count += 1
+				}
 			}
 		}
 	}
 
-	// If withPattern is false, unsubscribe from channels where the name exactly matches channel name.
-	if !withPattern {
-		for _, channel := range ps.channels { // For each channel in PubSub
-			for _, c := range channels { // For each channel name provided
-				if channel.name == c && channel.Unsubscribe(conn) {
-					unsubscribed[count] = channel.name
-					count += 1
-				}
+	// Unsubscribe from channels where the name exactly matches channel name.
+	// If unsubscribing from a pattern, also unsubscribe from all channel whose
+	// names exactly matches the pattern name.
+	for _, channel := range ps.channels { // For each channel in PubSub
+		for _, c := range channels { // For each channel name provided
+			if channel.name == c && channel.Unsubscribe(conn) {
+				unsubscribed[count] = channel.name
+				count += 1
 			}
 		}
 	}
@@ -103,18 +121,24 @@ func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channels []st
 			for _, channel := range ps.channels {
 				// If it's a pattern channel, directly compare the patterns
 				if channel.pattern != nil && channel.name == pattern {
-					unsubscribed[count] = channel.name
-					count += 1
+					if channel.Unsubscribe(conn) {
+						unsubscribed[count] = channel.name
+						count += 1
+					}
 					continue
 				}
 				// If this is a regular channel, check if the channel name matches the pattern given
 				if g.Match(channel.name) {
-					unsubscribed[count] = channel.name
-					count += 1
+					if channel.Unsubscribe(conn) {
+						unsubscribed[count] = channel.name
+						count += 1
+					}
 				}
 			}
 		}
 	}
+
+	fmt.Println("UNSUBBED: ", unsubscribed)
 
 	res := fmt.Sprintf("*%d\r\n", len(unsubscribed))
 	for key, value := range unsubscribed {
