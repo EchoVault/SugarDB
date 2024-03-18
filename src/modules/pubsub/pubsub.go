@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/gobwas/glob"
+	"github.com/tidwall/resp"
+	"log"
 	"net"
 	"slices"
 	"sync"
@@ -22,9 +24,8 @@ func NewPubSub() *PubSub {
 	}
 }
 
-func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) []byte {
-	res := fmt.Sprintf("*%d\r\n", len(channels))
-
+func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) {
+	r := resp.NewConn(*conn)
 	for i := 0; i < len(channels); i++ {
 		// Check if channel with given name exists
 		// If it does, subscribe the connection to the channel
@@ -42,23 +43,29 @@ func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []stri
 				newChan = NewChannel(WithName(channels[i]))
 			}
 			newChan.Start()
-			newChan.Subscribe(conn)
+			if newChan.Subscribe(conn) {
+				if err := r.WriteArray([]resp.Value{
+					resp.StringValue("subscribe"),
+					resp.StringValue(newChan.name),
+					resp.IntegerValue(i + 1),
+				}); err != nil {
+					log.Println(err)
+				}
+			}
 			ps.channels = append(ps.channels, newChan)
 		} else {
 			// Subscribe to existing channel
-			ps.channels[channelIdx].Subscribe(conn)
-		}
-
-		if len(channels) > 1 {
-			// If subscribing to more than one channel, write array to verify the subscription of this channel
-			res += fmt.Sprintf("*3\r\n+subscribe\r\n$%d\r\n%s\r\n:%d\r\n", len(channels[i]), channels[i], i+1)
-		} else {
-			// Ony one channel, simply send "subscribe" simple string response
-			res = "+subscribe\r\n"
+			if ps.channels[channelIdx].Subscribe(conn) {
+				if err := r.WriteArray([]resp.Value{
+					resp.StringValue("subscribe"),
+					resp.StringValue(ps.channels[channelIdx].name),
+					resp.IntegerValue(i + 1),
+				}); err != nil {
+					log.Println(err)
+				}
+			}
 		}
 	}
-
-	return []byte(res)
 }
 
 func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) []byte {
@@ -137,8 +144,6 @@ func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channels []st
 			}
 		}
 	}
-
-	fmt.Println("UNSUBBED: ", unsubscribed)
 
 	res := fmt.Sprintf("*%d\r\n", len(unsubscribed))
 	for key, value := range unsubscribed {

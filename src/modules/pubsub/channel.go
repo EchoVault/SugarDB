@@ -1,12 +1,10 @@
 package pubsub
 
 import (
-	"fmt"
 	"github.com/gobwas/glob"
-	"io"
+	"github.com/tidwall/resp"
 	"log"
 	"net"
-	"slices"
 	"sync"
 )
 
@@ -17,7 +15,7 @@ type Channel struct {
 	name             string
 	pattern          glob.Glob
 	subscribersRWMut sync.RWMutex
-	subscribers      []*net.Conn
+	subscribers      map[*net.Conn]*resp.Conn
 	messageChan      *chan string
 }
 
@@ -41,7 +39,7 @@ func NewChannel(options ...func(channel *Channel)) *Channel {
 		name:             "",
 		pattern:          nil,
 		subscribersRWMut: sync.RWMutex{},
-		subscribers:      []*net.Conn{},
+		subscribers:      make(map[*net.Conn]*resp.Conn),
 		messageChan:      &messageChan,
 	}
 
@@ -60,10 +58,12 @@ func (ch *Channel) Start() {
 			ch.subscribersRWMut.RLock()
 
 			for _, conn := range ch.subscribers {
-				go func(conn *net.Conn) {
-					w := io.Writer(*conn)
-
-					if _, err := w.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(message), message))); err != nil {
+				go func(conn *resp.Conn) {
+					if err := conn.WriteArray([]resp.Value{
+						resp.StringValue("message"),
+						resp.StringValue(ch.name),
+						resp.StringValue(message),
+					}); err != nil {
 						log.Println(err)
 					}
 				}(conn)
@@ -74,30 +74,24 @@ func (ch *Channel) Start() {
 	}()
 }
 
-func (ch *Channel) Subscribe(conn *net.Conn) {
-	if !slices.Contains(ch.subscribers, conn) {
-		ch.subscribersRWMut.Lock()
-		defer ch.subscribersRWMut.Unlock()
-
-		ch.subscribers = append(ch.subscribers, conn)
+func (ch *Channel) Subscribe(conn *net.Conn) bool {
+	ch.subscribersRWMut.Lock()
+	defer ch.subscribersRWMut.Unlock()
+	if _, ok := ch.subscribers[conn]; !ok {
+		ch.subscribers[conn] = resp.NewConn(*conn)
 	}
+	_, ok := ch.subscribers[conn]
+	return ok
 }
 
 func (ch *Channel) Unsubscribe(conn *net.Conn) bool {
 	ch.subscribersRWMut.Lock()
 	defer ch.subscribersRWMut.Unlock()
-
-	var removed bool
-
-	ch.subscribers = slices.DeleteFunc(ch.subscribers, func(c *net.Conn) bool {
-		if c == conn {
-			removed = true
-			return true
-		}
+	if _, ok := ch.subscribers[conn]; !ok {
 		return false
-	})
-
-	return removed
+	}
+	delete(ch.subscribers, conn)
+	return true
 }
 
 func (ch *Channel) Publish(message string) {

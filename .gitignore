@@ -6,3 +6,4 @@ volumes
 
 dist/
 src/modules/*/aof
+dump.rdb

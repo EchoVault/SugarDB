@@ -22,8 +22,9 @@ func handleSubscribe(ctx context.Context, cmd []string, server utils.Server, con
 	}
 
 	withPattern := strings.EqualFold(cmd[0], "psubscribe")
+	pubsub.Subscribe(ctx, conn, channels, withPattern)
 
-	return pubsub.Subscribe(ctx, conn, channels, withPattern), nil
+	return nil, nil
 }
 
 func handleUnsubscribe(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -48,6 +49,7 @@ func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn 
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 	pubsub.Publish(ctx, cmd[2], cmd[1])
+	fmt.Println("PUBLISHED:", cmd[2])
 	return []byte(utils.OkResponse), nil
 }
 

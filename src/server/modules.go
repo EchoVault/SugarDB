@@ -51,9 +51,11 @@ func (server *Server) handleCommand(ctx context.Context, message []byte, conn *n
 	}
 
 	if conn != nil {
-		// Authorize connection if it's provided
-		if err = server.ACL.AuthorizeConnection(conn, cmd, command, subCommand); err != nil {
-			return nil, err
+		// Authorize connection if it's provided and if ACL module is present
+		if server.ACL != nil {
+			if err = server.ACL.AuthorizeConnection(conn, cmd, command, subCommand); err != nil {
+				return nil, err
+			}
 		}
 	}
 
