@@ -209,7 +209,7 @@ func (ps *PubSub) Channels(pattern string) []byte {
 		}
 	}
 
-	return []byte(res)
+	return []byte(fmt.Sprintf("*%d\r\n%s", count, res))
 }
 
 func (ps *PubSub) NumPat(ctx context.Context) int {
