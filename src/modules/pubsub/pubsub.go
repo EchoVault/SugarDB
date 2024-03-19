@@ -26,6 +26,12 @@ func NewPubSub() *PubSub {
 
 func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) {
 	r := resp.NewConn(*conn)
+
+	action := "subscribe"
+	if withPattern {
+		action = "psubscribe"
+	}
+
 	for i := 0; i < len(channels); i++ {
 		// Check if channel with given name exists
 		// If it does, subscribe the connection to the channel
@@ -45,7 +51,7 @@ func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []stri
 			newChan.Start()
 			if newChan.Subscribe(conn) {
 				if err := r.WriteArray([]resp.Value{
-					resp.StringValue("subscribe"),
+					resp.StringValue(action),
 					resp.StringValue(newChan.name),
 					resp.IntegerValue(i + 1),
 				}); err != nil {
@@ -57,7 +63,7 @@ func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []stri
 			// Subscribe to existing channel
 			if ps.channels[channelIdx].Subscribe(conn) {
 				if err := r.WriteArray([]resp.Value{
-					resp.StringValue("subscribe"),
+					resp.StringValue(action),
 					resp.StringValue(ps.channels[channelIdx].name),
 					resp.IntegerValue(i + 1),
 				}); err != nil {
@@ -172,7 +178,7 @@ func (ps *PubSub) Publish(ctx context.Context, message string, channelName strin
 	}
 }
 
-func (ps *PubSub) Channels(ctx context.Context, pattern string) []byte {
+func (ps *PubSub) Channels(pattern string) []byte {
 	var count int
 	var res string
 
@@ -183,7 +189,6 @@ func (ps *PubSub) Channels(ctx context.Context, pattern string) []byte {
 				count += 1
 			}
 		}
-
 		res = fmt.Sprintf("*%d\r\n%s", count, res)
 		return []byte(res)
 	}
@@ -197,6 +202,7 @@ func (ps *PubSub) Channels(ctx context.Context, pattern string) []byte {
 			count += 1
 			continue
 		}
+		// Channel is not a pattern channel. Check if the channel name matches the provided glob pattern
 		if g.Match(channel.name) && channel.IsActive() {
 			res += fmt.Sprintf("$%d\r\n%s\r\n", len(channel.name), channel.name)
 			count += 1

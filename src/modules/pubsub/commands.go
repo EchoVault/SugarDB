@@ -53,7 +53,7 @@ func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn 
 	return []byte(utils.OkResponse), nil
 }
 
-func handlePubSubChannels(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePubSubChannels(_ context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -68,7 +68,7 @@ func handlePubSubChannels(ctx context.Context, cmd []string, server utils.Server
 		pattern = cmd[2]
 	}
 
-	return pubsub.Channels(ctx, pattern), nil
+	return pubsub.Channels(pattern), nil
 }
 
 func handlePubSubNumPat(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {

@@ -335,7 +335,7 @@ func Test_HandlePublish(t *testing.T) {
 		}()
 		// Verify all the responses for each pattern subscription
 		for i := 0; i < len(patterns); i++ {
-			verifyEvent(c, r, []string{"subscribe", patterns[i], fmt.Sprintf("%d", i+1)})
+			verifyEvent(c, r, []string{"psubscribe", patterns[i], fmt.Sprintf("%d", i+1)})
 		}
 	}
 
