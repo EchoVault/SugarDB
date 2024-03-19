@@ -25,6 +25,9 @@ func NewPubSub() *PubSub {
 }
 
 func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) {
+	ps.channelsRWMut.Lock()
+	defer ps.channelsRWMut.Unlock()
+
 	r := resp.NewConn(*conn)
 
 	action := "subscribe"
@@ -76,7 +79,7 @@ func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []stri
 
 func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) []byte {
 	ps.channelsRWMut.RLock()
-	ps.channelsRWMut.RUnlock()
+	defer ps.channelsRWMut.RUnlock()
 
 	action := "unsubscribe"
 	if withPattern {
@@ -179,6 +182,9 @@ func (ps *PubSub) Publish(ctx context.Context, message string, channelName strin
 }
 
 func (ps *PubSub) Channels(pattern string) []byte {
+	ps.channelsRWMut.RLock()
+	defer ps.channelsRWMut.RUnlock()
+
 	var count int
 	var res string
 

@@ -49,7 +49,6 @@ func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn 
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 	pubsub.Publish(ctx, cmd[2], cmd[1])
-	fmt.Println("PUBLISHED:", cmd[2])
 	return []byte(utils.OkResponse), nil
 }
 
