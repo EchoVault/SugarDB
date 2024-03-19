@@ -75,7 +75,7 @@ func handlePubSubNumPat(ctx context.Context, cmd []string, server utils.Server, 
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
-	num := pubsub.NumPat(ctx)
+	num := pubsub.NumPat()
 	return []byte(fmt.Sprintf(":%d\r\n", num)), nil
 }
 
@@ -84,7 +84,7 @@ func handlePubSubNumSubs(ctx context.Context, cmd []string, server utils.Server,
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
-	return pubsub.NumSub(ctx, cmd[2:]), nil
+	return pubsub.NumSub(cmd[2:]), nil
 }
 
 func Commands() []utils.Command {

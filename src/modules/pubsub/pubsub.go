@@ -218,7 +218,10 @@ func (ps *PubSub) Channels(pattern string) []byte {
 	return []byte(fmt.Sprintf("*%d\r\n%s", count, res))
 }
 
-func (ps *PubSub) NumPat(ctx context.Context) int {
+func (ps *PubSub) NumPat() int {
+	ps.channelsRWMut.RLock()
+	defer ps.channelsRWMut.RUnlock()
+
 	var count int
 	for _, channel := range ps.channels {
 		if channel.pattern != nil {
@@ -228,7 +231,10 @@ func (ps *PubSub) NumPat(ctx context.Context) int {
 	return count
 }
 
-func (ps *PubSub) NumSub(ctx context.Context, channels []string) []byte {
+func (ps *PubSub) NumSub(channels []string) []byte {
+	ps.channelsRWMut.RLock()
+	defer ps.channelsRWMut.RUnlock()
+
 	res := fmt.Sprintf("*%d\r\n", len(channels))
 	for _, channel := range channels {
 		chanIdx := slices.IndexFunc(ps.channels, func(c *Channel) bool {
