@@ -40,7 +40,7 @@ func handleUnsubscribe(ctx context.Context, cmd []string, server utils.Server, c
 	return pubsub.Unsubscribe(ctx, conn, channels, withPattern), nil
 }
 
-func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePublish(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -52,7 +52,7 @@ func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn 
 	return []byte(utils.OkResponse), nil
 }
 
-func handlePubSubChannels(_ context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePubSubChannels(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -70,7 +70,7 @@ func handlePubSubChannels(_ context.Context, cmd []string, server utils.Server, 
 	return pubsub.Channels(pattern), nil
 }
 
-func handlePubSubNumPat(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePubSubNumPat(_ context.Context, _ []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -79,7 +79,7 @@ func handlePubSubNumPat(ctx context.Context, cmd []string, server utils.Server, 
 	return []byte(fmt.Sprintf(":%d\r\n", num)), nil
 }
 
-func handlePubSubNumSubs(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePubSubNumSubs(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")

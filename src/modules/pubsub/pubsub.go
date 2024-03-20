@@ -237,6 +237,7 @@ func (ps *PubSub) NumSub(channels []string) []byte {
 
 	res := fmt.Sprintf("*%d\r\n", len(channels))
 	for _, channel := range channels {
+		// If it's a pattern channel, skip it
 		chanIdx := slices.IndexFunc(ps.channels, func(c *Channel) bool {
 			return c.name == channel
 		})
