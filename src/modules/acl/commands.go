@@ -502,7 +502,7 @@ func Commands() []utils.Command {
 				{
 					Command:     "users",
 					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-					Description: "(ACL USERS) List all usersnames of the configured ACL users",
+					Description: "(ACL USERS) List all usernames of the configured ACL users",
 					Sync:        false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
 						return []string{}, nil
