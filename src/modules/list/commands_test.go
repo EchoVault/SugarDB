@@ -11,9 +11,18 @@ import (
 	"testing"
 )
 
-func Test_HandleLLEN(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
+var mockServer *server.Server
 
+func init() {
+	mockServer = server.NewServer(server.Opts{
+		Config: utils.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
+}
+
+func Test_HandleLLEN(t *testing.T) {
 	tests := []struct {
 		preset           bool
 		key              string
@@ -25,25 +34,25 @@ func Test_HandleLLEN(t *testing.T) {
 	}{
 		{ // If key exists and is a list, return the lists length
 			preset:           true,
-			key:              "key1",
+			key:              "LlenKey1",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LLEN", "key1"},
+			command:          []string{"LLEN", "LlenKey1"},
 			expectedResponse: 4,
 			expectedValue:    nil,
 			expectedError:    nil,
 		},
 		{ // If key does not exist, return 0
 			preset:           false,
-			key:              "key2",
+			key:              "LlenKey2",
 			presetValue:      nil,
-			command:          []string{"LLEN", "key2"},
+			command:          []string{"LLEN", "LlenKey2"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    nil,
 		},
 		{ // Command too short
 			preset:           false,
-			key:              "key3",
+			key:              "LlenKey3",
 			presetValue:      nil,
 			command:          []string{"LLEN"},
 			expectedResponse: 0,
@@ -52,18 +61,18 @@ func Test_HandleLLEN(t *testing.T) {
 		},
 		{ // Command too long
 			preset:           false,
-			key:              "key4",
+			key:              "LlenKey4",
 			presetValue:      nil,
-			command:          []string{"LLEN", "key4", "key4"},
+			command:          []string{"LLEN", "LlenKey4", "LlenKey4"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non-list returns error
 			preset:           true,
-			key:              "key5",
+			key:              "LlenKey5",
 			presetValue:      "Default value",
-			command:          []string{"LLEN", "key5"},
+			command:          []string{"LLEN", "LlenKey5"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("LLEN command on non-list item"),
@@ -101,8 +110,6 @@ func Test_HandleLLEN(t *testing.T) {
 }
 
 func Test_HandleLINDEX(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -114,90 +121,90 @@ func Test_HandleLINDEX(t *testing.T) {
 	}{
 		{ // Return last element within range
 			preset:           true,
-			key:              "key1",
+			key:              "LindexKey1",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LINDEX", "key1", "3"},
+			command:          []string{"LINDEX", "LindexKey1", "3"},
 			expectedResponse: "value4",
 			expectedValue:    nil,
 			expectedError:    nil,
 		},
 		{ // Return first element within range
 			preset:           true,
-			key:              "key2",
+			key:              "LindexKey2",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LINDEX", "key1", "0"},
+			command:          []string{"LINDEX", "LindexKey1", "0"},
 			expectedResponse: "value1",
 			expectedValue:    nil,
 			expectedError:    nil,
 		},
 		{ // Return middle element within range
 			preset:           true,
-			key:              "key3",
+			key:              "LindexKey3",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LINDEX", "key1", "1"},
+			command:          []string{"LINDEX", "LindexKey1", "1"},
 			expectedResponse: "value2",
 			expectedValue:    nil,
 			expectedError:    nil,
 		},
 		{ // If key does not exist, return error
 			preset:           false,
-			key:              "key4",
+			key:              "LindexKey4",
 			presetValue:      nil,
-			command:          []string{"LINDEX", "key4", "0"},
+			command:          []string{"LINDEX", "LindexKey4", "0"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("LINDEX command on non-list item"),
 		},
 		{ // Command too short
 			preset:           false,
-			key:              "key3",
+			key:              "LindexKey3",
 			presetValue:      nil,
-			command:          []string{"LINDEX", "key3"},
+			command:          []string{"LINDEX", "LindexKey3"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
-			key:              "key4",
+			key:              "LindexKey4",
 			presetValue:      nil,
-			command:          []string{"LINDEX", "key4", "0", "20"},
+			command:          []string{"LINDEX", "LindexKey4", "0", "20"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get element by index on a non-list returns error
 			preset:           true,
-			key:              "key5",
+			key:              "LindexKey5",
 			presetValue:      "Default value",
-			command:          []string{"LINDEX", "key5", "0"},
+			command:          []string{"LINDEX", "LindexKey5", "0"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("LINDEX command on non-list item"),
 		},
 		{ // Trying to get index out of range index beyond last index
 			preset:           true,
-			key:              "key6",
+			key:              "LindexKey6",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LINDEX", "key6", "3"},
+			command:          []string{"LINDEX", "LindexKey6", "3"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("index must be within list range"),
 		},
 		{ // Trying to get index out of range with negative index
 			preset:           true,
-			key:              "key7",
+			key:              "LindexKey7",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LINDEX", "key7", "-1"},
+			command:          []string{"LINDEX", "LindexKey7", "-1"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("index must be within list range"),
 		},
 		{ // Return error when index is not an integer
 			preset:           false,
-			key:              "key8",
+			key:              "LindexKey8",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LINDEX", "key8", "index"},
+			command:          []string{"LINDEX", "LindexKey8", "index"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("index must be an integer"),
@@ -235,8 +242,6 @@ func Test_HandleLINDEX(t *testing.T) {
 }
 
 func Test_HandleLRANGE(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -251,108 +256,108 @@ func Test_HandleLRANGE(t *testing.T) {
 			// Both start and end indices are positive.
 			// End index is greater than start index.
 			preset:           true,
-			key:              "key1",
+			key:              "LrangeKey1",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
-			command:          []string{"LRANGE", "key1", "3", "6"},
+			command:          []string{"LRANGE", "LrangeKey1", "3", "6"},
 			expectedResponse: []interface{}{"value4", "value5", "value6", "value7"},
 			expectedValue:    nil,
 			expectedError:    nil,
 		},
 		{ // Return sub-list from start index to the end of the list when end index is -1
 			preset:           true,
-			key:              "key2",
+			key:              "LrangeKey2",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
-			command:          []string{"LRANGE", "key2", "3", "-1"},
+			command:          []string{"LRANGE", "LrangeKey2", "3", "-1"},
 			expectedResponse: []interface{}{"value4", "value5", "value6", "value7", "value8"},
 			expectedValue:    nil,
 			expectedError:    nil,
 		},
 		{ // Return the reversed sub-list when the end index is greater than -1 but less than start index
 			preset:           true,
-			key:              "key3",
+			key:              "LrangeKey3",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
-			command:          []string{"LRANGE", "key3", "3", "0"},
+			command:          []string{"LRANGE", "LrangeKey3", "3", "0"},
 			expectedResponse: []interface{}{"value4", "value3", "value2", "value1"},
 			expectedValue:    nil,
 			expectedError:    nil,
 		},
 		{ // If key does not exist, return error
 			preset:           false,
-			key:              "key4",
+			key:              "LrangeKey4",
 			presetValue:      nil,
-			command:          []string{"LRANGE", "key4", "0", "2"},
+			command:          []string{"LRANGE", "LrangeKey4", "0", "2"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("LRANGE command on non-list item"),
 		},
 		{ // Command too short
 			preset:           false,
-			key:              "key5",
+			key:              "LrangeKey5",
 			presetValue:      nil,
-			command:          []string{"LRANGE", "key5"},
+			command:          []string{"LRANGE", "LrangeKey5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
-			key:              "key6",
+			key:              "LrangeKey6",
 			presetValue:      nil,
-			command:          []string{"LRANGE", "key6", "0", "element", "element"},
+			command:          []string{"LRANGE", "LrangeKey6", "0", "element", "element"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Error when executing command on non-list command
 			preset:           true,
-			key:              "key5",
+			key:              "LrangeKey5",
 			presetValue:      "Default value",
-			command:          []string{"LRANGE", "key5", "0", "3"},
+			command:          []string{"LRANGE", "LrangeKey5", "0", "3"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("LRANGE command on non-list item"),
 		},
 		{ // Error when start index is less than 0
 			preset:           true,
-			key:              "key7",
+			key:              "LrangeKey7",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LRANGE", "key7", "-1", "3"},
+			command:          []string{"LRANGE", "LrangeKey7", "-1", "3"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("start index must be within list boundary"),
 		},
 		{ // Error when start index is higher than the length of the list
 			preset:           true,
-			key:              "key8",
+			key:              "LrangeKey8",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LRANGE", "key8", "10", "11"},
+			command:          []string{"LRANGE", "LrangeKey8", "10", "11"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("start index must be within list boundary"),
 		},
 		{ // Return error when start index is not an integer
 			preset:           false,
-			key:              "key9",
+			key:              "LrangeKey9",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LRANGE", "key9", "start", "7"},
+			command:          []string{"LRANGE", "LrangeKey9", "start", "7"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("start and end indices must be integers"),
 		},
 		{ // Return error when end index is not an integer
 			preset:           false,
-			key:              "key10",
+			key:              "LrangeKey10",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LRANGE", "key10", "0", "end"},
+			command:          []string{"LRANGE", "LrangeKey10", "0", "end"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("start and end indices must be integers"),
 		},
 		{ // Error when start and end indices are equal
 			preset:           true,
-			key:              "key11",
+			key:              "LrangeKey11",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LRANGE", "key11", "1", "1"},
+			command:          []string{"LRANGE", "LrangeKey11", "1", "1"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("start and end indices cannot be equal"),
@@ -396,8 +401,6 @@ func Test_HandleLRANGE(t *testing.T) {
 }
 
 func Test_HandleLSET(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -409,90 +412,90 @@ func Test_HandleLSET(t *testing.T) {
 	}{
 		{ // Return last element within range
 			preset:           true,
-			key:              "key1",
+			key:              "LsetKey1",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LSET", "key1", "3", "new-value"},
+			command:          []string{"LSET", "LsetKey1", "3", "new-value"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"value1", "value2", "value3", "new-value"},
 			expectedError:    nil,
 		},
 		{ // Return first element within range
 			preset:           true,
-			key:              "key2",
+			key:              "LsetKey2",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LSET", "key2", "0", "new-value"},
+			command:          []string{"LSET", "LsetKey2", "0", "new-value"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"new-value", "value2", "value3", "value4"},
 			expectedError:    nil,
 		},
 		{ // Return middle element within range
 			preset:           true,
-			key:              "key3",
+			key:              "LsetKey3",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LSET", "key3", "1", "new-value"},
+			command:          []string{"LSET", "LsetKey3", "1", "new-value"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"value1", "new-value", "value3", "value4"},
 			expectedError:    nil,
 		},
 		{ // If key does not exist, return error
 			preset:           false,
-			key:              "key4",
+			key:              "LsetKey4",
 			presetValue:      nil,
-			command:          []string{"LSET", "key4", "0", "element"},
+			command:          []string{"LSET", "LsetKey4", "0", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("LSET command on non-list item"),
 		},
 		{ // Command too short
 			preset:           false,
-			key:              "key5",
+			key:              "LsetKey5",
 			presetValue:      nil,
-			command:          []string{"LSET", "key5"},
+			command:          []string{"LSET", "LsetKey5"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
-			key:              "key6",
+			key:              "LsetKey6",
 			presetValue:      nil,
-			command:          []string{"LSET", "key6", "0", "element", "element"},
+			command:          []string{"LSET", "LsetKey6", "0", "element", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get element by index on a non-list returns error
 			preset:           true,
-			key:              "key5",
+			key:              "LsetKey5",
 			presetValue:      "Default value",
-			command:          []string{"LSET", "key5", "0", "element"},
+			command:          []string{"LSET", "LsetKey5", "0", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("LSET command on non-list item"),
 		},
 		{ // Trying to get index out of range index beyond last index
 			preset:           true,
-			key:              "key6",
+			key:              "LsetKey6",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LSET", "key6", "3", "element"},
+			command:          []string{"LSET", "LsetKey6", "3", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("index must be within list range"),
 		},
 		{ // Trying to get index out of range with negative index
 			preset:           true,
-			key:              "key7",
+			key:              "LsetKey7",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LSET", "key7", "-1", "element"},
+			command:          []string{"LSET", "LsetKey7", "-1", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("index must be within list range"),
 		},
 		{ // Return error when index is not an integer
 			preset:           false,
-			key:              "key8",
+			key:              "LsetKey8",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LSET", "key8", "index", "element"},
+			command:          []string{"LSET", "LsetKey8", "index", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("index must be an integer"),
@@ -546,8 +549,6 @@ func Test_HandleLSET(t *testing.T) {
 }
 
 func Test_HandleLTRIM(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -562,99 +563,99 @@ func Test_HandleLTRIM(t *testing.T) {
 			// Both start and end indices are positive.
 			// End index is greater than start index.
 			preset:           true,
-			key:              "key1",
+			key:              "LtrimKey1",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
-			command:          []string{"LTRIM", "key1", "3", "6"},
+			command:          []string{"LTRIM", "LtrimKey1", "3", "6"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"value4", "value5", "value6"},
 			expectedError:    nil,
 		},
 		{ // Return element from start index to end index when end index is greater than length of the list
 			preset:           true,
-			key:              "key2",
+			key:              "LtrimKey2",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
-			command:          []string{"LTRIM", "key2", "5", "-1"},
+			command:          []string{"LTRIM", "LtrimKey2", "5", "-1"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"value6", "value7", "value8"},
 			expectedError:    nil,
 		},
 		{ // Return error when end index is smaller than start index but greater than -1
 			preset:           true,
-			key:              "key3",
+			key:              "LtrimKey3",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LTRIM", "key3", "3", "1"},
+			command:          []string{"LTRIM", "LtrimKey3", "3", "1"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("end index must be greater than start index or -1"),
 		},
 		{ // If key does not exist, return error
 			preset:           false,
-			key:              "key4",
+			key:              "LtrimKey4",
 			presetValue:      nil,
-			command:          []string{"LTRIM", "key4", "0", "2"},
+			command:          []string{"LTRIM", "LtrimKey4", "0", "2"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("LTRIM command on non-list item"),
 		},
 		{ // Command too short
 			preset:           false,
-			key:              "key5",
+			key:              "LtrimKey5",
 			presetValue:      nil,
-			command:          []string{"LTRIM", "key5"},
+			command:          []string{"LTRIM", "LtrimKey5"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
-			key:              "key6",
+			key:              "LtrimKey6",
 			presetValue:      nil,
-			command:          []string{"LTRIM", "key6", "0", "element", "element"},
+			command:          []string{"LTRIM", "LtrimKey6", "0", "element", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to get element by index on a non-list returns error
 			preset:           true,
-			key:              "key5",
+			key:              "LtrimKey5",
 			presetValue:      "Default value",
-			command:          []string{"LTRIM", "key5", "0", "3"},
+			command:          []string{"LTRIM", "LtrimKey5", "0", "3"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("LTRIM command on non-list item"),
 		},
 		{ // Error when start index is less than 0
 			preset:           true,
-			key:              "key7",
+			key:              "LtrimKey7",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LTRIM", "key7", "-1", "3"},
+			command:          []string{"LTRIM", "LtrimKey7", "-1", "3"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("start index must be within list boundary"),
 		},
 		{ // Error when start index is higher than the length of the list
 			preset:           true,
-			key:              "key8",
+			key:              "LtrimKey8",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LTRIM", "key8", "10", "11"},
+			command:          []string{"LTRIM", "LtrimKey8", "10", "11"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("start index must be within list boundary"),
 		},
 		{ // Return error when start index is not an integer
 			preset:           false,
-			key:              "key9",
+			key:              "LtrimKey9",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LTRIM", "key9", "start", "7"},
+			command:          []string{"LTRIM", "LtrimKey9", "start", "7"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("start and end indices must be integers"),
 		},
 		{ // Return error when end index is not an integer
 			preset:           false,
-			key:              "key10",
+			key:              "LtrimKey10",
 			presetValue:      []interface{}{"value1", "value2", "value3"},
-			command:          []string{"LTRIM", "key10", "0", "end"},
+			command:          []string{"LTRIM", "LtrimKey10", "0", "end"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("start and end indices must be integers"),
@@ -708,8 +709,6 @@ func Test_HandleLTRIM(t *testing.T) {
 }
 
 func Test_HandleLREM(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -721,63 +720,63 @@ func Test_HandleLREM(t *testing.T) {
 	}{
 		{ // Remove the first 3 elements that appear in the list
 			preset:           true,
-			key:              "key1",
+			key:              "LremKey1",
 			presetValue:      []interface{}{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
-			command:          []string{"LREM", "key1", "3", "4"},
+			command:          []string{"LREM", "LremKey1", "3", "4"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"1", "2", "5", "6", "7", "8", "4", "9", "10", "5", "4"},
 			expectedError:    nil,
 		},
 		{ // Remove the last 3 elements that appear in the list
 			preset:           true,
-			key:              "key1",
+			key:              "LremKey1",
 			presetValue:      []interface{}{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
-			command:          []string{"LREM", "key1", "-3", "4"},
+			command:          []string{"LREM", "LremKey1", "-3", "4"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"1", "2", "4", "4", "5", "6", "7", "8", "9", "10", "5"},
 			expectedError:    nil,
 		},
 		{ // Command too short
 			preset:           false,
-			key:              "key5",
+			key:              "LremKey5",
 			presetValue:      nil,
-			command:          []string{"LREM", "key5"},
+			command:          []string{"LREM", "LremKey5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
-			key:              "key6",
+			key:              "LremKey6",
 			presetValue:      nil,
-			command:          []string{"LREM", "key6", "0", "element", "element"},
+			command:          []string{"LREM", "LremKey6", "0", "element", "element"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Throw error when count is not an integer
 			preset:           false,
-			key:              "key7",
+			key:              "LremKey7",
 			presetValue:      nil,
-			command:          []string{"LREM", "key7", "count", "value1"},
+			command:          []string{"LREM", "LremKey7", "count", "value1"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("count must be an integer"),
 		},
 		{ // Throw error on non-list item
 			preset:           true,
-			key:              "key8",
+			key:              "LremKey8",
 			presetValue:      "Default value",
-			command:          []string{"LREM", "key8", "0", "value1"},
+			command:          []string{"LREM", "LremKey8", "0", "value1"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("LREM command on non-list item"),
 		},
 		{ // Throw error on non-existent item
 			preset:           false,
-			key:              "key9",
+			key:              "LremKey9",
 			presetValue:      "Default value",
-			command:          []string{"LREM", "key9", "0", "value1"},
+			command:          []string{"LREM", "LremKey9", "0", "value1"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("LREM command on non-list item"),
@@ -831,8 +830,6 @@ func Test_HandleLREM(t *testing.T) {
 }
 
 func Test_HandleLMOVE(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValue      map[string]interface{}
@@ -1050,8 +1047,6 @@ func Test_HandleLMOVE(t *testing.T) {
 }
 
 func Test_HandleLPUSH(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -1063,45 +1058,45 @@ func Test_HandleLPUSH(t *testing.T) {
 	}{
 		{ // LPUSHX to existing list prepends the element to the list
 			preset:           true,
-			key:              "key1",
+			key:              "LpushKey1",
 			presetValue:      []interface{}{"1", "2", "4", "5"},
-			command:          []string{"LPUSHX", "key1", "value1", "value2"},
+			command:          []string{"LPUSHX", "LpushKey1", "value1", "value2"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"value1", "value2", "1", "2", "4", "5"},
 			expectedError:    nil,
 		},
 		{ // LPUSH on existing list prepends the elements to the list
 			preset:           true,
-			key:              "key2",
+			key:              "LpushKey2",
 			presetValue:      []interface{}{"1", "2", "4", "5"},
-			command:          []string{"LPUSH", "key2", "value1", "value2"},
+			command:          []string{"LPUSH", "LpushKey2", "value1", "value2"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"value1", "value2", "1", "2", "4", "5"},
 			expectedError:    nil,
 		},
 		{ // LPUSH on non-existent list creates the list
 			preset:           false,
-			key:              "key3",
+			key:              "LpushKey3",
 			presetValue:      nil,
-			command:          []string{"LPUSH", "key3", "value1", "value2"},
+			command:          []string{"LPUSH", "LpushKey3", "value1", "value2"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"value1", "value2"},
 			expectedError:    nil,
 		},
 		{ // Command too short
 			preset:           false,
-			key:              "key5",
+			key:              "LpushKey5",
 			presetValue:      nil,
-			command:          []string{"LPUSH", "key5"},
+			command:          []string{"LPUSH", "LpushKey5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // LPUSHX command returns error on non-existent list
 			preset:           false,
-			key:              "key6",
+			key:              "LpushKey6",
 			presetValue:      nil,
-			command:          []string{"LPUSHX", "key7", "count", "value1"},
+			command:          []string{"LPUSHX", "LpushKey7", "count", "value1"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("LPUSHX command on non-list item"),
@@ -1155,8 +1150,6 @@ func Test_HandleLPUSH(t *testing.T) {
 }
 
 func Test_HandleRPUSH(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -1168,45 +1161,45 @@ func Test_HandleRPUSH(t *testing.T) {
 	}{
 		{ // RPUSHX to existing list prepends the element to the list
 			preset:           true,
-			key:              "key1",
+			key:              "RpushKey1",
 			presetValue:      []interface{}{"1", "2", "4", "5"},
-			command:          []string{"RPUSHX", "key1", "value1", "value2"},
+			command:          []string{"RPUSHX", "RpushKey1", "value1", "value2"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"1", "2", "4", "5", "value1", "value2"},
 			expectedError:    nil,
 		},
 		{ // RPUSH on existing list prepends the elements to the list
 			preset:           true,
-			key:              "key2",
+			key:              "RpushKey2",
 			presetValue:      []interface{}{"1", "2", "4", "5"},
-			command:          []string{"RPUSH", "key2", "value1", "value2"},
+			command:          []string{"RPUSH", "RpushKey2", "value1", "value2"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"1", "2", "4", "5", "value1", "value2"},
 			expectedError:    nil,
 		},
 		{ // RPUSH on non-existent list creates the list
 			preset:           false,
-			key:              "key3",
+			key:              "RpushKey3",
 			presetValue:      nil,
-			command:          []string{"RPUSH", "key3", "value1", "value2"},
+			command:          []string{"RPUSH", "RpushKey3", "value1", "value2"},
 			expectedResponse: "OK",
 			expectedValue:    []interface{}{"value1", "value2"},
 			expectedError:    nil,
 		},
 		{ // Command too short
 			preset:           false,
-			key:              "key5",
+			key:              "RpushKey5",
 			presetValue:      nil,
-			command:          []string{"RPUSH", "key5"},
+			command:          []string{"RPUSH", "RpushKey5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // RPUSHX command returns error on non-existent list
 			preset:           false,
-			key:              "key6",
+			key:              "RpushKey6",
 			presetValue:      nil,
-			command:          []string{"RPUSHX", "key7", "count", "value1"},
+			command:          []string{"RPUSHX", "RpushKey7", "count", "value1"},
 			expectedResponse: nil,
 			expectedValue:    nil,
 			expectedError:    errors.New("RPUSHX command on non-list item"),
@@ -1260,8 +1253,6 @@ func Test_HandleRPUSH(t *testing.T) {
 }
 
 func Test_HandlePop(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -1273,25 +1264,25 @@ func Test_HandlePop(t *testing.T) {
 	}{
 		{ // LPOP returns last element and removed first element from the list
 			preset:           true,
-			key:              "key1",
+			key:              "PopKey1",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"LPOP", "key1"},
+			command:          []string{"LPOP", "PopKey1"},
 			expectedResponse: "value1",
 			expectedValue:    []interface{}{"value2", "value3", "value4"},
 			expectedError:    nil,
 		},
 		{ // RPOP returns last element and removed last element from the list
 			preset:           true,
-			key:              "key2",
+			key:              "PopKey2",
 			presetValue:      []interface{}{"value1", "value2", "value3", "value4"},
-			command:          []string{"RPOP", "key2"},
+			command:          []string{"RPOP", "PopKey2"},
 			expectedResponse: "value4",
 			expectedValue:    []interface{}{"value1", "value2", "value3"},
 			expectedError:    nil,
 		},
 		{ // Command too short
 			preset:           false,
-			key:              "key3",
+			key:              "PopKey3",
 			presetValue:      nil,
 			command:          []string{"LPOP"},
 			expectedResponse: 0,
@@ -1300,27 +1291,27 @@ func Test_HandlePop(t *testing.T) {
 		},
 		{ // Command too long
 			preset:           false,
-			key:              "key4",
+			key:              "PopKey4",
 			presetValue:      nil,
-			command:          []string{"LPOP", "key4", "key4"},
+			command:          []string{"LPOP", "PopKey4", "PopKey4"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // Trying to execute LPOP from a non-list item return an error
 			preset:           true,
-			key:              "key5",
+			key:              "PopKey5",
 			presetValue:      "Default value",
-			command:          []string{"LPOP", "key5"},
+			command:          []string{"LPOP", "PopKey5"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("LPOP command on non-list item"),
 		},
 		{ // Trying to execute RPOP from a non-list item return an error
 			preset:           true,
-			key:              "key6",
+			key:              "PopKey6",
 			presetValue:      "Default value",
-			command:          []string{"RPOP", "key6"},
+			command:          []string{"RPOP", "PopKey6"},
 			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("RPOP command on non-list item"),

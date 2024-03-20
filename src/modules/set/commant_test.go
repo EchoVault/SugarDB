@@ -12,9 +12,18 @@ import (
 	"testing"
 )
 
-func Test_HandleSADD(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
+var mockServer *server.Server
 
+func init() {
+	mockServer = server.NewServer(server.Opts{
+		Config: utils.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
+}
+
+func Test_HandleSADD(t *testing.T) {
 	tests := []struct {
 		preset           bool
 		presetValue      interface{}
@@ -27,8 +36,8 @@ func Test_HandleSADD(t *testing.T) {
 		{ // 1. Create new set on a non-existent key, return count of added elements
 			preset:           false,
 			presetValue:      nil,
-			key:              "key1",
-			command:          []string{"SADD", "key1", "one", "two", "three", "four"},
+			key:              "SaddKey1",
+			command:          []string{"SADD", "SaddKey1", "one", "two", "three", "four"},
 			expectedValue:    NewSet([]string{"one", "two", "three", "four"}),
 			expectedResponse: 4,
 			expectedError:    nil,
@@ -36,8 +45,8 @@ func Test_HandleSADD(t *testing.T) {
 		{ // 2. Add members to an exiting set, skip members that already exist in the set, return added count.
 			preset:           true,
 			presetValue:      NewSet([]string{"one", "two", "three", "four"}),
-			key:              "key2",
-			command:          []string{"SADD", "key2", "three", "four", "five", "six", "seven"},
+			key:              "SaddKey2",
+			command:          []string{"SADD", "SaddKey2", "three", "four", "five", "six", "seven"},
 			expectedValue:    NewSet([]string{"one", "two", "three", "four", "five", "six", "seven"}),
 			expectedResponse: 3,
 			expectedError:    nil,
@@ -45,15 +54,15 @@ func Test_HandleSADD(t *testing.T) {
 		{ // 3. Throw error when trying to add to a key that does not hold a set
 			preset:           true,
 			presetValue:      "Default value",
-			key:              "key3",
-			command:          []string{"SADD", "key3", "member"},
+			key:              "SaddKey3",
+			command:          []string{"SADD", "SaddKey3", "member"},
 			expectedResponse: 0,
-			expectedError:    errors.New("value at key key3 is not a set"),
+			expectedError:    errors.New("value at key SaddKey3 is not a set"),
 		},
 		{ // 4. Command too short
 			preset:           false,
-			key:              "key4",
-			command:          []string{"SADD", "key4"},
+			key:              "SaddKey4",
+			command:          []string{"SADD", "SaddKey4"},
 			expectedValue:    nil,
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WrongArgsResponse),
@@ -110,8 +119,6 @@ func Test_HandleSADD(t *testing.T) {
 }
 
 func Test_HandleSCARD(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValue      interface{}
@@ -124,8 +131,8 @@ func Test_HandleSCARD(t *testing.T) {
 		{ // 1. Get cardinality of valid set.
 			preset:           true,
 			presetValue:      NewSet([]string{"one", "two", "three", "four"}),
-			key:              "key1",
-			command:          []string{"SCARD", "key1"},
+			key:              "ScardKey1",
+			command:          []string{"SCARD", "ScardKey1"},
 			expectedValue:    nil,
 			expectedResponse: 4,
 			expectedError:    nil,
@@ -133,8 +140,8 @@ func Test_HandleSCARD(t *testing.T) {
 		{ // 2. Return 0 when trying to get cardinality on non-existent key
 			preset:           false,
 			presetValue:      nil,
-			key:              "key2",
-			command:          []string{"SCARD", "key2"},
+			key:              "ScardKey2",
+			command:          []string{"SCARD", "ScardKey2"},
 			expectedValue:    nil,
 			expectedResponse: 0,
 			expectedError:    nil,
@@ -142,14 +149,14 @@ func Test_HandleSCARD(t *testing.T) {
 		{ // 3. Throw error when trying to get cardinality of a value that is not a set
 			preset:           true,
 			presetValue:      "Default value",
-			key:              "key3",
-			command:          []string{"SCARD", "key3"},
+			key:              "ScardKey3",
+			command:          []string{"SCARD", "ScardKey3"},
 			expectedResponse: 0,
-			expectedError:    errors.New("value at key key3 is not a set"),
+			expectedError:    errors.New("value at key ScardKey3 is not a set"),
 		},
 		{ // 4. Command too short
 			preset:           false,
-			key:              "key4",
+			key:              "ScardKey4",
 			command:          []string{"SCARD"},
 			expectedValue:    nil,
 			expectedResponse: 0,
@@ -157,8 +164,8 @@ func Test_HandleSCARD(t *testing.T) {
 		},
 		{ // 5. Command too long
 			preset:           false,
-			key:              "key5",
-			command:          []string{"SCARD", "key5", "key5"},
+			key:              "ScardKey5",
+			command:          []string{"SCARD", "ScardKey5", "ScardKey5"},
 			expectedValue:    nil,
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WrongArgsResponse),
@@ -199,8 +206,6 @@ func Test_HandleSCARD(t *testing.T) {
 }
 
 func Test_HandleSDIFF(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValues     map[string]interface{}
@@ -211,53 +216,53 @@ func Test_HandleSDIFF(t *testing.T) {
 		{ // 1. Get the difference between 2 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
-				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+				"SdiffKey1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SdiffKey2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
 			},
-			command:          []string{"SDIFF", "key1", "key2"},
+			command:          []string{"SDIFF", "SdiffKey1", "SdiffKey2"},
 			expectedResponse: []string{"one", "two"},
 			expectedError:    nil,
 		},
 		{ // 2. Get the difference between 3 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key5": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SdiffKey3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SdiffKey4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SdiffKey5": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SDIFF", "key3", "key4", "key5"},
+			command:          []string{"SDIFF", "SdiffKey3", "SdiffKey4", "SdiffKey5"},
 			expectedResponse: []string{"three", "four", "five", "six"},
 			expectedError:    nil,
 		},
 		{ // 3. Return base set element if base set is the only valid set
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key7": "Default value",
-				"key8": 123456789,
+				"SdiffKey6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SdiffKey7": "Default value",
+				"SdiffKey8": 123456789,
 			},
-			command:          []string{"SDIFF", "key6", "key7", "key8"},
+			command:          []string{"SDIFF", "SdiffKey6", "SdiffKey7", "SdiffKey8"},
 			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
 			expectedError:    nil,
 		},
 		{ // 4. Throw error when base set is not a set.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key9":  "Default value",
-				"key10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SdiffKey9":  "Default value",
+				"SdiffKey10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SdiffKey11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SDIFF", "key9", "key10", "key11"},
+			command:          []string{"SDIFF", "SdiffKey9", "SdiffKey10", "SdiffKey11"},
 			expectedResponse: nil,
-			expectedError:    errors.New("value at key key9 is not a set"),
+			expectedError:    errors.New("value at key SdiffKey9 is not a set"),
 		},
 		{ // 5. Throw error when base set is non-existent.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key12": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key13": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SdiffKey12": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SdiffKey13": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SDIFF", "non-existent", "key7", "key8"},
+			command:          []string{"SDIFF", "non-existent", "SdiffKey7", "SdiffKey8"},
 			expectedResponse: nil,
 			expectedError:    errors.New("key for base set \"non-existent\" does not exist"),
 		},
@@ -307,8 +312,6 @@ func Test_HandleSDIFF(t *testing.T) {
 }
 
 func Test_HandleSDIFFSTORE(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValues     map[string]interface{}
@@ -321,11 +324,11 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 		{ // 1. Get the difference between 2 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
-				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+				"SdiffStoreKey1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SdiffStoreKey2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
 			},
-			destination:      "destination1",
-			command:          []string{"SDIFFSTORE", "destination1", "key1", "key2"},
+			destination:      "SdiffStoreDestination1",
+			command:          []string{"SDIFFSTORE", "SdiffStoreDestination1", "SdiffStoreKey1", "SdiffStoreKey2"},
 			expectedValue:    NewSet([]string{"one", "two"}),
 			expectedResponse: 2,
 			expectedError:    nil,
@@ -333,12 +336,12 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 		{ // 2. Get the difference between 3 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key5": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SdiffStoreKey3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SdiffStoreKey4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SdiffStoreKey5": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			destination:      "destination2",
-			command:          []string{"SDIFFSTORE", "destination2", "key3", "key4", "key5"},
+			destination:      "SdiffStoreDestination2",
+			command:          []string{"SDIFFSTORE", "SdiffStoreDestination2", "SdiffStoreKey3", "SdiffStoreKey4", "SdiffStoreKey5"},
 			expectedValue:    NewSet([]string{"three", "four", "five", "six"}),
 			expectedResponse: 4,
 			expectedError:    nil,
@@ -346,12 +349,12 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 		{ // 3. Return base set element if base set is the only valid set
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key7": "Default value",
-				"key8": 123456789,
+				"SdiffStoreKey6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SdiffStoreKey7": "Default value",
+				"SdiffStoreKey8": 123456789,
 			},
-			destination:      "destination3",
-			command:          []string{"SDIFFSTORE", "destination3", "key6", "key7", "key8"},
+			destination:      "SdiffStoreDestination3",
+			command:          []string{"SDIFFSTORE", "SdiffStoreDestination3", "SdiffStoreKey6", "SdiffStoreKey7", "SdiffStoreKey8"},
 			expectedValue:    NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 			expectedResponse: 8,
 			expectedError:    nil,
@@ -359,31 +362,31 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 		{ // 4. Throw error when base set is not a set.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key9":  "Default value",
-				"key10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SdiffStoreKey9":  "Default value",
+				"SdiffStoreKey10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SdiffStoreKey11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			destination:      "destination4",
-			command:          []string{"SDIFFSTORE", "destination4", "key9", "key10", "key11"},
+			destination:      "SdiffStoreDestination4",
+			command:          []string{"SDIFFSTORE", "SdiffStoreDestination4", "SdiffStoreKey9", "SdiffStoreKey10", "SdiffStoreKey11"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New("value at key key9 is not a set"),
+			expectedError:    errors.New("value at key SdiffStoreKey9 is not a set"),
 		},
 		{ // 5. Throw error when base set is non-existent.
 			preset:      true,
-			destination: "destination5",
+			destination: "SdiffStoreDestination5",
 			presetValues: map[string]interface{}{
-				"key12": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key13": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SdiffStoreKey12": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SdiffStoreKey13": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SDIFFSTORE", "destination5", "non-existent", "key7", "key8"},
+			command:          []string{"SDIFFSTORE", "SdiffStoreDestination5", "non-existent", "SdiffStoreKey7", "SdiffStoreKey8"},
 			expectedValue:    nil,
 			expectedResponse: 0,
 			expectedError:    errors.New("key for base set \"non-existent\" does not exist"),
 		},
 		{ // 6. Command too short
 			preset:           false,
-			command:          []string{"SDIFFSTORE", "destination6"},
+			command:          []string{"SDIFFSTORE", "SdiffStoreDestination6"},
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
@@ -440,8 +443,6 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 }
 
 func Test_HandleSINTER(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValues     map[string]interface{}
@@ -452,53 +453,53 @@ func Test_HandleSINTER(t *testing.T) {
 		{ // 1. Get the intersection between 2 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
-				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+				"SinterKey1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SinterKey2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
 			},
-			command:          []string{"SINTER", "key1", "key2"},
+			command:          []string{"SINTER", "SinterKey1", "SinterKey2"},
 			expectedResponse: []string{"three", "four", "five"},
 			expectedError:    nil,
 		},
 		{ // 2. Get the intersection between 3 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
-				"key5": NewSet([]string{"one", "eight", "nine", "ten", "twelve"}),
+				"SinterKey3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SinterKey4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
+				"SinterKey5": NewSet([]string{"one", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SINTER", "key3", "key4", "key5"},
+			command:          []string{"SINTER", "SinterKey3", "SinterKey4", "SinterKey5"},
 			expectedResponse: []string{"one", "eight"},
 			expectedError:    nil,
 		},
 		{ // 3. Throw an error if any of the provided keys are not sets
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key7": "Default value",
-				"key8": NewSet([]string{"one"}),
+				"SinterKey6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SinterKey7": "Default value",
+				"SinterKey8": NewSet([]string{"one"}),
 			},
-			command:          []string{"SINTER", "key6", "key7", "key8"},
+			command:          []string{"SINTER", "SinterKey6", "SinterKey7", "SinterKey8"},
 			expectedResponse: nil,
-			expectedError:    errors.New("value at key key7 is not a set"),
+			expectedError:    errors.New("value at key SinterKey7 is not a set"),
 		},
 		{ // 4. Throw error when base set is not a set.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key9":  "Default value",
-				"key10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SinterKey9":  "Default value",
+				"SinterKey10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SinterKey11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SINTER", "key9", "key10", "key11"},
+			command:          []string{"SINTER", "SinterKey9", "SinterKey10", "SinterKey11"},
 			expectedResponse: nil,
-			expectedError:    errors.New("value at key key9 is not a set"),
+			expectedError:    errors.New("value at key SinterKey9 is not a set"),
 		},
 		{ // 5. If any of the keys does not exist, return an empty array.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key12": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key13": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SinterKey12": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SinterKey13": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SINTER", "non-existent", "key7", "key8"},
+			command:          []string{"SINTER", "non-existent", "SinterKey7", "SinterKey8"},
 			expectedResponse: []string{},
 			expectedError:    nil,
 		},
@@ -548,8 +549,6 @@ func Test_HandleSINTER(t *testing.T) {
 }
 
 func Test_HandleSINTERCARD(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValues     map[string]interface{}
@@ -560,66 +559,66 @@ func Test_HandleSINTERCARD(t *testing.T) {
 		{ // 1. Get the full intersect cardinality between 2 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
-				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+				"SinterCardKey1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SinterCardKey2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
 			},
-			command:          []string{"SINTERCARD", "key1", "key2"},
+			command:          []string{"SINTERCARD", "SinterCardKey1", "SinterCardKey2"},
 			expectedResponse: 3,
 			expectedError:    nil,
 		},
 		{ // 2. Get an intersect cardinality between 2 sets with a limit
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"}),
-				"key4": NewSet([]string{"three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"}),
+				"SinterCardKey3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"}),
+				"SinterCardKey4": NewSet([]string{"three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"}),
 			},
-			command:          []string{"SINTERCARD", "key3", "key4", "LIMIT", "3"},
+			command:          []string{"SINTERCARD", "SinterCardKey3", "SinterCardKey4", "LIMIT", "3"},
 			expectedResponse: 3,
 			expectedError:    nil,
 		},
 		{ // 3. Get the full intersect cardinality between 3 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key5": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key6": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
-				"key7": NewSet([]string{"one", "seven", "eight", "nine", "ten", "twelve"}),
+				"SinterCardKey5": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SinterCardKey6": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
+				"SinterCardKey7": NewSet([]string{"one", "seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SINTERCARD", "key5", "key6", "key7"},
+			command:          []string{"SINTERCARD", "SinterCardKey5", "SinterCardKey6", "SinterCardKey7"},
 			expectedResponse: 2,
 			expectedError:    nil,
 		},
 		{ // 4. Get the intersection of 3 sets with a limit
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key8":  NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key9":  NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
-				"key10": NewSet([]string{"one", "two", "seven", "eight", "nine", "ten", "twelve"}),
+				"SinterCardKey8":  NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SinterCardKey9":  NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
+				"SinterCardKey10": NewSet([]string{"one", "two", "seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SINTERCARD", "key8", "key9", "key10", "LIMIT", "2"},
+			command:          []string{"SINTERCARD", "SinterCardKey8", "SinterCardKey9", "SinterCardKey10", "LIMIT", "2"},
 			expectedResponse: 2,
 			expectedError:    nil,
 		},
 		{ // 5. Return 0 if any of the keys does not exist
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key11": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key12": "Default value",
-				"key13": NewSet([]string{"one"}),
+				"SinterCardKey11": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SinterCardKey12": "Default value",
+				"SinterCardKey13": NewSet([]string{"one"}),
 			},
-			command:          []string{"SINTERCARD", "key11", "key12", "key13", "non-existent"},
+			command:          []string{"SINTERCARD", "SinterCardKey11", "SinterCardKey12", "SinterCardKey13", "non-existent"},
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
 		{ // 6. Throw error when one of the keys is not a valid set.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key14": "Default value",
-				"key15": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key16": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SinterCardKey14": "Default value",
+				"SinterCardKey15": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SinterCardKey16": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SINTERCARD", "key14", "key15", "key16"},
+			command:          []string{"SINTERCARD", "SinterCardKey14", "SinterCardKey15", "SinterCardKey16"},
 			expectedResponse: 0,
-			expectedError:    errors.New("value at key key14 is not a set"),
+			expectedError:    errors.New("value at key SinterCardKey14 is not a set"),
 		},
 		{ // 7. Command too short
 			preset:           false,
@@ -665,8 +664,6 @@ func Test_HandleSINTERCARD(t *testing.T) {
 }
 
 func Test_HandleSINTERSTORE(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValues     map[string]interface{}
@@ -679,11 +676,11 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 		{ // 1. Get the intersection between 2 sets and store it at the destination.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
-				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+				"SinterStoreKey1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SinterStoreKey2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
 			},
-			destination:      "destination1",
-			command:          []string{"SINTERSTORE", "destination1", "key1", "key2"},
+			destination:      "SinterStoreDestination1",
+			command:          []string{"SINTERSTORE", "SinterStoreDestination1", "SinterStoreKey1", "SinterStoreKey2"},
 			expectedValue:    NewSet([]string{"three", "four", "five"}),
 			expectedResponse: 3,
 			expectedError:    nil,
@@ -691,12 +688,12 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 		{ // 2. Get the intersection between 3 sets and store it at the destination key.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
-				"key5": NewSet([]string{"one", "seven", "eight", "nine", "ten", "twelve"}),
+				"SinterStoreKey3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SinterStoreKey4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
+				"SinterStoreKey5": NewSet([]string{"one", "seven", "eight", "nine", "ten", "twelve"}),
 			},
-			destination:      "destination2",
-			command:          []string{"SINTERSTORE", "destination2", "key3", "key4", "key5"},
+			destination:      "SinterStoreDestination2",
+			command:          []string{"SINTERSTORE", "SinterStoreDestination2", "SinterStoreKey3", "SinterStoreKey4", "SinterStoreKey5"},
 			expectedValue:    NewSet([]string{"one", "eight"}),
 			expectedResponse: 2,
 			expectedError:    nil,
@@ -704,44 +701,44 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 		{ // 3. Throw error when any of the keys is not a set
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key7": "Default value",
-				"key8": NewSet([]string{"one"}),
+				"SinterStoreKey6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SinterStoreKey7": "Default value",
+				"SinterStoreKey8": NewSet([]string{"one"}),
 			},
-			destination:      "destination3",
-			command:          []string{"SINTERSTORE", "destination3", "key6", "key7", "key8"},
+			destination:      "SinterStoreDestination3",
+			command:          []string{"SINTERSTORE", "SinterStoreDestination3", "SinterStoreKey6", "SinterStoreKey7", "SinterStoreKey8"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New("value at key key7 is not a set"),
+			expectedError:    errors.New("value at key SinterStoreKey7 is not a set"),
 		},
 		{ // 4. Throw error when base set is not a set.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key9":  "Default value",
-				"key10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SinterStoreKey9":  "Default value",
+				"SinterStoreKey10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SinterStoreKey11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			destination:      "destination4",
-			command:          []string{"SINTERSTORE", "destination4", "key9", "key10", "key11"},
+			destination:      "SinterStoreDestination4",
+			command:          []string{"SINTERSTORE", "SinterStoreDestination4", "SinterStoreKey9", "SinterStoreKey10", "SinterStoreKey11"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New("value at key key9 is not a set"),
+			expectedError:    errors.New("value at key SinterStoreKey9 is not a set"),
 		},
 		{ // 5. Return an empty intersection if one of the keys does not exist.
 			preset:      true,
-			destination: "destination5",
+			destination: "SinterStoreDestination5",
 			presetValues: map[string]interface{}{
-				"key12": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key13": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SinterStoreKey12": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SinterStoreKey13": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SINTERSTORE", "destination5", "non-existent", "key7", "key8"},
+			command:          []string{"SINTERSTORE", "SinterStoreDestination5", "non-existent", "SinterStoreKey7", "SinterStoreKey8"},
 			expectedValue:    nil,
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
 		{ // 6. Command too short
 			preset:           false,
-			command:          []string{"SINTERSTORE", "destination6"},
+			command:          []string{"SINTERSTORE", "SinterStoreDestination6"},
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
@@ -798,8 +795,6 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 }
 
 func Test_HandleSISMEMBER(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValue      interface{}
@@ -811,38 +806,38 @@ func Test_HandleSISMEMBER(t *testing.T) {
 		{ // 1. Return 1 when element is a member of the set
 			preset:           true,
 			presetValue:      NewSet([]string{"one", "two", "three", "four"}),
-			key:              "key1",
-			command:          []string{"SISMEMBER", "key1", "three"},
+			key:              "SIsMemberKey1",
+			command:          []string{"SISMEMBER", "SIsMemberKey1", "three"},
 			expectedResponse: 1,
 			expectedError:    nil,
 		},
 		{ // 2. Return 0 when element is not a member of the set
 			preset:           true,
 			presetValue:      NewSet([]string{"one", "two", "three", "four"}),
-			key:              "key2",
-			command:          []string{"SISMEMBER", "key2", "five"},
+			key:              "SIsMemberKey2",
+			command:          []string{"SISMEMBER", "SIsMemberKey2", "five"},
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
 		{ // 3. Throw error when trying to assert membership when the key does not hold a valid set
 			preset:           true,
 			presetValue:      "Default value",
-			key:              "key3",
-			command:          []string{"SISMEMBER", "key3", "one"},
+			key:              "SIsMemberKey3",
+			command:          []string{"SISMEMBER", "SIsMemberKey3", "one"},
 			expectedResponse: 0,
-			expectedError:    errors.New("value at key key3 is not a set"),
+			expectedError:    errors.New("value at key SIsMemberKey3 is not a set"),
 		},
 		{ // 4. Command too short
 			preset:           false,
-			key:              "key4",
-			command:          []string{"SISMEMBER", "key4"},
+			key:              "SIsMemberKey4",
+			command:          []string{"SISMEMBER", "SIsMemberKey4"},
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:           false,
-			key:              "key5",
-			command:          []string{"SISMEMBER", "key5", "one", "two", "three"},
+			key:              "SIsMemberKey5",
+			command:          []string{"SISMEMBER", "SIsMemberKey5", "one", "two", "three"},
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
@@ -882,8 +877,6 @@ func Test_HandleSISMEMBER(t *testing.T) {
 }
 
 func Test_HandleSMEMBERS(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -894,27 +887,27 @@ func Test_HandleSMEMBERS(t *testing.T) {
 	}{
 		{ // 1. Return all the members of the set.
 			preset:           true,
-			key:              "key1",
+			key:              "SmembersKey1",
 			presetValue:      NewSet([]string{"one", "two", "three", "four", "five"}),
-			command:          []string{"SMEMBERS", "key1"},
+			command:          []string{"SMEMBERS", "SmembersKey1"},
 			expectedResponse: []string{"one", "two", "three", "four", "five"},
 			expectedError:    nil,
 		},
 		{ // 2. If the key does not exist, return an empty array.
 			preset:           false,
-			key:              "key2",
+			key:              "SmembersKey2",
 			presetValue:      nil,
-			command:          []string{"SMEMBERS", "key2"},
+			command:          []string{"SMEMBERS", "SmembersKey2"},
 			expectedResponse: []string{},
 			expectedError:    nil,
 		},
 		{ // 3. Throw error when the provided key is not a set.
 			preset:           true,
-			key:              "key3",
+			key:              "SmembersKey3",
 			presetValue:      "Default value",
-			command:          []string{"SMEMBERS", "key3"},
+			command:          []string{"SMEMBERS", "SmembersKey3"},
 			expectedResponse: nil,
-			expectedError:    errors.New("value at key key3 is not a set"),
+			expectedError:    errors.New("value at key SmembersKey3 is not a set"),
 		},
 		{ // 4. Command too short
 			preset:           false,
@@ -924,7 +917,7 @@ func Test_HandleSMEMBERS(t *testing.T) {
 		},
 		{ // 5. Command too long
 			preset:           false,
-			command:          []string{"SMEMBERS", "key5", "key6"},
+			command:          []string{"SMEMBERS", "SmembersKey5", "SmembersKey6"},
 			expectedResponse: []string{},
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
@@ -969,8 +962,6 @@ func Test_HandleSMEMBERS(t *testing.T) {
 }
 
 func Test_HandleSMISMEMBER(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValue      interface{}
@@ -986,31 +977,31 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 			// are in within the original command
 			preset:           true,
 			presetValue:      NewSet([]string{"one", "two", "three", "four", "five", "six", "seven"}),
-			key:              "key1",
-			command:          []string{"SMISMEMBER", "key1", "three", "four", "five", "six", "eight", "nine", "seven"},
+			key:              "SmismemberKey1",
+			command:          []string{"SMISMEMBER", "SmismemberKey1", "three", "four", "five", "six", "eight", "nine", "seven"},
 			expectedResponse: []int{1, 1, 1, 1, 0, 0, 1},
 			expectedError:    nil,
 		},
 		{ // 2. If the set key does not exist, return an array of zeroes as long as the list of members
 			preset:           false,
 			presetValue:      nil,
-			key:              "key2",
-			command:          []string{"SMISMEMBER", "key2", "one", "two", "three", "four"},
+			key:              "SmismemberKey2",
+			command:          []string{"SMISMEMBER", "SmismemberKey2", "one", "two", "three", "four"},
 			expectedResponse: []int{0, 0, 0, 0},
 			expectedError:    nil,
 		},
 		{ // 3. Throw error when trying to assert membership when the key does not hold a valid set
 			preset:           true,
 			presetValue:      "Default value",
-			key:              "key3",
-			command:          []string{"SMISMEMBER", "key3", "one"},
+			key:              "SmismemberKey3",
+			command:          []string{"SMISMEMBER", "SmismemberKey3", "one"},
 			expectedResponse: nil,
-			expectedError:    errors.New("value at key key3 is not a set"),
+			expectedError:    errors.New("value at key SmismemberKey3 is not a set"),
 		},
 		{ // 4. Command too short
 			preset:           false,
-			key:              "key4",
-			command:          []string{"SMISMEMBER", "key4"},
+			key:              "SmismemberKey4",
+			command:          []string{"SMISMEMBER", "SmismemberKey4"},
 			expectedResponse: nil,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},
@@ -1053,8 +1044,6 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 }
 
 func Test_HandleSMOVE(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValues     map[string]interface{}
@@ -1066,13 +1055,13 @@ func Test_HandleSMOVE(t *testing.T) {
 		{ // 1. Return 1 after a successful move of a member from source set to destination set
 			preset: true,
 			presetValues: map[string]interface{}{
-				"source1":      NewSet([]string{"one", "two", "three", "four"}),
-				"destination1": NewSet([]string{"five", "six", "seven", "eight"}),
+				"SmoveSource1":      NewSet([]string{"one", "two", "three", "four"}),
+				"SmoveDestination1": NewSet([]string{"five", "six", "seven", "eight"}),
 			},
-			command: []string{"SMOVE", "source1", "destination1", "four"},
+			command: []string{"MOVE", "SmoveSource1", "SmoveDestination1", "four"},
 			expectedValues: map[string]interface{}{
-				"source1":      NewSet([]string{"one", "two", "three"}),
-				"destination1": NewSet([]string{"four", "five", "six", "seven", "eight"}),
+				"SmoveSource1":      NewSet([]string{"one", "two", "three"}),
+				"SmoveDestination1": NewSet([]string{"four", "five", "six", "seven", "eight"}),
 			},
 			expectedResponse: 1,
 			expectedError:    nil,
@@ -1080,13 +1069,13 @@ func Test_HandleSMOVE(t *testing.T) {
 		{ // 2. Return 0 when trying to move a member from source set to destination set when it doesn't exist in source
 			preset: true,
 			presetValues: map[string]interface{}{
-				"source2":      NewSet([]string{"one", "two", "three", "four", "five"}),
-				"destination2": NewSet([]string{"five", "six", "seven", "eight"}),
+				"SmoveSource2":      NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SmoveDestination2": NewSet([]string{"five", "six", "seven", "eight"}),
 			},
-			command: []string{"SMOVE", "source2", "destination2", "six"},
+			command: []string{"SMOVE", "SmoveSource2", "SmoveDestination2", "six"},
 			expectedValues: map[string]interface{}{
-				"source2":      NewSet([]string{"one", "two", "three", "four", "five"}),
-				"destination2": NewSet([]string{"five", "six", "seven", "eight"}),
+				"SmoveSource2":      NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SmoveDestination2": NewSet([]string{"five", "six", "seven", "eight"}),
 			},
 			expectedResponse: 0,
 			expectedError:    nil,
@@ -1094,13 +1083,13 @@ func Test_HandleSMOVE(t *testing.T) {
 		{ // 3. Return error when the source key is not a set
 			preset: true,
 			presetValues: map[string]interface{}{
-				"source3":      "Default value",
-				"destination3": NewSet([]string{"five", "six", "seven", "eight"}),
+				"SmoveSource3":      "Default value",
+				"SmoveDestination3": NewSet([]string{"five", "six", "seven", "eight"}),
 			},
-			command: []string{"SMOVE", "source3", "destination3", "five"},
+			command: []string{"SMOVE", "SmoveSource3", "SmoveDestination3", "five"},
 			expectedValues: map[string]interface{}{
-				"source3":      "Default value",
-				"destination3": NewSet([]string{"five", "six", "seven", "eight"}),
+				"SmoveSource3":      "Default value",
+				"SmoveDestination3": NewSet([]string{"five", "six", "seven", "eight"}),
 			},
 			expectedResponse: 0,
 			expectedError:    errors.New("source is not a set"),
@@ -1108,25 +1097,25 @@ func Test_HandleSMOVE(t *testing.T) {
 		{ // 4. Return error when the destination key is not a set
 			preset: true,
 			presetValues: map[string]interface{}{
-				"source4":      NewSet([]string{"one", "two", "three", "four", "five"}),
-				"destination4": "Default value",
+				"SmoveSource4":      NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SmoveDestination4": "Default value",
 			},
-			command: []string{"SMOVE", "source4", "destination4", "five"},
+			command: []string{"SMOVE", "SmoveSource4", "SmoveDestination4", "five"},
 			expectedValues: map[string]interface{}{
-				"source4":      NewSet([]string{"one", "two", "three", "four", "five"}),
-				"destination4": "Default value",
+				"SmoveSource4":      NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SmoveDestination4": "Default value",
 			},
 			expectedResponse: 0,
 			expectedError:    errors.New("destination is not a set"),
 		},
 		{ // 5. Command too short
 			preset:        false,
-			command:       []string{"SMOVE", "source5", "source6"},
+			command:       []string{"SMOVE", "SmoveSource5", "SmoveSource6"},
 			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
-			command:       []string{"SMOVE", "source5", "source6", "member1", "member2"},
+			command:       []string{"SMOVE", "SmoveSource5", "SmoveSource6", "member1", "member2"},
 			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
@@ -1189,8 +1178,6 @@ func Test_HandleSMOVE(t *testing.T) {
 }
 
 func Test_HandleSPOP(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -1202,21 +1189,21 @@ func Test_HandleSPOP(t *testing.T) {
 	}{
 		{ // 1. Return multiple popped elements and modify the set
 			preset:           true,
-			key:              "key1",
+			key:              "SpopKey1",
 			presetValue:      NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-			command:          []string{"SPOP", "key1", "3"},
+			command:          []string{"SPOP", "SpopKey1", "3"},
 			expectedValue:    5,
 			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
 			expectedError:    nil,
 		},
 		{ // 2. Return error when the source key is not a set
 			preset:           true,
-			key:              "key2",
+			key:              "SpopKey2",
 			presetValue:      "Default value",
-			command:          []string{"SPOP", "key2"},
+			command:          []string{"SPOP", "SpopKey2"},
 			expectedValue:    0,
 			expectedResponse: []string{},
-			expectedError:    errors.New("value at key2 is not a set"),
+			expectedError:    errors.New("value at SpopKey2 is not a set"),
 		},
 		{ // 5. Command too short
 			preset:        false,
@@ -1225,12 +1212,12 @@ func Test_HandleSPOP(t *testing.T) {
 		},
 		{ // 6. Command too long
 			preset:        false,
-			command:       []string{"SPOP", "source5", "source6", "member1", "member2"},
+			command:       []string{"SPOP", "SpopSource5", "SpopSource6", "member1", "member2"},
 			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 		{ // 7. Throw error when count is not an integer
 			preset:        false,
-			command:       []string{"SPOP", "key1", "count"},
+			command:       []string{"SPOP", "SpopKey1", "count"},
 			expectedError: errors.New("count must be an integer"),
 		},
 	}
@@ -1289,8 +1276,6 @@ func Test_HandleSPOP(t *testing.T) {
 }
 
 func Test_HandleSRANDMEMBER(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -1304,9 +1289,9 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 		{ // 1. Return multiple random elements without removing them
 			// Count is positive, do not allow repeated elements
 			preset:           true,
-			key:              "key1",
+			key:              "SRandMemberKey1",
 			presetValue:      NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-			command:          []string{"SRANDMEMBER", "key1", "3"},
+			command:          []string{"SRANDMEMBER", "SRandMemberKey1", "3"},
 			expectedValue:    8,
 			allowRepeat:      false,
 			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
@@ -1316,9 +1301,9 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 			// 2. Return multiple random elements without removing them
 			// Count is negative, so allow repeated numbers
 			preset:           true,
-			key:              "key2",
+			key:              "SRandMemberKey2",
 			presetValue:      NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-			command:          []string{"SRANDMEMBER", "key2", "-5"},
+			command:          []string{"SRANDMEMBER", "SRandMemberKey2", "-5"},
 			expectedValue:    8,
 			allowRepeat:      true,
 			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
@@ -1326,26 +1311,26 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 		},
 		{ // 2. Return error when the source key is not a set
 			preset:           true,
-			key:              "key3",
+			key:              "SRandMemberKey3",
 			presetValue:      "Default value",
-			command:          []string{"SRANDMEMBER", "key3"},
+			command:          []string{"SRANDMEMBER", "SRandMemberKey3"},
 			expectedValue:    0,
 			expectedResponse: []string{},
-			expectedError:    errors.New("value at key3 is not a set"),
+			expectedError:    errors.New("value at SRandMemberKey3 is not a set"),
 		},
-		{ // 5. Command too short
+		{ // 3. Command too short
 			preset:        false,
 			command:       []string{"SRANDMEMBER"},
 			expectedError: errors.New(utils.WrongArgsResponse),
 		},
-		{ // 6. Command too long
+		{ // 4. Command too long
 			preset:        false,
-			command:       []string{"SRANDMEMBER", "source5", "source6", "member1", "member2"},
+			command:       []string{"SRANDMEMBER", "SRandMemberSource5", "SRandMemberSource6", "member1", "member2"},
 			expectedError: errors.New(utils.WrongArgsResponse),
 		},
-		{ // 7. Throw error when count is not an integer
+		{ // 5. Throw error when count is not an integer
 			preset:        false,
-			command:       []string{"SRANDMEMBER", "key1", "count"},
+			command:       []string{"SRANDMEMBER", "SRandMemberKey1", "count"},
 			expectedError: errors.New("count must be an integer"),
 		},
 	}
@@ -1415,8 +1400,6 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 }
 
 func Test_HandleSREM(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		key              string
@@ -1428,34 +1411,34 @@ func Test_HandleSREM(t *testing.T) {
 	}{
 		{ // 1. Remove multiple elements and return the number of elements removed
 			preset:           true,
-			key:              "key1",
+			key:              "SremKey1",
 			presetValue:      NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-			command:          []string{"SREM", "key1", "one", "two", "three", "nine"},
+			command:          []string{"SREM", "SremKey1", "one", "two", "three", "nine"},
 			expectedValue:    NewSet([]string{"four", "five", "six", "seven", "eight"}),
 			expectedResponse: 3,
 			expectedError:    nil,
 		},
 		{ // 2. If key does not exist, return 0
 			preset:           false,
-			key:              "key2",
+			key:              "SremKey2",
 			presetValue:      nil,
-			command:          []string{"SREM", "key1", "one", "two", "three", "nine"},
+			command:          []string{"SREM", "SremKey1", "one", "two", "three", "nine"},
 			expectedValue:    nil,
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
 		{ // 3. Return error when the source key is not a set
 			preset:           true,
-			key:              "key3",
+			key:              "SremKey3",
 			presetValue:      "Default value",
-			command:          []string{"SREM", "key3", "one"},
+			command:          []string{"SREM", "SremKey3", "one"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New("value at key key3 is not a set"),
+			expectedError:    errors.New("value at key SremKey3 is not a set"),
 		},
 		{ // 4. Command too short
 			preset:        false,
-			command:       []string{"SREM", "key"},
+			command:       []string{"SREM", "SremKey"},
 			expectedError: errors.New(utils.WrongArgsResponse),
 		},
 	}
@@ -1509,8 +1492,6 @@ func Test_HandleSREM(t *testing.T) {
 }
 
 func Test_HandleSUNION(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValues     map[string]interface{}
@@ -1521,21 +1502,21 @@ func Test_HandleSUNION(t *testing.T) {
 		{ // 1. Get the union between 2 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
-				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+				"SunionKey1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SunionKey2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
 			},
-			command:          []string{"SUNION", "key1", "key2"},
+			command:          []string{"SUNION", "SunionKey1", "SunionKey2"},
 			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
 			expectedError:    nil,
 		},
 		{ // 2. Get the union between 3 sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
-				"key5": NewSet([]string{"one", "eight", "nine", "ten", "twelve"}),
+				"SunionKey3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SunionKey4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
+				"SunionKey5": NewSet([]string{"one", "eight", "nine", "ten", "twelve"}),
 			},
-			command: []string{"SUNION", "key3", "key4", "key5"},
+			command: []string{"SUNION", "SunionKey3", "SunionKey4", "SunionKey5"},
 			expectedResponse: []string{
 				"one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
 				"ten", "eleven", "twelve", "thirty-six",
@@ -1545,24 +1526,24 @@ func Test_HandleSUNION(t *testing.T) {
 		{ // 3. Throw an error if any of the provided keys are not sets
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key7": "Default value",
-				"key8": NewSet([]string{"one"}),
+				"SunionKey6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SunionKey7": "Default value",
+				"SunionKey8": NewSet([]string{"one"}),
 			},
-			command:          []string{"SUNION", "key6", "key7", "key8"},
+			command:          []string{"SUNION", "SunionKey6", "SunionKey7", "SunionKey8"},
 			expectedResponse: nil,
-			expectedError:    errors.New("value at key key7 is not a set"),
+			expectedError:    errors.New("value at key SunionKey7 is not a set"),
 		},
 		{ // 4. Throw error any of the keys does not hold a set.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key9":  "Default value",
-				"key10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
-				"key11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
+				"SunionKey9":  "Default value",
+				"SunionKey10": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
+				"SunionKey11": NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			command:          []string{"SUNION", "key9", "key10", "key11"},
+			command:          []string{"SUNION", "SunionKey9", "SunionKey10", "SunionKey11"},
 			expectedResponse: nil,
-			expectedError:    errors.New("value at key key9 is not a set"),
+			expectedError:    errors.New("value at key SunionKey9 is not a set"),
 		},
 		{ // 6. Command too short
 			preset:           false,
@@ -1610,8 +1591,6 @@ func Test_HandleSUNION(t *testing.T) {
 }
 
 func Test_HandleSUNIONSTORE(t *testing.T) {
-	mockServer := server.NewServer(server.Opts{})
-
 	tests := []struct {
 		preset           bool
 		presetValues     map[string]interface{}
@@ -1624,11 +1603,11 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 		{ // 1. Get the intersection between 2 sets and store it at the destination.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": NewSet([]string{"one", "two", "three", "four", "five"}),
-				"key2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
+				"SunionStoreKey1": NewSet([]string{"one", "two", "three", "four", "five"}),
+				"SunionStoreKey2": NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
 			},
-			destination:      "destination1",
-			command:          []string{"SUNIONSTORE", "destination1", "key1", "key2"},
+			destination:      "SunionStoreDestination1",
+			command:          []string{"SUNIONSTORE", "SunionStoreDestination1", "SunionStoreKey1", "SunionStoreKey2"},
 			expectedValue:    NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 			expectedResponse: 8,
 			expectedError:    nil,
@@ -1636,12 +1615,12 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 		{ // 2. Get the intersection between 3 sets and store it at the destination key.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
-				"key5": NewSet([]string{"one", "seven", "eight", "nine", "ten", "twelve"}),
+				"SunionStoreKey3": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SunionStoreKey4": NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
+				"SunionStoreKey5": NewSet([]string{"one", "seven", "eight", "nine", "ten", "twelve"}),
 			},
-			destination: "destination2",
-			command:     []string{"SUNIONSTORE", "destination2", "key3", "key4", "key5"},
+			destination: "SunionStoreDestination2",
+			command:     []string{"SUNIONSTORE", "SunionStoreDestination2", "SunionStoreKey3", "SunionStoreKey4", "SunionStoreKey5"},
 			expectedValue: NewSet([]string{
 				"one", "two", "three", "four", "five", "six", "seven", "eight",
 				"nine", "ten", "eleven", "twelve", "thirty-six",
@@ -1652,19 +1631,19 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 		{ // 3. Throw error when any of the keys is not a set
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key7": "Default value",
-				"key8": NewSet([]string{"one"}),
+				"SunionStoreKey6": NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
+				"SunionStoreKey7": "Default value",
+				"SunionStoreKey8": NewSet([]string{"one"}),
 			},
-			destination:      "destination3",
-			command:          []string{"SUNIONSTORE", "destination3", "key6", "key7", "key8"},
+			destination:      "SunionStoreDestination3",
+			command:          []string{"SUNIONSTORE", "SunionStoreDestination3", "SunionStoreKey6", "SunionStoreKey7", "SunionStoreKey8"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New("value at key key7 is not a set"),
+			expectedError:    errors.New("value at key SunionStoreKey7 is not a set"),
 		},
 		{ // 5. Command too short
 			preset:           false,
-			command:          []string{"SUNIONSTORE", "destination6"},
+			command:          []string{"SUNIONSTORE", "SunionStoreDestination6"},
 			expectedResponse: 0,
 			expectedError:    errors.New(utils.WrongArgsResponse),
 		},

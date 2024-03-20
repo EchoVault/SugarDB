@@ -10,9 +10,19 @@ import (
 	"testing"
 )
 
+var mockServer *server.Server
+
+func init() {
+	mockServer = server.NewServer(server.Opts{
+		Config: utils.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		},
+	})
+}
+
 func Test_HandlePing(t *testing.T) {
 	ctx := context.Background()
-	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		command     []string

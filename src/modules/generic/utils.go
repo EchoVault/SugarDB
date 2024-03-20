@@ -47,14 +47,14 @@ func getSetCommandParams(cmd []string, params SetParams) (SetParams, error) {
 		secondsStr := cmd[1]
 		seconds, err := strconv.ParseInt(secondsStr, 10, 64)
 		if err != nil {
-			return SetParams{}, err
+			return SetParams{}, errors.New("seconds value should be an integer")
 		}
 		params.expireAt = time.Now().Add(time.Duration(seconds) * time.Second)
 		return getSetCommandParams(cmd[2:], params)
 
 	case "px":
 		if len(cmd) < 2 {
-			return SetParams{}, errors.New("seconds value required after PX")
+			return SetParams{}, errors.New("milliseconds value required after PX")
 		}
 		if params.expireAt != nil {
 			return SetParams{}, errors.New("cannot specify PX when expiry time is already set")
@@ -62,7 +62,7 @@ func getSetCommandParams(cmd []string, params SetParams) (SetParams, error) {
 		millisecondsStr := cmd[1]
 		milliseconds, err := strconv.ParseInt(millisecondsStr, 10, 64)
 		if err != nil {
-			return SetParams{}, err
+			return SetParams{}, errors.New("milliseconds value should be an integer")
 		}
 		params.expireAt = time.Now().Add(time.Duration(milliseconds) * time.Millisecond)
 		return getSetCommandParams(cmd[2:], params)
@@ -77,14 +77,14 @@ func getSetCommandParams(cmd []string, params SetParams) (SetParams, error) {
 		secondsStr := cmd[1]
 		seconds, err := strconv.ParseInt(secondsStr, 10, 64)
 		if err != nil {
-			return SetParams{}, err
+			return SetParams{}, errors.New("seconds value should be an integer")
 		}
 		params.expireAt = time.Unix(seconds, 0)
 		return getSetCommandParams(cmd[2:], params)
 
 	case "pxat":
 		if len(cmd) < 2 {
-			return SetParams{}, errors.New("seconds value required after PXAT")
+			return SetParams{}, errors.New("milliseconds value required after PXAT")
 		}
 		if params.expireAt != nil {
 			return SetParams{}, errors.New("cannot specify PXAT when expiry time is already set")
@@ -92,7 +92,7 @@ func getSetCommandParams(cmd []string, params SetParams) (SetParams, error) {
 		millisecondsStr := cmd[1]
 		milliseconds, err := strconv.ParseInt(millisecondsStr, 10, 64)
 		if err != nil {
-			return SetParams{}, err
+			return SetParams{}, errors.New("milliseconds value should be an integer")
 		}
 		params.expireAt = time.UnixMilli(milliseconds)
 		return getSetCommandParams(cmd[2:], params)

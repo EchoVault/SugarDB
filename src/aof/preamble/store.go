@@ -79,7 +79,7 @@ func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 	}
 
 	// If rw is nil, create the default
-	if store.rw == nil {
+	if store.rw == nil && store.directory != "" {
 		err := os.MkdirAll(path.Join(store.directory, "aof"), os.ModePerm)
 		if err != nil {
 			log.Println(fmt.Errorf("new preamble store -> mkdir error: %+v", err))

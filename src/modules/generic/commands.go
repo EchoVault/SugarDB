@@ -3,6 +3,7 @@ package generic
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"log"
@@ -11,6 +12,21 @@ import (
 	"strings"
 	"time"
 )
+
+var timeNow func() time.Time
+
+func init() {
+	if flag.Lookup("test.v") == nil {
+		// Normal run
+		timeNow = time.Now
+		return
+	}
+	// Test run
+	now := time.Now()
+	timeNow = func() time.Time {
+		return now.Add(10 * time.Hour)
+	}
+}
 
 type KeyObject struct {
 	value  interface{}
@@ -307,9 +323,9 @@ func handleTTL(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 		return []byte(":-1\r\n"), nil
 	}
 
-	t := expireAt.Unix() - time.Now().Unix()
+	t := expireAt.Unix() - timeNow().Unix()
 	if strings.ToLower(cmd[0]) == "pttl" {
-		t = expireAt.UnixMilli() - time.Now().UnixMilli()
+		t = expireAt.UnixMilli() - timeNow().UnixMilli()
 	}
 
 	if t <= 0 {
@@ -332,9 +348,9 @@ func handleExpire(ctx context.Context, cmd []string, server utils.Server, _ *net
 	if err != nil {
 		return nil, errors.New("expire time must be integer")
 	}
-	expireAt := time.Now().Add(time.Duration(n) * time.Second)
+	expireAt := timeNow().Add(time.Duration(n) * time.Second)
 	if strings.ToLower(cmd[0]) == "pexpire" {
-		expireAt = time.Now().Add(time.Duration(n) * time.Millisecond)
+		expireAt = timeNow().Add(time.Duration(n) * time.Millisecond)
 	}
 
 	if !server.KeyExists(ctx, key) {
@@ -381,7 +397,7 @@ func handleExpire(ctx context.Context, cmd []string, server utils.Server, _ *net
 		}
 		server.SetExpiry(ctx, key, expireAt, false)
 	default:
-		return nil, fmt.Errorf("unknown option %s", strings.ToUpper(cmd[0]))
+		return nil, fmt.Errorf("unknown option %s", strings.ToUpper(cmd[3]))
 	}
 
 	return []byte(":1\r\n"), nil
@@ -449,7 +465,7 @@ func handleExpireAt(ctx context.Context, cmd []string, server utils.Server, _ *n
 		}
 		server.SetExpiry(ctx, key, expireAt, false)
 	default:
-		return nil, fmt.Errorf("unknown option %s", strings.ToUpper(cmd[0]))
+		return nil, fmt.Errorf("unknown option %s", strings.ToUpper(cmd[3]))
 	}
 
 	return []byte(":1\r\n"), nil
@@ -501,7 +517,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		{
 			Command:           "del",
 			Categories:        []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
-			Description:       "(DEL) Removes one or more keys from the store.",
+			Description:       "(DEL key [key ...]) Removes one or more keys from the store.",
 			Sync:              true,
 			KeyExtractionFunc: delKeyFunc,
 			HandlerFunc:       handleDel,
@@ -562,8 +578,8 @@ If the key does not exist, -2 is returned.`,
 Expire the key in the specified number of seconds. This commands turns a key into a volatile one.
 NX - Only set the expiry time if the key has no associated expiry.
 XX - Only set the expiry time if the key already has an expiry time.
-GT - Only set the expiry time if the current expiry time is greater than the specified expiry time.
-LT - Only set the expiry time if the current expiry time is less than the specified expiry time.`,
+GT - Only set the expiry time if the new expiry time is greater than the current one.
+LT - Only set the expiry time if the new expiry time is less than the current one.`,
 			Sync:              true,
 			KeyExtractionFunc: expireKeyFunc,
 			HandlerFunc:       handleExpire,
@@ -575,8 +591,8 @@ LT - Only set the expiry time if the current expiry time is less than the specif
 Expire the key in the specified number of milliseconds. This commands turns a key into a volatile one.
 NX - Only set the expiry time if the key has no associated expiry.
 XX - Only set the expiry time if the key already has an expiry time.
-GT - Only set the expiry time if the current expiry time is greater than the specified expiry time.
-LT - Only set the expiry time if the current expiry time is less than the specified expiry time.`,
+GT - Only set the expiry time if the new expiry time is greater than the current one.
+LT - Only set the expiry time if the new expiry time is less than the current one.`,
 			Sync:              true,
 			KeyExtractionFunc: expireKeyFunc,
 			HandlerFunc:       handleExpire,
@@ -589,8 +605,8 @@ Expire the key in at the exact unix time in seconds.
 This commands turns a key into a volatile one.
 NX - Only set the expiry time if the key has no associated expiry.
 XX - Only set the expiry time if the key already has an expiry time.
-GT - Only set the expiry time if the current expiry time is greater than the specified expiry time.
-LT - Only set the expiry time if the current expiry time is less than the specified expiry time.`,
+GT - Only set the expiry time if the new expiry time is greater than the current one.
+LT - Only set the expiry time if the new expiry time is less than the current one.`,
 			Sync:              true,
 			KeyExtractionFunc: expireAtKeyFunc,
 			HandlerFunc:       handleExpireAt,
@@ -603,8 +619,8 @@ Expire the key in at the exact unix time in milliseconds.
 This commands turns a key into a volatile one.
 NX - Only set the expiry time if the key has no associated expiry.
 XX - Only set the expiry time if the key already has an expiry time.
-GT - Only set the expiry time if the current expiry time is greater than the specified expiry time.
-LT - Only set the expiry time if the current expiry time is less than the specified expiry time.`,
+GT - Only set the expiry time if the new expiry time is greater than the current one.
+LT - Only set the expiry time if the new expiry time is less than the current one.`,
 			Sync:              true,
 			KeyExtractionFunc: expireAtKeyFunc,
 			HandlerFunc:       handleExpireAt,

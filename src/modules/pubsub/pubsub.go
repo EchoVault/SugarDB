@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/gobwas/glob"
+	"github.com/tidwall/resp"
+	"log"
 	"net"
 	"slices"
 	"sync"
@@ -22,8 +24,16 @@ func NewPubSub() *PubSub {
 	}
 }
 
-func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) []byte {
-	res := fmt.Sprintf("*%d\r\n", len(channels))
+func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) {
+	ps.channelsRWMut.Lock()
+	defer ps.channelsRWMut.Unlock()
+
+	r := resp.NewConn(*conn)
+
+	action := "subscribe"
+	if withPattern {
+		action = "psubscribe"
+	}
 
 	for i := 0; i < len(channels); i++ {
 		// Check if channel with given name exists
@@ -42,55 +52,79 @@ func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []stri
 				newChan = NewChannel(WithName(channels[i]))
 			}
 			newChan.Start()
-			newChan.Subscribe(conn)
+			if newChan.Subscribe(conn) {
+				if err := r.WriteArray([]resp.Value{
+					resp.StringValue(action),
+					resp.StringValue(newChan.name),
+					resp.IntegerValue(i + 1),
+				}); err != nil {
+					log.Println(err)
+				}
+			}
 			ps.channels = append(ps.channels, newChan)
 		} else {
 			// Subscribe to existing channel
-			ps.channels[channelIdx].Subscribe(conn)
-		}
-
-		if len(channels) > 1 {
-			// If subscribing to more than one channel, write array to verify the subscription of this channel
-			res += fmt.Sprintf("*3\r\n+subscribe\r\n$%d\r\n%s\r\n:%d\r\n", len(channels[i]), channels[i], i+1)
-		} else {
-			// Ony one channel, simply send "subscribe" simple string response
-			res = "+subscribe\r\n"
+			if ps.channels[channelIdx].Subscribe(conn) {
+				if err := r.WriteArray([]resp.Value{
+					resp.StringValue(action),
+					resp.StringValue(ps.channels[channelIdx].name),
+					resp.IntegerValue(i + 1),
+				}); err != nil {
+					log.Println(err)
+				}
+			}
 		}
 	}
-
-	return []byte(res)
 }
 
 func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) []byte {
 	ps.channelsRWMut.RLock()
-	ps.channelsRWMut.RUnlock()
+	defer ps.channelsRWMut.RUnlock()
 
 	action := "unsubscribe"
 	if withPattern {
-		action = "subscribe"
+		action = "punsubscribe"
 	}
 
 	unsubscribed := make(map[int]string)
 	count := 1
 
-	// If the channels slice is empty, unsubscribe from all channels.
 	if len(channels) <= 0 {
-		for _, channel := range ps.channels {
-			if channel.Unsubscribe(conn) {
-				unsubscribed[1] = channel.name
-				count += 1
+		if !withPattern {
+			// If the channels slice is empty, and no pattern is provided
+			// only unsubscribe from all channels.
+			for _, channel := range ps.channels {
+				if channel.pattern != nil { // Skip pattern channels
+					continue
+				}
+				if channel.Unsubscribe(conn) {
+					unsubscribed[count] = channel.name
+					count += 1
+				}
+			}
+		} else {
+			// If the channels slice is empty, and pattern is provided
+			// only unsubscribe from all patterns.
+			for _, channel := range ps.channels {
+				if channel.pattern == nil { // Skip non-pattern channels
+					continue
+				}
+				if channel.Unsubscribe(conn) {
+					unsubscribed[count] = channel.name
+					count += 1
+				}
 			}
 		}
 	}
 
-	// If withPattern is false, unsubscribe from channels where the name exactly matches channel name.
-	if !withPattern {
-		for _, channel := range ps.channels { // For each channel in PubSub
-			for _, c := range channels { // For each channel name provided
-				if channel.name == c && channel.Unsubscribe(conn) {
-					unsubscribed[count] = channel.name
-					count += 1
-				}
+	// Unsubscribe from channels where the name exactly matches channel name.
+	// If unsubscribing from a pattern, also unsubscribe from all channel whose
+	// names exactly matches the pattern name.
+	for _, channel := range ps.channels { // For each channel in PubSub
+		for _, c := range channels { // For each channel name provided
+			if channel.name == c && channel.Unsubscribe(conn) {
+				unsubscribed[count] = channel.name
+				count += 1
 			}
 		}
 	}
@@ -103,14 +137,18 @@ func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channels []st
 			for _, channel := range ps.channels {
 				// If it's a pattern channel, directly compare the patterns
 				if channel.pattern != nil && channel.name == pattern {
-					unsubscribed[count] = channel.name
-					count += 1
+					if channel.Unsubscribe(conn) {
+						unsubscribed[count] = channel.name
+						count += 1
+					}
 					continue
 				}
 				// If this is a regular channel, check if the channel name matches the pattern given
 				if g.Match(channel.name) {
-					unsubscribed[count] = channel.name
-					count += 1
+					if channel.Unsubscribe(conn) {
+						unsubscribed[count] = channel.name
+						count += 1
+					}
 				}
 			}
 		}
@@ -143,7 +181,10 @@ func (ps *PubSub) Publish(ctx context.Context, message string, channelName strin
 	}
 }
 
-func (ps *PubSub) Channels(ctx context.Context, pattern string) []byte {
+func (ps *PubSub) Channels(pattern string) []byte {
+	ps.channelsRWMut.RLock()
+	defer ps.channelsRWMut.RUnlock()
+
 	var count int
 	var res string
 
@@ -154,7 +195,6 @@ func (ps *PubSub) Channels(ctx context.Context, pattern string) []byte {
 				count += 1
 			}
 		}
-
 		res = fmt.Sprintf("*%d\r\n%s", count, res)
 		return []byte(res)
 	}
@@ -168,28 +208,36 @@ func (ps *PubSub) Channels(ctx context.Context, pattern string) []byte {
 			count += 1
 			continue
 		}
+		// Channel is not a pattern channel. Check if the channel name matches the provided glob pattern
 		if g.Match(channel.name) && channel.IsActive() {
 			res += fmt.Sprintf("$%d\r\n%s\r\n", len(channel.name), channel.name)
 			count += 1
 		}
 	}
 
-	return []byte(res)
+	return []byte(fmt.Sprintf("*%d\r\n%s", count, res))
 }
 
-func (ps *PubSub) NumPat(ctx context.Context) int {
+func (ps *PubSub) NumPat() int {
+	ps.channelsRWMut.RLock()
+	defer ps.channelsRWMut.RUnlock()
+
 	var count int
 	for _, channel := range ps.channels {
-		if channel.pattern != nil {
+		if channel.pattern != nil && channel.IsActive() {
 			count += 1
 		}
 	}
 	return count
 }
 
-func (ps *PubSub) NumSub(ctx context.Context, channels []string) []byte {
+func (ps *PubSub) NumSub(channels []string) []byte {
+	ps.channelsRWMut.RLock()
+	defer ps.channelsRWMut.RUnlock()
+
 	res := fmt.Sprintf("*%d\r\n", len(channels))
 	for _, channel := range channels {
+		// If it's a pattern channel, skip it
 		chanIdx := slices.IndexFunc(ps.channels, func(c *Channel) bool {
 			return c.name == channel
 		})

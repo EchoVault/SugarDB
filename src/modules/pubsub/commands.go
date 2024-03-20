@@ -21,14 +21,10 @@ func handleSubscribe(ctx context.Context, cmd []string, server utils.Server, con
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
-	switch strings.ToLower(cmd[0]) {
-	case "subscribe":
-		return pubsub.Subscribe(ctx, conn, channels, false), nil
-	case "psubscribe":
-		return pubsub.Subscribe(ctx, conn, channels, true), nil
-	}
+	withPattern := strings.EqualFold(cmd[0], "psubscribe")
+	pubsub.Subscribe(ctx, conn, channels, withPattern)
 
-	return []byte{}, nil
+	return nil, nil
 }
 
 func handleUnsubscribe(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
@@ -39,17 +35,12 @@ func handleUnsubscribe(ctx context.Context, cmd []string, server utils.Server, c
 
 	channels := cmd[1:]
 
-	switch strings.ToLower(cmd[0]) {
-	case "unsubscribe":
-		return pubsub.Unsubscribe(ctx, conn, channels, false), nil
-	case "punsubscribe":
-		return pubsub.Unsubscribe(ctx, conn, channels, true), nil
-	default:
-		return []byte{}, nil
-	}
+	withPattern := strings.EqualFold(cmd[0], "punsubscribe")
+
+	return pubsub.Unsubscribe(ctx, conn, channels, withPattern), nil
 }
 
-func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePublish(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -61,7 +52,7 @@ func handlePublish(ctx context.Context, cmd []string, server utils.Server, conn 
 	return []byte(utils.OkResponse), nil
 }
 
-func handlePubSubChannels(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePubSubChannels(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -76,24 +67,24 @@ func handlePubSubChannels(ctx context.Context, cmd []string, server utils.Server
 		pattern = cmd[2]
 	}
 
-	return pubsub.Channels(ctx, pattern), nil
+	return pubsub.Channels(pattern), nil
 }
 
-func handlePubSubNumPat(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePubSubNumPat(_ context.Context, _ []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
-	num := pubsub.NumPat(ctx)
+	num := pubsub.NumPat()
 	return []byte(fmt.Sprintf(":%d\r\n", num)), nil
 }
 
-func handlePubSubNumSubs(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePubSubNumSubs(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
-	return pubsub.NumSub(ctx, cmd[2:]), nil
+	return pubsub.NumSub(cmd[2:]), nil
 }
 
 func Commands() []utils.Command {
@@ -156,7 +147,7 @@ it's currently subscribe to.`,
 		{
 			Command:    "punsubscribe",
 			Categories: []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
-			Description: `(PUNSUBSCRIBE [channel [channel ...]]) Unsubscribe from a list of channels using patterns.
+			Description: `(PUNSUBSCRIBE [pattern [pattern ...]]) Unsubscribe from a list of channels using patterns.
 If the pattern list is not provided, then the connection will be unsubscribed from all the patterns that
 it's currently subscribe to.`,
 			Sync: false,

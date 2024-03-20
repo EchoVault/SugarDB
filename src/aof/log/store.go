@@ -69,7 +69,7 @@ func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
 	}
 
 	// If rw is nil, use a default file at the provided directory
-	if store.rw == nil {
+	if store.rw == nil && store.directory != "" {
 		// Create the directory if it does not exist
 		err := os.MkdirAll(path.Join(store.directory, "aof"), os.ModePerm)
 		if err != nil {
