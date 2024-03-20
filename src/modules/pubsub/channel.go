@@ -99,9 +99,13 @@ func (ch *Channel) Publish(message string) {
 }
 
 func (ch *Channel) IsActive() bool {
+	ch.subscribersRWMut.RLock()
+	defer ch.subscribersRWMut.RUnlock()
 	return len(ch.subscribers) > 0
 }
 
 func (ch *Channel) NumSubs() int {
+	ch.subscribersRWMut.RLock()
+	defer ch.subscribersRWMut.RUnlock()
 	return len(ch.subscribers)
 }

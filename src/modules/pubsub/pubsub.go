@@ -224,7 +224,7 @@ func (ps *PubSub) NumPat() int {
 
 	var count int
 	for _, channel := range ps.channels {
-		if channel.pattern != nil {
+		if channel.pattern != nil && channel.IsActive() {
 			count += 1
 		}
 	}
