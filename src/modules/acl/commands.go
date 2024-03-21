@@ -202,7 +202,7 @@ func handleCat(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 		}
 	}
 
-	return nil, errors.New("category not found")
+	return nil, fmt.Errorf("category %s not found", strings.ToUpper(cmd[2]))
 }
 
 func handleUsers(_ context.Context, _ []string, server utils.Server, _ *net.Conn) ([]byte, error) {

@@ -38,6 +38,9 @@ type User struct {
 
 func (user *User) Normalise() {
 	user.IncludedCategories = RemoveDuplicateEntries(user.IncludedCategories, "allCategories")
+	if len(user.IncludedCategories) == 0 {
+		user.IncludedCategories = []string{"*"}
+	}
 	user.ExcludedCategories = RemoveDuplicateEntries(user.ExcludedCategories, "allCategories")
 	if slices.Contains(user.ExcludedCategories, "*") {
 		user.IncludedCategories = []string{}
