@@ -1,6 +1,40 @@
 package acl
 
-import "testing"
+import (
+	"context"
+	"github.com/echovault/echovault/src/server"
+	"github.com/echovault/echovault/src/utils"
+	"testing"
+)
+
+var bindAddr string
+var port uint16
+var mockServer *server.Server
+
+var acl *ACL
+
+func init() {
+	bindAddr = "localhost"
+	port = 7490
+
+	config := utils.Config{
+		BindAddr:       bindAddr,
+		Port:           port,
+		DataDir:        "",
+		EvictionPolicy: utils.NoEviction,
+	}
+
+	acl = NewACL(config)
+
+	mockServer = server.NewServer(server.Opts{
+		Config: config,
+		ACL:    acl,
+	})
+
+	go func() {
+		mockServer.Start(context.Background())
+	}()
+}
 
 func Test_HandleAuth(t *testing.T) {}
 
