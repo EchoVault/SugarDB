@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+const (
+	PasswordPlainText = "plaintext"
+	PasswordSHA256    = "SHA256"
+)
+
 type Password struct {
 	PasswordType  string `json:"PasswordType" yaml:"PasswordType"` // plaintext, SHA256
 	PasswordValue string `json:"PasswordValue" yaml:"PasswordValue"`
@@ -105,7 +110,7 @@ func (user *User) UpdateUser(cmd []string) error {
 		}
 		if str[0] == '<' {
 			user.Passwords = slices.DeleteFunc(user.Passwords, func(password Password) bool {
-				if strings.EqualFold(password.PasswordType, "SHA256") {
+				if strings.EqualFold(password.PasswordType, PasswordSHA256) {
 					return false
 				}
 				return password.PasswordValue == str[1:]
@@ -114,7 +119,7 @@ func (user *User) UpdateUser(cmd []string) error {
 		}
 		if str[0] == '!' {
 			user.Passwords = slices.DeleteFunc(user.Passwords, func(password Password) bool {
-				if strings.EqualFold(password.PasswordType, "plaintext") {
+				if strings.EqualFold(password.PasswordType, PasswordPlainText) {
 					return false
 				}
 				return password.PasswordValue == str[1:]
@@ -278,7 +283,7 @@ func CreateUser(username string) *User {
 
 func GetPasswordType(password string) string {
 	if password[0] == '#' {
-		return "SHA256"
+		return PasswordSHA256
 	}
-	return "plaintext"
+	return PasswordPlainText
 }

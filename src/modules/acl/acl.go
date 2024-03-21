@@ -164,7 +164,7 @@ func (acl *ACL) DeleteUser(ctx context.Context, usernames []string) error {
 		// Terminate every connection attached to this user
 		for connRef, connection := range acl.Connections {
 			if connection.User.Username == user.Username {
-				(*connRef).SetReadDeadline(time.Now().Add(-1 * time.Second))
+				_ = (*connRef).SetReadDeadline(time.Now().Add(-1 * time.Second))
 			}
 		}
 		// Delete the user from the ACL
@@ -175,7 +175,7 @@ func (acl *ACL) DeleteUser(ctx context.Context, usernames []string) error {
 	return nil
 }
 
-func (acl *ACL) AuthenticateConnection(ctx context.Context, conn *net.Conn, cmd []string) error {
+func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []string) error {
 	var passwords []Password
 	var user *User
 
@@ -194,6 +194,7 @@ func (acl *ACL) AuthenticateConnection(ctx context.Context, conn *net.Conn, cmd 
 		})
 		user = acl.Users[idx]
 	}
+
 	if len(cmd) == 3 {
 		// Process AUTH <username> <password>
 		h.Write([]byte(cmd[2]))
@@ -278,7 +279,6 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 
 	// If the command is 'auth', then return early and allow it
 	if strings.EqualFold(comm, "auth") {
-		// TODO: Add rate limiting to prevent auth spamming
 		return nil
 	}
 
