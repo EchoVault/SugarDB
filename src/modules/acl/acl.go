@@ -115,7 +115,7 @@ func (acl *ACL) RegisterConnection(conn *net.Conn) {
 	}
 }
 
-func (acl *ACL) SetUser(ctx context.Context, cmd []string) error {
+func (acl *ACL) SetUser(cmd []string) error {
 	// Check if user with the given username already exists
 	// If it does, replace user variable with this user
 	for _, user := range acl.Users {

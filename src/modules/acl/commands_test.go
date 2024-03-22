@@ -22,20 +22,20 @@ func init() {
 	bindAddr = "localhost"
 	port = 7490
 
-	mockServer = setUpServer(bindAddr, port)
+	mockServer = setUpServer(bindAddr, port, true)
 
 	go func() {
 		mockServer.Start(context.Background())
 	}()
 }
 
-func setUpServer(bindAddr string, port uint16) *server.Server {
+func setUpServer(bindAddr string, port uint16, requirePass bool) *server.Server {
 	config := utils.Config{
 		BindAddr:       bindAddr,
 		Port:           port,
 		DataDir:        "",
 		EvictionPolicy: utils.NoEviction,
-		RequirePass:    true,
+		RequirePass:    requirePass,
 		Password:       "password1",
 	}
 
@@ -78,6 +78,81 @@ func generateInitialTestUsers() []*User {
 		noPasswordUser,
 		disabledUser,
 	}
+}
+
+// compareSlices compare the elements in 2 slices, it checks if every element is s1 is contained in s2
+// and vice versa. It essentially does a deep equality comparison.
+// This is done manually rather than using slices.Equal because it would be ideal to throw an error
+// specifying exactly which items are missing in either slice.
+func compareSlices[T comparable](res, expected []T) error {
+	if len(res) != len(expected) {
+		return fmt.Errorf("expected slice of length %d, got slice of length %d", len(expected), len(res))
+	}
+	// Check whether all elements in res are contained in expected
+	for _, r := range res {
+		if !slices.Contains(expected, r) {
+			return fmt.Errorf("got response item %+v, but it's not contained in expected slices", r)
+		}
+	}
+	// Check whether all elements in expected are contained in res
+	for _, e := range expected {
+		if !slices.Contains(res, e) {
+			return fmt.Errorf("expected element %+v, not found in res slice", e)
+		}
+	}
+	return nil
+}
+
+// compareUsers compares 2 users and checks if all their fields are equal
+func compareUsers(user1, user2 *User) error {
+	// Compare flags
+	if user1.Username != user2.Username {
+		return fmt.Errorf("mismatched usernames \"%s\", and \"%s\"", user1.Username, user2.Username)
+	}
+	if user1.Enabled != user2.Enabled {
+		return fmt.Errorf("mismatched enabled flag \"%+v\", and \"%+v\"", user1.Enabled, user2.Enabled)
+	}
+	if user1.NoPassword != user2.NoPassword {
+		return fmt.Errorf("mismatched nopassword flag \"%+v\", and \"%+v\"", user1.NoPassword, user2.NoPassword)
+	}
+	if user1.NoKeys != user2.NoKeys {
+		return fmt.Errorf("mismatched nokeys flag \"%+v\", and \"%+v\"", user1.NoKeys, user2.NoKeys)
+	}
+
+	// Compare passwords
+	for _, password1 := range user1.Passwords {
+		if !slices.ContainsFunc(user2.Passwords, func(password2 Password) bool {
+			return password1.PasswordType == password2.PasswordType && password1.PasswordValue == password2.PasswordValue
+		}) {
+			return fmt.Errorf("found password %+v in user1 that was not found in user2", password1)
+		}
+	}
+	for _, password2 := range user2.Passwords {
+		if !slices.ContainsFunc(user1.Passwords, func(password1 Password) bool {
+			return password1.PasswordType == password2.PasswordType && password1.PasswordValue == password2.PasswordValue
+		}) {
+			return fmt.Errorf("found password %+v in user2 that was not found in user1", password2)
+		}
+	}
+
+	// Compare permissions
+	permissions := [][][]string{
+		{user1.IncludedCategories, user2.IncludedCategories},
+		{user1.ExcludedCategories, user2.ExcludedCategories},
+		{user1.IncludedCommands, user2.IncludedCommands},
+		{user1.ExcludedCommands, user2.ExcludedCommands},
+		{user1.IncludedReadKeys, user2.IncludedReadKeys},
+		{user1.IncludedWriteKeys, user2.IncludedWriteKeys},
+		{user1.IncludedPubSubChannels, user2.IncludedPubSubChannels},
+		{user1.ExcludedPubSubChannels, user2.ExcludedPubSubChannels},
+	}
+	for _, p := range permissions {
+		if err := compareSlices(p[0], p[1]); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func Test_HandleAuth(t *testing.T) {
@@ -295,7 +370,7 @@ func Test_HandleCat(t *testing.T) {
 
 func Test_HandleUsers(t *testing.T) {
 	var port uint16 = 7491
-	mockServer := setUpServer(bindAddr, port)
+	mockServer := setUpServer(bindAddr, port, false)
 	go func() {
 		mockServer.Start(context.Background())
 	}()
@@ -309,16 +384,6 @@ func Test_HandleUsers(t *testing.T) {
 	}()
 
 	r := resp.NewConn(conn)
-	if err = r.WriteArray([]resp.Value{resp.StringValue("AUTH"), resp.StringValue("password1")}); err != nil {
-		t.Error(err)
-	}
-	rv, _, err := r.ReadValue()
-	if err != nil {
-		t.Error(err)
-	}
-	if rv.String() != "OK" {
-		t.Errorf("expected OK response, got \"%s\"", rv.String())
-	}
 
 	users := []string{"default", "with_password_user", "no_password_user", "disabled_user"}
 
@@ -326,7 +391,7 @@ func Test_HandleUsers(t *testing.T) {
 		t.Error(err)
 	}
 
-	rv, _, err = r.ReadValue()
+	rv, _, err := r.ReadValue()
 	if err != nil {
 		t.Error(err)
 	}
@@ -352,7 +417,159 @@ func Test_HandleUsers(t *testing.T) {
 	}
 }
 
-func Test_HandleSetUser(t *testing.T) {}
+func Test_HandleSetUser(t *testing.T) {
+	var port uint16 = 7492
+	mockServer := setUpServer(bindAddr, port, false)
+	go func() {
+		mockServer.Start(context.Background())
+	}()
+	acl, ok := mockServer.GetACL().(*ACL)
+	if !ok {
+		t.Error("error loading ACL module")
+	}
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	r := resp.NewConn(conn)
+
+	tests := []struct {
+		presetUser *User
+		cmd        []resp.Value
+		wantRes    string
+		wantErr    string
+		wantUser   *User
+	}{
+		{
+			// 1. Create new enabled user
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_1"),
+				resp.StringValue("on"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_1")
+				user.Enabled = true
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 2. Create new disabled user
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_2"),
+				resp.StringValue("off"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_2")
+				user.Enabled = false
+				user.Normalise()
+				return user
+			}(),
+		},
+		//{
+		//	// 3. Create new enabled user with both plaintext and SHA256 passwords
+		//},
+		//{
+		//	// 4. Remove plaintext and SHA256 password from existing user
+		//},
+		//{
+		//	// 5. Create user with no commands allowed to be executed
+		//},
+		//{
+		//	// 6. Create user that can access all categories
+		//},
+		//{
+		//	// 7. Create user with a few allowed categories and a few disallowed categories
+		//},
+		//{
+		//	// 8. Create user that is not allowed to access any keys
+		//},
+		//{
+		//	// 9. Create user that can access some read keys and some write keys
+		//	// Provide keys that are RW, W-Only and R-Only
+		//},
+		//{
+		//	// 10. Create user that can access all pubsub channels
+		//},
+		//{
+		//	// 11. Create user with a few allowed pubsub channels and a few disallowed channels
+		//},
+		//{
+		//	// 12. Create user that can access all commands
+		//},
+		//{
+		//	// 13. Create user with some allowed commands and disallowed commands
+		//},
+		//{
+		//	// 14. Create new user with no password using 'nopass'
+		//},
+		//{
+		//	// 15. Delete all existing users passwords using 'nopass'
+		//},
+		//{
+		//	// 16. Clear all of an existing user's passwords using 'resetpass'
+		//},
+		//{
+		//	// 17. Clear all of an existing user's command privileges using 'nocommands'
+		//},
+		//{
+		//	// 18. Clear all of an existing user's allowed keys using 'resetkeys'
+		//},
+		//{
+		//	// 19. Allow user to access all channels using 'resetchannels'
+		//},
+	}
+
+	for _, test := range tests {
+		if test.presetUser != nil {
+			acl.Users = append(acl.Users, test.presetUser)
+		}
+		if err = r.WriteArray(test.cmd); err != nil {
+			t.Error(err)
+		}
+		v, _, err := r.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if test.wantErr != "" {
+			if v.Error().Error() != test.wantErr {
+				t.Errorf("expected error response \"%s\", got \"%s\"", test.wantErr, v.Error().Error())
+			}
+			continue
+		}
+		if v.String() != test.wantRes {
+			t.Errorf("expected response \"%s\", got \"%s\"", test.wantRes, v.String())
+		}
+		if test.wantUser == nil {
+			continue
+		}
+		expectedUser := test.wantUser
+		currUserIdx := slices.IndexFunc(acl.Users, func(user *User) bool {
+			return user.Username == expectedUser.Username
+		})
+		if currUserIdx == -1 {
+			t.Errorf("expected to find user with username \"%s\" but could not find them.", expectedUser.Username)
+		}
+		if err = compareUsers(expectedUser, acl.Users[currUserIdx]); err != nil {
+			t.Error(err)
+		}
+	}
+}
 
 func Test_HandleGetUser(t *testing.T) {}
 

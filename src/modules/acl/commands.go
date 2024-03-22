@@ -218,12 +218,12 @@ func handleUsers(_ context.Context, _ []string, server utils.Server, _ *net.Conn
 	return []byte(res), nil
 }
 
-func handleSetUser(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleSetUser(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	acl, ok := server.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
-	if err := acl.SetUser(ctx, cmd[2:]); err != nil {
+	if err := acl.SetUser(cmd[2:]); err != nil {
 		return nil, err
 	}
 	return []byte(utils.OkResponse), nil
