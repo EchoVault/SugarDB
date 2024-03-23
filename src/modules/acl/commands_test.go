@@ -9,6 +9,7 @@ import (
 	"github.com/tidwall/resp"
 	"net"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -1301,7 +1302,132 @@ func Test_HandleWhoAmI(t *testing.T) {
 	}
 }
 
-func Test_HandleList(t *testing.T) {}
+func Test_HandleList(t *testing.T) {
+	var port uint16 = 7495
+	mockServer := setUpServer(bindAddr, port, false)
+	go func() {
+		mockServer.Start(context.Background())
+	}()
+	acl, _ := mockServer.GetACL().(*ACL)
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	r := resp.NewConn(conn)
+
+	tests := []struct {
+		presetUsers []*User
+		cmd         []resp.Value
+		wantRes     []string
+		wantErr     string
+	}{
+		{ // 1. Get the user and all their details
+			presetUsers: []*User{
+				{
+					Username:   "list_user_1",
+					Enabled:    true,
+					NoPassword: false,
+					NoKeys:     false,
+					Passwords: []Password{
+						{PasswordType: PasswordPlainText, PasswordValue: "list_user_password_1"},
+						{PasswordType: PasswordSHA256, PasswordValue: generateSHA256Password("list_user_password_2")},
+					},
+					IncludedCategories:     []string{utils.WriteCategory, utils.ReadCategory, utils.PubSubCategory},
+					ExcludedCategories:     []string{utils.AdminCategory, utils.ConnectionCategory, utils.DangerousCategory},
+					IncludedCommands:       []string{"acl|setuser", "acl|getuser", "acl|deluser"},
+					ExcludedCommands:       []string{"rewriteaof", "save", "acl|load", "acl|save"},
+					IncludedReadKeys:       []string{"key1", "key2", "key3", "key4"},
+					IncludedWriteKeys:      []string{"key1", "key2", "key5", "key6"},
+					IncludedPubSubChannels: []string{"channel1", "channel2"},
+					ExcludedPubSubChannels: []string{"channel3", "channel4"},
+				},
+				{
+					Username:               "list_user_2",
+					Enabled:                true,
+					NoPassword:             true,
+					NoKeys:                 true,
+					Passwords:              []Password{},
+					IncludedCategories:     []string{utils.WriteCategory, utils.ReadCategory, utils.PubSubCategory},
+					ExcludedCategories:     []string{utils.AdminCategory, utils.ConnectionCategory, utils.DangerousCategory},
+					IncludedCommands:       []string{"acl|setuser", "acl|getuser", "acl|deluser"},
+					ExcludedCommands:       []string{"rewriteaof", "save", "acl|load", "acl|save"},
+					IncludedReadKeys:       []string{},
+					IncludedWriteKeys:      []string{},
+					IncludedPubSubChannels: []string{"channel1", "channel2"},
+					ExcludedPubSubChannels: []string{"channel3", "channel4"},
+				},
+				{
+					Username:   "list_user_3",
+					Enabled:    true,
+					NoPassword: false,
+					NoKeys:     false,
+					Passwords: []Password{
+						{PasswordType: PasswordPlainText, PasswordValue: "list_user_password_3"},
+						{PasswordType: PasswordSHA256, PasswordValue: generateSHA256Password("list_user_password_4")},
+					},
+					IncludedCategories:     []string{utils.WriteCategory, utils.ReadCategory, utils.PubSubCategory},
+					ExcludedCategories:     []string{utils.AdminCategory, utils.ConnectionCategory, utils.DangerousCategory},
+					IncludedCommands:       []string{"acl|setuser", "acl|getuser", "acl|deluser"},
+					ExcludedCommands:       []string{"rewriteaof", "save", "acl|load", "acl|save"},
+					IncludedReadKeys:       []string{"key1", "key2", "key3", "key4"},
+					IncludedWriteKeys:      []string{"key1", "key2", "key5", "key6"},
+					IncludedPubSubChannels: []string{"channel1", "channel2"},
+					ExcludedPubSubChannels: []string{"channel3", "channel4"},
+				},
+			},
+			cmd: []resp.Value{resp.StringValue("ACL"), resp.StringValue("LIST")},
+			wantRes: []string{
+				"default on +@all +all %RW~* +&*",
+				fmt.Sprintf("with_password_user on >password2 #%s +@all +all", generateSHA256Password("password3")),
+				"no_password_user on nopass >password4",
+				"disabled_user off >password5",
+				fmt.Sprintf(`list_user_1 on >list_user_password_1 #%s +@write +@read +@pubsub -@admin -@connection -@dangerous +acl|setuser +acl|getuser +acl|deluser -rewriteaof -save -acl|load -acl|save %s +&channel1 +&channel2 -&channel3 -&channel4`, generateSHA256Password("list_user_password_2"), "%RW~key1 %RW~key2 %R~key3 %R~key4"),
+				fmt.Sprintf(`list_user_2 on nopass nokeys +@write +@read +@pubsub -@admin -@connection -@dangerous +acl|setuser +acl|getuser +acl|deluser -rewriteaof -save -acl|load -acl|save +&channel1 +&channel2 -&channel3 -&channel4`),
+				fmt.Sprintf(`list_user_3 on >list_user_password_3 #%s +@write +@read +@pubsub -@admin -@connection -@dangerous +acl|setuser +acl|getuser +acl|deluser -rewriteaof -save -acl|load -acl|save %s +&channel1 +&channel2 -&channel3 -&channel4`, generateSHA256Password("list_user_password_4"), "%RW~key1 %RW~key2 %R~key3 %R~key4"),
+			},
+			wantErr: "",
+		},
+	}
+
+	for _, test := range tests {
+		for _, user := range test.presetUsers {
+			acl.Users = append(acl.Users, user)
+		}
+		if err = r.WriteArray(test.cmd); err != nil {
+			t.Error(err)
+		}
+		v, _, err := r.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if test.wantErr != "" {
+			if v.Error().Error() != test.wantErr {
+				t.Errorf("expected error response \"%s\", got \"%s\"", test.wantErr, v.Error().Error())
+			}
+			continue
+		}
+		resArr := v.Array()
+		if len(resArr) != len(test.wantRes) {
+			t.Errorf("expected response of lenght %d, got lenght %d", len(test.wantRes), len(resArr))
+		}
+		var resStr []string
+		for i := 0; i < len(resArr); i++ {
+			resStr = strings.Split(resArr[i].String(), " ")
+			if !slices.ContainsFunc(test.wantRes, func(s string) bool {
+				expectedUserSlice := strings.Split(s, " ")
+				return compareSlices(resStr, expectedUserSlice) == nil
+			}) {
+				t.Errorf("could not find the following user in expected slice: %+v", resStr)
+			}
+			clear(resStr)
+		}
+	}
+}
 
 func Test_HandleLoad(t *testing.T) {}
 
