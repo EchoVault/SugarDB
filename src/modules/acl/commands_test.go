@@ -1158,7 +1158,83 @@ func Test_HandleGetUser(t *testing.T) {
 	}
 }
 
-func Test_HandleDelUser(t *testing.T) {}
+func Test_HandleDelUser(t *testing.T) {
+	var port uint16 = 7494
+	mockServer := setUpServer(bindAddr, port, false)
+	go func() {
+		mockServer.Start(context.Background())
+	}()
+	acl, _ := mockServer.GetACL().(*ACL)
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	r := resp.NewConn(conn)
+
+	tests := []struct {
+		presetUser *User
+		cmd        []resp.Value
+		wantRes    string
+		wantErr    string
+	}{
+		{
+			// 1. Delete existing user while skipping default user and non-existent user
+			presetUser: CreateUser("user_to_delete"),
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("DELUSER"),
+				resp.StringValue("default"),
+				resp.StringValue("user_to_delete"),
+				resp.StringValue("non_existent_user"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+		},
+		{
+			// 2. Command too short
+			presetUser: nil,
+			cmd:        []resp.Value{resp.StringValue("ACL"), resp.StringValue("DELUSER")},
+			wantRes:    "",
+			wantErr:    fmt.Sprintf("Error %s", utils.WrongArgsResponse),
+		},
+	}
+
+	for _, test := range tests {
+		if test.presetUser != nil {
+			acl.Users = append(acl.Users, test.presetUser)
+		}
+		if err = r.WriteArray(test.cmd); err != nil {
+			t.Error(err)
+		}
+		v, _, err := r.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if test.wantErr != "" {
+			if v.Error().Error() != test.wantErr {
+				t.Errorf("expected error response \"%s\", got \"%s\"", test.wantErr, v.Error().Error())
+			}
+			continue
+		}
+		// Check that default user still exists in the list of users
+		if !slices.ContainsFunc(acl.Users, func(user *User) bool {
+			return user.Username == "default"
+		}) {
+			t.Error("could not find user with username \"default\" in the ACL after deleting user")
+		}
+		// Check that the deleted user is no longer in the list
+		if slices.ContainsFunc(acl.Users, func(user *User) bool {
+			return user.Username == "user_to_delete"
+		}) {
+			t.Error("deleted user found in the ACL")
+		}
+	}
+}
 
 func Test_HandleWhoAmI(t *testing.T) {}
 

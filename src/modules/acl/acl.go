@@ -95,6 +95,7 @@ func NewACL(config utils.Config) *ACL {
 
 	acl := ACL{
 		Users:        users,
+		UsersMutex:   sync.RWMutex{},
 		Connections:  make(map[*net.Conn]Connection),
 		Config:       config,
 		GlobPatterns: make(map[string]glob.Glob),
@@ -106,6 +107,9 @@ func NewACL(config utils.Config) *ACL {
 }
 
 func (acl *ACL) RegisterConnection(conn *net.Conn) {
+	acl.UsersMutex.Lock()
+	defer acl.UsersMutex.Unlock()
+
 	// This is called only when a connection is established.
 	defaultUserIdx := slices.IndexFunc(acl.Users, func(user *User) bool {
 		return user.Username == "default"
@@ -118,6 +122,9 @@ func (acl *ACL) RegisterConnection(conn *net.Conn) {
 }
 
 func (acl *ACL) SetUser(cmd []string) error {
+	acl.UsersMutex.Lock()
+	defer acl.UsersMutex.Unlock()
+
 	// Check if user with the given username already exists
 	// If it does, replace user variable with this user
 	for _, user := range acl.Users {
@@ -147,6 +154,9 @@ func (acl *ACL) SetUser(cmd []string) error {
 }
 
 func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
+	acl.UsersMutex.Lock()
+	defer acl.UsersMutex.Unlock()
+
 	var user *User
 	for _, username := range usernames {
 		if username == "default" {
@@ -171,13 +181,16 @@ func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
 		}
 		// Delete the user from the ACL
 		acl.Users = slices.DeleteFunc(acl.Users, func(u *User) bool {
-			return u.Username != user.Username
+			return u.Username == user.Username
 		})
 	}
 	return nil
 }
 
 func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []string) error {
+	acl.UsersMutex.RLock()
+	defer acl.UsersMutex.RUnlock()
+
 	var passwords []Password
 	var user *User
 
@@ -251,6 +264,9 @@ func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []
 }
 
 func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.Command, subCommand utils.SubCommand) error {
+	acl.UsersMutex.RLock()
+	defer acl.UsersMutex.RUnlock()
+
 	// Extract command, categories, and keys
 	comm := command.Command
 	categories := command.Categories
