@@ -16,18 +16,20 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Connection struct {
-	Authenticated bool
-	User          *User
+	Authenticated bool  // Whether the connection has been authenticated
+	User          *User // The user the connection is associated with
 }
 
 type ACL struct {
-	Users        []*User
-	Connections  map[*net.Conn]Connection
-	Config       utils.Config
+	Users        []*User                  // List of ACL user profiles
+	UsersMutex   sync.RWMutex             // RWMutex for concurrency control when accessing ACL profile list
+	Connections  map[*net.Conn]Connection // Connections to the server that are currently registered with the ACL module
+	Config       utils.Config             // Server configuration that contains the relevant ACL config options
 	GlobPatterns map[string]glob.Glob
 }
 
@@ -144,7 +146,7 @@ func (acl *ACL) SetUser(cmd []string) error {
 	return nil
 }
 
-func (acl *ACL) DeleteUser(ctx context.Context, usernames []string) error {
+func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
 	var user *User
 	for _, username := range usernames {
 		if username == "default" {
@@ -339,7 +341,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return fmt.Errorf("not authorised to run %s command", comm)
 	}
 
-	// 6. PUBSUB authorisation comes first because it has slightly different handling.
+	// 6. PUBSUB authorisation.
 	if slices.Contains(categories, utils.PubSubCategory) {
 		// In PUBSUB, KeyExtractionFunc returns channels so keys[0] is aliased to channel
 		channel := keys[0]

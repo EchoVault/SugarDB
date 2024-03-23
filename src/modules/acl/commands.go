@@ -111,22 +111,23 @@ func handleGetUser(_ context.Context, cmd []string, server utils.Server, _ *net.
 
 	// keys
 	allKeys := user.IncludedReadKeys
-	for _, key := range user.IncludedWriteKeys {
+	for _, key := range append(user.IncludedWriteKeys, user.IncludedReadKeys...) {
 		if !slices.Contains(allKeys, key) {
 			allKeys = append(allKeys, key)
 		}
 	}
 	res = res + fmt.Sprintf("\r\n+keys\r\n*%d", len(allKeys))
-	for _, key := range user.IncludedReadKeys {
-		if slices.Contains(user.IncludedWriteKeys, key) {
+	for _, key := range allKeys {
+		switch {
+		case slices.Contains(user.IncludedWriteKeys, key) && slices.Contains(user.IncludedReadKeys, key):
+			// Key is RW
 			res = res + fmt.Sprintf("\r\n+%s~%s", "%RW", key)
-			continue
-		}
-		res = res + fmt.Sprintf("\r\n+%s~%s", "%R", key)
-	}
-	for _, key := range user.IncludedWriteKeys {
-		if !slices.Contains(user.IncludedReadKeys, key) {
+		case slices.Contains(user.IncludedWriteKeys, key):
+			// Keys is W-Only
 			res = res + fmt.Sprintf("\r\n+%s~%s", "%W", key)
+		case slices.Contains(user.IncludedReadKeys, key):
+			// Key is R-Only
+			res = res + fmt.Sprintf("\r\n+%s~%s", "%R", key)
 		}
 	}
 

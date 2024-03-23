@@ -1012,7 +1012,151 @@ func Test_HandleSetUser(t *testing.T) {
 	}
 }
 
-func Test_HandleGetUser(t *testing.T) {}
+func Test_HandleGetUser(t *testing.T) {
+	var port uint16 = 7493
+	mockServer := setUpServer(bindAddr, port, false)
+	go func() {
+		mockServer.Start(context.Background())
+	}()
+	acl, _ := mockServer.GetACL().(*ACL)
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	r := resp.NewConn(conn)
+
+	tests := []struct {
+		presetUser *User
+		cmd        []resp.Value
+		wantRes    []resp.Value
+		wantErr    string
+	}{
+		{ // 1. Get the user and all their details
+			presetUser: &User{
+				Username:   "get_user_1",
+				Enabled:    true,
+				NoPassword: false,
+				NoKeys:     false,
+				Passwords: []Password{
+					{PasswordType: PasswordPlainText, PasswordValue: "get_user_password_1"},
+					{PasswordType: PasswordSHA256, PasswordValue: generateSHA256Password("get_user_password_2")},
+				},
+				IncludedCategories:     []string{utils.WriteCategory, utils.ReadCategory, utils.PubSubCategory},
+				ExcludedCategories:     []string{utils.AdminCategory, utils.ConnectionCategory, utils.DangerousCategory},
+				IncludedCommands:       []string{"acl|setuser", "acl|getuser", "acl|deluser"},
+				ExcludedCommands:       []string{"rewriteaof", "save", "acl|load", "acl|save"},
+				IncludedReadKeys:       []string{"key1", "key2", "key3", "key4"},
+				IncludedWriteKeys:      []string{"key1", "key2", "key5", "key6"},
+				IncludedPubSubChannels: []string{"channel1", "channel2"},
+				ExcludedPubSubChannels: []string{"channel3", "channel4"},
+			},
+			cmd: []resp.Value{resp.StringValue("ACL"), resp.StringValue("GETUSER"), resp.StringValue("get_user_1")},
+			wantRes: []resp.Value{
+				resp.StringValue("username"),
+				resp.ArrayValue([]resp.Value{resp.StringValue("get_user_1")}),
+				resp.StringValue("flags"),
+				resp.ArrayValue([]resp.Value{
+					resp.StringValue("on"),
+				}),
+				resp.StringValue("categories"),
+				resp.ArrayValue([]resp.Value{
+					resp.StringValue(fmt.Sprintf("+@%s", utils.WriteCategory)),
+					resp.StringValue(fmt.Sprintf("+@%s", utils.ReadCategory)),
+					resp.StringValue(fmt.Sprintf("+@%s", utils.PubSubCategory)),
+					resp.StringValue(fmt.Sprintf("-@%s", utils.AdminCategory)),
+					resp.StringValue(fmt.Sprintf("-@%s", utils.ConnectionCategory)),
+					resp.StringValue(fmt.Sprintf("-@%s", utils.DangerousCategory)),
+				}),
+				resp.StringValue("commands"),
+				resp.ArrayValue([]resp.Value{
+					resp.StringValue("+acl|setuser"),
+					resp.StringValue("+acl|getuser"),
+					resp.StringValue("+acl|deluser"),
+					resp.StringValue("-rewriteaof"),
+					resp.StringValue("-save"),
+					resp.StringValue("-acl|load"),
+					resp.StringValue("-acl|save"),
+				}),
+				resp.StringValue("keys"),
+				resp.ArrayValue([]resp.Value{
+					// Keys here
+					resp.StringValue("%RW~key1"),
+					resp.StringValue("%RW~key2"),
+					resp.StringValue("%R~key3"),
+					resp.StringValue("%R~key4"),
+					resp.StringValue("%W~key5"),
+					resp.StringValue("%W~key6"),
+				}),
+				resp.StringValue("channels"),
+				resp.ArrayValue([]resp.Value{
+					// Channels here
+					resp.StringValue("+&channel1"),
+					resp.StringValue("+&channel2"),
+					resp.StringValue("-&channel3"),
+					resp.StringValue("-&channel4"),
+				}),
+			},
+			wantErr: "",
+		},
+		{ // 2. Return user not found error
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("GETUSER"),
+				resp.StringValue("non_existent_user")},
+			wantRes: nil,
+			wantErr: "Error user not found",
+		},
+	}
+
+	for _, test := range tests {
+		if test.presetUser != nil {
+			acl.Users = append(acl.Users, test.presetUser)
+		}
+		if err = r.WriteArray(test.cmd); err != nil {
+			t.Error(err)
+		}
+		v, _, err := r.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if test.wantErr != "" {
+			if v.Error().Error() != test.wantErr {
+				t.Errorf("expected error response \"%s\", got \"%s\"", test.wantErr, v.Error().Error())
+			}
+			continue
+		}
+		resArr := v.Array()
+		for i := 0; i < len(resArr); i++ {
+			if slices.Contains([]string{"username", "flags", "categories", "commands", "keys", "channels"}, resArr[i].String()) {
+				// String item
+				if resArr[i].String() != test.wantRes[i].String() {
+					t.Errorf("expected response component %+v, got %+v", test.wantRes[i], resArr[i])
+				}
+			} else {
+				// Array item
+				var expected []string
+				for _, item := range test.wantRes[i].Array() {
+					expected = append(expected, item.String())
+				}
+
+				var res []string
+				for _, item := range resArr[i].Array() {
+					res = append(res, item.String())
+				}
+
+				if err = compareSlices(res, expected); err != nil {
+					t.Error(err)
+				}
+			}
+		}
+	}
+}
 
 func Test_HandleDelUser(t *testing.T) {}
 
