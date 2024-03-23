@@ -58,6 +58,8 @@ func generateInitialTestUsers() []*User {
 		{PasswordType: PasswordPlainText, PasswordValue: "password2"},
 		{PasswordType: PasswordSHA256, PasswordValue: string(h.Sum(nil))},
 	}
+	withPasswordUser.IncludedCategories = []string{"*"}
+	withPasswordUser.IncludedCommands = []string{"*"}
 
 	// User with NoPassword option
 	noPasswordUser := CreateUser("no_password_user")
@@ -1236,7 +1238,68 @@ func Test_HandleDelUser(t *testing.T) {
 	}
 }
 
-func Test_HandleWhoAmI(t *testing.T) {}
+func Test_HandleWhoAmI(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	r := resp.NewConn(conn)
+
+	tests := []struct {
+		username string
+		password string
+		wantRes  string
+	}{
+		{ // 1. With default user
+			username: "default",
+			password: "password1",
+			wantRes:  "default",
+		},
+		{ // 2. With user authenticated by plaintext password
+			username: "with_password_user",
+			password: "password2",
+			wantRes:  "with_password_user",
+		},
+		{ // 3. With user authenticated by SHA256 password
+			username: "with_password_user",
+			password: "password3",
+			wantRes:  "with_password_user",
+		},
+	}
+
+	for _, test := range tests {
+		// Authenticate
+		if err = r.WriteArray([]resp.Value{
+			resp.StringValue("AUTH"),
+			resp.StringValue(test.username),
+			resp.StringValue(test.password),
+		}); err != nil {
+			t.Error(err)
+		}
+		v, _, err := r.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if v.String() != "OK" {
+			t.Errorf("expected response for auth with %s:%s to be \"OK\", got %s", test.username, test.password, v.String())
+		}
+		// Check whoami response value
+		if err = r.WriteArray([]resp.Value{resp.StringValue("ACL"), resp.StringValue("WHOAMI")}); err != nil {
+			t.Error(err)
+		}
+		v, _, err = r.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if v.String() != test.wantRes {
+			t.Errorf("expected whoami response to be \"%s\", got \"%s\"", test.wantRes, v.String())
+		}
+	}
+}
 
 func Test_HandleList(t *testing.T) {}
 
