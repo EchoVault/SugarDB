@@ -155,6 +155,12 @@ func compareUsers(user1, user2 *User) error {
 	return nil
 }
 
+func generateSHA256Password(plain string) string {
+	h := sha256.New()
+	h.Write([]byte(plain))
+	return string(h.Sum(nil))
+}
+
 func Test_HandleAuth(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 	if err != nil {
@@ -481,61 +487,496 @@ func Test_HandleSetUser(t *testing.T) {
 				return user
 			}(),
 		},
-		//{
-		//	// 3. Create new enabled user with both plaintext and SHA256 passwords
-		//},
-		//{
-		//	// 4. Remove plaintext and SHA256 password from existing user
-		//},
-		//{
-		//	// 5. Create user with no commands allowed to be executed
-		//},
-		//{
-		//	// 6. Create user that can access all categories
-		//},
-		//{
-		//	// 7. Create user with a few allowed categories and a few disallowed categories
-		//},
-		//{
-		//	// 8. Create user that is not allowed to access any keys
-		//},
-		//{
-		//	// 9. Create user that can access some read keys and some write keys
-		//	// Provide keys that are RW, W-Only and R-Only
-		//},
-		//{
-		//	// 10. Create user that can access all pubsub channels
-		//},
-		//{
-		//	// 11. Create user with a few allowed pubsub channels and a few disallowed channels
-		//},
-		//{
-		//	// 12. Create user that can access all commands
-		//},
-		//{
-		//	// 13. Create user with some allowed commands and disallowed commands
-		//},
-		//{
-		//	// 14. Create new user with no password using 'nopass'
-		//},
-		//{
-		//	// 15. Delete all existing users passwords using 'nopass'
-		//},
-		//{
-		//	// 16. Clear all of an existing user's passwords using 'resetpass'
-		//},
-		//{
-		//	// 17. Clear all of an existing user's command privileges using 'nocommands'
-		//},
-		//{
-		//	// 18. Clear all of an existing user's allowed keys using 'resetkeys'
-		//},
-		//{
-		//	// 19. Allow user to access all channels using 'resetchannels'
-		//},
+		{
+			// 3. Create new enabled user with both plaintext and SHA256 passwords
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_3"),
+				resp.StringValue("on"),
+				resp.StringValue(">set_user_3_plaintext_password_1"),
+				resp.StringValue(">set_user_3_plaintext_password_2"),
+				resp.StringValue(fmt.Sprintf("#%s", generateSHA256Password("set_user_3_hash_password_1"))),
+				resp.StringValue(fmt.Sprintf("#%s", generateSHA256Password("set_user_3_hash_password_2"))),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_3")
+				user.Enabled = true
+				user.Passwords = []Password{
+					{PasswordType: PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_1"},
+					{PasswordType: PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_2"},
+					{PasswordType: PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_1")},
+					{PasswordType: PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_2")},
+				}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 4. Remove plaintext and SHA256 password from existing user
+			presetUser: func() *User {
+				user := CreateUser("set_user_4")
+				user.Enabled = true
+				user.Passwords = []Password{
+					{PasswordType: PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_1"},
+					{PasswordType: PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_2"},
+					{PasswordType: PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_1")},
+					{PasswordType: PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_2")},
+				}
+				user.Normalise()
+				return user
+			}(),
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_4"),
+				resp.StringValue("on"),
+				resp.StringValue("<set_user_3_plaintext_password_2"),
+				resp.StringValue(fmt.Sprintf("!%s", generateSHA256Password("set_user_3_hash_password_2"))),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_4")
+				user.Enabled = true
+				user.Passwords = []Password{
+					{PasswordType: PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_1"},
+					{PasswordType: PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_1")},
+				}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 5. Create user with no commands allowed to be executed
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_5"),
+				resp.StringValue("on"),
+				resp.StringValue("nocommands"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_5")
+				user.Enabled = true
+				user.ExcludedCommands = []string{"*"}
+				user.ExcludedCategories = []string{"*"}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 6. Create user that can access all categories with +@*
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_6"),
+				resp.StringValue("on"),
+				resp.StringValue("+@*"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_6")
+				user.Enabled = true
+				user.IncludedCategories = []string{"*"}
+				user.ExcludedCategories = []string{}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 7. Create user that can access all categories with allcategories flag
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_7"),
+				resp.StringValue("on"),
+				resp.StringValue("allcategories"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_7")
+				user.Enabled = true
+				user.IncludedCategories = []string{"*"}
+				user.ExcludedCategories = []string{}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 8. Create user with a few allowed categories and a few disallowed categories
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_8"),
+				resp.StringValue("on"),
+				resp.StringValue(fmt.Sprintf("+@%s", utils.WriteCategory)),
+				resp.StringValue(fmt.Sprintf("+@%s", utils.ReadCategory)),
+				resp.StringValue(fmt.Sprintf("+@%s", utils.PubSubCategory)),
+				resp.StringValue(fmt.Sprintf("-@%s", utils.AdminCategory)),
+				resp.StringValue(fmt.Sprintf("-@%s", utils.ConnectionCategory)),
+				resp.StringValue(fmt.Sprintf("-@%s", utils.DangerousCategory)),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_8")
+				user.Enabled = true
+				user.IncludedCategories = []string{utils.WriteCategory, utils.ReadCategory, utils.PubSubCategory}
+				user.ExcludedCategories = []string{utils.AdminCategory, utils.ConnectionCategory, utils.DangerousCategory}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 9. Create user that is not allowed to access any keys
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_9"),
+				resp.StringValue("on"),
+				resp.StringValue("resetkeys"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_9")
+				user.Enabled = true
+				user.NoKeys = true
+				user.IncludedReadKeys = []string{}
+				user.IncludedWriteKeys = []string{}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 10. Create user that can access some read keys and some write keys
+			// Provide keys that are RW, W-Only and R-Only
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_10"),
+				resp.StringValue("on"),
+				resp.StringValue("~key1"),
+				resp.StringValue("~key2"),
+				resp.StringValue("%RW~key3"),
+				resp.StringValue("%RW~key4"),
+				resp.StringValue("%R~key5"),
+				resp.StringValue("%R~key6"),
+				resp.StringValue("%W~key7"),
+				resp.StringValue("%W~key8"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_10")
+				user.Enabled = true
+				user.NoKeys = false
+				user.IncludedReadKeys = []string{"key1", "key2", "key3", "key4", "key5", "key6"}
+				user.IncludedWriteKeys = []string{"key1", "key2", "key3", "key4", "key7", "key8"}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 11. Create user that can access all pubsub channels with +&*
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_11"),
+				resp.StringValue("on"),
+				resp.StringValue("+&*"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_11")
+				user.Enabled = true
+				user.IncludedPubSubChannels = []string{"*"}
+				user.ExcludedPubSubChannels = []string{}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 12. Create user that can access all pubsub channels with allchannels flag
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_12"),
+				resp.StringValue("on"),
+				resp.StringValue("allchannels"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_12")
+				user.Enabled = true
+				user.IncludedPubSubChannels = []string{"*"}
+				user.ExcludedPubSubChannels = []string{}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 13. Create user with a few allowed pubsub channels and a few disallowed channels
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_13"),
+				resp.StringValue("on"),
+				resp.StringValue("+&channel1"),
+				resp.StringValue("+&channel2"),
+				resp.StringValue("-&channel3"),
+				resp.StringValue("-&channel4"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_13")
+				user.Enabled = true
+				user.IncludedPubSubChannels = []string{"channel1", "channel2"}
+				user.ExcludedPubSubChannels = []string{"channel3", "channel4"}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 14. Create user that can access all commands
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_14"),
+				resp.StringValue("on"),
+				resp.StringValue("allcommands"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_14")
+				user.Enabled = true
+				user.IncludedCommands = []string{"*"}
+				user.ExcludedCommands = []string{}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 15. Create user with some allowed commands and disallowed commands
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_15"),
+				resp.StringValue("on"),
+				resp.StringValue("+acl|getuser"),
+				resp.StringValue("+acl|setuser"),
+				resp.StringValue("+acl|deluser"),
+				resp.StringValue("-rewriteaof"),
+				resp.StringValue("-save"),
+				resp.StringValue("-publish"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_15")
+				user.Enabled = true
+				user.IncludedCommands = []string{"acl|getuser", "acl|setuser", "acl|deluser"}
+				user.ExcludedCommands = []string{"rewriteaof", "save", "publish"}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 16. Create new user with no password using 'nopass'.
+			// When nopass is provided, ignore any passwords that may have been provided in the command.
+			presetUser: nil,
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_16"),
+				resp.StringValue("on"),
+				resp.StringValue("nopass"),
+				resp.StringValue(">password1"),
+				resp.StringValue(fmt.Sprintf("#%s", generateSHA256Password("password2"))),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_16")
+				user.Enabled = true
+				user.NoPassword = true
+				user.Passwords = []Password{}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 17. Delete all existing users passwords using 'nopass'
+			presetUser: func() *User {
+				user := CreateUser("set_user_17")
+				user.Enabled = true
+				user.NoPassword = true
+				user.Passwords = []Password{
+					{PasswordType: PasswordPlainText, PasswordValue: "password1"},
+					{PasswordType: PasswordSHA256, PasswordValue: generateSHA256Password("password2")},
+				}
+				user.Normalise()
+				return user
+			}(),
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_17"),
+				resp.StringValue("on"),
+				resp.StringValue("nopass"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_17")
+				user.Enabled = true
+				user.NoPassword = true
+				user.Passwords = []Password{}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 18. Clear all of an existing user's passwords using 'resetpass'
+			presetUser: func() *User {
+				user := CreateUser("set_user_18")
+				user.Enabled = true
+				user.NoPassword = true
+				user.Passwords = []Password{
+					{PasswordType: PasswordPlainText, PasswordValue: "password1"},
+					{PasswordType: PasswordSHA256, PasswordValue: generateSHA256Password("password2")},
+				}
+				user.Normalise()
+				return user
+			}(),
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_18"),
+				resp.StringValue("on"),
+				resp.StringValue("nopass"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_18")
+				user.Enabled = true
+				user.NoPassword = true
+				user.Passwords = []Password{}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 19. Clear all of an existing user's command privileges using 'nocommands'
+			presetUser: func() *User {
+				user := CreateUser("set_user_19")
+				user.Enabled = true
+				user.IncludedCommands = []string{"acl|getuser", "acl|setuser", "acl|deluser"}
+				user.ExcludedCommands = []string{"rewriteaof", "save"}
+				user.Normalise()
+				return user
+			}(),
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_19"),
+				resp.StringValue("on"),
+				resp.StringValue("nocommands"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_19")
+				user.Enabled = true
+				user.IncludedCommands = []string{}
+				user.ExcludedCommands = []string{"*"}
+				user.IncludedCategories = []string{}
+				user.ExcludedCategories = []string{"*"}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 20. Clear all of an existing user's allowed keys using 'resetkeys'
+			presetUser: func() *User {
+				user := CreateUser("set_user_20")
+				user.Enabled = true
+				user.IncludedWriteKeys = []string{"key1", "key2", "key3", "key4", "key5", "key6"}
+				user.IncludedReadKeys = []string{"key1", "key2", "key3", "key7", "key8", "key9"}
+				user.Normalise()
+				return user
+			}(),
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_20"),
+				resp.StringValue("on"),
+				resp.StringValue("resetkeys"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_20")
+				user.Enabled = true
+				user.NoKeys = true
+				user.IncludedReadKeys = []string{}
+				user.IncludedWriteKeys = []string{}
+				user.Normalise()
+				return user
+			}(),
+		},
+		{
+			// 21. Allow user to access all channels using 'resetchannels'
+			presetUser: func() *User {
+				user := CreateUser("set_user_21")
+				user.IncludedPubSubChannels = []string{"channel1", "channel2"}
+				user.ExcludedPubSubChannels = []string{"channel3", "channel4"}
+				user.Normalise()
+				return user
+			}(),
+			cmd: []resp.Value{
+				resp.StringValue("ACL"),
+				resp.StringValue("SETUSER"),
+				resp.StringValue("set_user_21"),
+				resp.StringValue("resetchannels"),
+			},
+			wantRes: "OK",
+			wantErr: "",
+			wantUser: func() *User {
+				user := CreateUser("set_user_21")
+				user.IncludedPubSubChannels = []string{}
+				user.ExcludedPubSubChannels = []string{"*"}
+				user.Normalise()
+				return user
+			}(),
+		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		if test.presetUser != nil {
 			acl.Users = append(acl.Users, test.presetUser)
 		}
@@ -566,7 +1007,7 @@ func Test_HandleSetUser(t *testing.T) {
 			t.Errorf("expected to find user with username \"%s\" but could not find them.", expectedUser.Username)
 		}
 		if err = compareUsers(expectedUser, acl.Users[currUserIdx]); err != nil {
-			t.Error(err)
+			t.Errorf("test idx: %d, %+v", i, err)
 		}
 	}
 }

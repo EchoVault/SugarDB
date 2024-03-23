@@ -190,6 +190,7 @@ func (user *User) UpdateUser(cmd []string) error {
 		// Parse commands
 		if strings.EqualFold(str, "allCommands") {
 			user.IncludedCommands = []string{"*"}
+			user.ExcludedCommands = []string{}
 			continue
 		}
 		if len(str) > 2 && !slices.Contains([]uint8{'&', '@'}, str[1]) {
@@ -220,7 +221,10 @@ func (user *User) UpdateUser(cmd []string) error {
 		}
 		// If nocommands is provided, disable all commands for this user
 		if strings.EqualFold(str, "nocommands") {
+			user.IncludedCommands = []string{}
 			user.ExcludedCommands = []string{"*"}
+			user.IncludedCategories = []string{}
+			user.ExcludedCategories = []string{"*"}
 		}
 		// If resetkeys is provided, reset all keys that the user can access
 		if strings.EqualFold(str, "resetkeys") {
@@ -230,6 +234,7 @@ func (user *User) UpdateUser(cmd []string) error {
 		}
 		// If resetchannels is provided, remove all the pub/sub channels that the user can access
 		if strings.EqualFold(str, "resetchannels") {
+			user.IncludedPubSubChannels = []string{}
 			user.ExcludedPubSubChannels = []string{"*"}
 		}
 	}
