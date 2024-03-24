@@ -107,8 +107,8 @@ func NewACL(config utils.Config) *ACL {
 }
 
 func (acl *ACL) RegisterConnection(conn *net.Conn) {
-	acl.UsersMutex.Lock()
-	defer acl.UsersMutex.Unlock()
+	acl.LockUsers()
+	defer acl.UnlockUsers()
 
 	// This is called only when a connection is established.
 	defaultUserIdx := slices.IndexFunc(acl.Users, func(user *User) bool {
@@ -122,8 +122,8 @@ func (acl *ACL) RegisterConnection(conn *net.Conn) {
 }
 
 func (acl *ACL) SetUser(cmd []string) error {
-	acl.UsersMutex.Lock()
-	defer acl.UsersMutex.Unlock()
+	acl.LockUsers()
+	defer acl.UnlockUsers()
 
 	// Check if user with the given username already exists
 	// If it does, replace user variable with this user
@@ -154,8 +154,8 @@ func (acl *ACL) SetUser(cmd []string) error {
 }
 
 func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
-	acl.UsersMutex.Lock()
-	defer acl.UsersMutex.Unlock()
+	acl.LockUsers()
+	defer acl.UnlockUsers()
 
 	var user *User
 	for _, username := range usernames {
@@ -188,8 +188,8 @@ func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
 }
 
 func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []string) error {
-	acl.UsersMutex.RLock()
-	defer acl.UsersMutex.RUnlock()
+	acl.RLockUsers()
+	defer acl.RUnlockUsers()
 
 	var passwords []Password
 	var user *User
@@ -264,8 +264,8 @@ func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []
 }
 
 func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.Command, subCommand utils.SubCommand) error {
-	acl.UsersMutex.RLock()
-	defer acl.UsersMutex.RUnlock()
+	acl.RLockUsers()
+	defer acl.RUnlockUsers()
 
 	// Extract command, categories, and keys
 	comm := command.Command
@@ -438,4 +438,20 @@ func (acl *ACL) CompileGlobs() {
 			acl.GlobPatterns[g] = glob.MustCompile(g)
 		}
 	}
+}
+
+func (acl *ACL) LockUsers() {
+	acl.UsersMutex.Lock()
+}
+
+func (acl *ACL) UnlockUsers() {
+	acl.UsersMutex.Unlock()
+}
+
+func (acl *ACL) RLockUsers() {
+	acl.UsersMutex.RLock()
+}
+
+func (acl *ACL) RUnlockUsers() {
+	acl.UsersMutex.RUnlock()
 }

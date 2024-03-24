@@ -23,14 +23,14 @@ func init() {
 	bindAddr = "localhost"
 	port = 7490
 
-	mockServer = setUpServer(bindAddr, port, true)
+	mockServer = setUpServer(bindAddr, port, true, "")
 
 	go func() {
 		mockServer.Start(context.Background())
 	}()
 }
 
-func setUpServer(bindAddr string, port uint16, requirePass bool) *server.Server {
+func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig string) *server.Server {
 	config := utils.Config{
 		BindAddr:       bindAddr,
 		Port:           port,
@@ -38,6 +38,7 @@ func setUpServer(bindAddr string, port uint16, requirePass bool) *server.Server 
 		EvictionPolicy: utils.NoEviction,
 		RequirePass:    requirePass,
 		Password:       "password1",
+		AclConfig:      aclConfig,
 	}
 
 	acl = NewACL(config)
@@ -379,7 +380,7 @@ func Test_HandleCat(t *testing.T) {
 
 func Test_HandleUsers(t *testing.T) {
 	var port uint16 = 7491
-	mockServer := setUpServer(bindAddr, port, false)
+	mockServer := setUpServer(bindAddr, port, false, "")
 	go func() {
 		mockServer.Start(context.Background())
 	}()
@@ -428,7 +429,7 @@ func Test_HandleUsers(t *testing.T) {
 
 func Test_HandleSetUser(t *testing.T) {
 	var port uint16 = 7492
-	mockServer := setUpServer(bindAddr, port, false)
+	mockServer := setUpServer(bindAddr, port, false, "")
 	go func() {
 		mockServer.Start(context.Background())
 	}()
@@ -1017,7 +1018,7 @@ func Test_HandleSetUser(t *testing.T) {
 
 func Test_HandleGetUser(t *testing.T) {
 	var port uint16 = 7493
-	mockServer := setUpServer(bindAddr, port, false)
+	mockServer := setUpServer(bindAddr, port, false, "")
 	go func() {
 		mockServer.Start(context.Background())
 	}()
@@ -1163,7 +1164,7 @@ func Test_HandleGetUser(t *testing.T) {
 
 func Test_HandleDelUser(t *testing.T) {
 	var port uint16 = 7494
-	mockServer := setUpServer(bindAddr, port, false)
+	mockServer := setUpServer(bindAddr, port, false, "")
 	go func() {
 		mockServer.Start(context.Background())
 	}()
@@ -1304,7 +1305,7 @@ func Test_HandleWhoAmI(t *testing.T) {
 
 func Test_HandleList(t *testing.T) {
 	var port uint16 = 7495
-	mockServer := setUpServer(bindAddr, port, false)
+	mockServer := setUpServer(bindAddr, port, false, "")
 	go func() {
 		mockServer.Start(context.Background())
 	}()
@@ -1428,7 +1429,3 @@ func Test_HandleList(t *testing.T) {
 		}
 	}
 }
-
-func Test_HandleLoad(t *testing.T) {}
-
-func Test_HandleSave(t *testing.T) {}

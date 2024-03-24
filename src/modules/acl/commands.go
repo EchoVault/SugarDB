@@ -359,6 +359,9 @@ func handleLoad(_ context.Context, cmd []string, server utils.Server, _ *net.Con
 		return nil, errors.New("could not load ACL")
 	}
 
+	acl.LockUsers()
+	defer acl.RUnlockUsers()
+
 	f, err := os.Open(acl.Config.AclConfig)
 	if err != nil {
 		return nil, err
@@ -422,6 +425,9 @@ func handleSave(_ context.Context, cmd []string, server utils.Server, _ *net.Con
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
+
+	acl.RLockUsers()
+	acl.RUnlockUsers()
 
 	f, err := os.OpenFile(acl.Config.AclConfig, os.O_WRONLY|os.O_CREATE, os.ModeAppend)
 	if err != nil {
@@ -566,7 +572,7 @@ If the optional category is provided, list all the commands in the category`,
 					Description: `
 (ACL LOAD <MERGE | REPLACE>) Reloads the rules from the configured ACL config file.
 When 'MERGE' is passed, users from config file who share a username with users in memory will be merged.
-When 'REPLACED' is passed, users from config file who share a username with users in memory will replace the user in memory.`,
+When 'REPLACE' is passed, users from config file who share a username with users in memory will replace the user in memory.`,
 					Sync: true,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
 						return []string{}, nil
