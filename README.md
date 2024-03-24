@@ -3,8 +3,7 @@
 [![codecov](https://codecov.io/gh/EchoVault/EchoVault/graph/badge.svg?token=CHWTW0IUNV)](https://codecov.io/gh/EchoVault/EchoVault)
 <br/>
 [![GitHub Release](https://img.shields.io/github/v/release/EchoVault/EchoVault)]()
-[![License: GPL v3](https://img.shields.io/badge/License-GPL_v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
-
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 <hr/>
 
 <img alt="echovault_logo" src="./images/EchoVault GitHub Cover.png" width="5062" />
