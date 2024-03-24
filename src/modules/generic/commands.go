@@ -24,7 +24,7 @@ func init() {
 	// Test run
 	now := time.Now()
 	timeNow = func() time.Time {
-		return now.Add(10 * time.Hour)
+		return now.Add(5 * time.Hour).Add(30 * time.Minute).Add(30 * time.Second).Add(10 * time.Millisecond)
 	}
 }
 

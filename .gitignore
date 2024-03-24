@@ -2,7 +2,6 @@
 bin
 volumes
 /config/
-/coverage/
 
 dist/
 src/modules/*/aof

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/src/utils"
 	"gopkg.in/yaml.v3"
+	"log"
 	"net"
 	"os"
 	"path"
@@ -28,7 +29,7 @@ func handleAuth(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(utils.OkResponse), nil
 }
 
-func handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleGetUser(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -110,22 +111,23 @@ func handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn 
 
 	// keys
 	allKeys := user.IncludedReadKeys
-	for _, key := range user.IncludedWriteKeys {
+	for _, key := range append(user.IncludedWriteKeys, user.IncludedReadKeys...) {
 		if !slices.Contains(allKeys, key) {
 			allKeys = append(allKeys, key)
 		}
 	}
 	res = res + fmt.Sprintf("\r\n+keys\r\n*%d", len(allKeys))
-	for _, key := range user.IncludedReadKeys {
-		if slices.Contains(user.IncludedWriteKeys, key) {
+	for _, key := range allKeys {
+		switch {
+		case slices.Contains(user.IncludedWriteKeys, key) && slices.Contains(user.IncludedReadKeys, key):
+			// Key is RW
 			res = res + fmt.Sprintf("\r\n+%s~%s", "%RW", key)
-			continue
-		}
-		res = res + fmt.Sprintf("\r\n+%s~%s", "%R", key)
-	}
-	for _, key := range user.IncludedWriteKeys {
-		if !slices.Contains(user.IncludedReadKeys, key) {
+		case slices.Contains(user.IncludedWriteKeys, key):
+			// Keys is W-Only
 			res = res + fmt.Sprintf("\r\n+%s~%s", "%W", key)
+		case slices.Contains(user.IncludedReadKeys, key):
+			// Key is R-Only
+			res = res + fmt.Sprintf("\r\n+%s~%s", "%R", key)
 		}
 	}
 
@@ -144,7 +146,7 @@ func handleGetUser(ctx context.Context, cmd []string, server utils.Server, conn 
 	return []byte(res), nil
 }
 
-func handleCat(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleCat(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -201,10 +203,10 @@ func handleCat(ctx context.Context, cmd []string, server utils.Server, conn *net
 		}
 	}
 
-	return nil, errors.New("category not found")
+	return nil, fmt.Errorf("category %s not found", strings.ToUpper(cmd[2]))
 }
 
-func handleUsers(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleUsers(_ context.Context, _ []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	acl, ok := server.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -217,18 +219,18 @@ func handleUsers(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(res), nil
 }
 
-func handleSetUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSetUser(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	acl, ok := server.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
-	if err := acl.SetUser(ctx, cmd[2:]); err != nil {
+	if err := acl.SetUser(cmd[2:]); err != nil {
 		return nil, err
 	}
 	return []byte(utils.OkResponse), nil
 }
 
-func handleDelUser(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleDelUser(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -242,7 +244,7 @@ func handleDelUser(ctx context.Context, cmd []string, server utils.Server, conn 
 	return []byte(utils.OkResponse), nil
 }
 
-func handleWhoAmI(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleWhoAmI(_ context.Context, _ []string, server utils.Server, conn *net.Conn) ([]byte, error) {
 	acl, ok := server.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -251,7 +253,7 @@ func handleWhoAmI(ctx context.Context, cmd []string, server utils.Server, conn *
 	return []byte(fmt.Sprintf("+%s\r\n", connectionInfo.User.Username)), nil
 }
 
-func handleList(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleList(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 2 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -347,7 +349,7 @@ func handleList(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(res), nil
 }
 
-func handleLoad(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleLoad(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -357,6 +359,9 @@ func handleLoad(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		return nil, errors.New("could not load ACL")
 	}
 
+	acl.LockUsers()
+	defer acl.RUnlockUsers()
+
 	f, err := os.Open(acl.Config.AclConfig)
 	if err != nil {
 		return nil, err
@@ -364,8 +369,7 @@ func handleLoad(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	defer func() {
 		if err := f.Close(); err != nil {
-			// TODO: Log file close error with context
-			fmt.Println(err)
+			log.Println(err)
 		}
 	}()
 
@@ -412,7 +416,7 @@ func handleLoad(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(utils.OkResponse), nil
 }
 
-func handleSave(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSave(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 2 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -422,6 +426,9 @@ func handleSave(ctx context.Context, cmd []string, server utils.Server, conn *ne
 		return nil, errors.New("could not load ACL")
 	}
 
+	acl.RLockUsers()
+	acl.RUnlockUsers()
+
 	f, err := os.OpenFile(acl.Config.AclConfig, os.O_WRONLY|os.O_CREATE, os.ModeAppend)
 	if err != nil {
 		return nil, err
@@ -429,8 +436,7 @@ func handleSave(ctx context.Context, cmd []string, server utils.Server, conn *ne
 
 	defer func() {
 		if err := f.Close(); err != nil {
-			// TODO: Log file close error with context
-			fmt.Println(err)
+			log.Println(err)
 		}
 	}()
 
@@ -490,10 +496,11 @@ func Commands() []utils.Command {
 			},
 			SubCommands: []utils.SubCommand{
 				{
-					Command:     "cat",
-					Categories:  []string{utils.SlowCategory},
-					Description: "(ACL CAT [category]) List all the categories and commands inside a category.",
-					Sync:        false,
+					Command:    "cat",
+					Categories: []string{utils.SlowCategory},
+					Description: `(ACL CAT [category]) List all the categories. 
+If the optional category is provided, list all the commands in the category`,
+					Sync: false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
 						return []string{}, nil
 					},
@@ -565,7 +572,7 @@ func Commands() []utils.Command {
 					Description: `
 (ACL LOAD <MERGE | REPLACE>) Reloads the rules from the configured ACL config file.
 When 'MERGE' is passed, users from config file who share a username with users in memory will be merged.
-When 'REPLACED' is passed, users from config file who share a username with users in memory will replace the user in memory.`,
+When 'REPLACE' is passed, users from config file who share a username with users in memory will replace the user in memory.`,
 					Sync: true,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
 						return []string{}, nil

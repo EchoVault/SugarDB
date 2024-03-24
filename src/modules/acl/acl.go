@@ -16,18 +16,20 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Connection struct {
-	Authenticated bool
-	User          *User
+	Authenticated bool  // Whether the connection has been authenticated
+	User          *User // The user the connection is associated with
 }
 
 type ACL struct {
-	Users        []*User
-	Connections  map[*net.Conn]Connection
-	Config       utils.Config
+	Users        []*User                  // List of ACL user profiles
+	UsersMutex   sync.RWMutex             // RWMutex for concurrency control when accessing ACL profile list
+	Connections  map[*net.Conn]Connection // Connections to the server that are currently registered with the ACL module
+	Config       utils.Config             // Server configuration that contains the relevant ACL config options
 	GlobPatterns map[string]glob.Glob
 }
 
@@ -93,6 +95,7 @@ func NewACL(config utils.Config) *ACL {
 
 	acl := ACL{
 		Users:        users,
+		UsersMutex:   sync.RWMutex{},
 		Connections:  make(map[*net.Conn]Connection),
 		Config:       config,
 		GlobPatterns: make(map[string]glob.Glob),
@@ -104,6 +107,9 @@ func NewACL(config utils.Config) *ACL {
 }
 
 func (acl *ACL) RegisterConnection(conn *net.Conn) {
+	acl.LockUsers()
+	defer acl.UnlockUsers()
+
 	// This is called only when a connection is established.
 	defaultUserIdx := slices.IndexFunc(acl.Users, func(user *User) bool {
 		return user.Username == "default"
@@ -115,7 +121,10 @@ func (acl *ACL) RegisterConnection(conn *net.Conn) {
 	}
 }
 
-func (acl *ACL) SetUser(ctx context.Context, cmd []string) error {
+func (acl *ACL) SetUser(cmd []string) error {
+	acl.LockUsers()
+	defer acl.UnlockUsers()
+
 	// Check if user with the given username already exists
 	// If it does, replace user variable with this user
 	for _, user := range acl.Users {
@@ -144,7 +153,10 @@ func (acl *ACL) SetUser(ctx context.Context, cmd []string) error {
 	return nil
 }
 
-func (acl *ACL) DeleteUser(ctx context.Context, usernames []string) error {
+func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
+	acl.LockUsers()
+	defer acl.UnlockUsers()
+
 	var user *User
 	for _, username := range usernames {
 		if username == "default" {
@@ -164,18 +176,21 @@ func (acl *ACL) DeleteUser(ctx context.Context, usernames []string) error {
 		// Terminate every connection attached to this user
 		for connRef, connection := range acl.Connections {
 			if connection.User.Username == user.Username {
-				(*connRef).SetReadDeadline(time.Now().Add(-1 * time.Second))
+				_ = (*connRef).SetReadDeadline(time.Now().Add(-1 * time.Second))
 			}
 		}
 		// Delete the user from the ACL
 		acl.Users = slices.DeleteFunc(acl.Users, func(u *User) bool {
-			return u.Username != user.Username
+			return u.Username == user.Username
 		})
 	}
 	return nil
 }
 
-func (acl *ACL) AuthenticateConnection(ctx context.Context, conn *net.Conn, cmd []string) error {
+func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []string) error {
+	acl.RLockUsers()
+	defer acl.RUnlockUsers()
+
 	var passwords []Password
 	var user *User
 
@@ -194,6 +209,7 @@ func (acl *ACL) AuthenticateConnection(ctx context.Context, conn *net.Conn, cmd 
 		})
 		user = acl.Users[idx]
 	}
+
 	if len(cmd) == 3 {
 		// Process AUTH <username> <password>
 		h.Write([]byte(cmd[2]))
@@ -248,6 +264,9 @@ func (acl *ACL) AuthenticateConnection(ctx context.Context, conn *net.Conn, cmd 
 }
 
 func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.Command, subCommand utils.SubCommand) error {
+	acl.RLockUsers()
+	defer acl.RUnlockUsers()
+
 	// Extract command, categories, and keys
 	comm := command.Command
 	categories := command.Categories
@@ -278,7 +297,6 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 
 	// If the command is 'auth', then return early and allow it
 	if strings.EqualFold(comm, "auth") {
-		// TODO: Add rate limiting to prevent auth spamming
 		return nil
 	}
 
@@ -339,7 +357,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return fmt.Errorf("not authorised to run %s command", comm)
 	}
 
-	// 6. PUBSUB authorisation comes first because it has slightly different handling.
+	// 6. PUBSUB authorisation.
 	if slices.Contains(categories, utils.PubSubCategory) {
 		// In PUBSUB, KeyExtractionFunc returns channels so keys[0] is aliased to channel
 		channel := keys[0]
@@ -420,4 +438,20 @@ func (acl *ACL) CompileGlobs() {
 			acl.GlobPatterns[g] = glob.MustCompile(g)
 		}
 	}
+}
+
+func (acl *ACL) LockUsers() {
+	acl.UsersMutex.Lock()
+}
+
+func (acl *ACL) UnlockUsers() {
+	acl.UsersMutex.Unlock()
+}
+
+func (acl *ACL) RLockUsers() {
+	acl.UsersMutex.RLock()
+}
+
+func (acl *ACL) RUnlockUsers() {
+	acl.UsersMutex.RUnlock()
 }
