@@ -40,7 +40,7 @@ type Server interface {
 	RemoveExpiry(key string)
 	DeleteKey(ctx context.Context, key string) error
 	GetState() map[string]KeyData
-	GetAllCommands(ctx context.Context) []Command
+	GetAllCommands() []Command
 	GetACL() interface{}
 	GetPubSub() interface{}
 	TakeSnapshot() error

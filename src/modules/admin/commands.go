@@ -26,7 +26,7 @@ import (
 )
 
 func handleGetAllCommands(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
-	commands := server.GetAllCommands(ctx)
+	commands := server.GetAllCommands()
 
 	res := ""
 	commandCount := 0
@@ -70,10 +70,10 @@ func handleGetAllCommands(ctx context.Context, cmd []string, server utils.Server
 	return []byte(res), nil
 }
 
-func handleCommandCount(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleCommandCount(_ context.Context, _ []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	var count int
 
-	commands := server.GetAllCommands(ctx)
+	commands := server.GetAllCommands()
 	for _, command := range commands {
 		if command.SubCommands != nil && len(command.SubCommands) > 0 {
 			for _, _ = range command.SubCommands {
@@ -93,7 +93,7 @@ func handleCommandList(ctx context.Context, cmd []string, server utils.Server, _
 		// Command is COMMAND LIST
 		var count int
 		var res string
-		commands := server.GetAllCommands(ctx)
+		commands := server.GetAllCommands()
 		for _, command := range commands {
 			if command.SubCommands != nil && len(command.SubCommands) > 0 {
 				for _, subcommand := range command.SubCommands {
@@ -118,7 +118,7 @@ func handleCommandList(ctx context.Context, cmd []string, server utils.Server, _
 		}
 		if strings.EqualFold("ACLCAT", cmd[3]) {
 			// ACL Category filter
-			commands := server.GetAllCommands(ctx)
+			commands := server.GetAllCommands()
 			category := strings.ToLower(cmd[4])
 			for _, command := range commands {
 				if command.SubCommands != nil && len(command.SubCommands) > 0 {
@@ -138,7 +138,7 @@ func handleCommandList(ctx context.Context, cmd []string, server utils.Server, _
 			}
 		} else if strings.EqualFold("PATTERN", cmd[3]) {
 			// Pattern filter
-			commands := server.GetAllCommands(ctx)
+			commands := server.GetAllCommands()
 			g := glob.MustCompile(cmd[4])
 			for _, command := range commands {
 				if command.SubCommands != nil && len(command.SubCommands) > 0 {

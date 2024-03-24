@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-func (server *Server) GetAllCommands(ctx context.Context) []utils.Command {
+func (server *Server) GetAllCommands() []utils.Command {
 	return server.Commands
 }
 

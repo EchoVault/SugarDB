@@ -160,14 +160,14 @@ func handleGetUser(_ context.Context, cmd []string, server utils.Server, _ *net.
 	return []byte(res), nil
 }
 
-func handleCat(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleCat(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
 	categories := make(map[string][]string)
 
-	commands := server.GetAllCommands(ctx)
+	commands := server.GetAllCommands()
 
 	for _, command := range commands {
 		if len(command.SubCommands) == 0 {
