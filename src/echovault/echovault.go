@@ -370,12 +370,12 @@ func (server *EchoVault) Start(ctx context.Context) {
 		server.raft.RaftInit(ctx)
 		server.memberList.MemberListInit(ctx)
 		if server.raft.IsRaftLeader() {
-			server.InitialiseCaches()
+			server.initialiseCaches()
 		}
 	}
 
 	if !server.IsInCluster() {
-		server.InitialiseCaches()
+		server.initialiseCaches()
 		// Restore from AOF by default if it's enabled
 		if conf.RestoreAOF {
 			err := server.AOFEngine.Restore()
@@ -461,7 +461,7 @@ func (server *EchoVault) ShutDown(ctx context.Context) {
 	}
 }
 
-func (server *EchoVault) InitialiseCaches() {
+func (server *EchoVault) initialiseCaches() {
 	// Set up LFU cache
 	server.lfuCache = struct {
 		mutex sync.Mutex
