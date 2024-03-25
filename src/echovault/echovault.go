@@ -36,13 +36,13 @@ import (
 )
 
 type EchoVault struct {
-	// Config holds the echovault configuration variables.
-	Config utils.Config
+	// config holds the echovault configuration variables.
+	config utils.Config
 
 	// The current index for the latest connection id.
 	// This number is incremented everytime there's a new connection and
 	// the new number is the new connection's ID.
-	ConnID atomic.Uint64
+	connId atomic.Uint64
 
 	store           map[string]utils.KeyData // Data store to hold the keys and their associated data, expiry time, etc.
 	keyLocks        map[string]*sync.RWMutex // Map to hold all the individual key locks.
@@ -65,7 +65,7 @@ type EchoVault struct {
 	}
 
 	// Holds the list of all commands supported by the echovault.
-	Commands []utils.Command
+	commands []utils.Command
 
 	raft       *raft.Raft             // The raft replication layer for the echovault.
 	memberList *memberlist.MemberList // The memberlist layer for the echovault.
@@ -75,13 +75,13 @@ type EchoVault struct {
 	ACL    utils.ACL
 	PubSub utils.PubSub
 
-	SnapshotInProgress         atomic.Bool      // Atomic boolean that's true when actively taking a snapshot.
-	RewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
-	StateCopyInProgress        atomic.Bool      // Atomic boolean that's true when actively copying state for snapshotting or preamble generation.
-	StateMutationInProgress    atomic.Bool      // Atomic boolean that is set to true when state mutation is in progress.
-	LatestSnapshotMilliseconds atomic.Int64     // Unix epoch in milliseconds
-	SnapshotEngine             *snapshot.Engine // Snapshot engine for standalone mode
-	AOFEngine                  *aof.Engine      // AOF engine for standalone mode
+	snapshotInProgress         atomic.Bool      // Atomic boolean that's true when actively taking a snapshot.
+	rewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
+	stateCopyInProgress        atomic.Bool      // Atomic boolean that's true when actively copying state for snapshotting or preamble generation.
+	stateMutationInProgress    atomic.Bool      // Atomic boolean that is set to true when state mutation is in progress.
+	latestSnapshotMilliseconds atomic.Int64     // Unix epoch in milliseconds
+	snapshotEngine             *snapshot.Engine // Snapshot engine for standalone mode
+	aofEngine                  *aof.Engine      // AOF engine for standalone mode
 }
 
 func WithContext(ctx context.Context) func(echovault *EchoVault) {
@@ -92,7 +92,7 @@ func WithContext(ctx context.Context) func(echovault *EchoVault) {
 
 func WithConfig(config utils.Config) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
-		echovault.Config = config
+		echovault.config = config
 	}
 }
 
@@ -110,14 +110,14 @@ func WithPubSub(pubsub utils.PubSub) func(echovault *EchoVault) {
 
 func WithCommands(commands []utils.Command) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
-		echovault.Commands = commands
+		echovault.commands = commands
 	}
 }
 
 func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 	echovault := &EchoVault{
 		Context:         context.Background(),
-		Commands:        make([]utils.Command, 0),
+		commands:        make([]utils.Command, 0),
 		store:           make(map[string]utils.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
@@ -129,13 +129,13 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 
 	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{
-			Config:     echovault.Config,
+			Config:     echovault.config,
 			EchoVault:  echovault,
 			GetCommand: echovault.getCommand,
 			DeleteKey:  echovault.DeleteKey,
 		})
 		echovault.memberList = memberlist.NewMemberList(memberlist.Opts{
-			Config:           echovault.Config,
+			Config:           echovault.config,
 			HasJoinedCluster: echovault.raft.HasJoinedCluster,
 			AddVoter:         echovault.raft.AddVoter,
 			RemoveRaftServer: echovault.raft.RemoveServer,
@@ -145,10 +145,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 		})
 	} else {
 		// Set up standalone snapshot engine
-		echovault.SnapshotEngine = snapshot.NewSnapshotEngine(
-			snapshot.WithDirectory(echovault.Config.DataDir),
-			snapshot.WithThreshold(echovault.Config.SnapShotThreshold),
-			snapshot.WithInterval(echovault.Config.SnapshotInterval),
+		echovault.snapshotEngine = snapshot.NewSnapshotEngine(
+			snapshot.WithDirectory(echovault.config.DataDir),
+			snapshot.WithThreshold(echovault.config.SnapShotThreshold),
+			snapshot.WithInterval(echovault.config.SnapshotInterval),
 			snapshot.WithGetStateFunc(echovault.GetState),
 			snapshot.WithStartSnapshotFunc(echovault.StartSnapshot),
 			snapshot.WithFinishSnapshotFunc(echovault.FinishSnapshot),
@@ -167,9 +167,9 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 			}),
 		)
 		// Set up standalone AOF engine
-		echovault.AOFEngine = aof.NewAOFEngine(
-			aof.WithDirectory(echovault.Config.DataDir),
-			aof.WithStrategy(echovault.Config.AOFSyncStrategy),
+		echovault.aofEngine = aof.NewAOFEngine(
+			aof.WithDirectory(echovault.config.DataDir),
+			aof.WithStrategy(echovault.config.AOFSyncStrategy),
 			aof.WithStartRewriteFunc(echovault.StartRewriteAOF),
 			aof.WithFinishRewriteFunc(echovault.FinishRewriteAOF),
 			aof.WithGetStateFunc(echovault.GetState),
@@ -194,10 +194,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 	}
 
 	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
-	if echovault.Config.EvictionPolicy != utils.NoEviction {
+	if echovault.config.EvictionPolicy != utils.NoEviction {
 		go func() {
 			for {
-				<-time.After(echovault.Config.EvictionInterval)
+				<-time.After(echovault.config.EvictionInterval)
 				if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
 					log.Println(err)
 				}
@@ -209,7 +209,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 }
 
 func (server *EchoVault) StartTCP(ctx context.Context) {
-	conf := server.Config
+	conf := server.config
 
 	listenConfig := net.ListenConfig{
 		KeepAlive: 200 * time.Millisecond,
@@ -290,7 +290,7 @@ func (server *EchoVault) handleConnection(ctx context.Context, conn net.Conn) {
 
 	w, r := io.Writer(conn), io.Reader(conn)
 
-	cid := server.ConnID.Add(1)
+	cid := server.connId.Add(1)
 	ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"),
 		fmt.Sprintf("%s-%d", ctx.Value(utils.ContextServerID("ServerID")), cid))
 
@@ -358,7 +358,7 @@ func (server *EchoVault) handleConnection(ctx context.Context, conn net.Conn) {
 }
 
 func (server *EchoVault) Start(ctx context.Context) {
-	conf := server.Config
+	conf := server.config
 
 	if conf.TLS && len(conf.CertKeyPairs) <= 0 {
 		log.Fatal("must provide certificate and key file paths for TLS mode")
@@ -378,7 +378,7 @@ func (server *EchoVault) Start(ctx context.Context) {
 		server.initialiseCaches()
 		// Restore from AOF by default if it's enabled
 		if conf.RestoreAOF {
-			err := server.AOFEngine.Restore()
+			err := server.aofEngine.Restore()
 			if err != nil {
 				log.Println(err)
 			}
@@ -386,7 +386,7 @@ func (server *EchoVault) Start(ctx context.Context) {
 
 		// Restore from snapshot if snapshot restore is enabled and AOF restore is disabled
 		if conf.RestoreSnapshot && !conf.RestoreAOF {
-			err := server.SnapshotEngine.Restore()
+			err := server.snapshotEngine.Restore()
 			if err != nil {
 				log.Println(err)
 			}
@@ -397,7 +397,7 @@ func (server *EchoVault) Start(ctx context.Context) {
 }
 
 func (server *EchoVault) TakeSnapshot() error {
-	if server.SnapshotInProgress.Load() {
+	if server.snapshotInProgress.Load() {
 		return errors.New("snapshot already in progress")
 	}
 
@@ -410,7 +410,7 @@ func (server *EchoVault) TakeSnapshot() error {
 			return
 		}
 		// Handle snapshot in standalone mode
-		if err := server.SnapshotEngine.TakeSnapshot(); err != nil {
+		if err := server.snapshotEngine.TakeSnapshot(); err != nil {
 			log.Println(err)
 		}
 	}()
@@ -419,35 +419,35 @@ func (server *EchoVault) TakeSnapshot() error {
 }
 
 func (server *EchoVault) StartSnapshot() {
-	server.SnapshotInProgress.Store(true)
+	server.snapshotInProgress.Store(true)
 }
 
 func (server *EchoVault) FinishSnapshot() {
-	server.SnapshotInProgress.Store(false)
+	server.snapshotInProgress.Store(false)
 }
 
 func (server *EchoVault) SetLatestSnapshot(msec int64) {
-	server.LatestSnapshotMilliseconds.Store(msec)
+	server.latestSnapshotMilliseconds.Store(msec)
 }
 
 func (server *EchoVault) GetLatestSnapshot() int64 {
-	return server.LatestSnapshotMilliseconds.Load()
+	return server.latestSnapshotMilliseconds.Load()
 }
 
 func (server *EchoVault) StartRewriteAOF() {
-	server.RewriteAOFInProgress.Store(true)
+	server.rewriteAOFInProgress.Store(true)
 }
 
 func (server *EchoVault) FinishRewriteAOF() {
-	server.RewriteAOFInProgress.Store(false)
+	server.rewriteAOFInProgress.Store(false)
 }
 
 func (server *EchoVault) RewriteAOF() error {
-	if server.RewriteAOFInProgress.Load() {
+	if server.rewriteAOFInProgress.Load() {
 		return errors.New("aof rewrite in progress")
 	}
 	go func() {
-		if err := server.AOFEngine.RewriteLog(); err != nil {
+		if err := server.aofEngine.RewriteLog(); err != nil {
 			log.Println(err)
 		}
 	}()

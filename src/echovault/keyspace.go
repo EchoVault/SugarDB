@@ -127,7 +127,7 @@ func (server *EchoVault) KeyExists(ctx context.Context, key string) bool {
 // CreateKeyAndLock creates a new key lock and immediately locks it if the key does not exist.
 // If the key exists, the existing key is locked.
 func (server *EchoVault) CreateKeyAndLock(ctx context.Context, key string) (bool, error) {
-	if utils.IsMaxMemoryExceeded(server.Config.MaxMemory) && server.Config.EvictionPolicy == utils.NoEviction {
+	if utils.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == utils.NoEviction {
 		return false, errors.New("max memory reached, key not created")
 	}
 
@@ -165,7 +165,7 @@ func (server *EchoVault) GetValue(ctx context.Context, key string) interface{} {
 // This count triggers a snapshot when the threshold is reached.
 // The key must be locked prior to calling this function.
 func (server *EchoVault) SetValue(ctx context.Context, key string, value interface{}) error {
-	if utils.IsMaxMemoryExceeded(server.Config.MaxMemory) && server.Config.EvictionPolicy == utils.NoEviction {
+	if utils.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == utils.NoEviction {
 		return errors.New("max memory reached, key value not set")
 	}
 
@@ -180,7 +180,7 @@ func (server *EchoVault) SetValue(ctx context.Context, key string, value interfa
 	}
 
 	if !server.isInCluster() {
-		server.SnapshotEngine.IncrementChangeCount()
+		server.snapshotEngine.IncrementChangeCount()
 	}
 
 	return nil
@@ -242,13 +242,13 @@ func (server *EchoVault) RemoveExpiry(key string) {
 // GetState creates a deep copy of the store map.
 // It is used to retrieve the current state for persistence but can also be used for other
 // functions that require a deep copy of the state.
-// The copy only starts when there's no current copy in progress (represented by StateCopyInProgress atomic boolean)
-// and when there's no current state mutation in progress (represented by StateMutationInProgress atomic boolean)
+// The copy only starts when there's no current copy in progress (represented by stateCopyInProgress atomic boolean)
+// and when there's no current state mutation in progress (represented by stateMutationInProgress atomic boolean)
 func (server *EchoVault) GetState() map[string]utils.KeyData {
 	// Wait unit there's no state mutation or copy in progress before starting a new copy process.
 	for {
-		if !server.StateCopyInProgress.Load() && !server.StateMutationInProgress.Load() {
-			server.StateCopyInProgress.Store(true)
+		if !server.stateCopyInProgress.Load() && !server.stateMutationInProgress.Load() {
+			server.stateCopyInProgress.Store(true)
 			break
 		}
 	}
@@ -256,7 +256,7 @@ func (server *EchoVault) GetState() map[string]utils.KeyData {
 	for k, v := range server.store {
 		data[k] = v
 	}
-	server.StateCopyInProgress.Store(false)
+	server.stateCopyInProgress.Store(false)
 	return data
 }
 
@@ -275,9 +275,9 @@ func (server *EchoVault) DeleteKey(ctx context.Context, key string) error {
 
 	// Remove the key from the cache.
 	switch {
-	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, server.Config.EvictionPolicy):
+	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, server.config.EvictionPolicy):
 		server.lfuCache.cache.Delete(key)
-	case slices.Contains([]string{utils.AllKeysLRU, utils.VolatileLRU}, server.Config.EvictionPolicy):
+	case slices.Contains([]string{utils.AllKeysLRU, utils.VolatileLRU}, server.config.EvictionPolicy):
 		server.lruCache.cache.Delete(key)
 	}
 
@@ -294,10 +294,10 @@ func (server *EchoVault) updateKeyInCache(ctx context.Context, key string) error
 		return nil
 	}
 	// If max memory is 0, there's no max so no need to update caches
-	if server.Config.MaxMemory == 0 {
+	if server.config.MaxMemory == 0 {
 		return nil
 	}
-	switch strings.ToLower(server.Config.EvictionPolicy) {
+	switch strings.ToLower(server.config.EvictionPolicy) {
 	case utils.AllKeysLFU:
 		server.lfuCache.mutex.Lock()
 		defer server.lfuCache.mutex.Unlock()
@@ -328,7 +328,7 @@ func (server *EchoVault) updateKeyInCache(ctx context.Context, key string) error
 // adjustMemoryUsage should only be called from standalone echovault or from raft cluster leader.
 func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	// If max memory is 0, there's no need to adjust memory usage.
-	if server.Config.MaxMemory == 0 {
+	if server.config.MaxMemory == 0 {
 		return nil
 	}
 	// Check if memory usage is above max-memory.
@@ -336,20 +336,20 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 	// If we're using less memory than the max-memory, there's no need to evict.
-	if memStats.HeapInuse < server.Config.MaxMemory {
+	if memStats.HeapInuse < server.config.MaxMemory {
 		return nil
 	}
 	// Force a garbage collection first before we start evicting key.
 	runtime.GC()
 	runtime.ReadMemStats(&memStats)
-	if memStats.HeapInuse < server.Config.MaxMemory {
+	if memStats.HeapInuse < server.config.MaxMemory {
 		return nil
 	}
 	// We've done a GC, but we're still at or above the max memory limit.
 	// Start a loop that evicts keys until either the heap is empty or
 	// we're below the max memory limit.
 	switch {
-	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, strings.ToLower(server.Config.EvictionPolicy)):
+	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove keys from LFU cache until we're below the max memory limit or
 		// until the LFU cache is empty.
 		server.lfuCache.mutex.Lock()
@@ -377,11 +377,11 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			runtime.GC()
 			// Return if we're below max memory
 			runtime.ReadMemStats(&memStats)
-			if memStats.HeapInuse < server.Config.MaxMemory {
+			if memStats.HeapInuse < server.config.MaxMemory {
 				return nil
 			}
 		}
-	case slices.Contains([]string{utils.AllKeysLRU, utils.VolatileLRU}, strings.ToLower(server.Config.EvictionPolicy)):
+	case slices.Contains([]string{utils.AllKeysLRU, utils.VolatileLRU}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove keys from th LRU cache until we're below the max memory limit or
 		// until the LRU cache is empty.
 		server.lruCache.mutex.Lock()
@@ -410,11 +410,11 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			runtime.GC()
 			// Return if we're below max memory
 			runtime.ReadMemStats(&memStats)
-			if memStats.HeapInuse < server.Config.MaxMemory {
+			if memStats.HeapInuse < server.config.MaxMemory {
 				return nil
 			}
 		}
-	case slices.Contains([]string{utils.AllKeysRandom}, strings.ToLower(server.Config.EvictionPolicy)):
+	case slices.Contains([]string{utils.AllKeysRandom}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove random keys until we're below the max memory limit
 		// or there are no more keys remaining.
 		for {
@@ -441,14 +441,14 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 					runtime.GC()
 					// Return if we're below max memory
 					runtime.ReadMemStats(&memStats)
-					if memStats.HeapInuse < server.Config.MaxMemory {
+					if memStats.HeapInuse < server.config.MaxMemory {
 						return nil
 					}
 				}
 				idx--
 			}
 		}
-	case slices.Contains([]string{utils.VolatileRandom}, strings.ToLower(server.Config.EvictionPolicy)):
+	case slices.Contains([]string{utils.VolatileRandom}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove random keys with an associated expiry time until we're below the max memory limit
 		// or there are no more keys with expiry time.
 		for {
@@ -473,7 +473,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			runtime.GC()
 			// Return if we're below max memory
 			runtime.ReadMemStats(&memStats)
-			if memStats.HeapInuse < server.Config.MaxMemory {
+			if memStats.HeapInuse < server.config.MaxMemory {
 				return nil
 			}
 		}
@@ -497,7 +497,7 @@ func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
 
 	// Sample size should be the configured sample size, or the size of the keys with expiry,
 	// whichever one is smaller.
-	sampleSize := int(server.Config.EvictionSample)
+	sampleSize := int(server.config.EvictionSample)
 	if len(server.keysWithExpiry.keys) < sampleSize {
 		sampleSize = len(server.keysWithExpiry.keys)
 	}

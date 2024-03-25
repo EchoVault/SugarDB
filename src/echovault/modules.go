@@ -24,7 +24,7 @@ import (
 )
 
 func (server *EchoVault) GetAllCommands() []utils.Command {
-	return server.Commands
+	return server.commands
 }
 
 func (server *EchoVault) GetACL() interface{} {
@@ -36,7 +36,7 @@ func (server *EchoVault) GetPubSub() interface{} {
 }
 
 func (server *EchoVault) getCommand(cmd string) (utils.Command, error) {
-	for _, command := range server.Commands {
+	for _, command := range server.commands {
 		if strings.EqualFold(command.Command, cmd) {
 			return command, nil
 		}
@@ -76,8 +76,8 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	// If the command is a write command, wait for state copy to finish.
 	if utils.IsWriteCommand(command, subCommand) {
 		for {
-			if !server.StateCopyInProgress.Load() {
-				server.StateMutationInProgress.Store(true)
+			if !server.stateCopyInProgress.Load() {
+				server.stateMutationInProgress.Store(true)
 				break
 			}
 		}
@@ -90,10 +90,10 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 		}
 
 		if utils.IsWriteCommand(command, subCommand) && !replay {
-			go server.AOFEngine.QueueCommand(message)
+			go server.aofEngine.QueueCommand(message)
 		}
 
-		server.StateMutationInProgress.Store(false)
+		server.stateMutationInProgress.Store(false)
 
 		return res, err
 	}
@@ -109,7 +109,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	}
 
 	// Forward message to leader and return immediate OK response
-	if server.Config.ForwardCommand {
+	if server.config.ForwardCommand {
 		server.memberList.ForwardDataMutation(ctx, message)
 		return []byte(utils.OkResponse), nil
 	}

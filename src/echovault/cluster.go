@@ -23,7 +23,7 @@ import (
 )
 
 func (server *EchoVault) isInCluster() bool {
-	return server.Config.BootstrapCluster || server.Config.JoinAddr != ""
+	return server.config.BootstrapCluster || server.config.JoinAddr != ""
 }
 
 func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) error {
