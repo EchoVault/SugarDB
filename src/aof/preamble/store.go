@@ -34,12 +34,11 @@ type PreambleReadWriter interface {
 }
 
 type PreambleStore struct {
-	rw        PreambleReadWriter
-	mut       sync.Mutex
-	directory string
-	getState  func() map[string]utils.KeyData
-	setValue  func(key string, value interface{}) error
-	setExpiry func(key string, expireAt time.Time) error
+	rw             PreambleReadWriter
+	mut            sync.Mutex
+	directory      string
+	getStateFunc   func() map[string]utils.KeyData
+	setKeyDataFunc func(key string, data utils.KeyData)
 }
 
 func WithReadWriter(rw PreambleReadWriter) func(store *PreambleStore) {
@@ -50,19 +49,13 @@ func WithReadWriter(rw PreambleReadWriter) func(store *PreambleStore) {
 
 func WithGetStateFunc(f func() map[string]utils.KeyData) func(store *PreambleStore) {
 	return func(store *PreambleStore) {
-		store.getState = f
+		store.getStateFunc = f
 	}
 }
 
-func WithSetValueFunc(f func(key string, value interface{}) error) func(store *PreambleStore) {
+func WithSetKeyDataFunc(f func(key string, data utils.KeyData)) func(store *PreambleStore) {
 	return func(store *PreambleStore) {
-		store.setValue = f
-	}
-}
-
-func WithSetExpiryFunc(f func(key string, expireAt time.Time) error) func(store *PreambleStore) {
-	return func(store *PreambleStore) {
-		store.setExpiry = f
+		store.setKeyDataFunc = f
 	}
 }
 
@@ -77,15 +70,11 @@ func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 		rw:        nil,
 		mut:       sync.Mutex{},
 		directory: "",
-		getState: func() map[string]utils.KeyData {
+		getStateFunc: func() map[string]utils.KeyData {
 			// No-Op by default
 			return nil
 		},
-		setValue: func(key string, value interface{}) error {
-			// No-Op by default
-			return nil
-		},
-		setExpiry: func(key string, expireAt time.Time) error { return nil },
+		setKeyDataFunc: func(key string, data utils.KeyData) {},
 	}
 
 	for _, option := range options {
@@ -113,7 +102,7 @@ func (store *PreambleStore) CreatePreamble() error {
 	store.mut.Unlock()
 
 	// Get current state.
-	state := store.filterExpiredKeys(store.getState())
+	state := store.filterExpiredKeys(store.getStateFunc())
 	o, err := json.Marshal(state)
 	if err != nil {
 		return err
@@ -160,11 +149,8 @@ func (store *PreambleStore) Restore() error {
 		return err
 	}
 
-	for key, value := range store.filterExpiredKeys(state) {
-		if err = store.setValue(key, value.Value); err != nil {
-			return fmt.Errorf("preamble store -> restore: %+v", err)
-		}
-		store.setExpiry(key, value.ExpireAt)
+	for key, data := range store.filterExpiredKeys(state) {
+		store.setKeyDataFunc(key, data)
 	}
 
 	return nil

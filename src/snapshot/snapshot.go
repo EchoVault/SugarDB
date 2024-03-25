@@ -15,7 +15,6 @@
 package snapshot
 
 import (
-	"context"
 	"crypto/md5"
 	"encoding/json"
 	"errors"
@@ -37,48 +36,114 @@ type Manifest struct {
 	LatestSnapshotHash         [16]byte
 }
 
-type Opts struct {
-	Config                        utils.Config
-	StartSnapshot                 func()
-	FinishSnapshot                func()
-	GetState                      func() map[string]utils.KeyData
-	SetLatestSnapshotMilliseconds func(msec int64)
-	GetLatestSnapshotMilliseconds func() int64
-	SetValue                      func(key string, value interface{}) error
-	SetExpiry                     func(key string, expireAt time.Time) error
-}
-
 type Engine struct {
-	options     Opts
-	changeCount uint64
+	changeCount               uint64
+	directory                 string
+	snapshotInterval          time.Duration
+	snapshotThreshold         uint64
+	startSnapshotFunc         func()
+	finishSnapshotFunc        func()
+	getStateFunc              func() map[string]utils.KeyData
+	setLatestSnapshotTimeFunc func(msec int64)
+	getLatestSnapshotTimeFunc func() int64
+	setKeyDataFunc            func(key string, data utils.KeyData)
 }
 
-func NewSnapshotEngine(opts Opts) *Engine {
-	return &Engine{
-		options: opts,
+func WithDirectory(directory string) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.directory = directory
 	}
 }
 
-func (engine *Engine) Start(ctx context.Context) {
-	if engine.options.Config.SnapshotInterval != 0 {
+func WithInterval(interval time.Duration) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.snapshotInterval = interval
+	}
+}
+
+func WithThreshold(threshold uint64) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.snapshotThreshold = threshold
+	}
+}
+
+func WithStartSnapshotFunc(f func()) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.startSnapshotFunc = f
+	}
+}
+
+func WithFinishSnapshotFunc(f func()) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.finishSnapshotFunc = f
+	}
+}
+
+func WithGetStateFunc(f func() map[string]utils.KeyData) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.getStateFunc = f
+	}
+}
+
+func WithSetLatestSnapshotTimeFunc(f func(mset int64)) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.setLatestSnapshotTimeFunc = f
+	}
+}
+
+func WithGetLatestSnapshotTimeFunc(f func() int64) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.getLatestSnapshotTimeFunc = f
+	}
+}
+
+func WithSetKeyDataFunc(f func(key string, data utils.KeyData)) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.setKeyDataFunc = f
+	}
+}
+
+func NewSnapshotEngine(options ...func(engine *Engine)) *Engine {
+	engine := &Engine{
+		changeCount:        0,
+		directory:          "",
+		snapshotInterval:   5 * time.Minute,
+		snapshotThreshold:  1000,
+		startSnapshotFunc:  func() {},
+		finishSnapshotFunc: func() {},
+		getStateFunc: func() map[string]utils.KeyData {
+			return map[string]utils.KeyData{}
+		},
+		setLatestSnapshotTimeFunc: func(msec int64) {},
+		getLatestSnapshotTimeFunc: func() int64 {
+			return 0
+		},
+		setKeyDataFunc: func(key string, data utils.KeyData) {},
+	}
+
+	for _, option := range options {
+		option(engine)
+	}
+
+	if engine.snapshotInterval != 0 {
 		go func() {
 			for {
-				<-time.After(engine.options.Config.SnapshotInterval)
-				if engine.changeCount == engine.options.Config.SnapShotThreshold {
+				<-time.After(engine.snapshotInterval)
+				if engine.changeCount == engine.snapshotThreshold {
 					if err := engine.TakeSnapshot(); err != nil {
 						log.Println(err)
 					}
 				}
 			}
 		}()
-		// Reset change count at startup
-		engine.resetChangeCount()
 	}
+
+	return engine
 }
 
 func (engine *Engine) TakeSnapshot() error {
-	engine.options.StartSnapshot()
-	defer engine.options.FinishSnapshot()
+	engine.startSnapshotFunc()
+	defer engine.finishSnapshotFunc()
 
 	// Extract current time
 	now := time.Now()
@@ -95,7 +160,7 @@ func (engine *Engine) TakeSnapshot() error {
 
 	var firstSnapshot bool // Tracks whether the snapshot being attempted is the first one
 
-	dirname := path.Join(engine.options.Config.DataDir, "snapshots")
+	dirname := path.Join(engine.directory, "snapshots")
 	if err := os.MkdirAll(dirname, os.ModePerm); err != nil {
 		log.Println(err)
 		return err
@@ -140,8 +205,8 @@ func (engine *Engine) TakeSnapshot() error {
 
 	// Get current state
 	snapshotObject := utils.SnapshotObject{
-		State:                      utils.FilterExpiredKeys(engine.options.GetState()),
-		LatestSnapshotMilliseconds: engine.options.GetLatestSnapshotMilliseconds(),
+		State:                      utils.FilterExpiredKeys(engine.getStateFunc()),
+		LatestSnapshotMilliseconds: engine.getLatestSnapshotTimeFunc(),
 	}
 	out, err := json.Marshal(snapshotObject)
 	if err != nil {
@@ -193,7 +258,7 @@ func (engine *Engine) TakeSnapshot() error {
 	}
 
 	// Create snapshot directory
-	dirname = path.Join(engine.options.Config.DataDir, "snapshots", fmt.Sprintf("%d", msec))
+	dirname = path.Join(engine.directory, "snapshots", fmt.Sprintf("%d", msec))
 	if err := os.MkdirAll(dirname, os.ModePerm); err != nil {
 		return err
 	}
@@ -219,7 +284,7 @@ func (engine *Engine) TakeSnapshot() error {
 	}
 
 	// Set the latest snapshot in unix milliseconds
-	engine.options.SetLatestSnapshotMilliseconds(msec)
+	engine.setLatestSnapshotTimeFunc(msec)
 
 	// Reset the change count
 	engine.resetChangeCount()
@@ -227,8 +292,8 @@ func (engine *Engine) TakeSnapshot() error {
 	return nil
 }
 
-func (engine *Engine) Restore(ctx context.Context) error {
-	mf, err := os.Open(path.Join(engine.options.Config.DataDir, "snapshots", "manifest.bin"))
+func (engine *Engine) Restore() error {
+	mf, err := os.Open(path.Join(engine.directory, "snapshots", "manifest.bin"))
 	if err != nil && errors.Is(err, fs.ErrNotExist) {
 		return errors.New("no snapshot manifest, skipping snapshot restore")
 	}
@@ -252,7 +317,7 @@ func (engine *Engine) Restore(ctx context.Context) error {
 	}
 
 	sf, err := os.Open(path.Join(
-		engine.options.Config.DataDir,
+		engine.directory,
 		"snapshots",
 		fmt.Sprintf("%d", manifest.LatestSnapshotMilliseconds),
 		"state.bin"))
@@ -274,15 +339,10 @@ func (engine *Engine) Restore(ctx context.Context) error {
 		return err
 	}
 
-	engine.options.SetLatestSnapshotMilliseconds(snapshotObject.LatestSnapshotMilliseconds)
+	engine.setLatestSnapshotTimeFunc(snapshotObject.LatestSnapshotMilliseconds)
 
-	for key, value := range utils.FilterExpiredKeys(snapshotObject.State) {
-		if err = engine.options.SetValue(key, value.Value); err != nil {
-			return fmt.Errorf("snapshot engine -> restore value: %+v", err)
-		}
-		if err = engine.options.SetExpiry(key, value.ExpireAt); err != nil {
-			return fmt.Errorf("snapshot engine -> restore expiry: %+v", err)
-		}
+	for key, data := range utils.FilterExpiredKeys(snapshotObject.State) {
+		engine.setKeyDataFunc(key, data)
 	}
 
 	log.Println("successfully restored latest snapshot")

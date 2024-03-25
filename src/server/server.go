@@ -121,34 +121,27 @@ func NewServer(opts Opts) *Server {
 		})
 	} else {
 		// Set up standalone snapshot engine
-		server.SnapshotEngine = snapshot.NewSnapshotEngine(snapshot.Opts{
-			Config:                        opts.Config,
-			StartSnapshot:                 server.StartSnapshot,
-			FinishSnapshot:                server.FinishSnapshot,
-			GetState:                      server.GetState,
-			SetLatestSnapshotMilliseconds: server.SetLatestSnapshot,
-			GetLatestSnapshotMilliseconds: server.GetLatestSnapshot,
-			SetValue: func(key string, value interface{}) error {
+		server.SnapshotEngine = snapshot.NewSnapshotEngine(
+			snapshot.WithDirectory(opts.Config.DataDir),
+			snapshot.WithThreshold(opts.Config.SnapShotThreshold),
+			snapshot.WithInterval(opts.Config.SnapshotInterval),
+			snapshot.WithGetStateFunc(server.GetState),
+			snapshot.WithStartSnapshotFunc(server.StartSnapshot),
+			snapshot.WithFinishSnapshotFunc(server.FinishSnapshot),
+			snapshot.WithSetLatestSnapshotTimeFunc(server.SetLatestSnapshot),
+			snapshot.WithGetLatestSnapshotTimeFunc(server.GetLatestSnapshot),
+			snapshot.WithSetKeyDataFunc(func(key string, data utils.KeyData) {
 				ctx := context.Background()
 				if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
-					return err
+					log.Println(err)
 				}
-				if err := server.SetValue(ctx, key, value); err != nil {
-					return err
+				if err := server.SetValue(ctx, key, data.Value); err != nil {
+					log.Println(err)
 				}
+				server.SetExpiry(ctx, key, data.ExpireAt, false)
 				server.KeyUnlock(ctx, key)
-				return nil
-			},
-			SetExpiry: func(key string, expireAt time.Time) error {
-				ctx := context.Background()
-				if _, err := server.KeyLock(ctx, key); err != nil {
-					return err
-				}
-				server.SetExpiry(ctx, key, expireAt, false)
-				server.KeyUnlock(ctx, key)
-				return nil
-			},
-		})
+			}),
+		)
 		// Set up standalone AOF engine
 		server.AOFEngine = aof.NewAOFEngine(
 			aof.WithDirectory(opts.Config.DataDir),
@@ -156,25 +149,16 @@ func NewServer(opts Opts) *Server {
 			aof.WithStartRewriteFunc(server.StartRewriteAOF),
 			aof.WithFinishRewriteFunc(server.FinishRewriteAOF),
 			aof.WithGetStateFunc(server.GetState),
-			aof.WithSetValueFunc(func(key string, value interface{}) error {
+			aof.WithSetKeyDataFunc(func(key string, value utils.KeyData) {
 				ctx := context.Background()
 				if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
-					return err
+					log.Println(err)
 				}
-				if err := server.SetValue(ctx, key, value); err != nil {
-					return err
+				if err := server.SetValue(ctx, key, value.Value); err != nil {
+					log.Println(err)
 				}
+				server.SetExpiry(ctx, key, value.ExpireAt, false)
 				server.KeyUnlock(ctx, key)
-				return nil
-			}),
-			aof.WithSetExpiryFunc(func(key string, expireAt time.Time) error {
-				ctx := context.Background()
-				if _, err := server.KeyLock(ctx, key); err != nil {
-					return err
-				}
-				server.SetExpiry(ctx, key, expireAt, false)
-				server.KeyUnlock(ctx, key)
-				return nil
 			}),
 			aof.WithHandleCommandFunc(func(command []byte) {
 				_, err := server.handleCommand(context.Background(), command, nil, true)
@@ -378,13 +362,11 @@ func (server *Server) Start(ctx context.Context) {
 
 		// Restore from snapshot if snapshot restore is enabled and AOF restore is disabled
 		if conf.RestoreSnapshot && !conf.RestoreAOF {
-			err := server.SnapshotEngine.Restore(ctx)
+			err := server.SnapshotEngine.Restore()
 			if err != nil {
 				log.Println(err)
 			}
 		}
-		server.SnapshotEngine.Start(ctx)
-
 	}
 
 	server.StartTCP(ctx)
@@ -472,6 +454,4 @@ func (server *Server) InitialiseCaches() {
 		mutex: sync.Mutex{},
 		cache: eviction.NewCacheLRU(),
 	}
-	// TODO: If eviction policy is volatile-ttl, start goroutine that continuously reads the mem stats
-	// TODO: before triggering purge once max-memory is reached
 }

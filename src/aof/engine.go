@@ -21,11 +21,10 @@ import (
 	"github.com/echovault/echovault/src/utils"
 	"log"
 	"sync"
-	"time"
 )
 
 // This package handles AOF logging in standalone mode only.
-// Logging in clusters is handled in the raft layer.
+// Logging in replication clusters is handled in the raft layer.
 
 type Engine struct {
 	syncStrategy string
@@ -39,12 +38,11 @@ type Engine struct {
 	preambleStore *preamble.PreambleStore
 	appendStore   *logstore.AppendStore
 
-	startRewrite  func()
-	finishRewrite func()
-	getState      func() map[string]utils.KeyData
-	setValue      func(key string, value interface{}) error
-	setExpiry     func(key string, expireAt time.Time) error
-	handleCommand func(command []byte)
+	startRewriteFunc  func()
+	finishRewriteFunc func()
+	getStateFunc      func() map[string]utils.KeyData
+	setKeyDataFunc    func(key string, data utils.KeyData)
+	handleCommand     func(command []byte)
 }
 
 func WithStrategy(strategy string) func(engine *Engine) {
@@ -61,31 +59,25 @@ func WithDirectory(directory string) func(engine *Engine) {
 
 func WithStartRewriteFunc(f func()) func(engine *Engine) {
 	return func(engine *Engine) {
-		engine.startRewrite = f
+		engine.startRewriteFunc = f
 	}
 }
 
 func WithFinishRewriteFunc(f func()) func(engine *Engine) {
 	return func(engine *Engine) {
-		engine.finishRewrite = f
+		engine.finishRewriteFunc = f
 	}
 }
 
 func WithGetStateFunc(f func() map[string]utils.KeyData) func(engine *Engine) {
 	return func(engine *Engine) {
-		engine.getState = f
+		engine.getStateFunc = f
 	}
 }
 
-func WithSetValueFunc(f func(key string, value interface{}) error) func(engine *Engine) {
+func WithSetKeyDataFunc(f func(key string, data utils.KeyData)) func(engine *Engine) {
 	return func(engine *Engine) {
-		engine.setValue = f
-	}
-}
-
-func WithSetExpiryFunc(f func(key string, expireAt time.Time) error) func(engine *Engine) {
-	return func(engine *Engine) {
-		engine.setExpiry = f
+		engine.setKeyDataFunc = f
 	}
 }
 
@@ -109,33 +101,24 @@ func WithAppendReadWriter(rw logstore.AppendReadWriter) func(engine *Engine) {
 
 func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 	engine := &Engine{
-		syncStrategy:  "everysec",
-		directory:     "",
-		mut:           sync.Mutex{},
-		logChan:       make(chan []byte, 4096),
-		logCount:      0,
-		startRewrite:  func() {},
-		finishRewrite: func() {},
-		getState:      func() map[string]utils.KeyData { return nil },
-		setValue: func(key string, value interface{}) error {
-			// No-Op by default
-			return nil
-		},
-		setExpiry:     func(key string, expireAt time.Time) error { return nil },
-		handleCommand: func(command []byte) {},
-	}
-
-	for _, option := range options {
-		option(engine)
+		syncStrategy:      "everysec",
+		directory:         "",
+		mut:               sync.Mutex{},
+		logChan:           make(chan []byte, 4096),
+		logCount:          0,
+		startRewriteFunc:  func() {},
+		finishRewriteFunc: func() {},
+		getStateFunc:      func() map[string]utils.KeyData { return nil },
+		setKeyDataFunc:    func(key string, data utils.KeyData) {},
+		handleCommand:     func(command []byte) {},
 	}
 
 	// Setup Preamble engine
 	engine.preambleStore = preamble.NewPreambleStore(
 		preamble.WithDirectory(engine.directory),
 		preamble.WithReadWriter(engine.preambleRW),
-		preamble.WithGetStateFunc(engine.getState),
-		preamble.WithSetValueFunc(engine.setValue),
-		preamble.WithSetExpiryFunc(engine.setExpiry),
+		preamble.WithGetStateFunc(engine.getStateFunc),
+		preamble.WithSetKeyDataFunc(engine.setKeyDataFunc),
 	)
 
 	// Setup AOF log store engine
@@ -145,6 +128,10 @@ func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 		logstore.WithReadWriter(engine.appendRW),
 		logstore.WithHandleCommandFunc(engine.handleCommand),
 	)
+
+	for _, option := range options {
+		option(engine)
+	}
 
 	// 3. Start the goroutine to pick up queued commands in order to write them to the file.
 	// LogCommand will get the open file handler from the struct top perform the AOF operation.
@@ -168,8 +155,8 @@ func (engine *Engine) RewriteLog() error {
 	engine.mut.Lock()
 	defer engine.mut.Unlock()
 
-	engine.startRewrite()
-	defer engine.finishRewrite()
+	engine.startRewriteFunc()
+	defer engine.finishRewriteFunc()
 
 	// Create AOF preamble
 	if err := engine.preambleStore.CreatePreamble(); err != nil {
