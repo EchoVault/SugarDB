@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/echovault/echovault/src/server"
+	"github.com/echovault/echovault/src/echovault"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
 	"net"
@@ -28,14 +28,14 @@ import (
 )
 
 var pubsub *PubSub
-var mockServer *server.EchoVault
+var mockServer *echovault.EchoVault
 
 var bindAddr = "localhost"
 var port uint16 = 7490
 
 func init() {
 	pubsub = NewPubSub()
-	mockServer = server.NewEchoVault(server.Opts{
+	mockServer = echovault.NewEchoVault(echovault.Opts{
 		PubSub:   pubsub,
 		Commands: Commands(),
 		Config: utils.Config{
@@ -330,7 +330,7 @@ func Test_HandlePublish(t *testing.T) {
 	}
 
 	// The subscribe function handles subscribing the connection to the given
-	// channels and patterns and reading/verifying the message sent by the server after
+	// channels and patterns and reading/verifying the message sent by the echovault after
 	// subscription.
 	subscribe := func(ctx context.Context, channels []string, patterns []string, c *net.Conn, r *resp.Conn) {
 		// Subscribe to channels
@@ -450,7 +450,7 @@ func Test_HandlePublish(t *testing.T) {
 		},
 	}
 
-	// Dial server to make publisher connection
+	// Dial echovault to make publisher connection
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 	if err != nil {
 		t.Error(err)
@@ -489,10 +489,10 @@ func Test_HandlePublish(t *testing.T) {
 func Test_HandlePubSubChannels(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
-		// Create separate mock server for this test
+		// Create separate mock echovault for this test
 		var port uint16 = 7590
 		pubsub = NewPubSub()
-		mockServer := server.NewEchoVault(server.Opts{
+		mockServer := echovault.NewEchoVault(echovault.Opts{
 			PubSub:   pubsub,
 			Commands: Commands(),
 			Config: utils.Config{
@@ -634,10 +634,10 @@ func Test_HandlePubSubChannels(t *testing.T) {
 func Test_HandleNumPat(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
-		// Create separate mock server for this test
+		// Create separate mock echovault for this test
 		var port uint16 = 7591
 		pubsub = NewPubSub()
-		mockServer := server.NewEchoVault(server.Opts{
+		mockServer := echovault.NewEchoVault(echovault.Opts{
 			PubSub:   pubsub,
 			Commands: Commands(),
 			Config: utils.Config{
@@ -738,10 +738,10 @@ func Test_HandleNumPat(t *testing.T) {
 func Test_HandleNumSub(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
-		// Create separate mock server for this test
+		// Create separate mock echovault for this test
 		var port uint16 = 7591
 		pubsub = NewPubSub()
-		mockServer := server.NewEchoVault(server.Opts{
+		mockServer := echovault.NewEchoVault(echovault.Opts{
 			PubSub:   pubsub,
 			Commands: Commands(),
 			Config: utils.Config{

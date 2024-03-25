@@ -18,14 +18,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/echovault/echovault/src/server"
+	"github.com/echovault/echovault/src/echovault"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
 	"testing"
 )
 
 func Test_CommandsHandler(t *testing.T) {
-	mockServer := server.NewEchoVault(server.Opts{
+	mockServer := echovault.NewEchoVault(echovault.Opts{
 		Config: utils.Config{
 			DataDir:        "",
 			EvictionPolicy: utils.NoEviction,

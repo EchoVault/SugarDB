@@ -19,17 +19,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/src/server"
+	"github.com/echovault/echovault/src/echovault"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
 	"strconv"
 	"testing"
 )
 
-var mockServer *server.EchoVault
+var mockServer *echovault.EchoVault
 
 func init() {
-	mockServer = server.NewEchoVault(server.Opts{
+	mockServer = echovault.NewEchoVault(echovault.Opts{
 		Config: utils.Config{
 			DataDir:        "",
 			EvictionPolicy: utils.NoEviction,
@@ -162,7 +162,7 @@ func Test_HandleSetRange(t *testing.T) {
 			t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, rv.Integer())
 		}
 
-		// Get the value from the server and check against the expected value
+		// Get the value from the echovault and check against the expected value
 		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package echovault
 
 import (
 	"context"
@@ -325,7 +325,7 @@ func (server *EchoVault) updateKeyInCache(ctx context.Context, key string) error
 	return nil
 }
 
-// adjustMemoryUsage should only be called from standalone server or from raft cluster leader.
+// adjustMemoryUsage should only be called from standalone echovault or from raft cluster leader.
 func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	// If max memory is 0, there's no need to adjust memory usage.
 	if server.Config.MaxMemory == 0 {

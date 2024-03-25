@@ -128,12 +128,12 @@ There is no limit by default.`, func(memory string) error {
 		return nil
 	})
 
-	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false.")
+	tls := flag.Bool("tls", false, "Start the echovault in TLS mode. Default is false.")
 	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
-	serverId := flag.String("server-id", "1", "EchoVault ID in raft cluster. Leave empty for client.")
+	serverId := flag.String("echovault-id", "1", "EchoVault ID in raft cluster. Leave empty for client.")
 	joinAddr := flag.String("join-addr", "", "Address of cluster member in a cluster to you want to join.")
-	bindAddr := flag.String("bind-addr", "", "Address to bind the server to.")
+	bindAddr := flag.String("bind-addr", "", "Address to bind the echovault to.")
 	raftBindPort := flag.Uint("raft-port", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	mlBindPort := flag.Uint("memberlist-port", 7946, "Port to use for memberlist communication.")
 	inMemory := flag.Bool("in-memory", false, "Whether to use memory or persistent storage for raft logs and snapshots.")
@@ -142,8 +142,8 @@ There is no limit by default.`, func(memory string) error {
 	aclConfig := flag.String("acl-config", "", "ACL config file path.")
 	snapshotThreshold := flag.Uint64("snapshot-threshold", 1000, "The number of entries that trigger a snapshot. Default is 1000.")
 	snapshotInterval := flag.Duration("snapshot-interval", 5*time.Minute, "The time interval between snapshots (in seconds). Default is 5 minutes.")
-	restoreSnapshot := flag.Bool("restore-snapshot", false, "This flag prompts the server to restore state from snapshot when set to true. Only works in standalone mode. Higher priority than restoreAOF.")
-	restoreAOF := flag.Bool("restore-aof", false, "This flag prompts the server to restore state from append-only logs. Only works in standalone mode. Lower priority than restoreSnapshot.")
+	restoreSnapshot := flag.Bool("restore-snapshot", false, "This flag prompts the echovault to restore state from snapshot when set to true. Only works in standalone mode. Higher priority than restoreAOF.")
+	restoreAOF := flag.Bool("restore-aof", false, "This flag prompts the echovault to restore state from append-only logs. Only works in standalone mode. Lower priority than restoreSnapshot.")
 	evictionSample := flag.Uint("eviction-sample", 20, "An integer specifying the number of keys to sample when checking for expired keys.")
 	evictionInterval := flag.Duration("eviction-interval", 100*time.Millisecond, "The interval between each sampling of keys to evict.")
 	forwardCommand := flag.Bool(
@@ -153,7 +153,7 @@ There is no limit by default.`, func(memory string) error {
 	requirePass := flag.Bool(
 		"require-pass",
 		false,
-		"Whether the server should require a password before allowing commands. Default is false.",
+		"Whether the echovault should require a password before allowing commands. Default is false.",
 	)
 	password := flag.String(
 		"password",

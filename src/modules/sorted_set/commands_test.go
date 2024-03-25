@@ -19,7 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/src/server"
+	"github.com/echovault/echovault/src/echovault"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
 	"math"
@@ -28,10 +28,10 @@ import (
 	"testing"
 )
 
-var mockServer *server.EchoVault
+var mockServer *echovault.EchoVault
 
 func init() {
-	mockServer = server.NewEchoVault(server.Opts{
+	mockServer = echovault.NewEchoVault(echovault.Opts{
 		Config: utils.Config{
 			DataDir:        "",
 			EvictionPolicy: utils.NoEviction,
@@ -272,7 +272,7 @@ func Test_HandleZADD(t *testing.T) {
 		if rv.Integer() != test.expectedResponse {
 			t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
 		}
-		// Fetch the sorted set from the server and check it against the expected result
+		// Fetch the sorted set from the echovault and check it against the expected result
 		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}

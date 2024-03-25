@@ -19,17 +19,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/src/server"
+	"github.com/echovault/echovault/src/echovault"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
 	"testing"
 	"time"
 )
 
-var mockServer *server.EchoVault
+var mockServer *echovault.EchoVault
 
 func init() {
-	mockServer = server.NewEchoVault(server.Opts{
+	mockServer = echovault.NewEchoVault(echovault.Opts{
 		Config: utils.Config{
 			DataDir:        "",
 			EvictionPolicy: utils.NoEviction,

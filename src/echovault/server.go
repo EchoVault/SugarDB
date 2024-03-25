@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package echovault
 
 import (
 	"context"
@@ -36,7 +36,7 @@ import (
 )
 
 type EchoVault struct {
-	// Config holds the server configuration variables.
+	// Config holds the echovault configuration variables.
 	Config utils.Config
 
 	// The current index for the latest connection id.
@@ -64,11 +64,11 @@ type EchoVault struct {
 		cache eviction.CacheLRU // LRU cache represented by a max head.
 	}
 
-	// Holds the list of all commands supported by the server.
+	// Holds the list of all commands supported by the echovault.
 	Commands []utils.Command
 
-	raft       *raft.Raft             // The raft replication layer for the server.
-	memberList *memberlist.MemberList // The memberlist layer for the server.
+	raft       *raft.Raft             // The raft replication layer for the echovault.
+	memberList *memberlist.MemberList // The memberlist layer for the echovault.
 
 	CancelCh *chan os.Signal
 
@@ -199,15 +199,15 @@ func (server *EchoVault) StartTCP(ctx context.Context) {
 
 	if !conf.TLS {
 		// TCP
-		fmt.Printf("Starting TCP server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		fmt.Printf("Starting TCP echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 	}
 
 	if conf.TLS || conf.MTLS {
 		// TLS
 		if conf.TLS {
-			fmt.Printf("Starting mTLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+			fmt.Printf("Starting mTLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		} else {
-			fmt.Printf("Starting TLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+			fmt.Printf("Starting TLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		}
 
 		var certificates []tls.Certificate

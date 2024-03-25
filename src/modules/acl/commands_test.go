@@ -18,7 +18,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"github.com/echovault/echovault/src/server"
+	"github.com/echovault/echovault/src/echovault"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
 	"net"
@@ -29,7 +29,7 @@ import (
 
 var bindAddr string
 var port uint16
-var mockServer *server.EchoVault
+var mockServer *echovault.EchoVault
 
 var acl *ACL
 
@@ -44,7 +44,7 @@ func init() {
 	}()
 }
 
-func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig string) *server.EchoVault {
+func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig string) *echovault.EchoVault {
 	config := utils.Config{
 		BindAddr:       bindAddr,
 		Port:           port,
@@ -58,7 +58,7 @@ func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig strin
 	acl = NewACL(config)
 	acl.Users = append(acl.Users, generateInitialTestUsers()...)
 
-	return server.NewEchoVault(server.Opts{
+	return echovault.NewEchoVault(echovault.Opts{
 		Config:   config,
 		ACL:      acl,
 		Commands: Commands(),

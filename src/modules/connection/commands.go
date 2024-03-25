@@ -38,7 +38,7 @@ func Commands() []utils.Command {
 		{
 			Command:     "connection",
 			Categories:  []string{utils.FastCategory, utils.ConnectionCategory},
-			Description: "(PING [value]) Ping the server. If a value is provided, the value will be echoed.",
+			Description: "(PING [value]) Ping the echovault. If a value is provided, the value will be echoed.",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				return []string{}, nil

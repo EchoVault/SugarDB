@@ -102,7 +102,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 		log.Fatal(err)
 	}
 
-	// Start raft server
+	// Start raft echovault
 	raftServer, err := raft.NewRaft(
 		raftConfig,
 		NewFSM(FSMOpts{
@@ -171,9 +171,9 @@ func (r *Raft) AddVoter(
 		}
 
 		for _, s := range raftConfig.Configuration().Servers {
-			// Check if a server already exists with the current attributes
+			// Check if a echovault already exists with the current attributes
 			if s.ID == id && s.Address == address {
-				return fmt.Errorf("server with id %s and address %s already exists", id, address)
+				return fmt.Errorf("echovault with id %s and address %s already exists", id, address)
 			}
 		}
 
@@ -188,7 +188,7 @@ func (r *Raft) AddVoter(
 
 func (r *Raft) RemoveServer(meta memberlist.NodeMeta) error {
 	if !r.IsRaftLeader() {
-		return errors.New("not leader, could not remove server")
+		return errors.New("not leader, could not remove echovault")
 	}
 
 	if err := r.raft.RemoveServer(meta.ServerID, 0, 0).Error(); err != nil {

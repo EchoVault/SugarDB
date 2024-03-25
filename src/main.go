@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"github.com/echovault/echovault/src/echovault"
 	"github.com/echovault/echovault/src/modules/acl"
 	"github.com/echovault/echovault/src/modules/admin"
 	"github.com/echovault/echovault/src/modules/connection"
@@ -26,7 +27,6 @@ import (
 	"github.com/echovault/echovault/src/modules/set"
 	"github.com/echovault/echovault/src/modules/sorted_set"
 	str "github.com/echovault/echovault/src/modules/string"
-	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"log"
 	"os"
@@ -70,7 +70,7 @@ func main() {
 	cancelCh := make(chan os.Signal, 1)
 	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
-	s := server.NewEchoVault(server.Opts{
+	s := echovault.NewEchoVault(echovault.Opts{
 		Config:   config,
 		ACL:      acl.NewACL(config),
 		PubSub:   pubsub.NewPubSub(),

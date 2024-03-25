@@ -175,7 +175,7 @@ func Commands() []utils.Command {
 		{
 			Command:           "commands",
 			Categories:        []string{utils.AdminCategory, utils.SlowCategory},
-			Description:       "Get a list of all the commands in available on the server with categories and descriptions",
+			Description:       "Get a list of all the commands in available on the echovault with categories and descriptions",
 			Sync:              false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
 			HandlerFunc:       handleGetAllCommands,
@@ -200,7 +200,7 @@ func Commands() []utils.Command {
 				{
 					Command:           "count",
 					Categories:        []string{utils.SlowCategory},
-					Description:       "Get the dumber of commands in the server",
+					Description:       "Get the dumber of commands in the echovault",
 					Sync:              false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
 					HandlerFunc:       handleCommandCount,

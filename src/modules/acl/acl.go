@@ -42,7 +42,7 @@ type Connection struct {
 type ACL struct {
 	Users        []*User                  // List of ACL user profiles
 	UsersMutex   sync.RWMutex             // RWMutex for concurrency control when accessing ACL profile list
-	Connections  map[*net.Conn]Connection // Connections to the server that are currently registered with the ACL module
+	Connections  map[*net.Conn]Connection // Connections to the echovault that are currently registered with the ACL module
 	Config       utils.Config             // EchoVault configuration that contains the relevant ACL config options
 	GlobPatterns map[string]glob.Glob
 }
