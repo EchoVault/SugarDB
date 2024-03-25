@@ -38,7 +38,7 @@ func NewPubSub() *PubSub {
 	}
 }
 
-func (ps *PubSub) Subscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) {
+func (ps *PubSub) Subscribe(_ context.Context, conn *net.Conn, channels []string, withPattern bool) {
 	ps.channelsRWMut.Lock()
 	defer ps.channelsRWMut.Unlock()
 
