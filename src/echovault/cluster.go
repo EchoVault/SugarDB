@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-func (server *EchoVault) IsInCluster() bool {
+func (server *EchoVault) isInCluster() bool {
 	return server.Config.BootstrapCluster || server.Config.JoinAddr != ""
 }
 

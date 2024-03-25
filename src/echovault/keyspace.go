@@ -99,19 +99,19 @@ func (server *EchoVault) KeyExists(ctx context.Context, key string) bool {
 	}
 
 	if entry.ExpireAt != (time.Time{}) && entry.ExpireAt.Before(time.Now()) {
-		if !server.IsInCluster() {
+		if !server.isInCluster() {
 			// If in standalone mode, delete the key directly.
 			err := server.DeleteKey(ctx, key)
 			if err != nil {
 				log.Printf("keyExists: %+v\n", err)
 			}
-		} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+		} else if server.isInCluster() && server.raft.IsRaftLeader() {
 			// If we're in a raft cluster, and we're the leader, send command to delete the key in the cluster.
 			err := server.raftApplyDeleteKey(ctx, key)
 			if err != nil {
 				log.Printf("keyExists: %+v\n", err)
 			}
-		} else if server.IsInCluster() && !server.raft.IsRaftLeader() {
+		} else if server.isInCluster() && !server.raft.IsRaftLeader() {
 			// Forward message to leader to initiate key deletion.
 			// This is always called regardless of ForwardCommand config value
 			// because we always want to remove expired keys.
@@ -179,7 +179,7 @@ func (server *EchoVault) SetValue(ctx context.Context, key string, value interfa
 		log.Printf("SetValue error: %+v\n", err)
 	}
 
-	if !server.IsInCluster() {
+	if !server.isInCluster() {
 		server.SnapshotEngine.IncrementChangeCount()
 	}
 
@@ -290,7 +290,7 @@ func (server *EchoVault) DeleteKey(ctx context.Context, key string) error {
 // depending on whether an LFU or LRU strategy was used.
 func (server *EchoVault) updateKeyInCache(ctx context.Context, key string) error {
 	// Only update cache when in standalone mode or when raft leader
-	if server.IsInCluster() || (server.IsInCluster() && !server.raft.IsRaftLeader()) {
+	if server.isInCluster() || (server.isInCluster() && !server.raft.IsRaftLeader()) {
 		return nil
 	}
 	// If max memory is 0, there's no max so no need to update caches
@@ -361,12 +361,12 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			}
 
 			key := server.lfuCache.cache.Pop().(string)
-			if !server.IsInCluster() {
+			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
 				if err := server.DeleteKey(ctx, key); err != nil {
 					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
 				}
-			} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+			} else if server.isInCluster() && server.raft.IsRaftLeader() {
 				// If in raft cluster, send command to delete key from cluster
 				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
 					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
@@ -393,12 +393,12 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			}
 
 			key := server.lruCache.cache.Pop().(string)
-			if !server.IsInCluster() {
+			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key.
 				if err := server.DeleteKey(ctx, key); err != nil {
 					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
 				}
-			} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+			} else if server.isInCluster() && server.raft.IsRaftLeader() {
 				// If in cluster mode and the node is a cluster leader,
 				// send command to delete the key from the cluster.
 				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
@@ -427,12 +427,12 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			idx := rand.Intn(len(server.keyLocks))
 			for key, _ := range server.keyLocks {
 				if idx == 0 {
-					if !server.IsInCluster() {
+					if !server.isInCluster() {
 						// If in standalone mode, directly delete the key
 						if err := server.DeleteKey(ctx, key); err != nil {
 							return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
 						}
-					} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+					} else if server.isInCluster() && server.raft.IsRaftLeader() {
 						if err := server.raftApplyDeleteKey(ctx, key); err != nil {
 							return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
 						}
@@ -458,12 +458,12 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			key := server.keysWithExpiry.keys[idx]
 			server.keysWithExpiry.rwMutex.RUnlock()
 
-			if !server.IsInCluster() {
+			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
 				if err := server.DeleteKey(ctx, key); err != nil {
 					return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
 				}
-			} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+			} else if server.isInCluster() && server.raft.IsRaftLeader() {
 				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
 					return fmt.Errorf("adjustMemoryUsage -> volatile keys randome: %+v", err)
 				}
@@ -489,7 +489,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 // This function is only executed in standalone mode or by the raft cluster leader.
 func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
 	// Only execute this if we're in standalone mode, or raft cluster leader.
-	if server.IsInCluster() && !server.raft.IsRaftLeader() {
+	if server.isInCluster() && !server.raft.IsRaftLeader() {
 		return nil
 	}
 
@@ -536,11 +536,11 @@ func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
 		// Delete the expired key
 		deletedCount += 1
 		server.KeyRUnlock(ctx, k)
-		if !server.IsInCluster() {
+		if !server.isInCluster() {
 			if err := server.DeleteKey(ctx, k); err != nil {
 				return fmt.Errorf("evictKeysWithExpiredTTL -> standalone delete: %+v", err)
 			}
-		} else if server.IsInCluster() && server.raft.IsRaftLeader() {
+		} else if server.isInCluster() && server.raft.IsRaftLeader() {
 			if err := server.raftApplyDeleteKey(ctx, k); err != nil {
 				return fmt.Errorf("evictKeysWithExpiredTTL -> cluster delete: %+v", err)
 			}

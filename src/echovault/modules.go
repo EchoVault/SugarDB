@@ -83,7 +83,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 		}
 	}
 
-	if !server.IsInCluster() || !synchronize {
+	if !server.isInCluster() || !synchronize {
 		res, err := handler(ctx, cmd, server, conn)
 		if err != nil {
 			return nil, err

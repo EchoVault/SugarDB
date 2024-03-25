@@ -127,7 +127,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 		option(echovault)
 	}
 
-	if echovault.IsInCluster() {
+	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{
 			Config:     echovault.Config,
 			EchoVault:  echovault,
@@ -365,7 +365,7 @@ func (server *EchoVault) Start(ctx context.Context) {
 		return
 	}
 
-	if server.IsInCluster() {
+	if server.isInCluster() {
 		// Initialise raft and memberlist
 		server.raft.RaftInit(ctx)
 		server.memberList.MemberListInit(ctx)
@@ -374,7 +374,7 @@ func (server *EchoVault) Start(ctx context.Context) {
 		}
 	}
 
-	if !server.IsInCluster() {
+	if !server.isInCluster() {
 		server.initialiseCaches()
 		// Restore from AOF by default if it's enabled
 		if conf.RestoreAOF {
@@ -402,7 +402,7 @@ func (server *EchoVault) TakeSnapshot() error {
 	}
 
 	go func() {
-		if server.IsInCluster() {
+		if server.isInCluster() {
 			// Handle snapshot in cluster mode
 			if err := server.raft.TakeSnapshot(); err != nil {
 				log.Println(err)
@@ -455,7 +455,7 @@ func (server *EchoVault) RewriteAOF() error {
 }
 
 func (server *EchoVault) ShutDown(ctx context.Context) {
-	if server.IsInCluster() {
+	if server.isInCluster() {
 		server.raft.RaftShutdown(ctx)
 		server.memberList.MemberListShutdown(ctx)
 	}
