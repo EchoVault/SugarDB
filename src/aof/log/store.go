@@ -69,13 +69,11 @@ func WithHandleCommandFunc(f func(command []byte)) func(store *AppendStore) {
 
 func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
 	store := &AppendStore{
-		directory: "",
-		strategy:  "everysec",
-		rw:        nil,
-		mut:       sync.Mutex{},
-		handleCommand: func(command []byte) {
-			// No-Op
-		},
+		directory:     "",
+		strategy:      "everysec",
+		rw:            nil,
+		mut:           sync.Mutex{},
+		handleCommand: func(command []byte) {},
 	}
 
 	for _, option := range options {
@@ -130,8 +128,11 @@ func (store *AppendStore) Write(command []byte) error {
 
 func (store *AppendStore) Sync() error {
 	store.mut.Lock()
-	store.mut.Unlock()
-	return store.rw.Sync()
+	defer store.mut.Unlock()
+	if store.rw != nil {
+		return store.rw.Sync()
+	}
+	return nil
 }
 
 func (store *AppendStore) Restore() error {

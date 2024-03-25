@@ -113,6 +113,12 @@ func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 		handleCommand:     func(command []byte) {},
 	}
 
+	// Setup AOFEngine options first as these options are used
+	// when setting up the PreambleStore and AppendStore
+	for _, option := range options {
+		option(engine)
+	}
+
 	// Setup Preamble engine
 	engine.preambleStore = preamble.NewPreambleStore(
 		preamble.WithDirectory(engine.directory),
@@ -128,10 +134,6 @@ func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 		logstore.WithReadWriter(engine.appendRW),
 		logstore.WithHandleCommandFunc(engine.handleCommand),
 	)
-
-	for _, option := range options {
-		option(engine)
-	}
 
 	// 3. Start the goroutine to pick up queued commands in order to write them to the file.
 	// LogCommand will get the open file handler from the struct top perform the AOF operation.
