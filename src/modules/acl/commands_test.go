@@ -58,11 +58,11 @@ func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig strin
 	acl = NewACL(config)
 	acl.Users = append(acl.Users, generateInitialTestUsers()...)
 
-	return echovault.NewEchoVault(echovault.Opts{
-		Config:   config,
-		ACL:      acl,
-		Commands: Commands(),
-	})
+	return echovault.NewEchoVault(
+		echovault.WithConfig(config),
+		echovault.WithACL(acl),
+		echovault.WithCommands(Commands()),
+	)
 }
 
 func generateInitialTestUsers() []*User {

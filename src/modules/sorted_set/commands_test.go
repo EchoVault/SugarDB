@@ -31,12 +31,12 @@ import (
 var mockServer *echovault.EchoVault
 
 func init() {
-	mockServer = echovault.NewEchoVault(echovault.Opts{
-		Config: utils.Config{
+	mockServer = echovault.NewEchoVault(
+		echovault.WithConfig(utils.Config{
 			DataDir:        "",
 			EvictionPolicy: utils.NoEviction,
-		},
-	})
+		}),
+	)
 }
 
 func Test_HandleZADD(t *testing.T) {

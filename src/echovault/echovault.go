@@ -70,7 +70,7 @@ type EchoVault struct {
 	raft       *raft.Raft             // The raft replication layer for the echovault.
 	memberList *memberlist.MemberList // The memberlist layer for the echovault.
 
-	CancelCh *chan os.Signal
+	Context context.Context
 
 	ACL    utils.ACL
 	PubSub utils.PubSub
@@ -84,84 +84,108 @@ type EchoVault struct {
 	AOFEngine                  *aof.Engine      // AOF engine for standalone mode
 }
 
-type Opts struct {
-	Config   utils.Config
-	ACL      utils.ACL
-	PubSub   utils.PubSub
-	CancelCh *chan os.Signal
-	Commands []utils.Command
+func WithContext(ctx context.Context) func(echovault *EchoVault) {
+	return func(echovault *EchoVault) {
+		echovault.Context = ctx
+	}
 }
 
-func NewEchoVault(opts Opts) *EchoVault {
-	server := &EchoVault{
-		Config:          opts.Config,
-		ACL:             opts.ACL,
-		PubSub:          opts.PubSub,
-		CancelCh:        opts.CancelCh,
-		Commands:        opts.Commands,
+func WithConfig(config utils.Config) func(echovault *EchoVault) {
+	return func(echovault *EchoVault) {
+		echovault.Config = config
+	}
+}
+
+func WithACL(acl utils.ACL) func(echovault *EchoVault) {
+	return func(echovault *EchoVault) {
+		echovault.ACL = acl
+	}
+}
+
+func WithPubSub(pubsub utils.PubSub) func(echovault *EchoVault) {
+	return func(echovault *EchoVault) {
+		echovault.PubSub = pubsub
+	}
+}
+
+func WithCommands(commands []utils.Command) func(echovault *EchoVault) {
+	return func(echovault *EchoVault) {
+		echovault.Commands = commands
+	}
+}
+
+func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
+	echovault := &EchoVault{
+		Context:         context.Background(),
+		Commands:        make([]utils.Command, 0),
 		store:           make(map[string]utils.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
 	}
-	if server.IsInCluster() {
-		server.raft = raft.NewRaft(raft.Opts{
-			Config:     opts.Config,
-			EchoVault:  server,
-			GetCommand: server.getCommand,
-			DeleteKey:  server.DeleteKey,
+
+	for _, option := range options {
+		option(echovault)
+	}
+
+	if echovault.IsInCluster() {
+		echovault.raft = raft.NewRaft(raft.Opts{
+			Config:     echovault.Config,
+			EchoVault:  echovault,
+			GetCommand: echovault.getCommand,
+			DeleteKey:  echovault.DeleteKey,
 		})
-		server.memberList = memberlist.NewMemberList(memberlist.Opts{
-			Config:           opts.Config,
-			HasJoinedCluster: server.raft.HasJoinedCluster,
-			AddVoter:         server.raft.AddVoter,
-			RemoveRaftServer: server.raft.RemoveServer,
-			IsRaftLeader:     server.raft.IsRaftLeader,
-			ApplyMutate:      server.raftApplyCommand,
-			ApplyDeleteKey:   server.raftApplyDeleteKey,
+		echovault.memberList = memberlist.NewMemberList(memberlist.Opts{
+			Config:           echovault.Config,
+			HasJoinedCluster: echovault.raft.HasJoinedCluster,
+			AddVoter:         echovault.raft.AddVoter,
+			RemoveRaftServer: echovault.raft.RemoveServer,
+			IsRaftLeader:     echovault.raft.IsRaftLeader,
+			ApplyMutate:      echovault.raftApplyCommand,
+			ApplyDeleteKey:   echovault.raftApplyDeleteKey,
 		})
 	} else {
 		// Set up standalone snapshot engine
-		server.SnapshotEngine = snapshot.NewSnapshotEngine(
-			snapshot.WithDirectory(opts.Config.DataDir),
-			snapshot.WithThreshold(opts.Config.SnapShotThreshold),
-			snapshot.WithInterval(opts.Config.SnapshotInterval),
-			snapshot.WithGetStateFunc(server.GetState),
-			snapshot.WithStartSnapshotFunc(server.StartSnapshot),
-			snapshot.WithFinishSnapshotFunc(server.FinishSnapshot),
-			snapshot.WithSetLatestSnapshotTimeFunc(server.SetLatestSnapshot),
-			snapshot.WithGetLatestSnapshotTimeFunc(server.GetLatestSnapshot),
+		echovault.SnapshotEngine = snapshot.NewSnapshotEngine(
+			snapshot.WithDirectory(echovault.Config.DataDir),
+			snapshot.WithThreshold(echovault.Config.SnapShotThreshold),
+			snapshot.WithInterval(echovault.Config.SnapshotInterval),
+			snapshot.WithGetStateFunc(echovault.GetState),
+			snapshot.WithStartSnapshotFunc(echovault.StartSnapshot),
+			snapshot.WithFinishSnapshotFunc(echovault.FinishSnapshot),
+			snapshot.WithSetLatestSnapshotTimeFunc(echovault.SetLatestSnapshot),
+			snapshot.WithGetLatestSnapshotTimeFunc(echovault.GetLatestSnapshot),
 			snapshot.WithSetKeyDataFunc(func(key string, data utils.KeyData) {
 				ctx := context.Background()
-				if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+				if _, err := echovault.CreateKeyAndLock(ctx, key); err != nil {
 					log.Println(err)
 				}
-				if err := server.SetValue(ctx, key, data.Value); err != nil {
+				if err := echovault.SetValue(ctx, key, data.Value); err != nil {
 					log.Println(err)
 				}
-				server.SetExpiry(ctx, key, data.ExpireAt, false)
-				server.KeyUnlock(ctx, key)
+				echovault.SetExpiry(ctx, key, data.ExpireAt, false)
+				echovault.KeyUnlock(ctx, key)
 			}),
 		)
 		// Set up standalone AOF engine
-		server.AOFEngine = aof.NewAOFEngine(
-			aof.WithDirectory(opts.Config.DataDir),
-			aof.WithStrategy(opts.Config.AOFSyncStrategy),
-			aof.WithStartRewriteFunc(server.StartRewriteAOF),
-			aof.WithFinishRewriteFunc(server.FinishRewriteAOF),
-			aof.WithGetStateFunc(server.GetState),
+		echovault.AOFEngine = aof.NewAOFEngine(
+			aof.WithDirectory(echovault.Config.DataDir),
+			aof.WithStrategy(echovault.Config.AOFSyncStrategy),
+			aof.WithStartRewriteFunc(echovault.StartRewriteAOF),
+			aof.WithFinishRewriteFunc(echovault.FinishRewriteAOF),
+			aof.WithGetStateFunc(echovault.GetState),
 			aof.WithSetKeyDataFunc(func(key string, value utils.KeyData) {
 				ctx := context.Background()
-				if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+				if _, err := echovault.CreateKeyAndLock(ctx, key); err != nil {
 					log.Println(err)
 				}
-				if err := server.SetValue(ctx, key, value.Value); err != nil {
+				if err := echovault.SetValue(ctx, key, value.Value); err != nil {
 					log.Println(err)
 				}
-				server.SetExpiry(ctx, key, value.ExpireAt, false)
-				server.KeyUnlock(ctx, key)
+				echovault.SetExpiry(ctx, key, value.ExpireAt, false)
+				echovault.KeyUnlock(ctx, key)
 			}),
 			aof.WithHandleCommandFunc(func(command []byte) {
-				_, err := server.handleCommand(context.Background(), command, nil, true)
+				_, err := echovault.handleCommand(context.Background(), command, nil, true)
 				if err != nil {
 					log.Println(err)
 				}
@@ -170,18 +194,18 @@ func NewEchoVault(opts Opts) *EchoVault {
 	}
 
 	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
-	if server.Config.EvictionPolicy != utils.NoEviction {
+	if echovault.Config.EvictionPolicy != utils.NoEviction {
 		go func() {
 			for {
-				<-time.After(server.Config.EvictionInterval)
-				if err := server.evictKeysWithExpiredTTL(context.Background()); err != nil {
+				<-time.After(echovault.Config.EvictionInterval)
+				if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
 					log.Println(err)
 				}
 			}
 		}()
 	}
 
-	return server
+	return echovault
 }
 
 func (server *EchoVault) StartTCP(ctx context.Context) {

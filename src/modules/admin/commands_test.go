@@ -25,13 +25,13 @@ import (
 )
 
 func Test_CommandsHandler(t *testing.T) {
-	mockServer := echovault.NewEchoVault(echovault.Opts{
-		Config: utils.Config{
+	mockServer := echovault.NewEchoVault(
+		echovault.WithConfig(utils.Config{
 			DataDir:        "",
 			EvictionPolicy: utils.NoEviction,
-		},
-		Commands: Commands(),
-	})
+		}),
+		echovault.WithCommands(Commands()),
+	)
 
 	res, err := handleGetAllCommands(context.Background(), []string{"commands"}, mockServer, nil)
 	if err != nil {

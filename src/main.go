@@ -70,13 +70,13 @@ func main() {
 	cancelCh := make(chan os.Signal, 1)
 	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
-	server := echovault.NewEchoVault(echovault.Opts{
-		Config:   config,
-		ACL:      acl.NewACL(config),
-		PubSub:   pubsub.NewPubSub(),
-		CancelCh: &cancelCh,
-		Commands: GetCommands(),
-	})
+	server := echovault.NewEchoVault(
+		echovault.WithContext(ctx),
+		echovault.WithConfig(config),
+		echovault.WithACL(acl.NewACL(config)),
+		echovault.WithPubSub(pubsub.NewPubSub()),
+		echovault.WithCommands(GetCommands()),
+	)
 
 	go server.Start(ctx)
 

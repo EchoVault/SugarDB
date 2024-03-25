@@ -35,19 +35,23 @@ var port uint16 = 7490
 
 func init() {
 	pubsub = NewPubSub()
-	mockServer = echovault.NewEchoVault(echovault.Opts{
-		PubSub:   pubsub,
-		Commands: Commands(),
-		Config: utils.Config{
+	mockServer = setUpServer(pubsub, bindAddr, port)
+	go func() {
+		mockServer.Start(context.Background())
+	}()
+}
+
+func setUpServer(pubsub *PubSub, bindAddr string, port uint16) *echovault.EchoVault {
+	return echovault.NewEchoVault(
+		echovault.WithPubSub(pubsub),
+		echovault.WithCommands(Commands()),
+		echovault.WithConfig(utils.Config{
 			BindAddr:       bindAddr,
 			Port:           port,
 			DataDir:        "",
 			EvictionPolicy: utils.NoEviction,
-		},
-	})
-	go func() {
-		mockServer.Start(context.Background())
-	}()
+		}),
+	)
 }
 
 func Test_HandleSubscribe(t *testing.T) {
@@ -492,16 +496,7 @@ func Test_HandlePubSubChannels(t *testing.T) {
 		// Create separate mock echovault for this test
 		var port uint16 = 7590
 		pubsub = NewPubSub()
-		mockServer := echovault.NewEchoVault(echovault.Opts{
-			PubSub:   pubsub,
-			Commands: Commands(),
-			Config: utils.Config{
-				BindAddr:       bindAddr,
-				Port:           port,
-				DataDir:        "",
-				EvictionPolicy: utils.NoEviction,
-			},
-		})
+		mockServer := setUpServer(pubsub, bindAddr, port)
 
 		ctx := context.WithValue(context.Background(), "test_name", "PUBSUB CHANNELS")
 
@@ -637,16 +632,7 @@ func Test_HandleNumPat(t *testing.T) {
 		// Create separate mock echovault for this test
 		var port uint16 = 7591
 		pubsub = NewPubSub()
-		mockServer := echovault.NewEchoVault(echovault.Opts{
-			PubSub:   pubsub,
-			Commands: Commands(),
-			Config: utils.Config{
-				BindAddr:       bindAddr,
-				Port:           port,
-				DataDir:        "",
-				EvictionPolicy: utils.NoEviction,
-			},
-		})
+		mockServer := setUpServer(pubsub, bindAddr, port)
 
 		ctx := context.WithValue(context.Background(), "test_name", "PUBSUB NUMPAT")
 
@@ -741,16 +727,7 @@ func Test_HandleNumSub(t *testing.T) {
 		// Create separate mock echovault for this test
 		var port uint16 = 7591
 		pubsub = NewPubSub()
-		mockServer := echovault.NewEchoVault(echovault.Opts{
-			PubSub:   pubsub,
-			Commands: Commands(),
-			Config: utils.Config{
-				BindAddr:       bindAddr,
-				Port:           port,
-				DataDir:        "",
-				EvictionPolicy: utils.NoEviction,
-			},
-		})
+		mockServer := setUpServer(pubsub, bindAddr, port)
 
 		ctx := context.WithValue(context.Background(), "test_name", "PUBSUB NUMSUB")
 
