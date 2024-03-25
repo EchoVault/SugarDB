@@ -106,7 +106,7 @@ func NewEchoVault(opts Opts) *EchoVault {
 	if server.IsInCluster() {
 		server.raft = raft.NewRaft(raft.Opts{
 			Config:     opts.Config,
-			Server:     server,
+			EchoVault:  server,
 			GetCommand: server.getCommand,
 			DeleteKey:  server.DeleteKey,
 		})

@@ -27,7 +27,7 @@ import (
 
 type FSMOpts struct {
 	Config     utils.Config
-	Server     utils.EchoVault
+	EchoVault  utils.EchoVault
 	GetCommand func(command string) (utils.Command, error)
 	DeleteKey  func(ctx context.Context, key string) error
 }
@@ -96,7 +96,7 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 				handler = subCommand.HandlerFunc
 			}
 
-			if res, err := handler(ctx, request.CMD, fsm.options.Server, nil); err != nil {
+			if res, err := handler(ctx, request.CMD, fsm.options.EchoVault, nil); err != nil {
 				return utils.ApplyResponse{
 					Error:    err,
 					Response: nil,
@@ -117,10 +117,10 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 func (fsm *FSM) Snapshot() (raft.FSMSnapshot, error) {
 	return NewFSMSnapshot(SnapshotOpts{
 		config:            fsm.options.Config,
-		data:              fsm.options.Server.GetState(),
-		startSnapshot:     fsm.options.Server.StartSnapshot,
-		finishSnapshot:    fsm.options.Server.FinishSnapshot,
-		setLatestSnapshot: fsm.options.Server.SetLatestSnapshot,
+		data:              fsm.options.EchoVault.GetState(),
+		startSnapshot:     fsm.options.EchoVault.StartSnapshot,
+		finishSnapshot:    fsm.options.EchoVault.FinishSnapshot,
+		setLatestSnapshot: fsm.options.EchoVault.SetLatestSnapshot,
 	}), nil
 }
 
@@ -146,17 +146,17 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 	// Set state
 	ctx := context.Background()
 	for k, v := range utils.FilterExpiredKeys(data.State) {
-		if _, err = fsm.options.Server.CreateKeyAndLock(ctx, k); err != nil {
+		if _, err = fsm.options.EchoVault.CreateKeyAndLock(ctx, k); err != nil {
 			log.Fatal(err)
 		}
-		if err = fsm.options.Server.SetValue(ctx, k, v.Value); err != nil {
+		if err = fsm.options.EchoVault.SetValue(ctx, k, v.Value); err != nil {
 			log.Fatal(err)
 		}
-		fsm.options.Server.SetExpiry(ctx, k, v.ExpireAt, false)
-		fsm.options.Server.KeyUnlock(ctx, k)
+		fsm.options.EchoVault.SetExpiry(ctx, k, v.ExpireAt, false)
+		fsm.options.EchoVault.KeyUnlock(ctx, k)
 	}
 	// Set latest snapshot milliseconds
-	fsm.options.Server.SetLatestSnapshot(data.LatestSnapshotMilliseconds)
+	fsm.options.EchoVault.SetLatestSnapshot(data.LatestSnapshotMilliseconds)
 
 	return nil
 }

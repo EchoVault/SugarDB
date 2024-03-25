@@ -32,7 +32,7 @@ import (
 
 type Opts struct {
 	Config     utils.Config
-	Server     utils.EchoVault
+	EchoVault  utils.EchoVault
 	GetCommand func(command string) (utils.Command, error)
 	DeleteKey  func(ctx context.Context, key string) error
 }
@@ -107,7 +107,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 		raftConfig,
 		NewFSM(FSMOpts{
 			Config:     r.options.Config,
-			Server:     r.options.Server,
+			EchoVault:  r.options.EchoVault,
 			GetCommand: r.options.GetCommand,
 			DeleteKey:  r.options.DeleteKey,
 		}),
