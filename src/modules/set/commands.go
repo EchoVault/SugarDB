@@ -24,7 +24,7 @@ import (
 	"strings"
 )
 
-func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSADD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := saddKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func handleSADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSCARD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := scardKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func handleSCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(fmt.Sprintf(":%d\r\n", cardinality)), nil
 }
 
-func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSDIFF(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sdiffKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func handleSDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(res), nil
 }
 
-func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sdiffstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -225,7 +225,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 	return []byte(res), nil
 }
 
-func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSINTER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sinterKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -280,7 +280,7 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	return []byte(res), nil
 }
 
-func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSINTERCARD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sintercardKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -347,7 +347,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.Server, co
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sinterstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -405,7 +405,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSISMEMBER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sismemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -434,7 +434,7 @@ func handleSISMEMBER(ctx context.Context, cmd []string, server utils.Server, con
 	return []byte(":1\r\n"), nil
 }
 
-func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSMEMBERS(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := smembersKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -469,7 +469,7 @@ func handleSMEMBERS(ctx context.Context, cmd []string, server utils.Server, conn
 	return []byte(res), nil
 }
 
-func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := smismemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -512,7 +512,7 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.Server, co
 	return []byte(res), nil
 }
 
-func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSMOVE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := smoveKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -566,7 +566,7 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(fmt.Sprintf(":%d\r\n", res)), nil
 }
 
-func handleSPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := spopKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -610,7 +610,7 @@ func handleSPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(res), nil
 }
 
-func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := srandmemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -654,7 +654,7 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 	return []byte(res), nil
 }
 
-func handleSREM(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSREM(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sremKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -682,7 +682,7 @@ func handleSREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleSUNION(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSUNION(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sunionKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -733,7 +733,7 @@ func handleSUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 	return []byte(res), nil
 }
 
-func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sunionstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err

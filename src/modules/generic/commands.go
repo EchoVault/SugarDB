@@ -47,7 +47,7 @@ type KeyObject struct {
 	locked bool
 }
 
-func handleSet(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleSet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := setKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	return res, nil
 }
 
-func handleMSet(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleMSet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	if _, err := msetKeyFunc(cmd); err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func handleMSet(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 	return []byte(utils.OkResponse), nil
 }
 
-func handleGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleGet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := getKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -189,7 +189,7 @@ func handleGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
 }
 
-func handleMGet(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleMGet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := mgetKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -239,7 +239,7 @@ func handleMGet(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 	return bytes, nil
 }
 
-func handleDel(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleDel(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := delKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -256,7 +256,7 @@ func handleDel(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handlePersist(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handlePersist(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := persistKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -283,7 +283,7 @@ func handlePersist(ctx context.Context, cmd []string, server utils.Server, _ *ne
 	return []byte(":1\r\n"), nil
 }
 
-func handleExpireTime(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleExpireTime(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := expireTimeKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -314,7 +314,7 @@ func handleExpireTime(ctx context.Context, cmd []string, server utils.Server, _ 
 	return []byte(fmt.Sprintf(":%d\r\n", t)), nil
 }
 
-func handleTTL(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleTTL(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := ttlKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -349,7 +349,7 @@ func handleTTL(ctx context.Context, cmd []string, server utils.Server, _ *net.Co
 	return []byte(fmt.Sprintf(":%d\r\n", t)), nil
 }
 
-func handleExpire(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleExpire(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := expireKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -417,7 +417,7 @@ func handleExpire(ctx context.Context, cmd []string, server utils.Server, _ *net
 	return []byte(":1\r\n"), nil
 }
 
-func handleExpireAt(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleExpireAt(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := expireKeyFunc(cmd)
 	if err != nil {
 		return nil, err

@@ -28,14 +28,14 @@ import (
 )
 
 var pubsub *PubSub
-var mockServer *server.Server
+var mockServer *server.EchoVault
 
 var bindAddr = "localhost"
 var port uint16 = 7490
 
 func init() {
 	pubsub = NewPubSub()
-	mockServer = server.NewServer(server.Opts{
+	mockServer = server.NewEchoVault(server.Opts{
 		PubSub:   pubsub,
 		Commands: Commands(),
 		Config: utils.Config{
@@ -492,7 +492,7 @@ func Test_HandlePubSubChannels(t *testing.T) {
 		// Create separate mock server for this test
 		var port uint16 = 7590
 		pubsub = NewPubSub()
-		mockServer := server.NewServer(server.Opts{
+		mockServer := server.NewEchoVault(server.Opts{
 			PubSub:   pubsub,
 			Commands: Commands(),
 			Config: utils.Config{
@@ -637,7 +637,7 @@ func Test_HandleNumPat(t *testing.T) {
 		// Create separate mock server for this test
 		var port uint16 = 7591
 		pubsub = NewPubSub()
-		mockServer := server.NewServer(server.Opts{
+		mockServer := server.NewEchoVault(server.Opts{
 			PubSub:   pubsub,
 			Commands: Commands(),
 			Config: utils.Config{
@@ -741,7 +741,7 @@ func Test_HandleNumSub(t *testing.T) {
 		// Create separate mock server for this test
 		var port uint16 = 7591
 		pubsub = NewPubSub()
-		mockServer := server.NewServer(server.Opts{
+		mockServer := server.NewEchoVault(server.Opts{
 			PubSub:   pubsub,
 			Commands: Commands(),
 			Config: utils.Config{

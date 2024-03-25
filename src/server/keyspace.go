@@ -30,7 +30,7 @@ import (
 
 // KeyLock tries to acquire the write lock for the specified key.
 // If the context passed to the function finishes before the lock is acquired, an error is returned.
-func (server *Server) KeyLock(ctx context.Context, key string) (bool, error) {
+func (server *EchoVault) KeyLock(ctx context.Context, key string) (bool, error) {
 	// If context did not set deadline, set the default deadline
 	var cancelFunc context.CancelFunc
 	if _, ok := ctx.Deadline(); !ok {
@@ -54,7 +54,7 @@ func (server *Server) KeyLock(ctx context.Context, key string) (bool, error) {
 	}
 }
 
-func (server *Server) KeyUnlock(ctx context.Context, key string) {
+func (server *EchoVault) KeyUnlock(ctx context.Context, key string) {
 	if _, ok := server.keyLocks[key]; ok {
 		server.keyLocks[key].Unlock()
 	}
@@ -62,7 +62,7 @@ func (server *Server) KeyUnlock(ctx context.Context, key string) {
 
 // KeyRLock tries to acquire the read lock for the specified key.
 // If the context passed to the function finishes before the lock is acquired, an error is returned.
-func (server *Server) KeyRLock(ctx context.Context, key string) (bool, error) {
+func (server *EchoVault) KeyRLock(ctx context.Context, key string) (bool, error) {
 	// If context did not set deadline, set the default deadline
 	var cancelFunc context.CancelFunc
 	if _, ok := ctx.Deadline(); !ok {
@@ -86,13 +86,13 @@ func (server *Server) KeyRLock(ctx context.Context, key string) (bool, error) {
 	}
 }
 
-func (server *Server) KeyRUnlock(ctx context.Context, key string) {
+func (server *EchoVault) KeyRUnlock(ctx context.Context, key string) {
 	if _, ok := server.keyLocks[key]; ok {
 		server.keyLocks[key].RUnlock()
 	}
 }
 
-func (server *Server) KeyExists(ctx context.Context, key string) bool {
+func (server *EchoVault) KeyExists(ctx context.Context, key string) bool {
 	entry, ok := server.store[key]
 	if !ok {
 		return false
@@ -126,7 +126,7 @@ func (server *Server) KeyExists(ctx context.Context, key string) bool {
 
 // CreateKeyAndLock creates a new key lock and immediately locks it if the key does not exist.
 // If the key exists, the existing key is locked.
-func (server *Server) CreateKeyAndLock(ctx context.Context, key string) (bool, error) {
+func (server *EchoVault) CreateKeyAndLock(ctx context.Context, key string) (bool, error) {
 	if utils.IsMaxMemoryExceeded(server.Config.MaxMemory) && server.Config.EvictionPolicy == utils.NoEviction {
 		return false, errors.New("max memory reached, key not created")
 	}
@@ -152,7 +152,7 @@ func (server *Server) CreateKeyAndLock(ctx context.Context, key string) (bool, e
 
 // GetValue retrieves the current value at the specified key.
 // The key must be read-locked before calling this function.
-func (server *Server) GetValue(ctx context.Context, key string) interface{} {
+func (server *EchoVault) GetValue(ctx context.Context, key string) interface{} {
 	if err := server.updateKeyInCache(ctx, key); err != nil {
 		log.Printf("GetValue error: %+v\n", err)
 	}
@@ -164,7 +164,7 @@ func (server *Server) GetValue(ctx context.Context, key string) interface{} {
 // in the snapshot engine.
 // This count triggers a snapshot when the threshold is reached.
 // The key must be locked prior to calling this function.
-func (server *Server) SetValue(ctx context.Context, key string, value interface{}) error {
+func (server *EchoVault) SetValue(ctx context.Context, key string, value interface{}) error {
 	if utils.IsMaxMemoryExceeded(server.Config.MaxMemory) && server.Config.EvictionPolicy == utils.NoEviction {
 		return errors.New("max memory reached, key value not set")
 	}
@@ -188,7 +188,7 @@ func (server *Server) SetValue(ctx context.Context, key string, value interface{
 
 // The GetExpiry function returns the expiry time associated with the provided key.
 // The key must be read locked before calling this function.
-func (server *Server) GetExpiry(ctx context.Context, key string) time.Time {
+func (server *EchoVault) GetExpiry(ctx context.Context, key string) time.Time {
 	if err := server.updateKeyInCache(ctx, key); err != nil {
 		log.Printf("GetKeyExpiry error: %+v\n", err)
 	}
@@ -201,7 +201,7 @@ func (server *Server) GetExpiry(ctx context.Context, key string) time.Time {
 // The touch parameter determines whether to update the keys access count on lfu eviction policy,
 // or the access time on lru eviction policy.
 // The key must be locked prior to calling this function.
-func (server *Server) SetExpiry(ctx context.Context, key string, expireAt time.Time, touch bool) {
+func (server *EchoVault) SetExpiry(ctx context.Context, key string, expireAt time.Time, touch bool) {
 	server.store[key] = utils.KeyData{
 		Value:    server.store[key].Value,
 		ExpireAt: expireAt,
@@ -225,7 +225,7 @@ func (server *Server) SetExpiry(ctx context.Context, key string, expireAt time.T
 
 // RemoveExpiry is called by commands that remove key expiry (e.g. PERSIST).
 // The key must be locked prior ro calling this function.
-func (server *Server) RemoveExpiry(key string) {
+func (server *EchoVault) RemoveExpiry(key string) {
 	// Reset expiry time
 	server.store[key] = utils.KeyData{
 		Value:    server.store[key].Value,
@@ -244,7 +244,7 @@ func (server *Server) RemoveExpiry(key string) {
 // functions that require a deep copy of the state.
 // The copy only starts when there's no current copy in progress (represented by StateCopyInProgress atomic boolean)
 // and when there's no current state mutation in progress (represented by StateMutationInProgress atomic boolean)
-func (server *Server) GetState() map[string]utils.KeyData {
+func (server *EchoVault) GetState() map[string]utils.KeyData {
 	// Wait unit there's no state mutation or copy in progress before starting a new copy process.
 	for {
 		if !server.StateCopyInProgress.Load() && !server.StateMutationInProgress.Load() {
@@ -261,7 +261,7 @@ func (server *Server) GetState() map[string]utils.KeyData {
 }
 
 // DeleteKey removes the key from store, keyLocks and keyExpiry maps.
-func (server *Server) DeleteKey(ctx context.Context, key string) error {
+func (server *EchoVault) DeleteKey(ctx context.Context, key string) error {
 	if _, err := server.KeyLock(ctx, key); err != nil {
 		return fmt.Errorf("deleteKey error: %+v", err)
 	}
@@ -288,7 +288,7 @@ func (server *Server) DeleteKey(ctx context.Context, key string) error {
 
 // updateKeyInCache updates either the key access count or the most recent access time in the cache
 // depending on whether an LFU or LRU strategy was used.
-func (server *Server) updateKeyInCache(ctx context.Context, key string) error {
+func (server *EchoVault) updateKeyInCache(ctx context.Context, key string) error {
 	// Only update cache when in standalone mode or when raft leader
 	if server.IsInCluster() || (server.IsInCluster() && !server.raft.IsRaftLeader()) {
 		return nil
@@ -326,7 +326,7 @@ func (server *Server) updateKeyInCache(ctx context.Context, key string) error {
 }
 
 // adjustMemoryUsage should only be called from standalone server or from raft cluster leader.
-func (server *Server) adjustMemoryUsage(ctx context.Context) error {
+func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	// If max memory is 0, there's no need to adjust memory usage.
 	if server.Config.MaxMemory == 0 {
 		return nil
@@ -487,7 +487,7 @@ func (server *Server) adjustMemoryUsage(ctx context.Context) error {
 // This function will sample 20 keys from the list of keys with an associated TTL,
 // if the key is expired, it will be evicted.
 // This function is only executed in standalone mode or by the raft cluster leader.
-func (server *Server) evictKeysWithExpiredTTL(ctx context.Context) error {
+func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
 	// Only execute this if we're in standalone mode, or raft cluster leader.
 	if server.IsInCluster() && !server.raft.IsRaftLeader() {
 		return nil

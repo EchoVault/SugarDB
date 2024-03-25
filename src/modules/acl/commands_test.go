@@ -29,7 +29,7 @@ import (
 
 var bindAddr string
 var port uint16
-var mockServer *server.Server
+var mockServer *server.EchoVault
 
 var acl *ACL
 
@@ -44,7 +44,7 @@ func init() {
 	}()
 }
 
-func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig string) *server.Server {
+func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig string) *server.EchoVault {
 	config := utils.Config{
 		BindAddr:       bindAddr,
 		Port:           port,
@@ -58,7 +58,7 @@ func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig strin
 	acl = NewACL(config)
 	acl.Users = append(acl.Users, generateInitialTestUsers()...)
 
-	return server.NewServer(server.Opts{
+	return server.NewEchoVault(server.Opts{
 		Config:   config,
 		ACL:      acl,
 		Commands: Commands(),

@@ -28,10 +28,10 @@ import (
 	"testing"
 )
 
-var mockServer *server.Server
+var mockServer *server.EchoVault
 
 func init() {
-	mockServer = server.NewServer(server.Opts{
+	mockServer = server.NewEchoVault(server.Opts{
 		Config: utils.Config{
 			DataDir:        "",
 			EvictionPolicy: utils.NoEviction,

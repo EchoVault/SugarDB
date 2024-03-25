@@ -131,7 +131,7 @@ There is no limit by default.`, func(memory string) error {
 	tls := flag.Bool("tls", false, "Start the server in TLS mode. Default is false.")
 	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
-	serverId := flag.String("server-id", "1", "Server ID in raft cluster. Leave empty for client.")
+	serverId := flag.String("server-id", "1", "EchoVault ID in raft cluster. Leave empty for client.")
 	joinAddr := flag.String("join-addr", "", "Address of cluster member in a cluster to you want to join.")
 	bindAddr := flag.String("bind-addr", "", "Address to bind the server to.")
 	raftBindPort := flag.Uint("raft-port", 7481, "Port to use for intra-cluster communication. Leave on the client.")

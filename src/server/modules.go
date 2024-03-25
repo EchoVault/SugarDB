@@ -23,19 +23,19 @@ import (
 	"strings"
 )
 
-func (server *Server) GetAllCommands() []utils.Command {
+func (server *EchoVault) GetAllCommands() []utils.Command {
 	return server.Commands
 }
 
-func (server *Server) GetACL() interface{} {
+func (server *EchoVault) GetACL() interface{} {
 	return server.ACL
 }
 
-func (server *Server) GetPubSub() interface{} {
+func (server *EchoVault) GetPubSub() interface{} {
 	return server.PubSub
 }
 
-func (server *Server) getCommand(cmd string) (utils.Command, error) {
+func (server *EchoVault) getCommand(cmd string) (utils.Command, error) {
 	for _, command := range server.Commands {
 		if strings.EqualFold(command.Command, cmd) {
 			return command, nil
@@ -44,7 +44,7 @@ func (server *Server) getCommand(cmd string) (utils.Command, error) {
 	return utils.Command{}, fmt.Errorf("command %s not supported", cmd)
 }
 
-func (server *Server) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool) ([]byte, error) {
+func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool) ([]byte, error) {
 	cmd, err := utils.Decode(message)
 	if err != nil {
 		return nil, err

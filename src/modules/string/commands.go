@@ -22,7 +22,7 @@ import (
 	"net"
 )
 
-func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSetRange(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := setRangeKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.Server, conn
 	return []byte(fmt.Sprintf(":%d\r\n", len(strRunes))), nil
 }
 
-func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleStrLen(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := strLenKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func handleStrLen(ctx context.Context, cmd []string, server utils.Server, conn *
 	return []byte(fmt.Sprintf(":%d\r\n", len(value))), nil
 }
 
-func handleSubStr(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleSubStr(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := subStrKeyFunc(cmd)
 	if err != nil {
 		return nil, err

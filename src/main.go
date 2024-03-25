@@ -70,7 +70,7 @@ func main() {
 	cancelCh := make(chan os.Signal, 1)
 	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
-	s := server.NewServer(server.Opts{
+	s := server.NewEchoVault(server.Opts{
 		Config:   config,
 		ACL:      acl.NewACL(config),
 		PubSub:   pubsub.NewPubSub(),

@@ -27,7 +27,7 @@ import (
 	"strings"
 )
 
-func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZADD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zaddKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -178,7 +178,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
 
-func handleZCARD(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZCARD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zcardKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -202,7 +202,7 @@ func handleZCARD(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
 
-func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zcountKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -270,7 +270,7 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *
 	return []byte(fmt.Sprintf(":%d\r\n", len(members))), nil
 }
 
-func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zlexcountKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -315,7 +315,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.Server, con
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZDIFF(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zdiffKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -388,7 +388,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(res), nil
 }
 
-func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zdiffstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -454,7 +454,7 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.Server, co
 	return []byte(fmt.Sprintf(":%d\r\n", diff.Cardinality())), nil
 }
 
-func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zincrbyKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -517,7 +517,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.Server, conn 
 		strconv.FormatFloat(float64(set.Get(member).score), 'f', -1, 64))), nil
 }
 
-func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZINTER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zinterKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -577,7 +577,7 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.Server, conn *
 	return []byte(res), nil
 }
 
-func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zinterstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -644,7 +644,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.Server, c
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZMPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zmpopKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -722,7 +722,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte("*0\r\n"), nil
 }
 
-func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zpopKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -773,7 +773,7 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(res), nil
 }
 
-func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZMSCORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zmscoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -815,7 +815,7 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.Server, conn 
 	return []byte(res), nil
 }
 
-func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zrandmemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -870,7 +870,7 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.Server, c
 	return []byte(res), nil
 }
 
-func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZRANK(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zrankKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -920,7 +920,7 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte("$-1\r\n"), nil
 }
 
-func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZREM(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zremKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -952,7 +952,7 @@ func handleZREM(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZSCORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zscoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -981,7 +981,7 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.Server, conn *
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(score), score)), nil
 }
 
-func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zremrangebyscoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1025,7 +1025,7 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Serv
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zremrangebyrankKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1090,7 +1090,7 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.Serve
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zremrangebylexKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1137,7 +1137,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.Server
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZRANGE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zrangeKeyCount(cmd)
 	if err != nil {
 		return nil, err
@@ -1277,7 +1277,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.Server, conn *
 	return []byte(res), nil
 }
 
-func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zrangeStoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1419,7 +1419,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.Server, c
 	return []byte(fmt.Sprintf(":%d\r\n", newSortedSet.Cardinality())), nil
 }
 
-func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZUNION(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	if _, err := zunionKeyFunc(cmd); err != nil {
 		return nil, err
 	}
@@ -1473,7 +1473,7 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.Server, conn *
 	return []byte(res), nil
 }
 
-func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zunionstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err

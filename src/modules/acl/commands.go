@@ -29,7 +29,7 @@ import (
 	"strings"
 )
 
-func handleAuth(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleAuth(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -43,7 +43,7 @@ func handleAuth(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(utils.OkResponse), nil
 }
 
-func handleGetUser(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleGetUser(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -160,7 +160,7 @@ func handleGetUser(_ context.Context, cmd []string, server utils.Server, _ *net.
 	return []byte(res), nil
 }
 
-func handleCat(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleCat(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -220,7 +220,7 @@ func handleCat(_ context.Context, cmd []string, server utils.Server, _ *net.Conn
 	return nil, fmt.Errorf("category %s not found", strings.ToUpper(cmd[2]))
 }
 
-func handleUsers(_ context.Context, _ []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleUsers(_ context.Context, _ []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	acl, ok := server.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -233,7 +233,7 @@ func handleUsers(_ context.Context, _ []string, server utils.Server, _ *net.Conn
 	return []byte(res), nil
 }
 
-func handleSetUser(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleSetUser(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	acl, ok := server.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -244,7 +244,7 @@ func handleSetUser(_ context.Context, cmd []string, server utils.Server, _ *net.
 	return []byte(utils.OkResponse), nil
 }
 
-func handleDelUser(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleDelUser(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -258,7 +258,7 @@ func handleDelUser(ctx context.Context, cmd []string, server utils.Server, _ *ne
 	return []byte(utils.OkResponse), nil
 }
 
-func handleWhoAmI(_ context.Context, _ []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleWhoAmI(_ context.Context, _ []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	acl, ok := server.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -267,7 +267,7 @@ func handleWhoAmI(_ context.Context, _ []string, server utils.Server, conn *net.
 	return []byte(fmt.Sprintf("+%s\r\n", connectionInfo.User.Username)), nil
 }
 
-func handleList(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleList(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 2 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -363,7 +363,7 @@ func handleList(_ context.Context, cmd []string, server utils.Server, _ *net.Con
 	return []byte(res), nil
 }
 
-func handleLoad(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleLoad(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
@@ -430,7 +430,7 @@ func handleLoad(_ context.Context, cmd []string, server utils.Server, _ *net.Con
 	return []byte(utils.OkResponse), nil
 }
 
-func handleSave(_ context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleSave(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 2 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}

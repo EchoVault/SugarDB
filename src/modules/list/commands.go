@@ -25,7 +25,7 @@ import (
 	"strings"
 )
 
-func handleLLen(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleLLen(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := llenKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func handleLLen(ctx context.Context, cmd []string, server utils.Server, _ *net.C
 	return nil, errors.New("LLEN command on non-list item")
 }
 
-func handleLIndex(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleLIndex(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lindexKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.Server, conn *
 	return []byte(fmt.Sprintf("+%s\r\n", list[index])), nil
 }
 
-func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleLRange(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lrangeKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -163,7 +163,7 @@ func handleLRange(ctx context.Context, cmd []string, server utils.Server, conn *
 	return bytes, nil
 }
 
-func handleLSet(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleLSet(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lsetKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -202,7 +202,7 @@ func handleLSet(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(utils.OkResponse), nil
 }
 
-func handleLTrim(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleLTrim(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := ltrimKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -251,7 +251,7 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(utils.OkResponse), nil
 }
 
-func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleLRem(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lremKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -319,7 +319,7 @@ func handleLRem(ctx context.Context, cmd []string, server utils.Server, conn *ne
 	return []byte(utils.OkResponse), nil
 }
 
-func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleLMove(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lmoveKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -380,7 +380,7 @@ func handleLMove(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(utils.OkResponse), nil
 }
 
-func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleLPush(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lpushKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -426,7 +426,7 @@ func handleLPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(utils.OkResponse), nil
 }
 
-func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handleRPush(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := rpushKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -474,7 +474,7 @@ func handleRPush(ctx context.Context, cmd []string, server utils.Server, conn *n
 	return []byte(utils.OkResponse), nil
 }
 
-func handlePop(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePop(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := popKeyFunc(cmd)
 	if err != nil {
 		return nil, err

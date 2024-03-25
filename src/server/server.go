@@ -35,7 +35,7 @@ import (
 	"time"
 )
 
-type Server struct {
+type EchoVault struct {
 	// Config holds the server configuration variables.
 	Config utils.Config
 
@@ -92,8 +92,8 @@ type Opts struct {
 	Commands []utils.Command
 }
 
-func NewServer(opts Opts) *Server {
-	server := &Server{
+func NewEchoVault(opts Opts) *EchoVault {
+	server := &EchoVault{
 		Config:          opts.Config,
 		ACL:             opts.ACL,
 		PubSub:          opts.PubSub,
@@ -184,7 +184,7 @@ func NewServer(opts Opts) *Server {
 	return server
 }
 
-func (server *Server) StartTCP(ctx context.Context) {
+func (server *EchoVault) StartTCP(ctx context.Context) {
 	conf := server.Config
 
 	listenConfig := net.ListenConfig{
@@ -258,7 +258,7 @@ func (server *Server) StartTCP(ctx context.Context) {
 	}
 }
 
-func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
+func (server *EchoVault) handleConnection(ctx context.Context, conn net.Conn) {
 	// If ACL module is loaded, register the connection with the ACL
 	if server.ACL != nil {
 		server.ACL.RegisterConnection(&conn)
@@ -333,7 +333,7 @@ func (server *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	}
 }
 
-func (server *Server) Start(ctx context.Context) {
+func (server *EchoVault) Start(ctx context.Context) {
 	conf := server.Config
 
 	if conf.TLS && len(conf.CertKeyPairs) <= 0 {
@@ -372,7 +372,7 @@ func (server *Server) Start(ctx context.Context) {
 	server.StartTCP(ctx)
 }
 
-func (server *Server) TakeSnapshot() error {
+func (server *EchoVault) TakeSnapshot() error {
 	if server.SnapshotInProgress.Load() {
 		return errors.New("snapshot already in progress")
 	}
@@ -394,31 +394,31 @@ func (server *Server) TakeSnapshot() error {
 	return nil
 }
 
-func (server *Server) StartSnapshot() {
+func (server *EchoVault) StartSnapshot() {
 	server.SnapshotInProgress.Store(true)
 }
 
-func (server *Server) FinishSnapshot() {
+func (server *EchoVault) FinishSnapshot() {
 	server.SnapshotInProgress.Store(false)
 }
 
-func (server *Server) SetLatestSnapshot(msec int64) {
+func (server *EchoVault) SetLatestSnapshot(msec int64) {
 	server.LatestSnapshotMilliseconds.Store(msec)
 }
 
-func (server *Server) GetLatestSnapshot() int64 {
+func (server *EchoVault) GetLatestSnapshot() int64 {
 	return server.LatestSnapshotMilliseconds.Load()
 }
 
-func (server *Server) StartRewriteAOF() {
+func (server *EchoVault) StartRewriteAOF() {
 	server.RewriteAOFInProgress.Store(true)
 }
 
-func (server *Server) FinishRewriteAOF() {
+func (server *EchoVault) FinishRewriteAOF() {
 	server.RewriteAOFInProgress.Store(false)
 }
 
-func (server *Server) RewriteAOF() error {
+func (server *EchoVault) RewriteAOF() error {
 	if server.RewriteAOFInProgress.Load() {
 		return errors.New("aof rewrite in progress")
 	}
@@ -430,14 +430,14 @@ func (server *Server) RewriteAOF() error {
 	return nil
 }
 
-func (server *Server) ShutDown(ctx context.Context) {
+func (server *EchoVault) ShutDown(ctx context.Context) {
 	if server.IsInCluster() {
 		server.raft.RaftShutdown(ctx)
 		server.memberList.MemberListShutdown(ctx)
 	}
 }
 
-func (server *Server) InitialiseCaches() {
+func (server *EchoVault) InitialiseCaches() {
 	// Set up LFU cache
 	server.lfuCache = struct {
 		mutex sync.Mutex

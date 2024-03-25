@@ -25,7 +25,7 @@ import (
 	"strings"
 )
 
-func handleGetAllCommands(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleGetAllCommands(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	commands := server.GetAllCommands()
 
 	res := ""
@@ -70,7 +70,7 @@ func handleGetAllCommands(ctx context.Context, cmd []string, server utils.Server
 	return []byte(res), nil
 }
 
-func handleCommandCount(_ context.Context, _ []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleCommandCount(_ context.Context, _ []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	var count int
 
 	commands := server.GetAllCommands()
@@ -87,7 +87,7 @@ func handleCommandCount(_ context.Context, _ []string, server utils.Server, _ *n
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleCommandList(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleCommandList(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	switch len(cmd) {
 	case 2:
 		// Command is COMMAND LIST
@@ -166,7 +166,7 @@ func handleCommandList(ctx context.Context, cmd []string, server utils.Server, _
 	}
 }
 
-func handleCommandDocs(ctx context.Context, cmd []string, server utils.Server, _ *net.Conn) ([]byte, error) {
+func handleCommandDocs(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	return []byte("*0\r\n"), nil
 }
 
@@ -224,7 +224,7 @@ Allows for filtering by ACL category or glob pattern.`,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				return []string{}, nil
 			},
-			HandlerFunc: func(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+			HandlerFunc: func(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 				if err := server.TakeSnapshot(); err != nil {
 					return nil, err
 				}
@@ -239,7 +239,7 @@ Allows for filtering by ACL category or glob pattern.`,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				return []string{}, nil
 			},
-			HandlerFunc: func(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+			HandlerFunc: func(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 				msec := server.GetLatestSnapshot()
 				if msec == 0 {
 					return nil, errors.New("no snapshot")
@@ -255,7 +255,7 @@ Allows for filtering by ACL category or glob pattern.`,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				return []string{}, nil
 			},
-			HandlerFunc: func(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+			HandlerFunc: func(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 				if err := server.RewriteAOF(); err != nil {
 					return nil, err
 				}

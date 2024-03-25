@@ -26,7 +26,7 @@ type KeyData struct {
 	ExpireAt time.Time
 }
 
-type Server interface {
+type EchoVault interface {
 	KeyLock(ctx context.Context, key string) (bool, error)
 	KeyUnlock(ctx context.Context, key string)
 	KeyRLock(ctx context.Context, key string) (bool, error)
@@ -68,7 +68,7 @@ type ApplyResponse struct {
 }
 
 type KeyExtractionFunc func(cmd []string) ([]string, error)
-type HandlerFunc func(ctx context.Context, cmd []string, server Server, conn *net.Conn) ([]byte, error)
+type HandlerFunc func(ctx context.Context, cmd []string, echovault EchoVault, conn *net.Conn) ([]byte, error)
 
 type SubCommand struct {
 	Command     string

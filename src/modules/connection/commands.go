@@ -22,7 +22,7 @@ import (
 	"net"
 )
 
-func handlePing(ctx context.Context, cmd []string, server utils.Server, conn *net.Conn) ([]byte, error) {
+func handlePing(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
 	switch len(cmd) {
 	default:
 		return nil, errors.New(utils.WrongArgsResponse)

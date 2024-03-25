@@ -22,11 +22,11 @@ import (
 	"time"
 )
 
-func (server *Server) IsInCluster() bool {
+func (server *EchoVault) IsInCluster() bool {
 	return server.Config.BootstrapCluster || server.Config.JoinAddr != ""
 }
 
-func (server *Server) raftApplyDeleteKey(ctx context.Context, key string) error {
+func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) error {
 	serverId, _ := ctx.Value(utils.ContextServerID("ServerID")).(string)
 
 	deleteKeyRequest := utils.ApplyRequest{
@@ -60,7 +60,7 @@ func (server *Server) raftApplyDeleteKey(ctx context.Context, key string) error 
 	return nil
 }
 
-func (server *Server) raftApplyCommand(ctx context.Context, cmd []string) ([]byte, error) {
+func (server *EchoVault) raftApplyCommand(ctx context.Context, cmd []string) ([]byte, error) {
 	serverId, _ := ctx.Value(utils.ContextServerID("ServerID")).(string)
 	connectionId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
 
