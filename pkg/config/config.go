@@ -5,7 +5,7 @@ import (
 )
 
 // DefaultConfig returns the default configuration.
-// / This should be used when using EchoVault as an embedded library.
+// This should be used when using EchoVault as an embedded library.
 func DefaultConfig() config.Config {
 	return config.DefaultConfig()
 }
