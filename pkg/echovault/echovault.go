@@ -120,6 +120,8 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 		option(echovault)
 	}
 
+	echovault.context = context.WithValue(echovault.context, "ServerID", utils.ContextServerID(echovault.config.ServerID))
+
 	// Set up ACL module
 	echovault.ACL = acl.NewACL(echovault.config)
 
@@ -207,14 +209,14 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 	return echovault
 }
 
-func (server *EchoVault) startTCP(ctx context.Context) {
+func (server *EchoVault) startTCP() {
 	conf := server.config
 
 	listenConfig := net.ListenConfig{
 		KeepAlive: 200 * time.Millisecond,
 	}
 
-	listener, err := listenConfig.Listen(ctx, "tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port))
+	listener, err := listenConfig.Listen(server.context, "tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port))
 
 	if err != nil {
 		log.Fatal(err)
@@ -277,11 +279,11 @@ func (server *EchoVault) startTCP(ctx context.Context) {
 			continue
 		}
 		// Read loop for connection
-		go server.handleConnection(ctx, conn)
+		go server.handleConnection(conn)
 	}
 }
 
-func (server *EchoVault) handleConnection(ctx context.Context, conn net.Conn) {
+func (server *EchoVault) handleConnection(conn net.Conn) {
 	// If ACL module is loaded, register the connection with the ACL
 	if server.ACL != nil {
 		server.ACL.RegisterConnection(&conn)
@@ -290,8 +292,8 @@ func (server *EchoVault) handleConnection(ctx context.Context, conn net.Conn) {
 	w, r := io.Writer(conn), io.Reader(conn)
 
 	cid := server.connId.Add(1)
-	ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"),
-		fmt.Sprintf("%s-%d", ctx.Value(utils.ContextServerID("ServerID")), cid))
+	ctx := context.WithValue(server.context, utils.ContextConnID("ConnectionID"),
+		fmt.Sprintf("%s-%d", server.context.Value(utils.ContextServerID("ServerID")), cid))
 
 	for {
 		message, err := internal.ReadMessage(r)
@@ -356,7 +358,7 @@ func (server *EchoVault) handleConnection(ctx context.Context, conn net.Conn) {
 	}
 }
 
-func (server *EchoVault) Start(ctx context.Context) {
+func (server *EchoVault) Start() {
 	conf := server.config
 
 	if conf.TLS && len(conf.CertKeyPairs) <= 0 {
@@ -366,8 +368,8 @@ func (server *EchoVault) Start(ctx context.Context) {
 
 	if server.isInCluster() {
 		// Initialise raft and memberlist
-		server.raft.RaftInit(ctx)
-		server.memberList.MemberListInit(ctx)
+		server.raft.RaftInit(server.context)
+		server.memberList.MemberListInit(server.context)
 		if server.raft.IsRaftLeader() {
 			server.initialiseCaches()
 		}
@@ -392,7 +394,7 @@ func (server *EchoVault) Start(ctx context.Context) {
 		}
 	}
 
-	server.startTCP(ctx)
+	server.startTCP()
 }
 
 func (server *EchoVault) TakeSnapshot() error {
