@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/memberlist"
+	"github.com/echovault/echovault/internal/memberlist"
 	"log"
 	"net"
 	"os"

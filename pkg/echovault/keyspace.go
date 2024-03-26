@@ -54,7 +54,7 @@ func (server *EchoVault) KeyLock(ctx context.Context, key string) (bool, error) 
 	}
 }
 
-func (server *EchoVault) KeyUnlock(ctx context.Context, key string) {
+func (server *EchoVault) KeyUnlock(_ context.Context, key string) {
 	if _, ok := server.keyLocks[key]; ok {
 		server.keyLocks[key].Unlock()
 	}
@@ -86,7 +86,7 @@ func (server *EchoVault) KeyRLock(ctx context.Context, key string) (bool, error)
 	}
 }
 
-func (server *EchoVault) KeyRUnlock(ctx context.Context, key string) {
+func (server *EchoVault) KeyRUnlock(_ context.Context, key string) {
 	if _, ok := server.keyLocks[key]; ok {
 		server.keyLocks[key].RUnlock()
 	}
@@ -197,7 +197,7 @@ func (server *EchoVault) GetExpiry(ctx context.Context, key string) time.Time {
 
 // The SetExpiry receiver function sets the expiry time of a key.
 // The key parameter represents the key whose expiry time is to be set/updated.
-// The expire parameter is the new expiry time.
+// The expireAt parameter is the new expiry time.
 // The touch parameter determines whether to update the keys access count on lfu eviction policy,
 // or the access time on lru eviction policy.
 // The key must be locked prior to calling this function.
