@@ -16,8 +16,8 @@ package aof
 
 import (
 	"fmt"
-	logstore "github.com/echovault/echovault/pkg/aof/log"
-	"github.com/echovault/echovault/pkg/aof/preamble"
+	logstore "github.com/echovault/echovault/internal/aof/log"
+	"github.com/echovault/echovault/internal/aof/preamble"
 	"github.com/echovault/echovault/pkg/utils"
 	"log"
 	"sync"

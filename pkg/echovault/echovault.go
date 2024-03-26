@@ -21,11 +21,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/aof"
+	eviction2 "github.com/echovault/echovault/internal/eviction"
 	"github.com/echovault/echovault/internal/memberlist"
 	"github.com/echovault/echovault/internal/raft"
-	"github.com/echovault/echovault/pkg/aof"
-	"github.com/echovault/echovault/pkg/eviction"
-	"github.com/echovault/echovault/pkg/snapshot"
+	"github.com/echovault/echovault/internal/snapshot"
 	"github.com/echovault/echovault/pkg/utils"
 	"io"
 	"log"
@@ -56,13 +56,13 @@ type EchoVault struct {
 	}
 	// LFU cache used when eviction policy is allkeys-lfu or volatile-lfu
 	lfuCache struct {
-		mutex sync.Mutex        // Mutex as only one goroutine can edit the LFU cache at a time.
-		cache eviction.CacheLFU // LFU cache represented by a min head.
+		mutex sync.Mutex         // Mutex as only one goroutine can edit the LFU cache at a time.
+		cache eviction2.CacheLFU // LFU cache represented by a min head.
 	}
 	// LRU cache used when eviction policy is allkeys-lru or volatile-lru
 	lruCache struct {
-		mutex sync.Mutex        // Mutex as only one goroutine can edit the LRU at a time.
-		cache eviction.CacheLRU // LRU cache represented by a max head.
+		mutex sync.Mutex         // Mutex as only one goroutine can edit the LRU at a time.
+		cache eviction2.CacheLRU // LRU cache represented by a max head.
 	}
 
 	// Holds the list of all commands supported by the echovault.
@@ -466,17 +466,17 @@ func (server *EchoVault) initialiseCaches() {
 	// Set up LFU cache
 	server.lfuCache = struct {
 		mutex sync.Mutex
-		cache eviction.CacheLFU
+		cache eviction2.CacheLFU
 	}{
 		mutex: sync.Mutex{},
-		cache: eviction.NewCacheLFU(),
+		cache: eviction2.NewCacheLFU(),
 	}
 	// set up LRU cache
 	server.lruCache = struct {
 		mutex sync.Mutex
-		cache eviction.CacheLRU
+		cache eviction2.CacheLRU
 	}{
 		mutex: sync.Mutex{},
-		cache: eviction.NewCacheLRU(),
+		cache: eviction2.NewCacheLRU(),
 	}
 }
