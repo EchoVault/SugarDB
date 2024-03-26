@@ -89,12 +89,6 @@ type Command struct {
 	HandlerFunc
 }
 
-type Plugin interface {
-	Name() string
-	Commands() []Command
-	Description() string
-}
-
 type ACL interface {
 	RegisterConnection(conn *net.Conn)
 	AuthorizeConnection(conn *net.Conn, cmd []string, command Command, subCommand SubCommand) error
