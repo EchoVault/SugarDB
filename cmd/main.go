@@ -53,7 +53,7 @@ func main() {
 		echovault.WithCommands(commands.All()),
 	)
 
-	go server.Start(ctx)
+	go server.Start()
 
 	<-cancelCh
 
