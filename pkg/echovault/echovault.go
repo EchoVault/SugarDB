@@ -207,7 +207,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 	return echovault
 }
 
-func (server *EchoVault) StartTCP(ctx context.Context) {
+func (server *EchoVault) startTCP(ctx context.Context) {
 	conf := server.config
 
 	listenConfig := net.ListenConfig{
@@ -392,7 +392,7 @@ func (server *EchoVault) Start(ctx context.Context) {
 		}
 	}
 
-	server.StartTCP(ctx)
+	server.startTCP(ctx)
 }
 
 func (server *EchoVault) TakeSnapshot() error {
