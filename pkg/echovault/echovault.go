@@ -71,7 +71,7 @@ type EchoVault struct {
 	raft       *raft.Raft             // The raft replication layer for the echovault.
 	memberList *memberlist.MemberList // The memberlist layer for the echovault.
 
-	Context context.Context
+	context context.Context
 
 	ACL    utils.ACL
 	PubSub utils.PubSub
@@ -117,7 +117,7 @@ func WithCommands(commands []utils.Command) func(echovault *EchoVault) {
 
 func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 	echovault := &EchoVault{
-		Context:         context.Background(),
+		context:         context.Background(),
 		commands:        make([]utils.Command, 0),
 		store:           make(map[string]utils.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
