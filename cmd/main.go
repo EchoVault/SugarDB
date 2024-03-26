@@ -17,17 +17,11 @@ package main
 import (
 	"context"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/pkg/commands"
+	"github.com/echovault/echovault/pkg/config"
 	"github.com/echovault/echovault/pkg/echovault"
 	"github.com/echovault/echovault/pkg/modules/acl"
-	"github.com/echovault/echovault/pkg/modules/admin"
-	"github.com/echovault/echovault/pkg/modules/connection"
-	"github.com/echovault/echovault/pkg/modules/generic"
-	"github.com/echovault/echovault/pkg/modules/hash"
-	"github.com/echovault/echovault/pkg/modules/list"
 	"github.com/echovault/echovault/pkg/modules/pubsub"
-	"github.com/echovault/echovault/pkg/modules/set"
-	"github.com/echovault/echovault/pkg/modules/sorted_set"
-	str "github.com/echovault/echovault/pkg/modules/string"
 	"github.com/echovault/echovault/pkg/utils"
 	"log"
 	"os"
@@ -35,36 +29,20 @@ import (
 	"syscall"
 )
 
-func GetCommands() []utils.Command {
-	var commands []utils.Command
-	commands = append(commands, acl.Commands()...)
-	commands = append(commands, admin.Commands()...)
-	commands = append(commands, generic.Commands()...)
-	commands = append(commands, hash.Commands()...)
-	commands = append(commands, list.Commands()...)
-	commands = append(commands, connection.Commands()...)
-	commands = append(commands, pubsub.Commands()...)
-	commands = append(commands, set.Commands()...)
-	commands = append(commands, sorted_set.Commands()...)
-	commands = append(commands, str.Commands()...)
-	return commands
-}
-
 func main() {
-	config, err := internal.GetConfig()
-
+	conf, err := config.Config()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), config.ServerID)
+	ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), conf.ServerID)
 
 	// Default BindAddr if it's not specified
-	if config.BindAddr == "" {
+	if conf.BindAddr == "" {
 		if addr, err := internal.GetIPAddress(); err != nil {
 			log.Fatal(err)
 		} else {
-			config.BindAddr = addr
+			conf.BindAddr = addr
 		}
 	}
 
@@ -73,10 +51,10 @@ func main() {
 
 	server := echovault.NewEchoVault(
 		echovault.WithContext(ctx),
-		echovault.WithConfig(config),
-		echovault.WithACL(acl.NewACL(config)),
+		echovault.WithConfig(conf),
+		echovault.WithCommands(commands.All()),
+		echovault.WithACL(acl.NewACL(conf)),
 		echovault.WithPubSub(pubsub.NewPubSub()),
-		echovault.WithCommands(GetCommands()),
 	)
 
 	go server.Start(ctx)
