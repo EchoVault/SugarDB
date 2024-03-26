@@ -57,5 +57,5 @@ func main() {
 
 	<-cancelCh
 
-	server.ShutDown(ctx)
+	server.ShutDown()
 }

@@ -203,15 +203,13 @@ func (r *Raft) TakeSnapshot() error {
 	return r.raft.Snapshot().Error()
 }
 
-func (r *Raft) RaftShutdown(ctx context.Context) {
+func (r *Raft) RaftShutdown() {
 	// Leadership transfer if current node is the leader
 	if r.IsRaftLeader() {
 		err := r.raft.LeadershipTransfer().Error()
-
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		fmt.Println("Leadership transfer successful.")
 	}
 }

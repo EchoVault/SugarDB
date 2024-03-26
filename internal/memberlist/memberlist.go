@@ -155,16 +155,14 @@ func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd []byte) {
 	})
 }
 
-func (m *MemberList) MemberListShutdown(ctx context.Context) {
+func (m *MemberList) MemberListShutdown() {
 	// Gracefully leave memberlist cluster
 	err := m.memberList.Leave(500 * time.Millisecond)
-
 	if err != nil {
 		log.Fatal("Could not gracefully leave memberlist cluster")
 	}
 
 	err = m.memberList.Shutdown()
-
 	if err != nil {
 		log.Fatal("Could not gracefully shutdown memberlist background maintenance")
 	}

@@ -455,10 +455,10 @@ func (server *EchoVault) RewriteAOF() error {
 	return nil
 }
 
-func (server *EchoVault) ShutDown(ctx context.Context) {
+func (server *EchoVault) ShutDown() {
 	if server.isInCluster() {
-		server.raft.RaftShutdown(ctx)
-		server.memberList.MemberListShutdown(ctx)
+		server.raft.RaftShutdown()
+		server.memberList.MemberListShutdown()
 	}
 }
 
