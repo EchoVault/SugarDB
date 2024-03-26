@@ -87,7 +87,7 @@ type EchoVault struct {
 
 func WithContext(ctx context.Context) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
-		echovault.Context = ctx
+		echovault.context = ctx
 	}
 }
 
