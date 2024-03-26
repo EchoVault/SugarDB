@@ -18,7 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/internal"
 	"time"
 )
 
@@ -27,9 +27,9 @@ func (server *EchoVault) isInCluster() bool {
 }
 
 func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) error {
-	serverId, _ := ctx.Value(utils.ContextServerID("ServerID")).(string)
+	serverId, _ := ctx.Value(internal.ContextServerID("ServerID")).(string)
 
-	deleteKeyRequest := utils.ApplyRequest{
+	deleteKeyRequest := internal.ApplyRequest{
 		Type:         "delete-key",
 		ServerID:     serverId,
 		ConnectionID: "nil",
@@ -47,7 +47,7 @@ func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) err
 		return err
 	}
 
-	r, ok := applyFuture.Response().(utils.ApplyResponse)
+	r, ok := applyFuture.Response().(internal.ApplyResponse)
 
 	if !ok {
 		return fmt.Errorf("unprocessable entity %v", r)
@@ -61,10 +61,10 @@ func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) err
 }
 
 func (server *EchoVault) raftApplyCommand(ctx context.Context, cmd []string) ([]byte, error) {
-	serverId, _ := ctx.Value(utils.ContextServerID("ServerID")).(string)
-	connectionId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
+	serverId, _ := ctx.Value(internal.ContextServerID("ServerID")).(string)
+	connectionId, _ := ctx.Value(internal.ContextConnID("ConnectionID")).(string)
 
-	applyRequest := utils.ApplyRequest{
+	applyRequest := internal.ApplyRequest{
 		Type:         "command",
 		ServerID:     serverId,
 		ConnectionID: connectionId,
@@ -82,7 +82,7 @@ func (server *EchoVault) raftApplyCommand(ctx context.Context, cmd []string) ([]
 		return nil, err
 	}
 
-	r, ok := applyFuture.Response().(utils.ApplyResponse)
+	r, ok := applyFuture.Response().(internal.ApplyResponse)
 
 	if !ok {
 		return nil, fmt.Errorf("unprocessable entity %v", r)

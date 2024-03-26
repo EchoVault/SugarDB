@@ -30,6 +30,7 @@ import (
 type FSMOpts struct {
 	Config     config.Config
 	EchoVault  utils.EchoVault
+	GetState   func() map[string]internal.KeyData
 	GetCommand func(command string) (utils.Command, error)
 	DeleteKey  func(ctx context.Context, key string) error
 }
@@ -50,33 +51,33 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 	default:
 		// No-Op
 	case raft.LogCommand:
-		var request utils.ApplyRequest
+		var request internal.ApplyRequest
 
 		if err := json.Unmarshal(log.Data, &request); err != nil {
-			return utils.ApplyResponse{
+			return internal.ApplyResponse{
 				Error:    err,
 				Response: nil,
 			}
 		}
 
-		ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), request.ServerID)
-		ctx = context.WithValue(ctx, utils.ContextConnID("ConnectionID"), request.ConnectionID)
+		ctx := context.WithValue(context.Background(), internal.ContextServerID("ServerID"), request.ServerID)
+		ctx = context.WithValue(ctx, internal.ContextConnID("ConnectionID"), request.ConnectionID)
 
 		switch strings.ToLower(request.Type) {
 		default:
-			return utils.ApplyResponse{
+			return internal.ApplyResponse{
 				Error:    fmt.Errorf("unsupported raft command type %s", request.Type),
 				Response: nil,
 			}
 
 		case "delete-key":
 			if err := fsm.options.DeleteKey(ctx, request.Key); err != nil {
-				return utils.ApplyResponse{
+				return internal.ApplyResponse{
 					Error:    err,
 					Response: nil,
 				}
 			}
-			return utils.ApplyResponse{
+			return internal.ApplyResponse{
 				Error:    nil,
 				Response: []byte("OK"),
 			}
@@ -85,7 +86,7 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 			// Handle command
 			command, err := fsm.options.GetCommand(request.CMD[0])
 			if err != nil {
-				return utils.ApplyResponse{
+				return internal.ApplyResponse{
 					Error:    err,
 					Response: nil,
 				}
@@ -99,12 +100,12 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 			}
 
 			if res, err := handler(ctx, request.CMD, fsm.options.EchoVault, nil); err != nil {
-				return utils.ApplyResponse{
+				return internal.ApplyResponse{
 					Error:    err,
 					Response: nil,
 				}
 			} else {
-				return utils.ApplyResponse{
+				return internal.ApplyResponse{
 					Error:    nil,
 					Response: res,
 				}
@@ -119,10 +120,10 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 func (fsm *FSM) Snapshot() (raft.FSMSnapshot, error) {
 	return NewFSMSnapshot(SnapshotOpts{
 		config:            fsm.options.Config,
-		data:              fsm.options.EchoVault.GetState(),
 		startSnapshot:     fsm.options.EchoVault.StartSnapshot,
 		finishSnapshot:    fsm.options.EchoVault.FinishSnapshot,
 		setLatestSnapshot: fsm.options.EchoVault.SetLatestSnapshot,
+		data:              fsm.options.GetState(),
 	}), nil
 }
 
@@ -135,8 +136,8 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 		return err
 	}
 
-	data := utils.SnapshotObject{
-		State:                      make(map[string]utils.KeyData),
+	data := internal.SnapshotObject{
+		State:                      make(map[string]internal.KeyData),
 		LatestSnapshotMilliseconds: 0,
 	}
 

@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"log"
@@ -93,8 +92,8 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 		}
 		// Current node is the cluster leader, handle the key deletion
 		ctx := context.WithValue(
-			context.WithValue(context.Background(), utils.ContextServerID("ServerID"), string(msg.ServerID)),
-			utils.ContextConnID("ConnectionID"), msg.ConnId)
+			context.WithValue(context.Background(), internal.ContextServerID("ServerID"), string(msg.ServerID)),
+			internal.ContextConnID("ConnectionID"), msg.ConnId)
 
 		key := string(msg.Content)
 
@@ -110,8 +109,8 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 		}
 		// Current node is the cluster leader, handle the mutation
 		ctx := context.WithValue(
-			context.WithValue(context.Background(), utils.ContextServerID("ServerID"), string(msg.ServerID)),
-			utils.ContextConnID("ConnectionID"), msg.ConnId)
+			context.WithValue(context.Background(), internal.ContextServerID("ServerID"), string(msg.ServerID)),
+			internal.ContextConnID("ConnectionID"), msg.ConnId)
 
 		cmd, err := internal.Decode(msg.Content)
 		if err != nil {

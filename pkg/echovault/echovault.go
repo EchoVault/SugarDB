@@ -48,9 +48,9 @@ type EchoVault struct {
 	// the new number is the new connection's ID.
 	connId atomic.Uint64
 
-	store           map[string]utils.KeyData // Data store to hold the keys and their associated data, expiry time, etc.
-	keyLocks        map[string]*sync.RWMutex // Map to hold all the individual key locks.
-	keyCreationLock *sync.Mutex              // The mutex for creating a new key. Only one goroutine should be able to create a key at a time.
+	store           map[string]internal.KeyData // Data store to hold the keys and their associated data, expiry time, etc.
+	keyLocks        map[string]*sync.RWMutex    // Map to hold all the individual key locks.
+	keyCreationLock *sync.Mutex                 // The mutex for creating a new key. Only one goroutine should be able to create a key at a time.
 
 	// Holds all the keys that are currently associated with an expiry.
 	keysWithExpiry struct {
@@ -111,7 +111,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 		context:         context.Background(),
 		commands:        make([]utils.Command, 0),
 		config:          config.DefaultConfig(),
-		store:           make(map[string]utils.KeyData),
+		store:           make(map[string]internal.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
 	}
@@ -120,7 +120,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 		option(echovault)
 	}
 
-	echovault.context = context.WithValue(echovault.context, "ServerID", utils.ContextServerID(echovault.config.ServerID))
+	echovault.context = context.WithValue(echovault.context, "ServerID", internal.ContextServerID(echovault.config.ServerID))
 
 	// Set up ACL module
 	echovault.ACL = acl.NewACL(echovault.config)
@@ -134,6 +134,15 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 			EchoVault:  echovault,
 			GetCommand: echovault.getCommand,
 			DeleteKey:  echovault.DeleteKey,
+			GetState: func() map[string]internal.KeyData {
+				state := make(map[string]internal.KeyData)
+				for k, v := range echovault.getState() {
+					if data, ok := v.(internal.KeyData); ok {
+						state[k] = data
+					}
+				}
+				return state
+			},
 		})
 		echovault.memberList = memberlist.NewMemberList(memberlist.Opts{
 			Config:           echovault.config,
@@ -150,12 +159,20 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 			snapshot.WithDirectory(echovault.config.DataDir),
 			snapshot.WithThreshold(echovault.config.SnapShotThreshold),
 			snapshot.WithInterval(echovault.config.SnapshotInterval),
-			snapshot.WithGetStateFunc(echovault.GetState),
 			snapshot.WithStartSnapshotFunc(echovault.StartSnapshot),
 			snapshot.WithFinishSnapshotFunc(echovault.FinishSnapshot),
 			snapshot.WithSetLatestSnapshotTimeFunc(echovault.SetLatestSnapshot),
 			snapshot.WithGetLatestSnapshotTimeFunc(echovault.GetLatestSnapshot),
-			snapshot.WithSetKeyDataFunc(func(key string, data utils.KeyData) {
+			snapshot.WithGetStateFunc(func() map[string]internal.KeyData {
+				state := make(map[string]internal.KeyData)
+				for k, v := range echovault.getState() {
+					if data, ok := v.(internal.KeyData); ok {
+						state[k] = data
+					}
+				}
+				return state
+			}),
+			snapshot.WithSetKeyDataFunc(func(key string, data internal.KeyData) {
 				ctx := context.Background()
 				if _, err := echovault.CreateKeyAndLock(ctx, key); err != nil {
 					log.Println(err)
@@ -173,8 +190,16 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 			aof.WithStrategy(echovault.config.AOFSyncStrategy),
 			aof.WithStartRewriteFunc(echovault.StartRewriteAOF),
 			aof.WithFinishRewriteFunc(echovault.FinishRewriteAOF),
-			aof.WithGetStateFunc(echovault.GetState),
-			aof.WithSetKeyDataFunc(func(key string, value utils.KeyData) {
+			aof.WithGetStateFunc(func() map[string]internal.KeyData {
+				state := make(map[string]internal.KeyData)
+				for k, v := range echovault.getState() {
+					if data, ok := v.(internal.KeyData); ok {
+						state[k] = data
+					}
+				}
+				return state
+			}),
+			aof.WithSetKeyDataFunc(func(key string, value internal.KeyData) {
 				ctx := context.Background()
 				if _, err := echovault.CreateKeyAndLock(ctx, key); err != nil {
 					log.Println(err)
@@ -292,8 +317,8 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 	w, r := io.Writer(conn), io.Reader(conn)
 
 	cid := server.connId.Add(1)
-	ctx := context.WithValue(server.context, utils.ContextConnID("ConnectionID"),
-		fmt.Sprintf("%s-%d", server.context.Value(utils.ContextServerID("ServerID")), cid))
+	ctx := context.WithValue(server.context, internal.ContextConnID("ConnectionID"),
+		fmt.Sprintf("%s-%d", server.context.Value(internal.ContextServerID("ServerID")), cid))
 
 	for {
 		message, err := internal.ReadMessage(r)

@@ -23,7 +23,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/sethvargo/go-retry"
@@ -124,7 +123,7 @@ func (m *MemberList) broadcastRaftAddress() {
 // The ForwardDeleteKey function is only called by non-leaders.
 // It uses the broadcast queue to forward a key eviction command within the cluster.
 func (m *MemberList) ForwardDeleteKey(ctx context.Context, key string) {
-	connId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
+	connId, _ := ctx.Value(internal.ContextConnID("ConnectionID")).(string)
 	m.broadcastQueue.QueueBroadcast(&BroadcastMessage{
 		Action:      "DeleteKey",
 		Content:     []byte(key),
@@ -141,7 +140,7 @@ func (m *MemberList) ForwardDeleteKey(ctx context.Context, key string) {
 // The ForwardDataMutation function is only called by non-leaders.
 // It uses the broadcast queue to forward a data mutation within the cluster.
 func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd []byte) {
-	connId, _ := ctx.Value(utils.ContextConnID("ConnectionID")).(string)
+	connId, _ := ctx.Value(internal.ContextConnID("ConnectionID")).(string)
 	m.broadcastQueue.QueueBroadcast(&BroadcastMessage{
 		Action:      "MutateData",
 		Content:     cmd,

@@ -141,7 +141,7 @@ func (server *EchoVault) CreateKeyAndLock(ctx context.Context, key string) (bool
 		keyLock.Lock()
 		server.keyLocks[key] = keyLock
 		// Create key entry
-		server.store[key] = utils.KeyData{
+		server.store[key] = internal.KeyData{
 			Value:    nil,
 			ExpireAt: time.Time{},
 		}
@@ -170,7 +170,7 @@ func (server *EchoVault) SetValue(ctx context.Context, key string, value interfa
 		return errors.New("max memory reached, key value not set")
 	}
 
-	server.store[key] = utils.KeyData{
+	server.store[key] = internal.KeyData{
 		Value:    value,
 		ExpireAt: server.store[key].ExpireAt,
 	}
@@ -203,7 +203,7 @@ func (server *EchoVault) GetExpiry(ctx context.Context, key string) time.Time {
 // or the access time on lru eviction policy.
 // The key must be locked prior to calling this function.
 func (server *EchoVault) SetExpiry(ctx context.Context, key string, expireAt time.Time, touch bool) {
-	server.store[key] = utils.KeyData{
+	server.store[key] = internal.KeyData{
 		Value:    server.store[key].Value,
 		ExpireAt: expireAt,
 	}
@@ -228,7 +228,7 @@ func (server *EchoVault) SetExpiry(ctx context.Context, key string, expireAt tim
 // The key must be locked prior ro calling this function.
 func (server *EchoVault) RemoveExpiry(key string) {
 	// Reset expiry time
-	server.store[key] = utils.KeyData{
+	server.store[key] = internal.KeyData{
 		Value:    server.store[key].Value,
 		ExpireAt: time.Time{},
 	}
@@ -245,7 +245,7 @@ func (server *EchoVault) RemoveExpiry(key string) {
 // functions that require a deep copy of the state.
 // The copy only starts when there's no current copy in progress (represented by stateCopyInProgress atomic boolean)
 // and when there's no current state mutation in progress (represented by stateMutationInProgress atomic boolean)
-func (server *EchoVault) GetState() map[string]utils.KeyData {
+func (server *EchoVault) getState() map[string]interface{} {
 	// Wait unit there's no state mutation or copy in progress before starting a new copy process.
 	for {
 		if !server.stateCopyInProgress.Load() && !server.stateMutationInProgress.Load() {
@@ -253,7 +253,7 @@ func (server *EchoVault) GetState() map[string]utils.KeyData {
 			break
 		}
 	}
-	data := make(map[string]utils.KeyData)
+	data := make(map[string]interface{})
 	for k, v := range server.store {
 		data[k] = v
 	}

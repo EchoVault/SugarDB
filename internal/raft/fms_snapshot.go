@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/hashicorp/raft"
 	"strconv"
 	"strings"
@@ -26,7 +25,7 @@ import (
 
 type SnapshotOpts struct {
 	config            config.Config
-	data              map[string]utils.KeyData
+	data              map[string]internal.KeyData
 	startSnapshot     func()
 	finishSnapshot    func()
 	setLatestSnapshot func(msec int64)
@@ -52,7 +51,7 @@ func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
 		return err
 	}
 
-	snapshotObject := utils.SnapshotObject{
+	snapshotObject := internal.SnapshotObject{
 		State:                      internal.FilterExpiredKeys(s.options.data),
 		LatestSnapshotMilliseconds: int64(msec),
 	}

@@ -16,9 +16,9 @@ package aof
 
 import (
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	logstore "github.com/echovault/echovault/internal/aof/log"
 	"github.com/echovault/echovault/internal/aof/preamble"
-	"github.com/echovault/echovault/pkg/utils"
 	"log"
 	"sync"
 )
@@ -40,8 +40,8 @@ type Engine struct {
 
 	startRewriteFunc  func()
 	finishRewriteFunc func()
-	getStateFunc      func() map[string]utils.KeyData
-	setKeyDataFunc    func(key string, data utils.KeyData)
+	getStateFunc      func() map[string]internal.KeyData
+	setKeyDataFunc    func(key string, data internal.KeyData)
 	handleCommand     func(command []byte)
 }
 
@@ -69,13 +69,13 @@ func WithFinishRewriteFunc(f func()) func(engine *Engine) {
 	}
 }
 
-func WithGetStateFunc(f func() map[string]utils.KeyData) func(engine *Engine) {
+func WithGetStateFunc(f func() map[string]internal.KeyData) func(engine *Engine) {
 	return func(engine *Engine) {
 		engine.getStateFunc = f
 	}
 }
 
-func WithSetKeyDataFunc(f func(key string, data utils.KeyData)) func(engine *Engine) {
+func WithSetKeyDataFunc(f func(key string, data internal.KeyData)) func(engine *Engine) {
 	return func(engine *Engine) {
 		engine.setKeyDataFunc = f
 	}
@@ -108,8 +108,8 @@ func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 		logCount:          0,
 		startRewriteFunc:  func() {},
 		finishRewriteFunc: func() {},
-		getStateFunc:      func() map[string]utils.KeyData { return nil },
-		setKeyDataFunc:    func(key string, data utils.KeyData) {},
+		getStateFunc:      func() map[string]internal.KeyData { return nil },
+		setKeyDataFunc:    func(key string, data internal.KeyData) {},
 		handleCommand:     func(command []byte) {},
 	}
 

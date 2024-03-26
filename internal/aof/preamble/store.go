@@ -17,7 +17,7 @@ package preamble
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/internal"
 	"io"
 	"log"
 	"os"
@@ -37,8 +37,8 @@ type PreambleStore struct {
 	rw             PreambleReadWriter
 	mut            sync.Mutex
 	directory      string
-	getStateFunc   func() map[string]utils.KeyData
-	setKeyDataFunc func(key string, data utils.KeyData)
+	getStateFunc   func() map[string]internal.KeyData
+	setKeyDataFunc func(key string, data internal.KeyData)
 }
 
 func WithReadWriter(rw PreambleReadWriter) func(store *PreambleStore) {
@@ -47,13 +47,13 @@ func WithReadWriter(rw PreambleReadWriter) func(store *PreambleStore) {
 	}
 }
 
-func WithGetStateFunc(f func() map[string]utils.KeyData) func(store *PreambleStore) {
+func WithGetStateFunc(f func() map[string]internal.KeyData) func(store *PreambleStore) {
 	return func(store *PreambleStore) {
 		store.getStateFunc = f
 	}
 }
 
-func WithSetKeyDataFunc(f func(key string, data utils.KeyData)) func(store *PreambleStore) {
+func WithSetKeyDataFunc(f func(key string, data internal.KeyData)) func(store *PreambleStore) {
 	return func(store *PreambleStore) {
 		store.setKeyDataFunc = f
 	}
@@ -70,11 +70,11 @@ func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 		rw:        nil,
 		mut:       sync.Mutex{},
 		directory: "",
-		getStateFunc: func() map[string]utils.KeyData {
+		getStateFunc: func() map[string]internal.KeyData {
 			// No-Op by default
 			return nil
 		},
-		setKeyDataFunc: func(key string, data utils.KeyData) {},
+		setKeyDataFunc: func(key string, data internal.KeyData) {},
 	}
 
 	for _, option := range options {
@@ -143,7 +143,7 @@ func (store *PreambleStore) Restore() error {
 		return nil
 	}
 
-	state := make(map[string]utils.KeyData)
+	state := make(map[string]internal.KeyData)
 
 	if err = json.Unmarshal(b, &state); err != nil {
 		return err
@@ -163,7 +163,7 @@ func (store *PreambleStore) Close() error {
 }
 
 // filterExpiredKeys filters out keys that are already expired, so they are not persisted.
-func (store *PreambleStore) filterExpiredKeys(state map[string]utils.KeyData) map[string]utils.KeyData {
+func (store *PreambleStore) filterExpiredKeys(state map[string]internal.KeyData) map[string]internal.KeyData {
 	var keysToDelete []string
 	for k, v := range state {
 		if v.ExpireAt.Before(time.Now()) {

@@ -20,7 +20,6 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/commands"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/utils"
 	"log"
 	"os"
 	"os/signal"
@@ -33,7 +32,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx := context.WithValue(context.Background(), utils.ContextServerID("ServerID"), conf.ServerID)
+	ctx := context.WithValue(context.Background(), internal.ContextServerID("ServerID"), conf.ServerID)
 
 	// Default BindAddr if it's not specified
 	if conf.BindAddr == "" {

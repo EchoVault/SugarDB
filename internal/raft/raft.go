@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/memberlist"
 	"log"
@@ -34,6 +35,7 @@ import (
 type Opts struct {
 	Config     config.Config
 	EchoVault  utils.EchoVault
+	GetState   func() map[string]internal.KeyData
 	GetCommand func(command string) (utils.Command, error)
 	DeleteKey  func(ctx context.Context, key string) error
 }
@@ -109,6 +111,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 		NewFSM(FSMOpts{
 			Config:     r.options.Config,
 			EchoVault:  r.options.EchoVault,
+			GetState:   r.options.GetState,
 			GetCommand: r.options.GetCommand,
 			DeleteKey:  r.options.DeleteKey,
 		}),

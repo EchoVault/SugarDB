@@ -20,12 +20,6 @@ import (
 	"time"
 )
 
-// KeyData holds the structure of the in-memory data stored at a string key.
-type KeyData struct {
-	Value    interface{}
-	ExpireAt time.Time
-}
-
 type EchoVault interface {
 	KeyLock(ctx context.Context, key string) (bool, error)
 	KeyUnlock(ctx context.Context, key string)
@@ -39,7 +33,6 @@ type EchoVault interface {
 	SetExpiry(ctx context.Context, key string, expire time.Time, touch bool)
 	RemoveExpiry(key string)
 	DeleteKey(ctx context.Context, key string) error
-	GetState() map[string]KeyData
 	GetAllCommands() []Command
 	GetACL() interface{}
 	GetPubSub() interface{}
@@ -49,22 +42,6 @@ type EchoVault interface {
 	SetLatestSnapshot(msec int64)
 	GetLatestSnapshot() int64
 	RewriteAOF() error
-}
-
-type ContextServerID string
-type ContextConnID string
-
-type ApplyRequest struct {
-	Type         string   `json:"Type"` // command | delete-key
-	ServerID     string   `json:"ServerID"`
-	ConnectionID string   `json:"ConnectionID"`
-	CMD          []string `json:"CMD"`
-	Key          string   `json:"Key"`
-}
-
-type ApplyResponse struct {
-	Error    error
-	Response []byte
 }
 
 type KeyExtractionFunc func(cmd []string) ([]string, error)
@@ -95,8 +72,3 @@ type ACL interface {
 }
 
 type PubSub interface{}
-
-type SnapshotObject struct {
-	State                      map[string]KeyData
-	LatestSnapshotMilliseconds int64
-}

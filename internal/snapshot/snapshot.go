@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/utils"
 	"io"
 	"io/fs"
 	"log"
@@ -44,10 +43,10 @@ type Engine struct {
 	snapshotThreshold         uint64
 	startSnapshotFunc         func()
 	finishSnapshotFunc        func()
-	getStateFunc              func() map[string]utils.KeyData
+	getStateFunc              func() map[string]internal.KeyData
 	setLatestSnapshotTimeFunc func(msec int64)
 	getLatestSnapshotTimeFunc func() int64
-	setKeyDataFunc            func(key string, data utils.KeyData)
+	setKeyDataFunc            func(key string, data internal.KeyData)
 }
 
 func WithDirectory(directory string) func(engine *Engine) {
@@ -80,7 +79,7 @@ func WithFinishSnapshotFunc(f func()) func(engine *Engine) {
 	}
 }
 
-func WithGetStateFunc(f func() map[string]utils.KeyData) func(engine *Engine) {
+func WithGetStateFunc(f func() map[string]internal.KeyData) func(engine *Engine) {
 	return func(engine *Engine) {
 		engine.getStateFunc = f
 	}
@@ -98,7 +97,7 @@ func WithGetLatestSnapshotTimeFunc(f func() int64) func(engine *Engine) {
 	}
 }
 
-func WithSetKeyDataFunc(f func(key string, data utils.KeyData)) func(engine *Engine) {
+func WithSetKeyDataFunc(f func(key string, data internal.KeyData)) func(engine *Engine) {
 	return func(engine *Engine) {
 		engine.setKeyDataFunc = f
 	}
@@ -112,14 +111,14 @@ func NewSnapshotEngine(options ...func(engine *Engine)) *Engine {
 		snapshotThreshold:  1000,
 		startSnapshotFunc:  func() {},
 		finishSnapshotFunc: func() {},
-		getStateFunc: func() map[string]utils.KeyData {
-			return map[string]utils.KeyData{}
+		getStateFunc: func() map[string]internal.KeyData {
+			return map[string]internal.KeyData{}
 		},
 		setLatestSnapshotTimeFunc: func(msec int64) {},
 		getLatestSnapshotTimeFunc: func() int64 {
 			return 0
 		},
-		setKeyDataFunc: func(key string, data utils.KeyData) {},
+		setKeyDataFunc: func(key string, data internal.KeyData) {},
 	}
 
 	for _, option := range options {
@@ -205,7 +204,7 @@ func (engine *Engine) TakeSnapshot() error {
 	}
 
 	// Get current state
-	snapshotObject := utils.SnapshotObject{
+	snapshotObject := internal.SnapshotObject{
 		State:                      internal.FilterExpiredKeys(engine.getStateFunc()),
 		LatestSnapshotMilliseconds: engine.getLatestSnapshotTimeFunc(),
 	}
@@ -334,7 +333,7 @@ func (engine *Engine) Restore() error {
 		return nil
 	}
 
-	snapshotObject := new(utils.SnapshotObject)
+	snapshotObject := new(internal.SnapshotObject)
 
 	if err = json.Unmarshal(sd, snapshotObject); err != nil {
 		return err
