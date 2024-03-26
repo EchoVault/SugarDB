@@ -15,7 +15,6 @@
 package acl
 
 import (
-	"context"
 	"crypto/sha256"
 	"fmt"
 	internal_acl "github.com/echovault/echovault/internal/acl"
@@ -40,7 +39,7 @@ func init() {
 	mockServer = setUpServer(bindAddr, port, true, "")
 
 	go func() {
-		mockServer.Start(context.Background())
+		mockServer.Start()
 	}()
 }
 
@@ -398,7 +397,7 @@ func Test_HandleUsers(t *testing.T) {
 	var port uint16 = 7491
 	mockServer := setUpServer(bindAddr, port, false, "")
 	go func() {
-		mockServer.Start(context.Background())
+		mockServer.Start()
 	}()
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
@@ -447,7 +446,7 @@ func Test_HandleSetUser(t *testing.T) {
 	var port uint16 = 7492
 	mockServer := setUpServer(bindAddr, port, false, "")
 	go func() {
-		mockServer.Start(context.Background())
+		mockServer.Start()
 	}()
 	acl, ok := mockServer.GetACL().(*internal_acl.ACL)
 	if !ok {
@@ -1036,7 +1035,7 @@ func Test_HandleGetUser(t *testing.T) {
 	var port uint16 = 7493
 	mockServer := setUpServer(bindAddr, port, false, "")
 	go func() {
-		mockServer.Start(context.Background())
+		mockServer.Start()
 	}()
 	acl, _ := mockServer.GetACL().(*internal_acl.ACL)
 
@@ -1182,7 +1181,7 @@ func Test_HandleDelUser(t *testing.T) {
 	var port uint16 = 7494
 	mockServer := setUpServer(bindAddr, port, false, "")
 	go func() {
-		mockServer.Start(context.Background())
+		mockServer.Start()
 	}()
 	acl, _ := mockServer.GetACL().(*internal_acl.ACL)
 
@@ -1323,7 +1322,7 @@ func Test_HandleList(t *testing.T) {
 	var port uint16 = 7495
 	mockServer := setUpServer(bindAddr, port, false, "")
 	go func() {
-		mockServer.Start(context.Background())
+		mockServer.Start()
 	}()
 	acl, _ := mockServer.GetACL().(*internal_acl.ACL)
 

@@ -39,7 +39,7 @@ func init() {
 	mockServer = setUpServer(bindAddr, port)
 	pubsub = mockServer.GetPubSub().(*internal_pubsub.PubSub)
 	go func() {
-		mockServer.Start(context.Background())
+		mockServer.Start()
 	}()
 }
 
