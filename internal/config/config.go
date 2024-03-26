@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package config
 
 import (
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/utils"
 	"log"
 	"os"
@@ -99,7 +100,7 @@ The options are 'always' for syncing on each command, 'everysec' to sync every s
 	flag.Func("max-memory", `Upper memory limit before triggering eviction. 
 Supported units (kb, mb, gb, tb, pb). When 0 is passed, there will be no memory limit.
 There is no limit by default.`, func(memory string) error {
-		b, err := ParseMemory(memory)
+		b, err := internal.ParseMemory(memory)
 		if err != nil {
 			return err
 		}

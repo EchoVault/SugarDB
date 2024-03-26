@@ -18,13 +18,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	internal_pubsub "github.com/echovault/echovault/internal/pubsub"
 	"github.com/echovault/echovault/pkg/utils"
 	"net"
 	"strings"
 )
 
 func handleSubscribe(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
-	pubsub, ok := server.GetPubSub().(*PubSub)
+	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -42,7 +43,7 @@ func handleSubscribe(ctx context.Context, cmd []string, server utils.EchoVault, 
 }
 
 func handleUnsubscribe(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
-	pubsub, ok := server.GetPubSub().(*PubSub)
+	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -55,7 +56,7 @@ func handleUnsubscribe(ctx context.Context, cmd []string, server utils.EchoVault
 }
 
 func handlePublish(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
-	pubsub, ok := server.GetPubSub().(*PubSub)
+	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -71,7 +72,7 @@ func handlePubSubChannels(_ context.Context, cmd []string, server utils.EchoVaul
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
-	pubsub, ok := server.GetPubSub().(*PubSub)
+	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -85,7 +86,7 @@ func handlePubSubChannels(_ context.Context, cmd []string, server utils.EchoVaul
 }
 
 func handlePubSubNumPat(_ context.Context, _ []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
-	pubsub, ok := server.GetPubSub().(*PubSub)
+	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -94,7 +95,7 @@ func handlePubSubNumPat(_ context.Context, _ []string, server utils.EchoVault, _
 }
 
 func handlePubSubNumSubs(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
-	pubsub, ok := server.GetPubSub().(*PubSub)
+	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}

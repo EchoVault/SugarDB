@@ -17,6 +17,7 @@ package raft
 import (
 	"encoding/json"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/utils"
 	"github.com/hashicorp/raft"
 	"strconv"
@@ -24,7 +25,7 @@ import (
 )
 
 type SnapshotOpts struct {
-	config            internal.Config
+	config            config.Config
 	data              map[string]utils.KeyData
 	startSnapshot     func()
 	finishSnapshot    func()

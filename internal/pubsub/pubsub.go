@@ -263,3 +263,15 @@ func (ps *PubSub) NumSub(channels []string) []byte {
 	}
 	return []byte(res)
 }
+
+func (ps *PubSub) GetAllChannels() []*Channel {
+	ps.channelsRWMut.RLock()
+	defer ps.channelsRWMut.RUnlock()
+
+	channels := make([]*Channel, len(ps.channels))
+	for i, channel := range ps.channels {
+		channels[i] = channel
+	}
+
+	return channels
+}

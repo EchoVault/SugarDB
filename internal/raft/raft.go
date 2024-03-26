@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/memberlist"
 	"log"
 	"net"
@@ -32,7 +32,7 @@ import (
 )
 
 type Opts struct {
-	Config     internal.Config
+	Config     config.Config
 	EchoVault  utils.EchoVault
 	GetCommand func(command string) (utils.Command, error)
 	DeleteKey  func(ctx context.Context, key string) error

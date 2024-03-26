@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/utils"
 	"github.com/gobwas/glob"
 	"gopkg.in/yaml.v3"
@@ -44,11 +44,11 @@ type ACL struct {
 	Users        []*User                  // List of ACL user profiles
 	UsersMutex   sync.RWMutex             // RWMutex for concurrency control when accessing ACL profile list
 	Connections  map[*net.Conn]Connection // Connections to the echovault that are currently registered with the ACL module
-	Config       internal.Config          // EchoVault configuration that contains the relevant ACL config options
+	Config       config.Config            // EchoVault configuration that contains the relevant ACL config options
 	GlobPatterns map[string]glob.Glob
 }
 
-func NewACL(config internal.Config) *ACL {
+func NewACL(config config.Config) *ACL {
 	var users []*User
 
 	// 1. Initialise default ACL user
@@ -166,6 +166,13 @@ func (acl *ACL) SetUser(cmd []string) error {
 	acl.CompileGlobs()
 
 	return nil
+}
+
+func (acl *ACL) AddUsers(users []*User) {
+	acl.LockUsers()
+	defer acl.UnlockUsers()
+
+	acl.Users = append(acl.Users, users...)
 }
 
 func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {

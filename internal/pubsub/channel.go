@@ -88,6 +88,14 @@ func (ch *Channel) Start() {
 	}()
 }
 
+func (ch *Channel) Name() string {
+	return ch.name
+}
+
+func (ch *Channel) Pattern() glob.Glob {
+	return ch.pattern
+}
+
 func (ch *Channel) Subscribe(conn *net.Conn) bool {
 	ch.subscribersRWMut.Lock()
 	defer ch.subscribersRWMut.Unlock()
@@ -115,11 +123,29 @@ func (ch *Channel) Publish(message string) {
 func (ch *Channel) IsActive() bool {
 	ch.subscribersRWMut.RLock()
 	defer ch.subscribersRWMut.RUnlock()
-	return len(ch.subscribers) > 0
+
+	active := len(ch.subscribers) > 0
+
+	return active
 }
 
 func (ch *Channel) NumSubs() int {
 	ch.subscribersRWMut.RLock()
 	defer ch.subscribersRWMut.RUnlock()
-	return len(ch.subscribers)
+
+	n := len(ch.subscribers)
+
+	return n
+}
+
+func (ch *Channel) Subscribers() map[*net.Conn]*resp.Conn {
+	ch.subscribersRWMut.RLock()
+	defer ch.subscribersRWMut.RUnlock()
+
+	subscribers := make(map[*net.Conn]*resp.Conn, len(ch.subscribers))
+	for k, v := range ch.subscribers {
+		subscribers[k] = v
+	}
+
+	return subscribers
 }

@@ -1,8 +1,11 @@
 package config
 
-import "github.com/echovault/echovault/internal"
+import (
+	"github.com/echovault/echovault/internal/config"
+)
 
-// Config returns the default configuration.
-func Config() (internal.Config, error) {
-	return internal.GetConfig()
+// DefaultConfig returns the default configuration.
+// / This should be used when using EchoVault as an embedded library.
+func DefaultConfig() config.Config {
+	return config.DefaultConfig()
 }

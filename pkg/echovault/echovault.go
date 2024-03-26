@@ -21,9 +21,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/acl"
 	"github.com/echovault/echovault/internal/aof"
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/eviction"
 	"github.com/echovault/echovault/internal/memberlist"
+	"github.com/echovault/echovault/internal/pubsub"
 	"github.com/echovault/echovault/internal/raft"
 	"github.com/echovault/echovault/internal/snapshot"
 	"github.com/echovault/echovault/pkg/utils"
@@ -38,7 +41,7 @@ import (
 
 type EchoVault struct {
 	// config holds the echovault configuration variables.
-	config internal.Config
+	config config.Config
 
 	// The current index for the latest connection id.
 	// This number is incremented everytime there's a new connection and
@@ -73,8 +76,8 @@ type EchoVault struct {
 
 	context context.Context
 
-	ACL    utils.ACL
-	PubSub utils.PubSub
+	ACL    *acl.ACL
+	PubSub *pubsub.PubSub
 
 	snapshotInProgress         atomic.Bool      // Atomic boolean that's true when actively taking a snapshot.
 	rewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
@@ -91,21 +94,9 @@ func WithContext(ctx context.Context) func(echovault *EchoVault) {
 	}
 }
 
-func WithConfig(config internal.Config) func(echovault *EchoVault) {
+func WithConfig(config config.Config) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.config = config
-	}
-}
-
-func WithACL(acl utils.ACL) func(echovault *EchoVault) {
-	return func(echovault *EchoVault) {
-		echovault.ACL = acl
-	}
-}
-
-func WithPubSub(pubsub utils.PubSub) func(echovault *EchoVault) {
-	return func(echovault *EchoVault) {
-		echovault.PubSub = pubsub
 	}
 }
 
@@ -119,6 +110,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 	echovault := &EchoVault{
 		context:         context.Background(),
 		commands:        make([]utils.Command, 0),
+		config:          config.DefaultConfig(),
 		store:           make(map[string]utils.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
@@ -127,6 +119,12 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 	for _, option := range options {
 		option(echovault)
 	}
+
+	// Set up ACL module
+	echovault.ACL = acl.NewACL(echovault.config)
+
+	// Set up Pub/Sub module
+	echovault.PubSub = pubsub.NewPubSub()
 
 	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{

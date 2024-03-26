@@ -19,6 +19,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/config"
 	"log"
 	"time"
 
@@ -35,7 +36,7 @@ type NodeMeta struct {
 }
 
 type Opts struct {
-	Config           internal.Config
+	Config           config.Config
 	HasJoinedCluster func() bool
 	AddVoter         func(id raft.ServerID, address raft.ServerAddress, prevIndex uint64, timeout time.Duration) error
 	RemoveRaftServer func(meta NodeMeta) error

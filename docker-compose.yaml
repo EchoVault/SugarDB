@@ -22,8 +22,8 @@ services:
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
       - ACL_CONFIG=/etc/config/echovault/acl.yml
-      - REQUIRE_PASS=false
-      - PASSWORD=default_password
+      - REQUIRE_PASS=true
+      - PASSWORD=password1
       - FORWARD_COMMAND=false
       - SNAPSHOT_THRESHOLD=1000
       - SNAPSHOT_INTERVAL=5m30s

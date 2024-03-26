@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	internal_acl "github.com/echovault/echovault/internal/acl"
 	"github.com/echovault/echovault/pkg/utils"
 	"gopkg.in/yaml.v3"
 	"log"
@@ -33,7 +34,7 @@ func handleAuth(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	if len(cmd) < 2 || len(cmd) > 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
-	acl, ok := server.GetACL().(*ACL)
+	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -48,12 +49,12 @@ func handleGetUser(_ context.Context, cmd []string, server utils.EchoVault, _ *n
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
-	acl, ok := server.GetACL().(*ACL)
+	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
 
-	var user *User
+	var user *internal_acl.User
 	userFound := false
 	for _, u := range acl.Users {
 		if u.Username == cmd[2] {
@@ -221,7 +222,7 @@ func handleCat(_ context.Context, cmd []string, server utils.EchoVault, _ *net.C
 }
 
 func handleUsers(_ context.Context, _ []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
-	acl, ok := server.GetACL().(*ACL)
+	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -234,7 +235,7 @@ func handleUsers(_ context.Context, _ []string, server utils.EchoVault, _ *net.C
 }
 
 func handleSetUser(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
-	acl, ok := server.GetACL().(*ACL)
+	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -248,7 +249,7 @@ func handleDelUser(ctx context.Context, cmd []string, server utils.EchoVault, _ 
 	if len(cmd) < 3 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
-	acl, ok := server.GetACL().(*ACL)
+	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -259,7 +260,7 @@ func handleDelUser(ctx context.Context, cmd []string, server utils.EchoVault, _ 
 }
 
 func handleWhoAmI(_ context.Context, _ []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
-	acl, ok := server.GetACL().(*ACL)
+	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -271,7 +272,7 @@ func handleList(_ context.Context, cmd []string, server utils.EchoVault, _ *net.
 	if len(cmd) > 2 {
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
-	acl, ok := server.GetACL().(*ACL)
+	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -368,7 +369,7 @@ func handleLoad(_ context.Context, cmd []string, server utils.EchoVault, _ *net.
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
-	acl, ok := server.GetACL().(*ACL)
+	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -389,7 +390,7 @@ func handleLoad(_ context.Context, cmd []string, server utils.EchoVault, _ *net.
 
 	ext := path.Ext(f.Name())
 
-	var users []*User
+	var users []*internal_acl.User
 
 	if ext == ".json" {
 		if err := json.NewDecoder(f).Decode(&users); err != nil {
@@ -435,7 +436,7 @@ func handleSave(_ context.Context, cmd []string, server utils.EchoVault, _ *net.
 		return nil, errors.New(utils.WrongArgsResponse)
 	}
 
-	acl, ok := server.GetACL().(*ACL)
+	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}

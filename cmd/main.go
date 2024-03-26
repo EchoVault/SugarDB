@@ -17,11 +17,9 @@ package main
 import (
 	"context"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/commands"
-	"github.com/echovault/echovault/pkg/config"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/modules/acl"
-	"github.com/echovault/echovault/pkg/modules/pubsub"
 	"github.com/echovault/echovault/pkg/utils"
 	"log"
 	"os"
@@ -30,7 +28,7 @@ import (
 )
 
 func main() {
-	conf, err := config.Config()
+	conf, err := config.GetConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,8 +51,6 @@ func main() {
 		echovault.WithContext(ctx),
 		echovault.WithConfig(conf),
 		echovault.WithCommands(commands.All()),
-		echovault.WithACL(acl.NewACL(conf)),
-		echovault.WithPubSub(pubsub.NewPubSub()),
 	)
 
 	go server.Start(ctx)

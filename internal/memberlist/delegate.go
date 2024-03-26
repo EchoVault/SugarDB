@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/utils"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -31,7 +32,7 @@ type Delegate struct {
 }
 
 type DelegateOpts struct {
-	config         internal.Config
+	config         config.Config
 	broadcastQueue *memberlist.TransmitLimitedQueue
 	addVoter       func(id raft.ServerID, address raft.ServerAddress, prevIndex uint64, timeout time.Duration) error
 	isRaftLeader   func() bool

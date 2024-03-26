@@ -19,7 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/echovault"
 	"github.com/echovault/echovault/pkg/utils"
 	"github.com/tidwall/resp"
@@ -33,7 +33,7 @@ var mockServer *echovault.EchoVault
 
 func init() {
 	mockServer = echovault.NewEchoVault(
-		echovault.WithConfig(internal.Config{
+		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: utils.NoEviction,
 		}),
