@@ -61,7 +61,7 @@ func main() {
 
 	// Default BindAddr if it's not specified
 	if config.BindAddr == "" {
-		if addr, err := utils.GetIPAddress(); err != nil {
+		if addr, err := internal.GetIPAddress(); err != nil {
 			log.Fatal(err)
 		} else {
 			config.BindAddr = addr

@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/utils"
 	"net"
 	"slices"
@@ -300,7 +301,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.EchoVault,
 			return nil, errors.New("provide limit after LIMIT keyword")
 		}
 
-		if l, ok := utils.AdaptType(cmd[limitIdx]).(int); !ok {
+		if l, ok := internal.AdaptType(cmd[limitIdx]).(int); !ok {
 			return nil, errors.New("limit must be an integer")
 		} else {
 			limit = l
@@ -576,7 +577,7 @@ func handleSPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	count := 1
 
 	if len(cmd) == 3 {
-		c, ok := utils.AdaptType(cmd[2]).(int)
+		c, ok := internal.AdaptType(cmd[2]).(int)
 		if !ok {
 			return nil, errors.New("count must be an integer")
 		}
@@ -620,7 +621,7 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.EchoVault
 	count := 1
 
 	if len(cmd) == 3 {
-		c, ok := utils.AdaptType(cmd[2]).(int)
+		c, ok := internal.AdaptType(cmd[2]).(int)
 		if !ok {
 			return nil, errors.New("count must be an integer")
 		}

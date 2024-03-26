@@ -17,7 +17,7 @@ package sorted_set
 import (
 	"cmp"
 	"errors"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/internal"
 	"math"
 	"math/rand"
 	"slices"
@@ -72,7 +72,7 @@ func (set *SortedSet) GetRandom(count int) []MemberParam {
 
 	members := set.GetAll()
 
-	if utils.AbsInt(count) >= len(members) {
+	if internal.AbsInt(count) >= len(members) {
 		return members
 	}
 
@@ -80,13 +80,13 @@ func (set *SortedSet) GetRandom(count int) []MemberParam {
 
 	if count < 0 {
 		// If count is negative, allow repeat numbers
-		for i := 0; i < utils.AbsInt(count); i++ {
+		for i := 0; i < internal.AbsInt(count); i++ {
 			n = rand.Intn(len(members))
 			res = append(res, members[n])
 		}
 	} else {
 		// If count is positive only allow unique values
-		for i := 0; i < utils.AbsInt(count); {
+		for i := 0; i < internal.AbsInt(count); {
 			n = rand.Intn(len(members))
 			if !slices.ContainsFunc(res, func(m MemberParam) bool {
 				return m.value == members[n].value

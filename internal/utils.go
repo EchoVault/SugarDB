@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package internal
 
 import (
 	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/pkg/utils"
 	"io"
 	"log"
 	"math/big"
@@ -125,7 +126,7 @@ func GetIPAddress() (string, error) {
 	return localAddr, nil
 }
 
-func GetSubCommand(command Command, cmd []string) interface{} {
+func GetSubCommand(command utils.Command, cmd []string) interface{} {
 	if len(command.SubCommands) == 0 || len(cmd) < 2 {
 		return nil
 	}
@@ -137,8 +138,8 @@ func GetSubCommand(command Command, cmd []string) interface{} {
 	return nil
 }
 
-func IsWriteCommand(command Command, subCommand SubCommand) bool {
-	return slices.Contains(append(command.Categories, subCommand.Categories...), WriteCategory)
+func IsWriteCommand(command utils.Command, subCommand utils.SubCommand) bool {
+	return slices.Contains(append(command.Categories, subCommand.Categories...), utils.WriteCategory)
 }
 
 func AbsInt(n int) int {
@@ -201,7 +202,7 @@ func IsMaxMemoryExceeded(maxMemory uint64) bool {
 }
 
 // FilterExpiredKeys filters out keys that are already expired, so they are not persisted.
-func FilterExpiredKeys(state map[string]KeyData) map[string]KeyData {
+func FilterExpiredKeys(state map[string]utils.KeyData) map[string]utils.KeyData {
 	var keysToDelete []string
 	for k, v := range state {
 		// Skip keys with no expiry time.

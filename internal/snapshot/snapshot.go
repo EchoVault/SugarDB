@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/utils"
 	"io"
 	"io/fs"
@@ -205,7 +206,7 @@ func (engine *Engine) TakeSnapshot() error {
 
 	// Get current state
 	snapshotObject := utils.SnapshotObject{
-		State:                      utils.FilterExpiredKeys(engine.getStateFunc()),
+		State:                      internal.FilterExpiredKeys(engine.getStateFunc()),
 		LatestSnapshotMilliseconds: engine.getLatestSnapshotTimeFunc(),
 	}
 	out, err := json.Marshal(snapshotObject)
@@ -341,7 +342,7 @@ func (engine *Engine) Restore() error {
 
 	engine.setLatestSnapshotTimeFunc(snapshotObject.LatestSnapshotMilliseconds)
 
-	for key, data := range utils.FilterExpiredKeys(snapshotObject.State) {
+	for key, data := range internal.FilterExpiredKeys(snapshotObject.State) {
 		engine.setKeyDataFunc(key, data)
 	}
 

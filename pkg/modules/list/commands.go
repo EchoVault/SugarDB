@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/utils"
 	"math"
 	"net"
@@ -57,7 +58,7 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.EchoVault, con
 	}
 
 	key := keys[0]
-	index, ok := utils.AdaptType(cmd[2]).(int)
+	index, ok := internal.AdaptType(cmd[2]).(int)
 
 	if !ok {
 		return nil, errors.New("index must be an integer")
@@ -91,8 +92,8 @@ func handleLRange(ctx context.Context, cmd []string, server utils.EchoVault, con
 	}
 
 	key := keys[0]
-	start, startOk := utils.AdaptType(cmd[2]).(int)
-	end, endOk := utils.AdaptType(cmd[3]).(int)
+	start, startOk := internal.AdaptType(cmd[2]).(int)
+	end, endOk := internal.AdaptType(cmd[3]).(int)
 
 	if !startOk || !endOk {
 		return nil, errors.New("start and end indices must be integers")
@@ -171,7 +172,7 @@ func handleLSet(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 
 	key := keys[0]
 
-	index, ok := utils.AdaptType(cmd[2]).(int)
+	index, ok := internal.AdaptType(cmd[2]).(int)
 	if !ok {
 		return nil, errors.New("index must be an integer")
 	}
@@ -194,7 +195,7 @@ func handleLSet(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 		return nil, errors.New("index must be within list range")
 	}
 
-	list[index] = utils.AdaptType(cmd[3])
+	list[index] = internal.AdaptType(cmd[3])
 	if err = server.SetValue(ctx, key, list); err != nil {
 		return nil, err
 	}
@@ -209,8 +210,8 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	}
 
 	key := keys[0]
-	start, startOk := utils.AdaptType(cmd[2]).(int)
-	end, endOk := utils.AdaptType(cmd[3]).(int)
+	start, startOk := internal.AdaptType(cmd[2]).(int)
+	end, endOk := internal.AdaptType(cmd[3]).(int)
 
 	if !startOk || !endOk {
 		return nil, errors.New("start and end indices must be integers")
@@ -260,12 +261,12 @@ func handleLRem(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	key := keys[0]
 	value := cmd[3]
 
-	count, ok := utils.AdaptType(cmd[2]).(int)
+	count, ok := internal.AdaptType(cmd[2]).(int)
 	if !ok {
 		return nil, errors.New("count must be an integer")
 	}
 
-	absoluteCount := utils.AbsInt(count)
+	absoluteCount := internal.AbsInt(count)
 
 	if !server.KeyExists(ctx, key) {
 		return nil, errors.New("LREM command on non-list item")
@@ -389,7 +390,7 @@ func handleLPush(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	var newElems []interface{}
 
 	for _, elem := range cmd[2:] {
-		newElems = append(newElems, utils.AdaptType(elem))
+		newElems = append(newElems, internal.AdaptType(elem))
 	}
 
 	key := keys[0]
@@ -437,7 +438,7 @@ func handleRPush(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	var newElems []interface{}
 
 	for _, elem := range cmd[2:] {
-		newElems = append(newElems, utils.AdaptType(elem))
+		newElems = append(newElems, internal.AdaptType(elem))
 	}
 
 	if !server.KeyExists(ctx, key) {

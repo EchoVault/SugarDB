@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/utils"
 	"net"
 	"strings"
@@ -45,7 +46,7 @@ func (server *EchoVault) getCommand(cmd string) (utils.Command, error) {
 }
 
 func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool) ([]byte, error) {
-	cmd, err := utils.Decode(message)
+	cmd, err := internal.Decode(message)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	synchronize := command.Sync
 	handler := command.HandlerFunc
 
-	subCommand, ok := utils.GetSubCommand(command, cmd).(utils.SubCommand)
+	subCommand, ok := internal.GetSubCommand(command, cmd).(utils.SubCommand)
 	if ok {
 		synchronize = subCommand.Sync
 		handler = subCommand.HandlerFunc
@@ -74,7 +75,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	}
 
 	// If the command is a write command, wait for state copy to finish.
-	if utils.IsWriteCommand(command, subCommand) {
+	if internal.IsWriteCommand(command, subCommand) {
 		for {
 			if !server.stateCopyInProgress.Load() {
 				server.stateMutationInProgress.Store(true)
@@ -89,7 +90,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 			return nil, err
 		}
 
-		if utils.IsWriteCommand(command, subCommand) && !replay {
+		if internal.IsWriteCommand(command, subCommand) && !replay {
 			go server.aofEngine.QueueCommand(message)
 		}
 

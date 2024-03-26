@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/utils"
 	"net"
 )
@@ -30,7 +31,7 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.EchoVault, c
 
 	key := keys[0]
 
-	offset, ok := utils.AdaptType(cmd[2]).(int)
+	offset, ok := internal.AdaptType(cmd[2]).(int)
 	if !ok {
 		return nil, errors.New("offset must be an integer")
 	}
@@ -131,8 +132,8 @@ func handleSubStr(ctx context.Context, cmd []string, server utils.EchoVault, con
 
 	key := keys[0]
 
-	start, startOk := utils.AdaptType(cmd[2]).(int)
-	end, endOk := utils.AdaptType(cmd[3]).(int)
+	start, startOk := internal.AdaptType(cmd[2]).(int)
+	end, endOk := internal.AdaptType(cmd[3]).(int)
 	reversed := false
 
 	if !startOk || !endOk {
@@ -154,10 +155,10 @@ func handleSubStr(ctx context.Context, cmd []string, server utils.EchoVault, con
 	}
 
 	if start < 0 {
-		start = len(value) - utils.AbsInt(start)
+		start = len(value) - internal.AbsInt(start)
 	}
 	if end < 0 {
-		end = len(value) - utils.AbsInt(end)
+		end = len(value) - internal.AbsInt(end)
 	}
 
 	if end >= 0 && end >= start {

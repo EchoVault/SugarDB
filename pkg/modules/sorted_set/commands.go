@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/utils"
 	"math"
 	"net"
@@ -46,7 +47,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 		if membersStartIndex != 0 {
 			break
 		}
-		switch utils.AdaptType(cmd[i]).(type) {
+		switch internal.AdaptType(cmd[i]).(type) {
 		case string:
 			if slices.Contains([]string{"-inf", "+inf"}, strings.ToLower(cmd[i])) {
 				membersStartIndex = i
@@ -68,7 +69,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 		if i%2 != 0 {
 			continue
 		}
-		score := utils.AdaptType(cmd[membersStartIndex:][i])
+		score := internal.AdaptType(cmd[membersStartIndex:][i])
 		switch score.(type) {
 		default:
 			return nil, errors.New("invalid score in score/member list")
@@ -211,7 +212,7 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, con
 	key := keys[0]
 
 	minimum := Score(math.Inf(-1))
-	switch utils.AdaptType(cmd[2]).(type) {
+	switch internal.AdaptType(cmd[2]).(type) {
 	default:
 		return nil, errors.New("min constraint must be a double")
 	case string:
@@ -221,15 +222,15 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, con
 			return nil, errors.New("min constraint must be a double")
 		}
 	case float64:
-		s, _ := utils.AdaptType(cmd[2]).(float64)
+		s, _ := internal.AdaptType(cmd[2]).(float64)
 		minimum = Score(s)
 	case int:
-		s, _ := utils.AdaptType(cmd[2]).(int)
+		s, _ := internal.AdaptType(cmd[2]).(int)
 		minimum = Score(s)
 	}
 
 	maximum := Score(math.Inf(1))
-	switch utils.AdaptType(cmd[3]).(type) {
+	switch internal.AdaptType(cmd[3]).(type) {
 	default:
 		return nil, errors.New("max constraint must be a double")
 	case string:
@@ -239,10 +240,10 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, con
 			return nil, errors.New("max constraint must be a double")
 		}
 	case float64:
-		s, _ := utils.AdaptType(cmd[3]).(float64)
+		s, _ := internal.AdaptType(cmd[3]).(float64)
 		maximum = Score(s)
 	case int:
-		s, _ := utils.AdaptType(cmd[3]).(int)
+		s, _ := internal.AdaptType(cmd[3]).(int)
 		maximum = Score(s)
 	}
 
@@ -464,7 +465,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, co
 	member := Value(cmd[3])
 	var increment Score
 
-	switch utils.AdaptType(cmd[2]).(type) {
+	switch internal.AdaptType(cmd[2]).(type) {
 	default:
 		return nil, errors.New("increment must be a double")
 	case string:
@@ -476,10 +477,10 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, co
 			return nil, errors.New("increment must be a double")
 		}
 	case float64:
-		s, _ := utils.AdaptType(cmd[2]).(float64)
+		s, _ := internal.AdaptType(cmd[2]).(float64)
 		increment = Score(s)
 	case int:
-		s, _ := utils.AdaptType(cmd[2]).(int)
+		s, _ := internal.AdaptType(cmd[2]).(int)
 		increment = Score(s)
 	}
 

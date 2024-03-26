@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/utils"
 	"log"
 	"math/rand"
@@ -127,7 +128,7 @@ func (server *EchoVault) KeyExists(ctx context.Context, key string) bool {
 // CreateKeyAndLock creates a new key lock and immediately locks it if the key does not exist.
 // If the key exists, the existing key is locked.
 func (server *EchoVault) CreateKeyAndLock(ctx context.Context, key string) (bool, error) {
-	if utils.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == utils.NoEviction {
+	if internal.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == utils.NoEviction {
 		return false, errors.New("max memory reached, key not created")
 	}
 
@@ -165,7 +166,7 @@ func (server *EchoVault) GetValue(ctx context.Context, key string) interface{} {
 // This count triggers a snapshot when the threshold is reached.
 // The key must be locked prior to calling this function.
 func (server *EchoVault) SetValue(ctx context.Context, key string, value interface{}) error {
-	if utils.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == utils.NoEviction {
+	if internal.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == utils.NoEviction {
 		return errors.New("max memory reached, key value not set")
 	}
 

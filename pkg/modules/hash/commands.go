@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/utils"
 	"math/rand"
 	"net"
@@ -40,7 +41,7 @@ func handleHSET(ctx context.Context, cmd []string, server utils.EchoVault, _ *ne
 	}
 
 	for i := 2; i <= len(cmd)-2; i += 2 {
-		entries[cmd[i]] = utils.AdaptType(cmd[i+1])
+		entries[cmd[i]] = internal.AdaptType(cmd[i+1])
 	}
 
 	if !server.KeyExists(ctx, key) {
@@ -306,7 +307,7 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.EchoVault,
 	// Pluck fields and return them
 	var pluckedFields []string
 	var n int
-	for i := 0; i < utils.AbsInt(count); i++ {
+	for i := 0; i < internal.AbsInt(count); i++ {
 		n = rand.Intn(len(fields))
 		pluckedFields = append(pluckedFields, fields[n])
 		// If count is positive, remove the current field from list of fields

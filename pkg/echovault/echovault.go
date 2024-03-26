@@ -296,7 +296,7 @@ func (server *EchoVault) handleConnection(ctx context.Context, conn net.Conn) {
 		fmt.Sprintf("%s-%d", ctx.Value(utils.ContextServerID("ServerID")), cid))
 
 	for {
-		message, err := utils.ReadMessage(r)
+		message, err := internal.ReadMessage(r)
 
 		if err != nil && errors.Is(err, io.EOF) {
 			// Connection closed

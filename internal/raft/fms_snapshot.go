@@ -52,7 +52,7 @@ func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
 	}
 
 	snapshotObject := utils.SnapshotObject{
-		State:                      utils.FilterExpiredKeys(s.options.data),
+		State:                      internal.FilterExpiredKeys(s.options.data),
 		LatestSnapshotMilliseconds: int64(msec),
 	}
 

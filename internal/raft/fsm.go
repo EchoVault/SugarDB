@@ -92,7 +92,7 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 
 			handler := command.HandlerFunc
 
-			subCommand, ok := utils.GetSubCommand(command, request.CMD).(utils.SubCommand)
+			subCommand, ok := internal.GetSubCommand(command, request.CMD).(utils.SubCommand)
 			if ok {
 				handler = subCommand.HandlerFunc
 			}
@@ -146,7 +146,7 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 
 	// Set state
 	ctx := context.Background()
-	for k, v := range utils.FilterExpiredKeys(data.State) {
+	for k, v := range internal.FilterExpiredKeys(data.State) {
 		if _, err = fsm.options.EchoVault.CreateKeyAndLock(ctx, k); err != nil {
 			log.Fatal(err)
 		}

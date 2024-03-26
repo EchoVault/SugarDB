@@ -19,6 +19,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/utils"
 	"log"
 	"net"
@@ -99,7 +100,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net
 	}
 	defer server.KeyUnlock(ctx, key)
 
-	if err = server.SetValue(ctx, key, utils.AdaptType(value)); err != nil {
+	if err = server.SetValue(ctx, key, internal.AdaptType(value)); err != nil {
 		return nil, err
 	}
 
@@ -135,7 +136,7 @@ func handleMSet(ctx context.Context, cmd []string, server utils.EchoVault, _ *ne
 	for i, key := range cmd[1:] {
 		if i%2 == 0 {
 			entries[key] = KeyObject{
-				value:  utils.AdaptType(cmd[1:][i+1]),
+				value:  internal.AdaptType(cmd[1:][i+1]),
 				locked: false,
 			}
 		}

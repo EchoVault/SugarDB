@@ -15,7 +15,7 @@
 package set
 
 import (
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/internal"
 	"math/rand"
 	"slices"
 )
@@ -69,7 +69,7 @@ func (set *Set) GetRandom(count int) []string {
 		return []string{}
 	}
 
-	if utils.AbsInt(count) >= set.Cardinality() {
+	if internal.AbsInt(count) >= set.Cardinality() {
 		return keys
 	}
 
@@ -79,13 +79,13 @@ func (set *Set) GetRandom(count int) []string {
 
 	if count < 0 {
 		// If count is negative, allow repeat elements
-		for i := 0; i < utils.AbsInt(count); i++ {
+		for i := 0; i < internal.AbsInt(count); i++ {
 			n = rand.Intn(len(keys))
 			res = append(res, keys[n])
 		}
 	} else {
 		// Count is positive, do not allow repeat elements
-		for i := 0; i < utils.AbsInt(count); {
+		for i := 0; i < internal.AbsInt(count); {
 			n = rand.Intn(len(keys))
 			if !slices.Contains(res, keys[n]) {
 				res = append(res, keys[n])

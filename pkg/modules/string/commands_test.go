@@ -138,7 +138,7 @@ func Test_HandleSetRange(t *testing.T) {
 			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			if err := mockServer.SetValue(ctx, test.key, utils.AdaptType(test.presetValue)); err != nil {
+			if err := mockServer.SetValue(ctx, test.key, internal.AdaptType(test.presetValue)); err != nil {
 				t.Error(err)
 			}
 			mockServer.KeyUnlock(ctx, test.key)

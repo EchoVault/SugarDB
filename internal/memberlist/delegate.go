@@ -112,7 +112,7 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 			context.WithValue(context.Background(), utils.ContextServerID("ServerID"), string(msg.ServerID)),
 			utils.ContextConnID("ConnectionID"), msg.ConnId)
 
-		cmd, err := utils.Decode(msg.Content)
+		cmd, err := internal.Decode(msg.Content)
 		if err != nil {
 			log.Println(err)
 			return
