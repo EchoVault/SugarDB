@@ -29,31 +29,3 @@ func All() []utils.Command {
 	commands = append(commands, str.Commands()...)
 	return commands
 }
-
-// ByCategory only returns commands with at least one of the categories in the categories parameter
-func ByCategory(categories []string) []utils.Command {
-	commands := All()
-	// TODO: Filter commands and subcommands by category
-	return commands
-}
-
-// ByModule only returns commands that belong to one of the modules in the modules parameter
-func ByModule(modules []string) []utils.Command {
-	commands := All()
-	// TODO: Filter commands by module
-	return commands
-}
-
-// ExcludeCategories returns all commands except ones that have a category contained in the categories parameter.
-func ExcludeCategories(categories []string) []utils.Command {
-	commands := All()
-	// TODO: Filter out commands and subcommands in the specified categories
-	return commands
-}
-
-// ExcludeModules returns all commands except ones in a module included in the modules parameter
-func ExcludeModules(modules []string) []utils.Command {
-	commands := All()
-	// TODO: Filter out commands in the specified modules
-	return commands
-}
