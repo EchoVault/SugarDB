@@ -69,9 +69,7 @@ func (server *EchoVault) SET(key, value string, options SETOptions) (string, err
 		cmd = append(cmd, "GET")
 	}
 
-	encoded := internal.EncodeCommand(cmd)
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
 	if err != nil {
 		return "", err
 	}
@@ -86,9 +84,7 @@ func (server *EchoVault) MSET(kvPairs map[string]string) (string, error) {
 		cmd = append(cmd, []string{k, v}...)
 	}
 
-	encoded := internal.EncodeCommand(cmd)
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
 	if err != nil {
 		return "", err
 	}
@@ -97,90 +93,66 @@ func (server *EchoVault) MSET(kvPairs map[string]string) (string, error) {
 }
 
 func (server *EchoVault) GET(key string) (string, error) {
-	encoded := internal.EncodeCommand([]string{"GET", key})
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"GET", key}), nil, false)
 	if err != nil {
 		return "", err
 	}
-
 	return internal.ParseStringResponse(b)
 }
 
-func (server *EchoVault) MGET(keys []string) ([]string, error) {
-	encoded := internal.EncodeCommand(append([]string{"MGET"}, keys...))
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+func (server *EchoVault) MGET(keys ...string) ([]string, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(append([]string{"MGET"}, keys...)), nil, false)
 	if err != nil {
 		return []string{}, err
 	}
-
-	return internal.ParseArrayResponse(b)
+	return internal.ParseStringArrayResponse(b)
 }
 
-func (server *EchoVault) DEL(keys []string) (int, error) {
-	encoded := internal.EncodeCommand(append([]string{"DEL"}, keys...))
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+func (server *EchoVault) DEL(keys ...string) (int, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(append([]string{"DEL"}, keys...)), nil, false)
 	if err != nil {
 		return 0, err
 	}
-
 	return internal.ParseIntegerResponse(b)
 }
 
 func (server *EchoVault) PERSIST(key string) (int, error) {
-	encoded := internal.EncodeCommand([]string{"PERSIST", key})
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PERSIST", key}), nil, false)
 	if err != nil {
 		return 0, err
 	}
-
 	return internal.ParseIntegerResponse(b)
 }
 
 func (server *EchoVault) EXPIRETIME(key string) (int, error) {
-	encoded := internal.EncodeCommand([]string{"EXPIRETIME", key})
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"EXPIRETIME", key}), nil, false)
 	if err != nil {
 		return 0, err
 	}
-
 	return internal.ParseIntegerResponse(b)
 }
 
 func (server *EchoVault) PEXPIRETIME(key string) (int, error) {
-	encoded := internal.EncodeCommand([]string{"PEXPIRETIME", key})
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PEXPIRETIME", key}), nil, false)
 	if err != nil {
 		return 0, err
 	}
-
 	return internal.ParseIntegerResponse(b)
 }
 
 func (server *EchoVault) TTL(key string) (int, error) {
-	encoded := internal.EncodeCommand([]string{"TTL", key})
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"TTL", key}), nil, false)
 	if err != nil {
 		return 0, err
 	}
-
 	return internal.ParseIntegerResponse(b)
 }
 
 func (server *EchoVault) PTTL(key string) (int, error) {
-	encoded := internal.EncodeCommand([]string{"PTTL", key})
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PTTL", key}), nil, false)
 	if err != nil {
 		return 0, err
 	}
-
 	return internal.ParseIntegerResponse(b)
 }
 
@@ -198,9 +170,7 @@ func (server *EchoVault) EXPIRE(key string, seconds int, options EXPIREOptions) 
 		cmd = append(cmd, "GT")
 	}
 
-	encoded := internal.EncodeCommand(cmd)
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
 	if err != nil {
 		return 0, err
 	}
@@ -222,9 +192,7 @@ func (server *EchoVault) PEXPIRE(key string, milliseconds int, options PEXPIREOp
 		cmd = append(cmd, "GT")
 	}
 
-	encoded := internal.EncodeCommand(cmd)
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
 	if err != nil {
 		return 0, err
 	}
@@ -246,9 +214,7 @@ func (server *EchoVault) EXPIREAT(key string, unixSeconds int, options EXPIREATO
 		cmd = append(cmd, "GT")
 	}
 
-	encoded := internal.EncodeCommand(cmd)
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
 	if err != nil {
 		return 0, err
 	}
@@ -270,9 +236,7 @@ func (server *EchoVault) PEXPIREAT(key string, unixMilliseconds int, options PEX
 		cmd = append(cmd, "GT")
 	}
 
-	encoded := internal.EncodeCommand(cmd)
-
-	b, err := server.handleCommand(server.context, encoded, nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
 	if err != nil {
 		return 0, err
 	}

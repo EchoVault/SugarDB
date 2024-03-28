@@ -85,7 +85,7 @@ func handleHSET(ctx context.Context, cmd []string, server utils.EchoVault, _ *ne
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleHGET(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHGET(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hgetKeyFunc(cmd)
 	if err != nil {
 		return nil, err

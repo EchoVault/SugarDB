@@ -190,7 +190,7 @@ func Test_HandleHINCRBY(t *testing.T) {
 			key:              "HincrbyKey2",
 			presetValue:      nil,
 			command:          []string{"HINCRBYFLOAT", "HincrbyKey2", "field1", "3.142"},
-			expectedResponse: "3.142",
+			expectedResponse: 3.142,
 			expectedValue:    map[string]interface{}{"field1": 3.142},
 			expectedError:    nil,
 		},
@@ -208,7 +208,7 @@ func Test_HandleHINCRBY(t *testing.T) {
 			key:              "HincrbyKey4",
 			presetValue:      map[string]interface{}{"field1": 3.142},
 			command:          []string{"HINCRBYFLOAT", "HincrbyKey4", "field1", "3.142"},
-			expectedResponse: "6.284",
+			expectedResponse: 6.284,
 			expectedValue:    map[string]interface{}{"field1": 6.284},
 			expectedError:    nil,
 		},
@@ -299,9 +299,9 @@ func Test_HandleHINCRBY(t *testing.T) {
 			if rv.Integer() != test.expectedResponse {
 				t.Errorf("expected response \"%+v\", got \"%d\"", test.expectedResponse, rv.Integer())
 			}
-		case string:
-			if rv.String() != test.expectedResponse {
-				t.Errorf("expected response \"%+v\", got \"%s\"", test.expectedResponse, rv.String())
+		case float64:
+			if rv.Float() != test.expectedResponse {
+				t.Errorf("expected response \"%+v\", got \"%+v\"", test.expectedResponse, rv.Float())
 			}
 		}
 		// Check that all the values are what is expected

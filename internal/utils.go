@@ -246,7 +246,25 @@ func ParseIntegerResponse(b []byte) (int, error) {
 	return v.Integer(), nil
 }
 
-func ParseArrayResponse(b []byte) ([]string, error) {
+func ParseFloatResponse(b []byte) (float64, error) {
+	r := resp.NewReader(bytes.NewReader(b))
+	v, _, err := r.ReadValue()
+	if err != nil {
+		return 0, err
+	}
+	return v.Float(), nil
+}
+
+func ParseBooleanResponse(b []byte) (bool, error) {
+	r := resp.NewReader(bytes.NewReader(b))
+	v, _, err := r.ReadValue()
+	if err != nil {
+		return false, err
+	}
+	return v.Bool(), nil
+}
+
+func ParseStringArrayResponse(b []byte) ([]string, error) {
 	r := resp.NewReader(bytes.NewReader(b))
 	v, _, err := r.ReadValue()
 	if err != nil {
@@ -257,7 +275,31 @@ func ParseArrayResponse(b []byte) ([]string, error) {
 	}
 	arr := make([]string, len(v.Array()))
 	for i, e := range v.Array() {
+		if e.IsNull() {
+			arr[i] = ""
+			continue
+		}
 		arr[i] = e.String()
+	}
+	return arr, nil
+}
+
+func ParseIntegerArrayResponse(b []byte) ([]int, error) {
+	r := resp.NewReader(bytes.NewReader(b))
+	v, _, err := r.ReadValue()
+	if err != nil {
+		return nil, err
+	}
+	if v.IsNull() {
+		return []int{}, nil
+	}
+	arr := make([]int, len(v.Array()))
+	for i, e := range v.Array() {
+		if e.IsNull() {
+			arr[i] = 0
+			continue
+		}
+		arr[i] = e.Integer()
 	}
 	return arr, nil
 }
