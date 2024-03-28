@@ -303,3 +303,23 @@ func ParseIntegerArrayResponse(b []byte) ([]int, error) {
 	}
 	return arr, nil
 }
+
+func ParseBooleanArrayResponse(b []byte) ([]bool, error) {
+	r := resp.NewReader(bytes.NewReader(b))
+	v, _, err := r.ReadValue()
+	if err != nil {
+		return nil, err
+	}
+	if v.IsNull() {
+		return []bool{}, nil
+	}
+	arr := make([]bool, len(v.Array()))
+	for i, e := range v.Array() {
+		if e.IsNull() {
+			arr[i] = false
+			continue
+		}
+		arr[i] = e.Bool()
+	}
+	return arr, nil
+}
