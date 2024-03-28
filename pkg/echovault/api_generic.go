@@ -13,3 +13,269 @@
 // limitations under the License.
 
 package echovault
+
+import (
+	"github.com/echovault/echovault/internal"
+	"strconv"
+)
+
+type SETOptions struct {
+	NX   bool
+	XX   bool
+	LT   bool
+	GT   bool
+	GET  bool
+	EX   int
+	PX   int
+	EXAT int
+	PXAT int
+}
+
+type EXPIREOptions struct {
+	NX bool
+	XX bool
+	LT bool
+	GT bool
+}
+
+type PEXPIREOptions EXPIREOptions
+
+type EXPIREATOptions EXPIREOptions
+
+type PEXPIREATOptions EXPIREOptions
+
+func (server *EchoVault) SET(key, value string, options SETOptions) (string, error) {
+	cmd := []string{"SET", key, value}
+
+	switch {
+	case options.NX:
+		cmd = append(cmd, "NX")
+	case options.XX:
+		cmd = append(cmd, "XX")
+	}
+
+	switch {
+	case options.EX != 0:
+		cmd = append(cmd, []string{"EX", strconv.Itoa(options.EX)}...)
+	case options.PX != 0:
+		cmd = append(cmd, []string{"PX", strconv.Itoa(options.PX)}...)
+	case options.EXAT != 0:
+		cmd = append(cmd, []string{"EXAT", strconv.Itoa(options.EXAT)}...)
+	case options.PXAT != 0:
+		cmd = append(cmd, []string{"PXAT", strconv.Itoa(options.PXAT)}...)
+	}
+
+	if options.GET {
+		cmd = append(cmd, "GET")
+	}
+
+	encoded := internal.EncodeCommand(cmd)
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return "", err
+	}
+
+	return internal.ParseStringResponse(b)
+}
+
+func (server *EchoVault) MSET(kvPairs map[string]string) (string, error) {
+	cmd := []string{"MSET"}
+
+	for k, v := range kvPairs {
+		cmd = append(cmd, []string{k, v}...)
+	}
+
+	encoded := internal.EncodeCommand(cmd)
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return "", err
+	}
+
+	return internal.ParseStringResponse(b)
+}
+
+func (server *EchoVault) GET(key string) (string, error) {
+	encoded := internal.EncodeCommand([]string{"GET", key})
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return "", err
+	}
+
+	return internal.ParseStringResponse(b)
+}
+
+func (server *EchoVault) MGET(keys []string) ([]string, error) {
+	encoded := internal.EncodeCommand(append([]string{"MGET"}, keys...))
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return []string{}, err
+	}
+
+	return internal.ParseArrayResponse(b)
+}
+
+func (server *EchoVault) DEL(keys []string) (int, error) {
+	encoded := internal.EncodeCommand(append([]string{"DEL"}, keys...))
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.ParseIntegerResponse(b)
+}
+
+func (server *EchoVault) PERSIST(key string) (int, error) {
+	encoded := internal.EncodeCommand([]string{"PERSIST", key})
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.ParseIntegerResponse(b)
+}
+
+func (server *EchoVault) EXPIRETIME(key string) (int, error) {
+	encoded := internal.EncodeCommand([]string{"EXPIRETIME", key})
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.ParseIntegerResponse(b)
+}
+
+func (server *EchoVault) PEXPIRETIME(key string) (int, error) {
+	encoded := internal.EncodeCommand([]string{"PEXPIRETIME", key})
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.ParseIntegerResponse(b)
+}
+
+func (server *EchoVault) TTL(key string) (int, error) {
+	encoded := internal.EncodeCommand([]string{"TTL", key})
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.ParseIntegerResponse(b)
+}
+
+func (server *EchoVault) PTTL(key string) (int, error) {
+	encoded := internal.EncodeCommand([]string{"PTTL", key})
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.ParseIntegerResponse(b)
+}
+
+func (server *EchoVault) EXPIRE(key string, seconds int, options EXPIREOptions) (int, error) {
+	cmd := []string{"EXPIRE", key, strconv.Itoa(seconds)}
+
+	switch {
+	case options.NX:
+		cmd = append(cmd, "NX")
+	case options.XX:
+		cmd = append(cmd, "XX")
+	case options.LT:
+		cmd = append(cmd, "LT")
+	case options.GT:
+		cmd = append(cmd, "GT")
+	}
+
+	encoded := internal.EncodeCommand(cmd)
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.ParseIntegerResponse(b)
+}
+
+func (server *EchoVault) PEXPIRE(key string, milliseconds int, options PEXPIREOptions) (int, error) {
+	cmd := []string{"PEXPIRE", key, strconv.Itoa(milliseconds)}
+
+	switch {
+	case options.NX:
+		cmd = append(cmd, "NX")
+	case options.XX:
+		cmd = append(cmd, "XX")
+	case options.LT:
+		cmd = append(cmd, "LT")
+	case options.GT:
+		cmd = append(cmd, "GT")
+	}
+
+	encoded := internal.EncodeCommand(cmd)
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.ParseIntegerResponse(b)
+}
+
+func (server *EchoVault) EXPIREAT(key string, unixSeconds int, options EXPIREATOptions) (int, error) {
+	cmd := []string{"EXPIREAT", key, strconv.Itoa(unixSeconds)}
+
+	switch {
+	case options.NX:
+		cmd = append(cmd, "NX")
+	case options.XX:
+		cmd = append(cmd, "XX")
+	case options.LT:
+		cmd = append(cmd, "LT")
+	case options.GT:
+		cmd = append(cmd, "GT")
+	}
+
+	encoded := internal.EncodeCommand(cmd)
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.ParseIntegerResponse(b)
+}
+
+func (server *EchoVault) PEXPIREAT(key string, unixMilliseconds int, options PEXPIREATOptions) (int, error) {
+	cmd := []string{"PEXPIREAT", key, strconv.Itoa(unixMilliseconds)}
+
+	switch {
+	case options.NX:
+		cmd = append(cmd, "NX")
+	case options.XX:
+		cmd = append(cmd, "XX")
+	case options.LT:
+		cmd = append(cmd, "LT")
+	case options.GT:
+		cmd = append(cmd, "GT")
+	}
+
+	encoded := internal.EncodeCommand(cmd)
+
+	b, err := server.handleCommand(server.context, encoded, nil, false)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.ParseIntegerResponse(b)
+}

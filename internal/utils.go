@@ -219,3 +219,45 @@ func FilterExpiredKeys(state map[string]KeyData) map[string]KeyData {
 	}
 	return state
 }
+
+func EncodeCommand(cmd []string) []byte {
+	res := fmt.Sprintf("*%d\r\n", len(cmd))
+	for _, token := range cmd {
+		res += fmt.Sprintf("$%d\r\n%s\r\n", len(token), token)
+	}
+	return []byte(res)
+}
+
+func ParseStringResponse(b []byte) (string, error) {
+	r := resp.NewReader(bytes.NewReader(b))
+	v, _, err := r.ReadValue()
+	if err != nil {
+		return "", err
+	}
+	return v.String(), nil
+}
+
+func ParseIntegerResponse(b []byte) (int, error) {
+	r := resp.NewReader(bytes.NewReader(b))
+	v, _, err := r.ReadValue()
+	if err != nil {
+		return 0, err
+	}
+	return v.Integer(), nil
+}
+
+func ParseArrayResponse(b []byte) ([]string, error) {
+	r := resp.NewReader(bytes.NewReader(b))
+	v, _, err := r.ReadValue()
+	if err != nil {
+		return nil, err
+	}
+	if v.IsNull() {
+		return []string{}, nil
+	}
+	arr := make([]string, len(v.Array()))
+	for i, e := range v.Array() {
+		arr[i] = e.String()
+	}
+	return arr, nil
+}

@@ -524,7 +524,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		{
 			Command:           "mget",
 			Categories:        []string{utils.ReadCategory, utils.FastCategory},
-			Description:       "(MGET key1 [key2]) Get multiple values from the specified keys.",
+			Description:       "(MGET key [key ...]) Get multiple values from the specified keys.",
 			Sync:              false,
 			KeyExtractionFunc: mgetKeyFunc,
 			HandlerFunc:       handleMGet,
