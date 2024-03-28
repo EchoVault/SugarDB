@@ -475,7 +475,7 @@ func handleRPush(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	return []byte(utils.OkResponse), nil
 }
 
-func handlePop(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handlePop(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := popKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -516,7 +516,7 @@ func Commands() []utils.Command {
 		{
 			Command:           "lpush",
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-			Description:       "(LPUSH key value1 [value2]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
+			Description:       "(LPUSH key element [element ...]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
 			Sync:              true,
 			KeyExtractionFunc: lpushKeyFunc,
 			HandlerFunc:       handleLPush,
@@ -524,7 +524,7 @@ func Commands() []utils.Command {
 		{
 			Command:           "lpushx",
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-			Description:       "(LPUSHX key value) Prepends a value to the beginning of a list only if the list exists.",
+			Description:       "(LPUSHX key element [element ...]) Prepends a value to the beginning of a list only if the list exists.",
 			Sync:              true,
 			KeyExtractionFunc: lpushKeyFunc,
 			HandlerFunc:       handleLPush,
@@ -604,7 +604,7 @@ func Commands() []utils.Command {
 		{
 			Command:           "rpush",
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-			Description:       "(RPUSH key value [value2]) Appends one or multiple elements to the end of a list.",
+			Description:       "(RPUSH key element [element ...]) Appends one or multiple elements to the end of a list.",
 			Sync:              true,
 			KeyExtractionFunc: rpushKeyFunc,
 			HandlerFunc:       handleRPush,
@@ -612,7 +612,7 @@ func Commands() []utils.Command {
 		{
 			Command:           "rpushx",
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
-			Description:       "(RPUSHX key value) Appends an element to the end of a list, only if the list exists.",
+			Description:       "(RPUSHX key element [element ...]) Appends an element to the end of a list, only if the list exists.",
 			Sync:              true,
 			KeyExtractionFunc: rpushKeyFunc,
 			HandlerFunc:       handleRPush,
