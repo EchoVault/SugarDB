@@ -1147,7 +1147,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.EchoVault, con
 	key := keys[0]
 	policy := "byscore"
 	scoreStart := math.Inf(-1) // Lower bound if policy is "byscore"
-	scoreStop := math.Inf(1)   // Upper bound if policy is "byfloat"
+	scoreStop := math.Inf(1)   // Upper bound if policy is "byscore"
 	lexStart := cmd[2]         // Lower bound if policy is "bylex"
 	lexStop := cmd[3]          // Upper bound if policy is "bylex"
 	offset := 0
@@ -1794,7 +1794,7 @@ the same score. If the value held at key is not a sorted set, an error is return
 			Description: `(ZUNION key [key ...] [WEIGHTS weight [weight ...]]
 [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]) Return the union of the sorted sets in keys. The scores of each member of 
 a sorted set are multiplied by the corresponding weight in WEIGHTS. Aggregate determines how the scores are combined.
-WITHSCORES option determines whether to return the result with scores included`,
+WITHSCORES option determines whether to return the result with scores included.`,
 			Sync:              false,
 			KeyExtractionFunc: zunionKeyFunc,
 			HandlerFunc:       handleZUNION,
@@ -1806,7 +1806,7 @@ WITHSCORES option determines whether to return the result with scores included`,
 			Description: `(ZUNIONSTORE destination key [key ...] [WEIGHTS weight [weight ...]]
 [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]) Return the union of the sorted sets in keys. The scores of each member of 
 a sorted set are multiplied by the corresponding weight in WEIGHTS. Aggregate determines how the scores are combined.
-The resulting union is stores at destination`,
+The resulting union is stored at the destination key.`,
 			Sync:              true,
 			KeyExtractionFunc: zunionstoreKeyFunc,
 			HandlerFunc:       handleZUNIONSTORE,

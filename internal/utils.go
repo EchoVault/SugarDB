@@ -284,6 +284,30 @@ func ParseStringArrayResponse(b []byte) ([]string, error) {
 	return arr, nil
 }
 
+func ParseNestedStringArrayResponse(b []byte) ([][]string, error) {
+	r := resp.NewReader(bytes.NewReader(b))
+	v, _, err := r.ReadValue()
+	if err != nil {
+		return nil, err
+	}
+	if v.IsNull() {
+		return [][]string{}, nil
+	}
+	arr := make([][]string, len(v.Array()))
+	for i, e1 := range v.Array() {
+		if e1.IsNull() {
+			arr[i] = []string{}
+			continue
+		}
+		entry := make([]string, len(e1.Array()))
+		for j, e2 := range e1.Array() {
+			entry[j] = e2.String()
+		}
+		arr[i] = entry
+	}
+	return arr, nil
+}
+
 func ParseIntegerArrayResponse(b []byte) ([]int, error) {
 	r := resp.NewReader(bytes.NewReader(b))
 	v, _, err := r.ReadValue()

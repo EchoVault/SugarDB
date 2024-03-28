@@ -1178,6 +1178,7 @@ func Test_HandleZINCRBY(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
+
 		rd := resp.NewReader(bytes.NewBuffer(res))
 		rv, _, err := rd.ReadValue()
 		if err != nil {
