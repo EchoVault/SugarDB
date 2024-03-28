@@ -106,6 +106,7 @@ func Commands() []utils.Command {
 	return []utils.Command{
 		{
 			Command:     "subscribe",
+			Module:      utils.PubSubModule,
 			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
 			Description: "(SUBSCRIBE channel [channel ...]) Subscribe to one or more channels.",
 			Sync:        false,
@@ -120,6 +121,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:     "psubscribe",
+			Module:      utils.PubSubModule,
 			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
 			Description: "(PSUBSCRIBE pattern [pattern ...]) Subscribe to one or more glob patterns.",
 			Sync:        false,
@@ -134,6 +136,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:     "publish",
+			Module:      utils.PubSubModule,
 			Categories:  []string{utils.PubSubCategory, utils.FastCategory},
 			Description: "(PUBLISH channel message) Publish a message to the specified channel.",
 			Sync:        true,
@@ -148,6 +151,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:    "unsubscribe",
+			Module:     utils.PubSubModule,
 			Categories: []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
 			Description: `(UNSUBSCRIBE [channel [channel ...]]) Unsubscribe from a list of channels.
 If the channel list is not provided, then the connection will be unsubscribed from all the channels that
@@ -161,6 +165,7 @@ it's currently subscribe to.`,
 		},
 		{
 			Command:    "punsubscribe",
+			Module:     utils.PubSubModule,
 			Categories: []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
 			Description: `(PUNSUBSCRIBE [pattern [pattern ...]]) Unsubscribe from a list of channels using patterns.
 If the pattern list is not provided, then the connection will be unsubscribed from all the patterns that
@@ -174,6 +179,7 @@ it's currently subscribe to.`,
 		},
 		{
 			Command:           "pubsub",
+			Module:            utils.PubSubModule,
 			Categories:        []string{},
 			Description:       "",
 			Sync:              false,
@@ -184,6 +190,7 @@ it's currently subscribe to.`,
 			SubCommands: []utils.SubCommand{
 				{
 					Command:    "channels",
+					Module:     utils.PubSubModule,
 					Categories: []string{utils.PubSubCategory, utils.SlowCategory},
 					Description: `(PUBSUB CHANNELS [pattern]) Returns an array containing the list of channels that
 match the given pattern. If no pattern is provided, all active channels are returned. Active channels are 
@@ -194,6 +201,7 @@ channels with 1 or more subscribers.`,
 				},
 				{
 					Command:           "numpat",
+					Module:            utils.PubSubModule,
 					Categories:        []string{utils.PubSubCategory, utils.SlowCategory},
 					Description:       `(PUBSUB NUMPAT) Return the number of patterns that are currently subscribed to by clients.`,
 					Sync:              false,
@@ -202,6 +210,7 @@ channels with 1 or more subscribers.`,
 				},
 				{
 					Command:    "numsub",
+					Module:     utils.PubSubModule,
 					Categories: []string{utils.PubSubCategory, utils.SlowCategory},
 					Description: `(PUBSUB NUMSUB [channel [channel ...]]) Return an array of arrays containing the provided
 channel name and how many clients are currently subscribed to the channel.`,

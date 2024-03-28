@@ -1544,6 +1544,7 @@ func Commands() []utils.Command {
 	return []utils.Command{
 		{
 			Command:    "zadd",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
 			Description: `(ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member...])
 Adds all the specified members with the specified scores to the sorted set at the key.
@@ -1559,6 +1560,7 @@ Adds all the specified members with the specified scores to the sorted set at th
 		},
 		{
 			Command:    "zcard",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZCARD key) Returns the set cardinality of the sorted set at key.
 If the key does not exist, 0 is returned, otherwise the cardinality of the sorted set is returned.
@@ -1569,6 +1571,7 @@ If the key holds a value that is not a sorted set, this command will return an e
 		},
 		{
 			Command:    "zcount",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZCOUNT key min max) 
 Returns the number of elements in the sorted set key with scores in the range of min and max.
@@ -1580,6 +1583,7 @@ If the key holds a value that is not a sorted set, an error is returned.`,
 		},
 		{
 			Command:    "zdiff",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZDIFF key [key...] [WITHSCORES]) 
 Computes the difference between all the sorted sets specifies in the list of keys and returns the result.`,
@@ -1589,6 +1593,7 @@ Computes the difference between all the sorted sets specifies in the list of key
 		},
 		{
 			Command:    "zdiffstore",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `(ZDIFFSTORE destination key [key...]). 
 Computes the difference between all the sorted sets specifies in the list of keys. Stores the result in destination.
@@ -1599,6 +1604,7 @@ If the base set (first key) does not exist, return 0, otherwise, return the card
 		},
 		{
 			Command:    "zincrby",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
 			Description: `(ZINCRBY key increment member). 
 Increments the score of the specified sorted set's member by the increment. If the member does not exist, it is created.
@@ -1609,6 +1615,7 @@ If the key does not exist, it is created with new sorted set and the member adde
 		},
 		{
 			Command:    "zinter",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZINTER key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]).
 Computes the intersection of the sets in the keys, with weights, aggregate and scores`,
@@ -1618,6 +1625,7 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 		},
 		{
 			Command:    "zinterstore",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `
 (ZINTERSTORE destination key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]).
@@ -1628,6 +1636,7 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 		},
 		{
 			Command:    "zmpop",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `(ZMPOP key [key ...] <MIN | MAX> [COUNT count])
 Pop a 'count' elements from sorted set. MIN or MAX determines whether to pop elements with the lowest or highest scores
@@ -1638,6 +1647,7 @@ respectively.`,
 		},
 		{
 			Command:    "zmscore",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.FastCategory},
 			Description: `(ZMSCORE key member [member ...])
 Returns the associated scores of the specified member in the sorted set. 
@@ -1648,6 +1658,7 @@ Returns nil for members that do not exist in the set`,
 		},
 		{
 			Command:    "zpopmax",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `(ZPOPMAX key [count])
 Removes and returns 'count' number of members in the sorted set with the highest scores. Default count is 1.`,
@@ -1657,6 +1668,7 @@ Removes and returns 'count' number of members in the sorted set with the highest
 		},
 		{
 			Command:    "zpopmin",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `(ZPOPMIN key [count])
 Removes and returns 'count' number of members in the sorted set with the lowest scores. Default count is 1.`,
@@ -1666,6 +1678,7 @@ Removes and returns 'count' number of members in the sorted set with the lowest 
 		},
 		{
 			Command:    "zrandmember",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZRANDMEMBER key [count [WITHSCORES]])
 Return a list of length equivalent to count containing random members of the sorted set.
@@ -1677,6 +1690,7 @@ WITHSCORES modifies the result to include scores in the result.`,
 		},
 		{
 			Command:    "zrank",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZRANK key member [WITHSCORE])
 Returns the rank of the specified member in the sorted set. WITHSCORE modifies the result to also return the score.`,
@@ -1686,6 +1700,7 @@ Returns the rank of the specified member in the sorted set. WITHSCORE modifies t
 		},
 		{
 			Command:    "zrevrank",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZREVRANK key member [WITHSCORE])
 Returns the rank of the member in the sorted set in reverse order. 
@@ -1696,6 +1711,7 @@ WITHSCORE modifies the result to include the score.`,
 		},
 		{
 			Command:    "zrem",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
 			Description: `(ZREM key member [member ...]) Removes the listed members from the sorted set.
 Returns the number of elements removed.`,
@@ -1705,6 +1721,7 @@ Returns the number of elements removed.`,
 		},
 		{
 			Command:           "zscore",
+			Module:            utils.SortedSetModule,
 			Categories:        []string{utils.SortedSetCategory, utils.ReadCategory, utils.FastCategory},
 			Description:       `(ZSCORE key member) Returns the score of the member in the sorted set.`,
 			Sync:              false,
@@ -1713,6 +1730,7 @@ Returns the number of elements removed.`,
 		},
 		{
 			Command:           "zremrangebylex",
+			Module:            utils.SortedSetModule,
 			Categories:        []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       `(ZREMRANGEBYLEX key min max) Removes the elements in the lexicographical range between min and max`,
 			Sync:              true,
@@ -1721,6 +1739,7 @@ Returns the number of elements removed.`,
 		},
 		{
 			Command:    "zremrangebyrank",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `(ZREMRANGEBYRANK key start stop) Removes the elements in the rank range between start and stop.
 The elements are ordered from lowest score to highest score`,
@@ -1730,6 +1749,7 @@ The elements are ordered from lowest score to highest score`,
 		},
 		{
 			Command:           "zremrangebyscore",
+			Module:            utils.SortedSetModule,
 			Categories:        []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       `(ZREMRANGEBYSCORE key min max) Removes the elements whose scores are in the range between min and max`,
 			Sync:              true,
@@ -1738,6 +1758,7 @@ The elements are ordered from lowest score to highest score`,
 		},
 		{
 			Command:    "zlexcount",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZLEXCOUNT key min max) Returns the number of elements in within the sorted set within the 
 lexicographical range between min and max. Returns 0, if the keys does not exist or if all the members do not have
@@ -1748,6 +1769,7 @@ the same score. If the value held at key is not a sorted set, an error is return
 		},
 		{
 			Command:    "zrange",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZRANGE key start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count]
   [WITHSCORES]) Returns the range of elements in the sorted set`,
@@ -1757,6 +1779,7 @@ the same score. If the value held at key is not a sorted set, an error is return
 		},
 		{
 			Command:    "zrangestore",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `ZRANGESTORE destination source start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count]
   [WITHSCORES] Retrieve the range of elements in the sorted set and store it in destination`,
@@ -1766,6 +1789,7 @@ the same score. If the value held at key is not a sorted set, an error is return
 		},
 		{
 			Command:    "zunion",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(ZUNION key [key ...] [WEIGHTS weight [weight ...]]
 [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]) Return the union of the sorted sets in keys. The scores of each member of 
@@ -1777,6 +1801,7 @@ WITHSCORES option determines whether to return the result with scores included`,
 		},
 		{
 			Command:    "zunionstore",
+			Module:     utils.SortedSetModule,
 			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `(ZUNIONSTORE destination key [key ...] [WEIGHTS weight [weight ...]]
 [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]) Return the union of the sorted sets in keys. The scores of each member of 

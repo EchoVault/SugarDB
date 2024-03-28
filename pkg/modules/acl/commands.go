@@ -493,6 +493,7 @@ func Commands() []utils.Command {
 	return []utils.Command{
 		{
 			Command:     "auth",
+			Module:      utils.ACLModule,
 			Categories:  []string{utils.ConnectionCategory, utils.SlowCategory},
 			Description: "(AUTH [username] password) Authenticates the connection",
 			Sync:        false,
@@ -503,6 +504,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:     "acl",
+			Module:      utils.ACLModule,
 			Categories:  []string{},
 			Description: "Access-Control-List commands",
 			Sync:        false,
@@ -512,6 +514,7 @@ func Commands() []utils.Command {
 			SubCommands: []utils.SubCommand{
 				{
 					Command:    "cat",
+					Module:     utils.ACLModule,
 					Categories: []string{utils.SlowCategory},
 					Description: `(ACL CAT [category]) List all the categories. 
 If the optional category is provided, list all the commands in the category`,
@@ -523,6 +526,7 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "users",
+					Module:      utils.ACLModule,
 					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 					Description: "(ACL USERS) List all usernames of the configured ACL users",
 					Sync:        false,
@@ -533,6 +537,7 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "setuser",
+					Module:      utils.ACLModule,
 					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 					Description: "(ACL SETUSER) Configure a new or existing user",
 					Sync:        true,
@@ -543,6 +548,7 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "getuser",
+					Module:      utils.ACLModule,
 					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 					Description: "(ACL GETUSER) List the ACL rules of a user",
 					Sync:        false,
@@ -553,6 +559,7 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "deluser",
+					Module:      utils.ACLModule,
 					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 					Description: "(ACL DELUSER) Deletes users and terminates their connections. Cannot delete default user",
 					Sync:        true,
@@ -563,6 +570,7 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "whoami",
+					Module:      utils.ACLModule,
 					Categories:  []string{utils.FastCategory},
 					Description: "(ACL WHOAMI) Returns the authenticated user of the current connection",
 					Sync:        true,
@@ -573,6 +581,7 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "list",
+					Module:      utils.ACLModule,
 					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 					Description: "(ACL LIST) Dumps effective acl rules in acl config file format",
 					Sync:        true,
@@ -583,6 +592,7 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:    "load",
+					Module:     utils.ACLModule,
 					Categories: []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 					Description: `
 (ACL LOAD <MERGE | REPLACE>) Reloads the rules from the configured ACL config file.
@@ -596,6 +606,7 @@ When 'REPLACE' is passed, users from config file who share a username with users
 				},
 				{
 					Command:     "save",
+					Module:      utils.ACLModule,
 					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 					Description: "(ACL SAVE) Saves the effective ACL rules the configured ACL config file",
 					Sync:        true,

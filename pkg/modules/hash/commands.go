@@ -604,6 +604,7 @@ func Commands() []utils.Command {
 	return []utils.Command{
 		{
 			Command:           "hset",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       `(HSET key field value [field value ...]) Set update each field of the hash with the corresponding value`,
 			Sync:              true,
@@ -612,6 +613,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "hsetnx",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       `(HSETNX key field value [field value ...]) Set hash field value only if the field does not exist`,
 			Sync:              true,
@@ -620,6 +622,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "hget",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
 			Description:       `(HGET key field [field ...]) Retrieve the value of each of the listed fields from the hash`,
 			Sync:              false,
@@ -628,6 +631,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:    "hstrlen",
+			Module:     utils.HashModule,
 			Categories: []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
 			Description: `(HSTRLEN key field [field ...]) 
 Return the string length of the values stored at the specified fields. 0 if the value does not exist`,
@@ -637,6 +641,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hvals",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       `(HVALS key) Returns all the values of the hash at key.`,
 			Sync:              false,
@@ -645,6 +650,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hrandfield",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       `(HRANDFIELD key [count [WITHVALUES]]) Returns one or more random fields from the hash`,
 			Sync:              false,
@@ -653,6 +659,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hlen",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
 			Description:       `(HLEN key) Returns the number of fields in the hash`,
 			Sync:              false,
@@ -661,6 +668,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hkeys",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       `(HKEYS key) Returns all the fields in a hash`,
 			Sync:              false,
@@ -669,6 +677,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hincrbyfloat",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       `(HINCRBYFLOAT key field increment) Increment the hash value by the float increment`,
 			Sync:              true,
@@ -677,6 +686,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hincrby",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       `(HINCRBY key field increment) Increment the hash value by the integer increment`,
 			Sync:              true,
@@ -685,6 +695,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hgetall",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       `(HGETALL key) Get all fields and values of a hash`,
 			Sync:              false,
@@ -693,6 +704,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hexists",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
 			Description:       `(HEXISTS key field) Returns if field is an existing field in the hash`,
 			Sync:              false,
@@ -701,6 +713,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hdel",
+			Module:            utils.HashModule,
 			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
 			Description:       `(HDEL key field [field ...]) Deletes the specified fields from the hash`,
 			Sync:              true,

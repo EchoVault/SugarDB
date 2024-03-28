@@ -87,7 +87,7 @@ func handleCommandCount(_ context.Context, _ []string, server utils.EchoVault, _
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleCommandList(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleCommandList(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	switch len(cmd) {
 	case 2:
 		// Command is COMMAND LIST
@@ -156,6 +156,26 @@ func handleCommandList(ctx context.Context, cmd []string, server utils.EchoVault
 					count += 1
 				}
 			}
+		} else if strings.EqualFold("MODULE", cmd[3]) {
+			// Module filter
+			commands := server.GetAllCommands()
+			module := strings.ToLower(cmd[4])
+			for _, command := range commands {
+				if command.SubCommands != nil && len(command.SubCommands) > 0 {
+					for _, subcommand := range command.SubCommands {
+						if strings.EqualFold(subcommand.Module, module) {
+							comm := fmt.Sprintf("%s %s", command.Command, subcommand.Command)
+							res += fmt.Sprintf("$%d\r\n%s\r\n", len(comm), comm)
+							count += 1
+						}
+					}
+					continue
+				}
+				if strings.EqualFold(command.Module, module) {
+					res += fmt.Sprintf("$%d\r\n%s\r\n", len(command.Command), command.Command)
+					count += 1
+				}
+			}
 		} else {
 			return nil, fmt.Errorf("expected filter to be ACLCAT or PATTERN, got %s", strings.ToUpper(cmd[3]))
 		}
@@ -166,7 +186,7 @@ func handleCommandList(ctx context.Context, cmd []string, server utils.EchoVault
 	}
 }
 
-func handleCommandDocs(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleCommandDocs(_ context.Context, _ []string, _ utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	return []byte("*0\r\n"), nil
 }
 
@@ -174,6 +194,7 @@ func Commands() []utils.Command {
 	return []utils.Command{
 		{
 			Command:           "commands",
+			Module:            utils.AdminModule,
 			Categories:        []string{utils.AdminCategory, utils.SlowCategory},
 			Description:       "Get a list of all the commands in available on the echovault with categories and descriptions",
 			Sync:              false,
@@ -182,6 +203,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:     "command",
+			Module:      utils.AdminModule,
 			Categories:  []string{},
 			Description: "Commands pertaining to echovault commands",
 			Sync:        false,
@@ -191,6 +213,7 @@ func Commands() []utils.Command {
 			SubCommands: []utils.SubCommand{
 				{
 					Command:           "docs",
+					Module:            utils.AdminModule,
 					Categories:        []string{utils.SlowCategory, utils.ConnectionCategory},
 					Description:       "Get command documentation",
 					Sync:              false,
@@ -199,6 +222,7 @@ func Commands() []utils.Command {
 				},
 				{
 					Command:           "count",
+					Module:            utils.AdminModule,
 					Categories:        []string{utils.SlowCategory},
 					Description:       "Get the dumber of commands in the echovault",
 					Sync:              false,
@@ -207,8 +231,9 @@ func Commands() []utils.Command {
 				},
 				{
 					Command:    "list",
+					Module:     utils.AdminModule,
 					Categories: []string{utils.SlowCategory},
-					Description: `(COMMAND LIST [FILTERBY <ACLCAT category | PATTERN pattern>]) Get the list of command names.
+					Description: `(COMMAND LIST [FILTERBY <ACLCAT category | PATTERN pattern | MODULE module>]) Get the list of command names.
 Allows for filtering by ACL category or glob pattern.`,
 					Sync:              false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
@@ -218,6 +243,7 @@ Allows for filtering by ACL category or glob pattern.`,
 		},
 		{
 			Command:     "save",
+			Module:      utils.AdminModule,
 			Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 			Description: "(SAVE) Trigger a snapshot save",
 			Sync:        true,
@@ -233,6 +259,7 @@ Allows for filtering by ACL category or glob pattern.`,
 		},
 		{
 			Command:     "lastsave",
+			Module:      utils.AdminModule,
 			Categories:  []string{utils.AdminCategory, utils.FastCategory, utils.DangerousCategory},
 			Description: "(LASTSAVE) Get unix timestamp for the latest snapshot in milliseconds.",
 			Sync:        false,
@@ -249,6 +276,7 @@ Allows for filtering by ACL category or glob pattern.`,
 		},
 		{
 			Command:     "rewriteaof",
+			Module:      utils.AdminModule,
 			Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
 			Description: "(REWRITEAOF) Trigger re-writing of append process",
 			Sync:        false,

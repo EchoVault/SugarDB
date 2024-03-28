@@ -515,6 +515,7 @@ func Commands() []utils.Command {
 	return []utils.Command{
 		{
 			Command:           "lpush",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(LPUSH key element [element ...]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
 			Sync:              true,
@@ -523,6 +524,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lpushx",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(LPUSHX key element [element ...]) Prepends a value to the beginning of a list only if the list exists.",
 			Sync:              true,
@@ -531,6 +533,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lpop",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(LPOP key) Removes and returns the first element of a list.",
 			Sync:              true,
@@ -539,6 +542,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "llen",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.ReadCategory, utils.FastCategory},
 			Description:       "(LLEN key) Return the length of a list.",
 			Sync:              false,
@@ -547,6 +551,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lrange",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       "(LRANGE key start end) Return a range of elements between the given indices.",
 			Sync:              false,
@@ -555,6 +560,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lindex",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       "(LINDEX key index) Gets list element by index.",
 			Sync:              false,
@@ -563,6 +569,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lset",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       "(LSET key index element) Sets the value of an element in a list by its index.",
 			Sync:              true,
@@ -571,6 +578,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "ltrim",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       "(LTRIM key start end) Trims a list to the specified range.",
 			Sync:              true,
@@ -579,6 +587,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lrem",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       "(LREM key count element) Remove elements from list.",
 			Sync:              true,
@@ -587,6 +596,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lmove",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>) Move element from one list to the other specifying left/right for both lists.",
 			Sync:              true,
@@ -595,6 +605,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "rpop",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(RPOP key) Removes and gets the last element in a list.",
 			Sync:              true,
@@ -603,6 +614,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "rpush",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(RPUSH key element [element ...]) Appends one or multiple elements to the end of a list.",
 			Sync:              true,
@@ -611,6 +623,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "rpushx",
+			Module:            utils.ListModule,
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(RPUSHX key element [element ...]) Appends an element to the end of a list, only if the list exists.",
 			Sync:              true,

@@ -37,6 +37,7 @@ func Commands() []utils.Command {
 	return []utils.Command{
 		{
 			Command:     "connection",
+			Module:      utils.ConnectionModule,
 			Categories:  []string{utils.FastCategory, utils.ConnectionCategory},
 			Description: "(PING [value]) Ping the echovault. If a value is provided, the value will be echoed.",
 			Sync:        false,

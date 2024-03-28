@@ -49,6 +49,7 @@ type HandlerFunc func(ctx context.Context, cmd []string, echovault EchoVault, co
 
 type SubCommand struct {
 	Command     string
+	Module      string
 	Categories  []string
 	Description string
 	Sync        bool // Specifies if sub-command should be synced across cluster
@@ -58,6 +59,7 @@ type SubCommand struct {
 
 type Command struct {
 	Command     string
+	Module      string
 	Categories  []string
 	Description string
 	SubCommands []SubCommand

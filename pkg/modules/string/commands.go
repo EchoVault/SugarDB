@@ -191,6 +191,7 @@ func Commands() []utils.Command {
 	return []utils.Command{
 		{
 			Command:           "setrange",
+			Module:            utils.StringModule,
 			Categories:        []string{utils.StringCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
 			Sync:              true,
@@ -199,6 +200,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "strlen",
+			Module:            utils.StringModule,
 			Categories:        []string{utils.StringCategory, utils.ReadCategory, utils.FastCategory},
 			Description:       "(STRLEN key) Returns length of the key's value if it's a string.",
 			Sync:              false,
@@ -207,6 +209,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "substr",
+			Module:            utils.StringModule,
 			Categories:        []string{utils.StringCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       "(SUBSTR key start end) Returns a substring from the string value.",
 			Sync:              false,
@@ -215,6 +218,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "getrange",
+			Module:            utils.StringModule,
 			Categories:        []string{utils.StringCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       "(GETRANGE key start end) Returns a substring from the string value.",
 			Sync:              false,

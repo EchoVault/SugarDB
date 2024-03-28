@@ -490,6 +490,7 @@ func Commands() []utils.Command {
 	return []utils.Command{
 		{
 			Command:    "set",
+			Module:     utils.GenericModule,
 			Categories: []string{utils.WriteCategory, utils.SlowCategory},
 			Description: `
 (SET key value [NX | XX] [GET] [EX seconds | PX milliseconds | EXAT unix-time-seconds | PXAT unix-time-milliseconds]) 
@@ -507,6 +508,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:           "mset",
+			Module:            utils.GenericModule,
 			Categories:        []string{utils.WriteCategory, utils.SlowCategory},
 			Description:       "(MSET key value [key value ...]) Automatically generic or modify multiple key/value pairs.",
 			Sync:              true,
@@ -515,6 +517,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:           "get",
+			Module:            utils.GenericModule,
 			Categories:        []string{utils.ReadCategory, utils.FastCategory},
 			Description:       "(GET key) Get the value at the specified key.",
 			Sync:              false,
@@ -523,6 +526,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:           "mget",
+			Module:            utils.GenericModule,
 			Categories:        []string{utils.ReadCategory, utils.FastCategory},
 			Description:       "(MGET key [key ...]) Get multiple values from the specified keys.",
 			Sync:              false,
@@ -531,6 +535,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:           "del",
+			Module:            utils.GenericModule,
 			Categories:        []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(DEL key [key ...]) Removes one or more keys from the store.",
 			Sync:              true,
@@ -539,6 +544,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:    "persist",
+			Module:     utils.GenericModule,
 			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
 			Description: `(PERSIST key) Removes the TTl associated with a key, 
 turning it from a volatile key to a persistent key.`,
@@ -548,6 +554,7 @@ turning it from a volatile key to a persistent key.`,
 		},
 		{
 			Command:    "expiretime",
+			Module:     utils.GenericModule,
 			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
 			Description: `(EXPIRETIME key) Returns the absolute unix time in seconds when the key will expire.
 Return -1 if the key exists but has no associated expiry time.
@@ -558,6 +565,7 @@ Returns -2 if the key does not exist.`,
 		},
 		{
 			Command:    "pexpiretime",
+			Module:     utils.GenericModule,
 			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
 			Description: `(PEXPIRETIME key) Returns the absolute unix time in milliseconds when the key will expire.
 Return -1 if the key exists but has no associated expiry time.
@@ -568,6 +576,7 @@ Returns -2 if the key does not exist.`,
 		},
 		{
 			Command:    "ttl",
+			Module:     utils.GenericModule,
 			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
 			Description: `(TTL key) Returns the remaining time to live for a key that has an expiry time in seconds.
 If the key exists but does not have an associated expiry time, -1 is returned.
@@ -578,6 +587,7 @@ If the key does not exist, -2 is returned.`,
 		},
 		{
 			Command:    "pttl",
+			Module:     utils.GenericModule,
 			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
 			Description: `(PTTL key) Returns the remaining time to live for a key that has an expiry time in milliseconds.
 If the key exists but does not have an associated expiry time, -1 is returned.
@@ -588,6 +598,7 @@ If the key does not exist, -2 is returned.`,
 		},
 		{
 			Command:    "expire",
+			Module:     utils.GenericModule,
 			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
 			Description: `(EXPIRE key seconds [NX | XX | GT | LT])
 Expire the key in the specified number of seconds. This commands turns a key into a volatile one.
@@ -601,6 +612,7 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 		},
 		{
 			Command:    "pexpire",
+			Module:     utils.GenericModule,
 			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
 			Description: `(PEXPIRE key milliseconds [NX | XX | GT | LT])
 Expire the key in the specified number of milliseconds. This commands turns a key into a volatile one.
@@ -614,6 +626,7 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 		},
 		{
 			Command:    "expireat",
+			Module:     utils.GenericModule,
 			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
 			Description: `(EXPIREAT key unix-time-seconds [NX | XX | GT | LT])
 Expire the key in at the exact unix time in seconds. 
@@ -628,6 +641,7 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 		},
 		{
 			Command:    "pexpireat",
+			Module:     utils.GenericModule,
 			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
 			Description: `(PEXPIREAT key unix-time-milliseconds [NX | XX | GT | LT])
 Expire the key in at the exact unix time in milliseconds. 

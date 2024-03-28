@@ -15,6 +15,19 @@
 package utils
 
 const (
+	ACLModule        = "acl"
+	AdminModule      = "admin"
+	ConnectionModule = "connection"
+	GenericModule    = "generic"
+	HashModule       = "hash"
+	ListModule       = "list"
+	PubSubModule     = "pubsub"
+	SetModule        = "set"
+	SortedSetModule  = "sortedset"
+	StringModule     = "string"
+)
+
+const (
 	AdminCategory       = "admin"
 	BitmapCategory      = "bitmap"
 	BlockingCategory    = "blocking"

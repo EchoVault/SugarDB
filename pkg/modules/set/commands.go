@@ -797,6 +797,7 @@ func Commands() []utils.Command {
 	return []utils.Command{
 		{
 			Command:           "sadd",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(SADD key member [member...]) Add one or more members to the set. If the set does not exist, it's created.",
 			Sync:              true,
@@ -805,6 +806,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "scard",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(SCARD key) Returns the cardinality of the set.",
 			Sync:              false,
@@ -813,6 +815,7 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:    "sdiff",
+			Module:     utils.SetModule,
 			Categories: []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description: `(SDIFF key [key...]) Returns the difference between all the sets in the given keys.
 If the first key provided is the only valid set, then this key's set will be returned as the result.
@@ -823,6 +826,7 @@ All keys that are non-existed or hold values that are not sets will be skipped.`
 		},
 		{
 			Command:    "sdiffstore",
+			Module:     utils.SetModule,
 			Categories: []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description: `(SDIFFSTORE destination key [key...]) Works the same as SDIFF but also stores the result at 'destination'.
 Returns the cardinality of the new set`,
@@ -832,6 +836,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sinter",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       "(SINTER key [key...]) Returns the intersection of multiple sets.",
 			Sync:              false,
@@ -840,6 +845,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sintercard",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
 			Sync:              false,
@@ -848,6 +854,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sinterstore",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       "(SINTERSTORE destination key [key...]) Stores the intersection of multiple sets at the destination key.",
 			Sync:              true,
@@ -856,6 +863,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sismember",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
 			Description:       "(SISMEMBER key member) Returns if member is contained in the set.",
 			Sync:              false,
@@ -864,6 +872,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "smembers",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       "(SMEMBERS key) Returns all members of a set.",
 			Sync:              false,
@@ -872,6 +881,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "smismember",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
 			Description:       "(SMISMEMBER key member [member...]) Returns if multiple members are in the set.",
 			Sync:              false,
@@ -881,6 +891,7 @@ Returns the cardinality of the new set`,
 
 		{
 			Command:           "smove",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(SMOVE source destination member) Moves a member from source set to destination set.",
 			Sync:              true,
@@ -889,6 +900,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "spop",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       "(SPOP key [count]) Returns and removes one or more random members from the set.",
 			Sync:              true,
@@ -897,6 +909,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "srandmember",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       "(SRANDMEMBER key [count]) Returns one or more random members from the set without removing them.",
 			Sync:              false,
@@ -905,6 +918,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "srem",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
 			Description:       "(SREM key member [member...]) Remove one or more members from a set.",
 			Sync:              true,
@@ -913,6 +927,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sunion",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
 			Description:       "(SUNION key [key...]) Returns the members of the set resulting from the union of the provided sets.",
 			Sync:              false,
@@ -921,6 +936,7 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sunionstore",
+			Module:            utils.SetModule,
 			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
 			Description:       "(SUNIONSTORE destination key [key...]) Stores the union of the given sets into destination.",
 			Sync:              true,
