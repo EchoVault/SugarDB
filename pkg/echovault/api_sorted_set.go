@@ -450,12 +450,20 @@ func (server *EchoVault) ZREM(key string, members ...Member) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// TODO: Look into returning nil here when member does not exist in the sorted set
-func (server *EchoVault) ZSCORE(key string, member Member) (Score, error) {
+func (server *EchoVault) ZSCORE(key string, member Member) (interface{}, error) {
 	cmd := []string{"ZSCORE", key, string(member)}
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
 	if err != nil {
 		return 0, err
+	}
+
+	isNil, err := internal.ParseNilResponse(b)
+	if err != nil {
+		return nil, err
+	}
+
+	if isNil {
+		return nil, nil
 	}
 
 	score, err := internal.ParseFloatResponse(b)

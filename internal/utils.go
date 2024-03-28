@@ -228,6 +228,15 @@ func EncodeCommand(cmd []string) []byte {
 	return []byte(res)
 }
 
+func ParseNilResponse(b []byte) (bool, error) {
+	r := resp.NewReader(bytes.NewReader(b))
+	v, _, err := r.ReadValue()
+	if err != nil {
+		return false, err
+	}
+	return v.IsNull(), nil
+}
+
 func ParseStringResponse(b []byte) (string, error) {
 	r := resp.NewReader(bytes.NewReader(b))
 	v, _, err := r.ReadValue()
