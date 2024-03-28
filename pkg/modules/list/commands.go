@@ -564,7 +564,7 @@ func Commands() []utils.Command {
 		{
 			Command:           "lset",
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
-			Description:       "(LSET key index value) Sets the value of an element in a list by its index.",
+			Description:       "(LSET key index element) Sets the value of an element in a list by its index.",
 			Sync:              true,
 			KeyExtractionFunc: lsetKeyFunc,
 			HandlerFunc:       handleLSet,
@@ -580,7 +580,7 @@ func Commands() []utils.Command {
 		{
 			Command:           "lrem",
 			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
-			Description:       "(LREM key count value) Remove elements from list.",
+			Description:       "(LREM key count element) Remove elements from list.",
 			Sync:              true,
 			KeyExtractionFunc: lremKeyFunc,
 			HandlerFunc:       handleLRem,
