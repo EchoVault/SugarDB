@@ -28,9 +28,9 @@ type connMap struct {
 
 var conns map[string]connMap
 
-type ReadMessage func() []string
+type ReadPubSubMessage func() []string
 
-func (server *EchoVault) SUBSCRIBE(name string, channels ...string) ReadMessage {
+func (server *EchoVault) SUBSCRIBE(name string, channels ...string) ReadPubSubMessage {
 	// Initialize connection tracker if calling subscribe for the first time
 	if conns == nil {
 		conns = make(map[string]connMap)
@@ -79,7 +79,7 @@ func (server *EchoVault) UNSUBSCRIBE(name string, channels ...string) {
 	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), conns[name].writeConn, false)
 }
 
-func (server *EchoVault) PSUBSCRIBE(name string, patterns ...string) ReadMessage {
+func (server *EchoVault) PSUBSCRIBE(name string, patterns ...string) ReadPubSubMessage {
 	// Initialize connection tracker if calling subscribe for the first time
 	if conns == nil {
 		conns = make(map[string]connMap)
