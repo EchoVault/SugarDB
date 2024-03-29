@@ -65,12 +65,10 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 		handler = subCommand.HandlerFunc
 	}
 
-	if conn != nil {
+	if conn != nil && server.ACL != nil {
 		// Authorize connection if it's provided and if ACL module is present
-		if server.ACL != nil {
-			if err = server.ACL.AuthorizeConnection(conn, cmd, command, subCommand); err != nil {
-				return nil, err
-			}
+		if err = server.ACL.AuthorizeConnection(conn, cmd, command, subCommand); err != nil {
+			return nil, err
 		}
 	}
 
