@@ -550,7 +550,7 @@ If the optional category is provided, list all the commands in the category`,
 					Command:     "getuser",
 					Module:      utils.ACLModule,
 					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-					Description: "(ACL GETUSER) List the ACL rules of a user",
+					Description: "(ACL GETUSER username) List the ACL rules of a user",
 					Sync:        false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
 						return []string{}, nil
@@ -561,7 +561,7 @@ If the optional category is provided, list all the commands in the category`,
 					Command:     "deluser",
 					Module:      utils.ACLModule,
 					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
-					Description: "(ACL DELUSER) Deletes users and terminates their connections. Cannot delete default user",
+					Description: "(ACL DELUSER username [username ...]) Deletes users and terminates their connections. Cannot delete default user",
 					Sync:        true,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
 						return []string{}, nil
