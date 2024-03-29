@@ -15,12 +15,14 @@
 package echovault
 
 import (
+	"fmt"
 	"github.com/echovault/echovault/internal"
 	"strconv"
 )
 
 func (server *EchoVault) LLEN(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LLEN", key}), nil, false)
+	fmt.Println(key, string(b), err)
 	if err != nil {
 		return 0, err
 	}
