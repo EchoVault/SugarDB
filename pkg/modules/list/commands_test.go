@@ -1267,7 +1267,7 @@ func Test_HandleRPUSH(t *testing.T) {
 	}
 }
 
-func Test_HandlePop(t *testing.T) {
+func Test_HandlePOP(t *testing.T) {
 	tests := []struct {
 		preset           bool
 		key              string
