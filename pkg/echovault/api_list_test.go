@@ -7,12 +7,6 @@ import (
 	"testing"
 )
 
-func presetValue(server *EchoVault, key string, value interface{}) {
-	_, _ = server.CreateKeyAndLock(server.context, key)
-	_ = server.SetValue(server.context, key, value)
-	server.KeyUnlock(server.context, key)
-}
-
 func TestEchoVault_LLEN(t *testing.T) {
 	server := NewEchoVault(WithCommands(commands.All()))
 

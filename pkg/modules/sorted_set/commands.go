@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/sorted_set"
 	"github.com/echovault/echovault/pkg/utils"
 	"math"
 	"net"
@@ -63,7 +64,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 		return nil, errors.New("score/member pairs must be float/string")
 	}
 
-	var members []MemberParam
+	var members []sorted_set.MemberParam
 
 	for i := 0; i < len(cmd[membersStartIndex:]); i++ {
 		if i%2 != 0 {
@@ -77,29 +78,29 @@ func handleZADD(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 			var s float64
 			if strings.ToLower(score.(string)) == "-inf" {
 				s = math.Inf(-1)
-				members = append(members, MemberParam{
-					value: Value(cmd[membersStartIndex:][i+1]),
-					score: Score(s),
+				members = append(members, sorted_set.MemberParam{
+					Value: sorted_set.Value(cmd[membersStartIndex:][i+1]),
+					Score: sorted_set.Score(s),
 				})
 			}
 			if strings.ToLower(score.(string)) == "+inf" {
 				s = math.Inf(1)
-				members = append(members, MemberParam{
-					value: Value(cmd[membersStartIndex:][i+1]),
-					score: Score(s),
+				members = append(members, sorted_set.MemberParam{
+					Value: sorted_set.Value(cmd[membersStartIndex:][i+1]),
+					Score: sorted_set.Score(s),
 				})
 			}
 		case float64:
 			s, _ := score.(float64)
-			members = append(members, MemberParam{
-				value: Value(cmd[membersStartIndex:][i+1]),
-				score: Score(s),
+			members = append(members, sorted_set.MemberParam{
+				Value: sorted_set.Value(cmd[membersStartIndex:][i+1]),
+				Score: sorted_set.Score(s),
 			})
 		case int:
 			s, _ := score.(int)
-			members = append(members, MemberParam{
-				value: Value(cmd[membersStartIndex:][i+1]),
-				score: Score(s),
+			members = append(members, sorted_set.MemberParam{
+				Value: sorted_set.Value(cmd[membersStartIndex:][i+1]),
+				Score: sorted_set.Score(s),
 			})
 		}
 	}
@@ -148,7 +149,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 			return nil, err
 		}
 		defer server.KeyUnlock(ctx, key)
-		set, ok := server.GetValue(ctx, key).(*SortedSet)
+		set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", key)
 		}
@@ -158,8 +159,8 @@ func handleZADD(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 		}
 		// If INCR option is provided, return the new score value
 		if incr != nil {
-			m := set.Get(members[0].value)
-			return []byte(fmt.Sprintf("+%f\r\n", m.score)), nil
+			m := set.Get(members[0].Value)
+			return []byte(fmt.Sprintf("+%f\r\n", m.Score)), nil
 		}
 
 		return []byte(fmt.Sprintf(":%d\r\n", count)), nil
@@ -171,7 +172,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	}
 	defer server.KeyUnlock(ctx, key)
 
-	set := NewSortedSet(members)
+	set := sorted_set.NewSortedSet(members)
 	if err = server.SetValue(ctx, key, set); err != nil {
 		return nil, err
 	}
@@ -195,7 +196,7 @@ func handleZCARD(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	}
 	defer server.KeyRUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -211,40 +212,40 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, con
 
 	key := keys[0]
 
-	minimum := Score(math.Inf(-1))
+	minimum := sorted_set.Score(math.Inf(-1))
 	switch internal.AdaptType(cmd[2]).(type) {
 	default:
 		return nil, errors.New("min constraint must be a double")
 	case string:
 		if strings.ToLower(cmd[2]) == "+inf" {
-			minimum = Score(math.Inf(1))
+			minimum = sorted_set.Score(math.Inf(1))
 		} else {
 			return nil, errors.New("min constraint must be a double")
 		}
 	case float64:
 		s, _ := internal.AdaptType(cmd[2]).(float64)
-		minimum = Score(s)
+		minimum = sorted_set.Score(s)
 	case int:
 		s, _ := internal.AdaptType(cmd[2]).(int)
-		minimum = Score(s)
+		minimum = sorted_set.Score(s)
 	}
 
-	maximum := Score(math.Inf(1))
+	maximum := sorted_set.Score(math.Inf(1))
 	switch internal.AdaptType(cmd[3]).(type) {
 	default:
 		return nil, errors.New("max constraint must be a double")
 	case string:
 		if strings.ToLower(cmd[3]) == "-inf" {
-			maximum = Score(math.Inf(-1))
+			maximum = sorted_set.Score(math.Inf(-1))
 		} else {
 			return nil, errors.New("max constraint must be a double")
 		}
 	case float64:
 		s, _ := internal.AdaptType(cmd[3]).(float64)
-		maximum = Score(s)
+		maximum = sorted_set.Score(s)
 	case int:
 		s, _ := internal.AdaptType(cmd[3]).(int)
-		maximum = Score(s)
+		maximum = sorted_set.Score(s)
 	}
 
 	if !server.KeyExists(ctx, key) {
@@ -256,14 +257,14 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, con
 	}
 	defer server.KeyRUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
-	var members []MemberParam
+	var members []sorted_set.MemberParam
 	for _, m := range set.GetAll() {
-		if m.score >= minimum && m.score <= maximum {
+		if m.Score >= minimum && m.Score <= maximum {
 			members = append(members, m)
 		}
 	}
@@ -271,7 +272,7 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(fmt.Sprintf(":%d\r\n", len(members))), nil
 }
 
-func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zlexcountKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -290,7 +291,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, 
 	}
 	defer server.KeyRUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -299,7 +300,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, 
 
 	// Check if all members has the same score
 	for i := 0; i < len(members)-2; i++ {
-		if members[i].score != members[i+1].score {
+		if members[i].Score != members[i+1].Score {
 			return []byte(":0\r\n"), nil
 		}
 	}
@@ -307,8 +308,8 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, 
 	count := 0
 
 	for _, m := range members {
-		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
+		if slices.Contains([]int{1, 0}, internal.CompareLex(string(m.Value), minimum)) &&
+			slices.Contains([]int{-1, 0}, internal.CompareLex(string(m.Value), maximum)) {
 			count += 1
 		}
 	}
@@ -347,13 +348,13 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.EchoVault, conn
 		return nil, err
 	}
 	defer server.KeyRUnlock(ctx, keys[0])
-	baseSortedSet, ok := server.GetValue(ctx, keys[0]).(*SortedSet)
+	baseSortedSet, ok := server.GetValue(ctx, keys[0]).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", keys[0])
 	}
 
 	// Extract the remaining sets
-	var sets []*SortedSet
+	var sets []*sorted_set.SortedSet
 
 	for i := 1; i < len(keys); i++ {
 		if !server.KeyExists(ctx, keys[i]) {
@@ -364,7 +365,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.EchoVault, conn
 			return nil, err
 		}
 		locks[keys[i]] = locked
-		set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
+		set, ok := server.GetValue(ctx, keys[i]).(*sorted_set.SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 		}
@@ -378,9 +379,9 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.EchoVault, conn
 
 	for _, m := range diff.GetAll() {
 		if includeScores {
-			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
+			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.Value), m.Value, strconv.FormatFloat(float64(m.Score), 'f', -1, 64))
 		} else {
-			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
+			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.Value), m.Value)
 		}
 	}
 
@@ -415,19 +416,19 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.EchoVault,
 		return nil, err
 	}
 	defer server.KeyRUnlock(ctx, keys[0])
-	baseSortedSet, ok := server.GetValue(ctx, keys[0]).(*SortedSet)
+	baseSortedSet, ok := server.GetValue(ctx, keys[0]).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", keys[0])
 	}
 
-	var sets []*SortedSet
+	var sets []*sorted_set.SortedSet
 
 	for i := 1; i < len(keys); i++ {
 		if server.KeyExists(ctx, keys[i]) {
 			if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
 				return nil, err
 			}
-			set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
+			set, ok := server.GetValue(ctx, keys[i]).(*sorted_set.SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}
@@ -462,26 +463,26 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, co
 	}
 
 	key := keys[0]
-	member := Value(cmd[3])
-	var increment Score
+	member := sorted_set.Value(cmd[3])
+	var increment sorted_set.Score
 
 	switch internal.AdaptType(cmd[2]).(type) {
 	default:
 		return nil, errors.New("increment must be a double")
 	case string:
 		if strings.EqualFold("-inf", strings.ToLower(cmd[2])) {
-			increment = Score(math.Inf(-1))
+			increment = sorted_set.Score(math.Inf(-1))
 		} else if strings.EqualFold("+inf", strings.ToLower(cmd[2])) {
-			increment = Score(math.Inf(1))
+			increment = sorted_set.Score(math.Inf(1))
 		} else {
 			return nil, errors.New("increment must be a double")
 		}
 	case float64:
 		s, _ := internal.AdaptType(cmd[2]).(float64)
-		increment = Score(s)
+		increment = sorted_set.Score(s)
 	case int:
 		s, _ := internal.AdaptType(cmd[2]).(int)
-		increment = Score(s)
+		increment = sorted_set.Score(s)
 	}
 
 	if !server.KeyExists(ctx, key) {
@@ -490,7 +491,11 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, co
 		if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
 			return nil, err
 		}
-		if err = server.SetValue(ctx, key, NewSortedSet([]MemberParam{{value: member, score: increment}})); err != nil {
+		if err = server.SetValue(
+			ctx,
+			key,
+			sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: member, Score: increment}}),
+		); err != nil {
 			return nil, err
 		}
 		server.KeyUnlock(ctx, key)
@@ -501,13 +506,13 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, co
 		return nil, err
 	}
 	defer server.KeyUnlock(ctx, key)
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 	if _, err = set.AddOrUpdate(
-		[]MemberParam{
-			{value: member, score: increment}},
+		[]sorted_set.MemberParam{
+			{Value: member, Score: increment}},
 		"xx",
 		nil,
 		nil,
@@ -515,7 +520,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, co
 		return nil, err
 	}
 	return []byte(fmt.Sprintf("+%s\r\n",
-		strconv.FormatFloat(float64(set.Get(member).score), 'f', -1, 64))), nil
+		strconv.FormatFloat(float64(set.Get(member).Score), 'f', -1, 64))), nil
 }
 
 func handleZINTER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
@@ -538,7 +543,7 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.EchoVault, con
 		}
 	}()
 
-	var setParams []SortedSetParam
+	var setParams []sorted_set.SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
 		if !server.KeyExists(ctx, keys[i]) {
@@ -549,26 +554,26 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.EchoVault, con
 			return nil, err
 		}
 		locks[keys[i]] = true
-		set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
+		set, ok := server.GetValue(ctx, keys[i]).(*sorted_set.SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 		}
-		setParams = append(setParams, SortedSetParam{
-			set:    set,
-			weight: weights[i],
+		setParams = append(setParams, sorted_set.SortedSetParam{
+			Set:    set,
+			Weight: weights[i],
 		})
 	}
 
-	intersect := Intersect(aggregate, setParams...)
+	intersect := sorted_set.Intersect(aggregate, setParams...)
 
 	res := fmt.Sprintf("*%d", intersect.Cardinality())
 
 	if intersect.Cardinality() > 0 {
 		for _, m := range intersect.GetAll() {
 			if withscores {
-				res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
+				res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.Value), m.Value, strconv.FormatFloat(float64(m.Score), 'f', -1, 64))
 			} else {
-				res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
+				res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.Value), m.Value)
 			}
 		}
 	}
@@ -605,7 +610,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.EchoVault
 		}
 	}()
 
-	var setParams []SortedSetParam
+	var setParams []sorted_set.SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
 		if !server.KeyExists(ctx, keys[i]) {
@@ -615,17 +620,17 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.EchoVault
 			return nil, err
 		}
 		locks[keys[i]] = true
-		set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
+		set, ok := server.GetValue(ctx, keys[i]).(*sorted_set.SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 		}
-		setParams = append(setParams, SortedSetParam{
-			set:    set,
-			weight: weights[i],
+		setParams = append(setParams, sorted_set.SortedSetParam{
+			Set:    set,
+			Weight: weights[i],
 		})
 	}
 
-	intersect := Intersect(aggregate, setParams...)
+	intersect := sorted_set.Intersect(aggregate, setParams...)
 
 	if server.KeyExists(ctx, destination) && intersect.Cardinality() > 0 {
 		if _, err = server.KeyLock(ctx, destination); err != nil {
@@ -696,7 +701,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn
 			if _, err = server.KeyLock(ctx, keys[i]); err != nil {
 				continue
 			}
-			v, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
+			v, ok := server.GetValue(ctx, keys[i]).(*sorted_set.SortedSet)
 			if !ok || v.Cardinality() == 0 {
 				server.KeyUnlock(ctx, keys[i])
 				continue
@@ -711,7 +716,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn
 			res := fmt.Sprintf("*%d", popped.Cardinality())
 
 			for _, m := range popped.GetAll() {
-				res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
+				res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.Value), m.Value, strconv.FormatFloat(float64(m.Score), 'f', -1, 64))
 			}
 
 			res += "\r\n"
@@ -754,7 +759,7 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	}
 	defer server.KeyUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a sorted set", key)
 	}
@@ -766,7 +771,7 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 
 	res := fmt.Sprintf("*%d", popped.Cardinality())
 	for _, m := range popped.GetAll() {
-		res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
+		res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.Value), m.Value, strconv.FormatFloat(float64(m.Score), 'f', -1, 64))
 	}
 
 	res += "\r\n"
@@ -791,7 +796,7 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.EchoVault, co
 	}
 	defer server.KeyRUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -800,14 +805,14 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.EchoVault, co
 
 	res := fmt.Sprintf("*%d", len(members))
 
-	var member MemberObject
+	var member sorted_set.MemberObject
 
 	for i := 0; i < len(members); i++ {
-		member = set.Get(Value(members[i]))
-		if !member.exists {
+		member = set.Get(sorted_set.Value(members[i]))
+		if !member.Exists {
 			res = fmt.Sprintf("%s\r\n$-1", res)
 		} else {
-			res = fmt.Sprintf("%s\r\n+%s", res, strconv.FormatFloat(float64(member.score), 'f', -1, 64))
+			res = fmt.Sprintf("%s\r\n+%s", res, strconv.FormatFloat(float64(member.Score), 'f', -1, 64))
 		}
 	}
 
@@ -850,7 +855,7 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.EchoVault
 	}
 	defer server.KeyRUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -860,9 +865,9 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.EchoVault
 	res := fmt.Sprintf("*%d", len(members))
 	for _, m := range members {
 		if withscores {
-			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
+			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.Value), m.Value, strconv.FormatFloat(float64(m.Score), 'f', -1, 64))
 		} else {
-			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
+			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.Value), m.Value)
 		}
 	}
 
@@ -871,7 +876,7 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.EchoVault
 	return []byte(res), nil
 }
 
-func handleZRANK(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZRANK(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zrankKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -894,23 +899,23 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	}
 	defer server.KeyRUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
 	members := set.GetAll()
-	slices.SortFunc(members, func(a, b MemberParam) int {
+	slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
 		if strings.EqualFold(cmd[0], "zrevrank") {
-			return cmp.Compare(b.score, a.score)
+			return cmp.Compare(b.Score, a.Score)
 		}
-		return cmp.Compare(a.score, b.score)
+		return cmp.Compare(a.Score, b.Score)
 	})
 
 	for i := 0; i < len(members); i++ {
-		if members[i].value == Value(member) {
+		if members[i].Value == sorted_set.Value(member) {
 			if withscores {
-				score := strconv.FormatFloat(float64(members[i].score), 'f', -1, 64)
+				score := strconv.FormatFloat(float64(members[i].Score), 'f', -1, 64)
 				return []byte(fmt.Sprintf("*2\r\n:%d\r\n$%d\r\n%s\r\n", i, len(score), score)), nil
 			} else {
 				return []byte(fmt.Sprintf("*1\r\n:%d\r\n", i)), nil
@@ -938,14 +943,14 @@ func handleZREM(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	}
 	defer server.KeyUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
 	deletedCount := 0
 	for _, m := range cmd[2:] {
-		if set.Remove(Value(m)) {
+		if set.Remove(sorted_set.Value(m)) {
 			deletedCount += 1
 		}
 	}
@@ -968,16 +973,16 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.EchoVault, con
 		return nil, err
 	}
 	defer server.KeyRUnlock(ctx, key)
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
-	member := set.Get(Value(cmd[2]))
-	if !member.exists {
+	member := set.Get(sorted_set.Value(cmd[2]))
+	if !member.Exists {
 		return []byte("$-1\r\n"), nil
 	}
 
-	score := strconv.FormatFloat(float64(member.score), 'f', -1, 64)
+	score := strconv.FormatFloat(float64(member.Score), 'f', -1, 64)
 
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(score), score)), nil
 }
@@ -1011,14 +1016,14 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Echo
 	}
 	defer server.KeyUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
 	for _, m := range set.GetAll() {
-		if m.score >= Score(minimum) && m.score <= Score(maximum) {
-			set.Remove(m.value)
+		if m.Score >= sorted_set.Score(minimum) && m.Score <= sorted_set.Score(maximum) {
+			set.Remove(m.Value)
 			deletedCount += 1
 		}
 	}
@@ -1053,7 +1058,7 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.EchoV
 	}
 	defer server.KeyUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -1070,20 +1075,20 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.EchoV
 	}
 
 	members := set.GetAll()
-	slices.SortFunc(members, func(a, b MemberParam) int {
-		return cmp.Compare(a.score, b.score)
+	slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
+		return cmp.Compare(a.Score, b.Score)
 	})
 
 	deletedCount := 0
 
 	if start < stop {
 		for i := start; i <= stop; i++ {
-			set.Remove(members[i].value)
+			set.Remove(members[i].Value)
 			deletedCount += 1
 		}
 	} else {
 		for i := stop; i <= start; i++ {
-			set.Remove(members[i].value)
+			set.Remove(members[i].Value)
 			deletedCount += 1
 		}
 	}
@@ -1110,7 +1115,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.EchoVa
 	}
 	defer server.KeyUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -1119,7 +1124,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.EchoVa
 
 	// Check if all the members have the same score. If not, return 0
 	for i := 0; i < len(members)-1; i++ {
-		if members[i].score != members[i+1].score {
+		if members[i].Score != members[i+1].Score {
 			return []byte(":0\r\n"), nil
 		}
 	}
@@ -1128,9 +1133,9 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.EchoVa
 
 	// All the members have the same score
 	for _, m := range members {
-		if slices.Contains([]int{1, 0}, compareLex(string(m.value), minimum)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(m.value), maximum)) {
-			set.Remove(m.value)
+		if slices.Contains([]int{1, 0}, internal.CompareLex(string(m.Value), minimum)) &&
+			slices.Contains([]int{-1, 0}, internal.CompareLex(string(m.Value), maximum)) {
+			set.Remove(m.Value)
 			deletedCount += 1
 		}
 	}
@@ -1208,7 +1213,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.EchoVault, con
 	}
 	defer server.KeyRUnlock(ctx, key)
 
-	set, ok := server.GetValue(ctx, key).(*SortedSet)
+	set, ok := server.GetValue(ctx, key).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -1222,43 +1227,43 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.EchoVault, con
 
 	members := set.GetAll()
 	if strings.EqualFold(policy, "byscore") {
-		slices.SortFunc(members, func(a, b MemberParam) int {
+		slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
 			// Do a score sort
 			if reverse {
-				return cmp.Compare(b.score, a.score)
+				return cmp.Compare(b.Score, a.Score)
 			}
-			return cmp.Compare(a.score, b.score)
+			return cmp.Compare(a.Score, b.Score)
 		})
 	}
 	if strings.EqualFold(policy, "bylex") {
 		// If policy is BYLEX, all the elements must have the same score
 		for i := 0; i < len(members)-1; i++ {
-			if members[i].score != members[i+1].score {
+			if members[i].Score != members[i+1].Score {
 				return []byte("*0\r\n"), nil
 			}
 		}
-		slices.SortFunc(members, func(a, b MemberParam) int {
+		slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
 			if reverse {
-				return compareLex(string(b.value), string(a.value))
+				return internal.CompareLex(string(b.Value), string(a.Value))
 			}
-			return compareLex(string(a.value), string(b.value))
+			return internal.CompareLex(string(a.Value), string(b.Value))
 		})
 	}
 
-	var resultMembers []MemberParam
+	var resultMembers []sorted_set.MemberParam
 
 	for i := offset; i <= count; i++ {
 		if i >= len(members) {
 			break
 		}
 		if strings.EqualFold(policy, "byscore") {
-			if members[i].score >= Score(scoreStart) && members[i].score <= Score(scoreStop) {
+			if members[i].Score >= sorted_set.Score(scoreStart) && members[i].Score <= sorted_set.Score(scoreStop) {
 				resultMembers = append(resultMembers, members[i])
 			}
 			continue
 		}
-		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+		if slices.Contains([]int{1, 0}, internal.CompareLex(string(members[i].Value), lexStart)) &&
+			slices.Contains([]int{-1, 0}, internal.CompareLex(string(members[i].Value), lexStop)) {
 			resultMembers = append(resultMembers, members[i])
 		}
 	}
@@ -1267,9 +1272,9 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.EchoVault, con
 
 	for _, m := range resultMembers {
 		if withscores {
-			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
+			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.Value), m.Value, strconv.FormatFloat(float64(m.Score), 'f', -1, 64))
 		} else {
-			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
+			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.Value), m.Value)
 		}
 	}
 
@@ -1345,7 +1350,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.EchoVault
 	}
 	defer server.KeyRUnlock(ctx, source)
 
-	set, ok := server.GetValue(ctx, source).(*SortedSet)
+	set, ok := server.GetValue(ctx, source).(*sorted_set.SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", source)
 	}
@@ -1359,48 +1364,48 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.EchoVault
 
 	members := set.GetAll()
 	if strings.EqualFold(policy, "byscore") {
-		slices.SortFunc(members, func(a, b MemberParam) int {
+		slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
 			// Do a score sort
 			if reverse {
-				return cmp.Compare(b.score, a.score)
+				return cmp.Compare(b.Score, a.Score)
 			}
-			return cmp.Compare(a.score, b.score)
+			return cmp.Compare(a.Score, b.Score)
 		})
 	}
 	if strings.EqualFold(policy, "bylex") {
 		// If policy is BYLEX, all the elements must have the same score
 		for i := 0; i < len(members)-1; i++ {
-			if members[i].score != members[i+1].score {
+			if members[i].Score != members[i+1].Score {
 				return []byte(":0\r\n"), nil
 			}
 		}
-		slices.SortFunc(members, func(a, b MemberParam) int {
+		slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
 			if reverse {
-				return compareLex(string(b.value), string(a.value))
+				return internal.CompareLex(string(b.Value), string(a.Value))
 			}
-			return compareLex(string(a.value), string(b.value))
+			return internal.CompareLex(string(a.Value), string(b.Value))
 		})
 	}
 
-	var resultMembers []MemberParam
+	var resultMembers []sorted_set.MemberParam
 
 	for i := offset; i <= count; i++ {
 		if i >= len(members) {
 			break
 		}
 		if strings.EqualFold(policy, "byscore") {
-			if members[i].score >= Score(scoreStart) && members[i].score <= Score(scoreStop) {
+			if members[i].Score >= sorted_set.Score(scoreStart) && members[i].Score <= sorted_set.Score(scoreStop) {
 				resultMembers = append(resultMembers, members[i])
 			}
 			continue
 		}
-		if slices.Contains([]int{1, 0}, compareLex(string(members[i].value), lexStart)) &&
-			slices.Contains([]int{-1, 0}, compareLex(string(members[i].value), lexStop)) {
+		if slices.Contains([]int{1, 0}, internal.CompareLex(string(members[i].Value), lexStart)) &&
+			slices.Contains([]int{-1, 0}, internal.CompareLex(string(members[i].Value), lexStop)) {
 			resultMembers = append(resultMembers, members[i])
 		}
 	}
 
-	newSortedSet := NewSortedSet(resultMembers)
+	newSortedSet := sorted_set.NewSortedSet(resultMembers)
 
 	if server.KeyExists(ctx, destination) {
 		if _, err = server.KeyLock(ctx, destination); err != nil {
@@ -1439,7 +1444,7 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.EchoVault, con
 		}
 	}()
 
-	var setParams []SortedSetParam
+	var setParams []sorted_set.SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
 		if server.KeyExists(ctx, keys[i]) {
@@ -1447,25 +1452,25 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.EchoVault, con
 				return nil, err
 			}
 			locks[keys[i]] = true
-			set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
+			set, ok := server.GetValue(ctx, keys[i]).(*sorted_set.SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}
-			setParams = append(setParams, SortedSetParam{
-				set:    set,
-				weight: weights[i],
+			setParams = append(setParams, sorted_set.SortedSetParam{
+				Set:    set,
+				Weight: weights[i],
 			})
 		}
 	}
 
-	union := Union(aggregate, setParams...)
+	union := sorted_set.Union(aggregate, setParams...)
 
 	res := fmt.Sprintf("*%d", union.Cardinality())
 	for _, m := range union.GetAll() {
 		if withscores {
-			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.value), m.value, strconv.FormatFloat(float64(m.score), 'f', -1, 64))
+			res += fmt.Sprintf("\r\n*2\r\n$%d\r\n%s\r\n+%s", len(m.Value), m.Value, strconv.FormatFloat(float64(m.Score), 'f', -1, 64))
 		} else {
-			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.value), m.value)
+			res += fmt.Sprintf("\r\n*1\r\n$%d\r\n%s", len(m.Value), m.Value)
 		}
 	}
 
@@ -1501,7 +1506,7 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.EchoVault
 		}
 	}()
 
-	var setParams []SortedSetParam
+	var setParams []sorted_set.SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
 		if server.KeyExists(ctx, keys[i]) {
@@ -1509,18 +1514,18 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.EchoVault
 				return nil, err
 			}
 			locks[keys[i]] = true
-			set, ok := server.GetValue(ctx, keys[i]).(*SortedSet)
+			set, ok := server.GetValue(ctx, keys[i]).(*sorted_set.SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}
-			setParams = append(setParams, SortedSetParam{
-				set:    set,
-				weight: weights[i],
+			setParams = append(setParams, sorted_set.SortedSetParam{
+				Set:    set,
+				Weight: weights[i],
 			})
 		}
 	}
 
-	union := Union(aggregate, setParams...)
+	union := sorted_set.Union(aggregate, setParams...)
 
 	if server.KeyExists(ctx, destination) {
 		if _, err = server.KeyLock(ctx, destination); err != nil {

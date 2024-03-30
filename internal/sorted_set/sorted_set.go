@@ -28,17 +28,17 @@ type Value string
 
 type Score float64
 
-// MemberObject is the shape of the object as it's stored in the map that represents the set
+// MemberObject is the shape of the object as it's stored in the map that represents the Set
 type MemberObject struct {
-	value  Value
-	score  Score
-	exists bool
+	Value  Value
+	Score  Score
+	Exists bool
 }
 
 // MemberParam is the shape of the object passed as a parameter to NewSortedSet and the Add method
 type MemberParam struct {
-	value Value
-	score Score
+	Value Value
+	Score Score
 }
 
 type SortedSet struct {
@@ -50,17 +50,17 @@ func NewSortedSet(members []MemberParam) *SortedSet {
 		members: make(map[Value]MemberObject),
 	}
 	for _, m := range members {
-		s.members[m.value] = MemberObject{
-			value:  m.value,
-			score:  m.score,
-			exists: true,
+		s.members[m.Value] = MemberObject{
+			Value:  m.Value,
+			Score:  m.Score,
+			Exists: true,
 		}
 	}
 	return s
 }
 
 func (set *SortedSet) Contains(m Value) bool {
-	return set.members[m].exists
+	return set.members[m].Exists
 }
 
 func (set *SortedSet) Get(v Value) MemberObject {
@@ -89,11 +89,11 @@ func (set *SortedSet) GetRandom(count int) []MemberParam {
 		for i := 0; i < internal.AbsInt(count); {
 			n = rand.Intn(len(members))
 			if !slices.ContainsFunc(res, func(m MemberParam) bool {
-				return m.value == members[n].value
+				return m.Value == members[n].Value
 			}) {
 				res = append(res, members[n])
 				slices.DeleteFunc(members, func(m MemberParam) bool {
-					return m.value == members[n].value
+					return m.Value == members[n].Value
 				})
 				i++
 			}
@@ -107,8 +107,8 @@ func (set *SortedSet) GetAll() []MemberParam {
 	var res []MemberParam
 	for k, v := range set.members {
 		res = append(res, MemberParam{
-			value: k,
-			score: v.score,
+			Value: k,
+			Score: v.Score,
 		})
 	}
 	return res
@@ -141,31 +141,31 @@ func (set *SortedSet) AddOrUpdate(
 		return 0, errors.New("cannot use GT or LT when update policy is NX")
 	}
 	if strings.EqualFold(inc, "incr") && len(members) != 1 {
-		return 0, errors.New("INCR can only be used with one member/score pair")
+		return 0, errors.New("INCR can only be used with one member/Score pair")
 	}
 
 	count := 0
 
 	if strings.EqualFold(inc, "incr") {
 		for _, m := range members {
-			if !set.Contains(m.value) {
-				// If the member is not contained, add it with the increment as its score
-				set.members[m.value] = MemberObject{
-					value:  m.value,
-					score:  m.score,
-					exists: true,
+			if !set.Contains(m.Value) {
+				// If the member is not contained, add it with the increment as its Score
+				set.members[m.Value] = MemberObject{
+					Value:  m.Value,
+					Score:  m.Score,
+					Exists: true,
 				}
 				// Always add count because this is the addition of a new element
 				count += 1
 				return count, err
 			}
-			if slices.Contains([]Score{Score(math.Inf(-1)), Score(math.Inf(1))}, set.members[m.value].score) {
+			if slices.Contains([]Score{Score(math.Inf(-1)), Score(math.Inf(1))}, set.members[m.Value].Score) {
 				return count, errors.New("cannot increment -inf or +inf")
 			}
-			set.members[m.value] = MemberObject{
-				value:  m.value,
-				score:  set.members[m.value].score + m.score,
-				exists: true,
+			set.members[m.Value] = MemberObject{
+				Value:  m.Value,
+				Score:  set.members[m.Value].Score + m.Score,
+				Exists: true,
 			}
 			if strings.EqualFold(ch, "ch") {
 				count += 1
@@ -177,11 +177,11 @@ func (set *SortedSet) AddOrUpdate(
 	for _, m := range members {
 		if strings.EqualFold(policy, "xx") {
 			// Only update existing elements, do not add new elements
-			if set.Contains(m.value) {
-				set.members[m.value] = MemberObject{
-					value:  m.value,
-					score:  compareScores(set.members[m.value].score, m.score, comp),
-					exists: true,
+			if set.Contains(m.Value) {
+				set.members[m.Value] = MemberObject{
+					Value:  m.Value,
+					Score:  compareScores(set.members[m.Value].Score, m.Score, comp),
+					Exists: true,
 				}
 				if strings.EqualFold(ch, "ch") {
 					count += 1
@@ -191,24 +191,24 @@ func (set *SortedSet) AddOrUpdate(
 		}
 		if strings.EqualFold(policy, "nx") {
 			// Only add new elements, do not update existing elements
-			if !set.Contains(m.value) {
-				set.members[m.value] = MemberObject{
-					value:  m.value,
-					score:  m.score,
-					exists: true,
+			if !set.Contains(m.Value) {
+				set.members[m.Value] = MemberObject{
+					Value:  m.Value,
+					Score:  m.Score,
+					Exists: true,
 				}
 				count += 1
 			}
 			continue
 		}
-		// Policy not specified, just set the elements and scores
-		if set.members[m.value].score != m.score || !set.members[m.value].exists {
+		// Policy not specified, just Set the elements and scores
+		if set.members[m.Value].Score != m.Score || !set.members[m.Value].Exists {
 			count += 1
 		}
-		set.members[m.value] = MemberObject{
-			value:  m.value,
-			score:  compareScores(set.members[m.value].score, m.score, comp),
-			exists: true,
+		set.members[m.Value] = MemberObject{
+			Value:  m.Value,
+			Score:  compareScores(set.members[m.Value].Score, m.Score, comp),
+			Exists: true,
 		}
 	}
 	return count, nil
@@ -238,16 +238,16 @@ func (set *SortedSet) Pop(count int, policy string) (*SortedSet, error) {
 
 	slices.SortFunc(members, func(a, b MemberParam) int {
 		if strings.EqualFold(policy, "min") {
-			return cmp.Compare(a.score, b.score)
+			return cmp.Compare(a.Score, b.Score)
 		}
-		return cmp.Compare(b.score, a.score)
+		return cmp.Compare(b.Score, a.Score)
 	})
 
 	for i := 0; i < count; i++ {
 		if i >= len(members) {
 			break
 		}
-		set.Remove(members[i].value)
+		set.Remove(members[i].Value)
 		_, err := popped.AddOrUpdate([]MemberParam{members[i]}, nil, nil, nil, nil)
 		if err != nil {
 			return nil, err
@@ -261,8 +261,8 @@ func (set *SortedSet) Subtract(others []*SortedSet) *SortedSet {
 	res := NewSortedSet(set.GetAll())
 	for _, ss := range others {
 		for _, m := range ss.GetAll() {
-			if res.Contains(m.value) {
-				res.Remove(m.value)
+			if res.Contains(m.Value) {
+				res.Remove(m.Value)
 			}
 		}
 	}
@@ -271,8 +271,8 @@ func (set *SortedSet) Subtract(others []*SortedSet) *SortedSet {
 
 // SortedSetParam is a composite object used for Intersect and Union function
 type SortedSetParam struct {
-	set    *SortedSet
-	weight int
+	Set    *SortedSet
+	Weight int
 }
 
 func (set *SortedSet) Equals(other *SortedSet) bool {
@@ -283,10 +283,10 @@ func (set *SortedSet) Equals(other *SortedSet) bool {
 		return true
 	}
 	for _, member := range set.members {
-		if !other.Contains(member.value) {
+		if !other.Contains(member.Value) {
 			return false
 		}
-		if member.score != other.Get(member.value).score {
+		if member.Score != other.Get(member.Value).Score {
 			return false
 		}
 	}
@@ -300,29 +300,29 @@ func Union(aggregate string, setParams ...SortedSetParam) *SortedSet {
 		return NewSortedSet([]MemberParam{})
 	case 1:
 		var params []MemberParam
-		for _, member := range setParams[0].set.GetAll() {
+		for _, member := range setParams[0].Set.GetAll() {
 			params = append(params, MemberParam{
-				value: member.value,
-				score: member.score * Score(setParams[0].weight),
+				Value: member.Value,
+				Score: member.Score * Score(setParams[0].Weight),
 			})
 		}
 		return NewSortedSet(params)
 	case 2:
 		var params []MemberParam
-		// Traverse the params in the left sorted set
-		for _, member := range setParams[0].set.GetAll() {
-			// If the member does not exist in the other sorted set, add it to params along with the appropriate weight
-			if !setParams[1].set.Contains(member.value) {
+		// Traverse the params in the left sorted Set
+		for _, member := range setParams[0].Set.GetAll() {
+			// If the member does not exist in the other sorted Set, add it to params along with the appropriate Weight
+			if !setParams[1].Set.Contains(member.Value) {
 				params = append(params, MemberParam{
-					value: member.value,
-					score: member.score * Score(setParams[0].weight),
+					Value: member.Value,
+					Score: member.Score * Score(setParams[0].Weight),
 				})
 				continue
 			}
-			// If the member exists, get both elements and apply the weight
+			// If the member Exists, get both elements and apply the Weight
 			param := MemberParam{
-				value: member.value,
-				score: func(left, right Score) Score {
+				Value: member.Value,
+				Score: func(left, right Score) Score {
 					// Choose which param to add to params depending on the aggregate
 					switch aggregate {
 					case "sum":
@@ -334,21 +334,21 @@ func Union(aggregate string, setParams ...SortedSetParam) *SortedSet {
 						return compareScores(left, right, "gt")
 					}
 				}(
-					member.score*Score(setParams[0].weight),
-					setParams[1].set.Get(member.value).score*Score(setParams[1].weight),
+					member.Score*Score(setParams[0].Weight),
+					setParams[1].Set.Get(member.Value).Score*Score(setParams[1].Weight),
 				),
 			}
 			params = append(params, param)
 		}
-		// Traverse the params on the right sorted set and add all the elements that are not
+		// Traverse the params on the right sorted Set and add all the elements that are not
 		// already contained in params with their respective weights applied.
-		for _, member := range setParams[1].set.GetAll() {
+		for _, member := range setParams[1].Set.GetAll() {
 			if !slices.ContainsFunc(params, func(param MemberParam) bool {
-				return param.value == member.value
+				return param.Value == member.Value
 			}) {
 				params = append(params, MemberParam{
-					value: member.value,
-					score: member.score * Score(setParams[1].weight),
+					Value: member.Value,
+					Score: member.Score * Score(setParams[1].Weight),
 				})
 			}
 		}
@@ -359,16 +359,16 @@ func Union(aggregate string, setParams ...SortedSetParam) *SortedSet {
 		right := Union(aggregate, setParams[len(setParams)/2:]...)
 
 		var params []MemberParam
-		// Traverse left sub-set and add the union elements to params
+		// Traverse left sub-Set and add the union elements to params
 		for _, member := range left.GetAll() {
-			if !right.Contains(member.value) {
-				// If the right set does not contain the current element, just add it to params
+			if !right.Contains(member.Value) {
+				// If the right Set does not contain the current element, just add it to params
 				params = append(params, member)
 				continue
 			}
 			params = append(params, MemberParam{
-				value: member.value,
-				score: func(left, right Score) Score {
+				Value: member.Value,
+				Score: func(left, right Score) Score {
 					switch aggregate {
 					case "sum":
 						return left + right
@@ -378,13 +378,13 @@ func Union(aggregate string, setParams ...SortedSetParam) *SortedSet {
 						// Aggregate is "max"
 						return compareScores(left, right, "gt")
 					}
-				}(member.score, right.Get(member.value).score),
+				}(member.Score, right.Get(member.Value).Score),
 			})
 		}
-		// Traverse the right sub-set and add any remaining elements to params
+		// Traverse the right sub-Set and add any remaining elements to params
 		for _, member := range right.GetAll() {
 			if !slices.ContainsFunc(params, func(param MemberParam) bool {
-				return param.value == member.value
+				return param.Value == member.Value
 			}) {
 				params = append(params, member)
 			}
@@ -400,25 +400,25 @@ func Intersect(aggregate string, setParams ...SortedSetParam) *SortedSet {
 		return NewSortedSet([]MemberParam{})
 	case 1:
 		var params []MemberParam
-		for _, member := range setParams[0].set.GetAll() {
+		for _, member := range setParams[0].Set.GetAll() {
 			params = append(params, MemberParam{
-				value: member.value,
-				score: member.score * Score(setParams[0].weight),
+				Value: member.Value,
+				Score: member.Score * Score(setParams[0].Weight),
 			})
 		}
 		return NewSortedSet(params)
 	case 2:
 		var params []MemberParam
-		// Traverse the params in the left sorted set
-		for _, member := range setParams[0].set.GetAll() {
-			// Check if the member exists in the right sorted set
-			if !setParams[1].set.Contains(member.value) {
+		// Traverse the params in the left sorted Set
+		for _, member := range setParams[0].Set.GetAll() {
+			// Check if the member Exists in the right sorted Set
+			if !setParams[1].Set.Contains(member.Value) {
 				continue
 			}
-			// If the member exists, get both elements and apply the weight
+			// If the member Exists, get both elements and apply the Weight
 			param := MemberParam{
-				value: member.value,
-				score: func(left, right Score) Score {
+				Value: member.Value,
+				Score: func(left, right Score) Score {
 					// Choose which param to add to params depending on the aggregate
 					switch aggregate {
 					case "sum":
@@ -430,8 +430,8 @@ func Intersect(aggregate string, setParams ...SortedSetParam) *SortedSet {
 						return compareScores(left, right, "gt")
 					}
 				}(
-					member.score*Score(setParams[0].weight),
-					setParams[1].set.Get(member.value).score*Score(setParams[1].weight),
+					member.Score*Score(setParams[0].Weight),
+					setParams[1].Set.Get(member.Value).Score*Score(setParams[1].Weight),
 				),
 			}
 			params = append(params, param)
@@ -444,12 +444,12 @@ func Intersect(aggregate string, setParams ...SortedSetParam) *SortedSet {
 
 		var params []MemberParam
 		for _, member := range left.GetAll() {
-			if !right.Contains(member.value) {
+			if !right.Contains(member.Value) {
 				continue
 			}
 			params = append(params, MemberParam{
-				value: member.value,
-				score: func(left, right Score) Score {
+				Value: member.Value,
+				Score: func(left, right Score) Score {
 					switch aggregate {
 					case "sum":
 						return left + right
@@ -459,7 +459,7 @@ func Intersect(aggregate string, setParams ...SortedSetParam) *SortedSet {
 						// Aggregate is "max"
 						return compareScores(left, right, "gt")
 					}
-				}(member.score, right.Get(member.value).score),
+				}(member.Score, right.Get(member.Value).Score),
 			})
 		}
 

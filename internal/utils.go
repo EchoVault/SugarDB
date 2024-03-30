@@ -17,6 +17,7 @@ package internal
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/pkg/utils"
@@ -24,6 +25,7 @@ import (
 	"log"
 	"math/big"
 	"net"
+	"reflect"
 	"runtime"
 	"slices"
 	"strconv"
@@ -220,6 +222,35 @@ func FilterExpiredKeys(state map[string]KeyData) map[string]KeyData {
 	return state
 }
 
+// CompareLex returns -1 when s2 is lexicographically greater than s1,
+// 0 if they're equal and 1 if s2 is lexicographically less than s1.
+func CompareLex(s1 string, s2 string) int {
+	if s1 == s2 {
+		return 0
+	}
+	if strings.Contains(s1, s2) {
+		return 1
+	}
+	if strings.Contains(s2, s1) {
+		return -1
+	}
+
+	limit := len(s1)
+	if len(s2) < limit {
+		limit = len(s2)
+	}
+
+	var c int
+	for i := 0; i < limit; i++ {
+		c = cmp.Compare(s1[i], s2[i])
+		if c != 0 {
+			break
+		}
+	}
+
+	return c
+}
+
 func EncodeCommand(cmd []string) []byte {
 	res := fmt.Sprintf("*%d\r\n", len(cmd))
 	for _, token := range cmd {
@@ -355,4 +386,22 @@ func ParseBooleanArrayResponse(b []byte) ([]bool, error) {
 		arr[i] = e.Bool()
 	}
 	return arr, nil
+}
+
+func CompareNestedStringArrays(got [][]string, want [][]string) bool {
+	for _, wantItem := range want {
+		if !slices.ContainsFunc(got, func(gotItem []string) bool {
+			return reflect.DeepEqual(wantItem, gotItem)
+		}) {
+			return false
+		}
+	}
+	for _, gotItem := range got {
+		if !slices.ContainsFunc(want, func(wantItem []string) bool {
+			return reflect.DeepEqual(wantItem, gotItem)
+		}) {
+			return false
+		}
+	}
+	return true
 }

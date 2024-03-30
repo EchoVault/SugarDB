@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/internal/sorted_set"
 	"github.com/echovault/echovault/pkg/echovault"
 	"github.com/echovault/echovault/pkg/utils"
 	"github.com/tidwall/resp"
@@ -43,10 +44,10 @@ func init() {
 func Test_HandleZADD(t *testing.T) {
 	tests := []struct {
 		preset           bool
-		presetValue      *SortedSet
+		presetValue      *sorted_set.SortedSet
 		key              string
 		command          []string
-		expectedValue    *SortedSet
+		expectedValue    *sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
@@ -55,152 +56,156 @@ func Test_HandleZADD(t *testing.T) {
 			presetValue: nil,
 			key:         "ZaddKey1",
 			command:     []string{"ZADD", "ZaddKey1", "5.5", "member1", "67.77", "member2", "10", "member3", "-inf", "member4", "+inf", "member5"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
-				{value: "member4", score: Score(math.Inf(-1))},
-				{value: "member5", score: Score(math.Inf(1))},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
+				{Value: "member4", Score: sorted_set.Score(math.Inf(-1))},
+				{Value: "member5", Score: sorted_set.Score(math.Inf(1))},
 			}),
 			expectedResponse: 5,
 			expectedError:    nil,
 		},
 		{ // 2. Only add the elements that do not currently exist in the sorted set when NX flag is provided
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			key:     "ZaddKey2",
 			command: []string{"ZADD", "ZaddKey2", "NX", "5.5", "member1", "67.77", "member4", "10", "member5"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
-				{value: "member4", score: Score(67.77)},
-				{value: "member5", score: Score(10)},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
+				{Value: "member4", Score: sorted_set.Score(67.77)},
+				{Value: "member5", Score: sorted_set.Score(10)},
 			}),
 			expectedResponse: 2,
 			expectedError:    nil,
 		},
 		{ // 3. Do not add any elements when providing existing members with NX flag
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			key:     "ZaddKey3",
 			command: []string{"ZADD", "ZaddKey3", "NX", "5.5", "member1", "67.77", "member2", "10", "member3"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
 		{ // 4. Successfully add elements to an existing set when XX flag is provided with existing elements
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			key:     "ZaddKey4",
 			command: []string{"ZADD", "ZaddKey4", "XX", "CH", "55", "member1", "1005", "member2", "15", "member3", "99.75", "member4"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(55)},
-				{value: "member2", score: Score(1005)},
-				{value: "member3", score: Score(15)},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(55)},
+				{Value: "member2", Score: sorted_set.Score(1005)},
+				{Value: "member3", Score: sorted_set.Score(15)},
 			}),
 			expectedResponse: 3,
 			expectedError:    nil,
 		},
 		{ // 5. Fail to add element when providing XX flag with elements that do not exist in the sorted set.
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			key:     "ZaddKey5",
 			command: []string{"ZADD", "ZaddKey5", "XX", "5.5", "member4", "100.5", "member5", "15", "member6"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 6. Only update the elements where provided score is greater than current score if GT flag
+		{
+			// 6. Only update the elements where provided score is greater than current score if GT flag
 			// Return only the new elements added by default
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			key:     "ZaddKey6",
 			command: []string{"ZADD", "ZaddKey6", "XX", "CH", "GT", "7.5", "member1", "100.5", "member4", "15", "member5"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(7.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(7.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			expectedResponse: 1,
 			expectedError:    nil,
 		},
-		{ // 7. Only update the elements where provided score is less than current score if LT flag is provided
+		{
+			// 7. Only update the elements where provided score is less than current score if LT flag is provided
 			// Return only the new elements added by default.
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			key:     "ZaddKey7",
 			command: []string{"ZADD", "ZaddKey7", "XX", "LT", "3.5", "member1", "100.5", "member4", "15", "member5"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(3.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(3.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 8. Return all the elements that were updated AND added when CH flag is provided
+		{
+			// 8. Return all the elements that were updated AND added when CH flag is provided
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			key:     "ZaddKey8",
 			command: []string{"ZADD", "ZaddKey8", "XX", "LT", "CH", "3.5", "member1", "100.5", "member4", "15", "member5"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(3.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(3.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			expectedResponse: 1,
 			expectedError:    nil,
 		},
-		{ // 9. Increment the member by score
+		{
+			// 9. Increment the member by score
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			key:     "ZaddKey9",
 			command: []string{"ZADD", "ZaddKey9", "INCR", "5.5", "member3"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(15.5)},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(15.5)},
 			}),
 			expectedResponse: 0,
 			expectedError:    nil,
@@ -277,7 +282,7 @@ func Test_HandleZADD(t *testing.T) {
 		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		sortedSet, ok := mockServer.GetValue(ctx, test.key).(*SortedSet)
+		sortedSet, ok := mockServer.GetValue(ctx, test.key).(*sorted_set.SortedSet)
 		if !ok {
 			t.Errorf("expected the value at key \"%s\" to be a sorted set, got another type", test.key)
 		}
@@ -297,16 +302,16 @@ func Test_HandleZCARD(t *testing.T) {
 		presetValue      interface{}
 		key              string
 		command          []string
-		expectedValue    *SortedSet
+		expectedValue    *sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
 		{ // 1. Get cardinality of valid sorted set.
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
 			}),
 			key:              "ZcardKey1",
 			command:          []string{"ZCARD", "ZcardKey1"},
@@ -391,20 +396,20 @@ func Test_HandleZCOUNT(t *testing.T) {
 		presetValue      interface{}
 		key              string
 		command          []string
-		expectedValue    *SortedSet
+		expectedValue    *sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
 		{ // 1. Get entire count using infinity boundaries
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
-				{value: "member4", score: Score(1083.13)},
-				{value: "member5", score: Score(11)},
-				{value: "member6", score: Score(math.Inf(-1))},
-				{value: "member7", score: Score(math.Inf(1))},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
+				{Value: "member4", Score: sorted_set.Score(1083.13)},
+				{Value: "member5", Score: sorted_set.Score(11)},
+				{Value: "member6", Score: sorted_set.Score(math.Inf(-1))},
+				{Value: "member7", Score: sorted_set.Score(math.Inf(1))},
 			}),
 			key:              "ZcountKey1",
 			command:          []string{"ZCOUNT", "ZcountKey1", "-inf", "+inf"},
@@ -414,14 +419,14 @@ func Test_HandleZCOUNT(t *testing.T) {
 		},
 		{ // 2. Get count of sub-set from -inf to limit
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
-				{value: "member4", score: Score(1083.13)},
-				{value: "member5", score: Score(11)},
-				{value: "member6", score: Score(math.Inf(-1))},
-				{value: "member7", score: Score(math.Inf(1))},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
+				{Value: "member4", Score: sorted_set.Score(1083.13)},
+				{Value: "member5", Score: sorted_set.Score(11)},
+				{Value: "member6", Score: sorted_set.Score(math.Inf(-1))},
+				{Value: "member7", Score: sorted_set.Score(math.Inf(1))},
 			}),
 			key:              "ZcountKey2",
 			command:          []string{"ZCOUNT", "ZcountKey2", "-inf", "90"},
@@ -431,14 +436,14 @@ func Test_HandleZCOUNT(t *testing.T) {
 		},
 		{ // 3. Get count of sub-set from bottom boundary to +inf limit
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "member1", score: Score(5.5)},
-				{value: "member2", score: Score(67.77)},
-				{value: "member3", score: Score(10)},
-				{value: "member4", score: Score(1083.13)},
-				{value: "member5", score: Score(11)},
-				{value: "member6", score: Score(math.Inf(-1))},
-				{value: "member7", score: Score(math.Inf(1))},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "member1", Score: sorted_set.Score(5.5)},
+				{Value: "member2", Score: sorted_set.Score(67.77)},
+				{Value: "member3", Score: sorted_set.Score(10)},
+				{Value: "member4", Score: sorted_set.Score(1083.13)},
+				{Value: "member5", Score: sorted_set.Score(11)},
+				{Value: "member6", Score: sorted_set.Score(math.Inf(-1))},
+				{Value: "member7", Score: sorted_set.Score(math.Inf(1))},
 			}),
 			key:              "ZcountKey3",
 			command:          []string{"ZCOUNT", "ZcountKey3", "1000", "+inf"},
@@ -532,20 +537,20 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 		presetValue      interface{}
 		key              string
 		command          []string
-		expectedValue    *SortedSet
+		expectedValue    *sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
 		{ // 1. Get entire count using infinity boundaries
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "e", score: Score(1)},
-				{value: "f", score: Score(1)},
-				{value: "g", score: Score(1)},
-				{value: "h", score: Score(1)},
-				{value: "i", score: Score(1)},
-				{value: "j", score: Score(1)},
-				{value: "k", score: Score(1)},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "e", Score: sorted_set.Score(1)},
+				{Value: "f", Score: sorted_set.Score(1)},
+				{Value: "g", Score: sorted_set.Score(1)},
+				{Value: "h", Score: sorted_set.Score(1)},
+				{Value: "i", Score: sorted_set.Score(1)},
+				{Value: "j", Score: sorted_set.Score(1)},
+				{Value: "k", Score: sorted_set.Score(1)},
 			}),
 			key:              "ZlexCountKey1",
 			command:          []string{"ZLEXCOUNT", "ZlexCountKey1", "f", "j"},
@@ -555,14 +560,14 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 		},
 		{ // 2. Return 0 when the members do not have the same score
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "a", score: Score(5.5)},
-				{value: "b", score: Score(67.77)},
-				{value: "c", score: Score(10)},
-				{value: "d", score: Score(1083.13)},
-				{value: "e", score: Score(11)},
-				{value: "f", score: Score(math.Inf(-1))},
-				{value: "g", score: Score(math.Inf(1))},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "a", Score: sorted_set.Score(5.5)},
+				{Value: "b", Score: sorted_set.Score(67.77)},
+				{Value: "c", Score: sorted_set.Score(10)},
+				{Value: "d", Score: sorted_set.Score(1083.13)},
+				{Value: "e", Score: sorted_set.Score(11)},
+				{Value: "f", Score: sorted_set.Score(math.Inf(-1))},
+				{Value: "g", Score: sorted_set.Score(math.Inf(1))},
 			}),
 			key:              "ZlexCountKey2",
 			command:          []string{"ZLEXCOUNT", "ZlexCountKey2", "a", "b"},
@@ -652,19 +657,19 @@ func Test_HandleZDIFF(t *testing.T) {
 		{ // 1. Get the difference between 2 sorted sets without scores.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZdiffKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1},
-					{value: "two", score: 2},
-					{value: "three", score: 3},
-					{value: "four", score: 4},
+				"ZdiffKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1},
+					{Value: "two", Score: 2},
+					{Value: "three", Score: 3},
+					{Value: "four", Score: 4},
 				}),
-				"ZdiffKey2": NewSortedSet([]MemberParam{
-					{value: "three", score: 3},
-					{value: "four", score: 4},
-					{value: "five", score: 5},
-					{value: "six", score: 6},
-					{value: "seven", score: 7},
-					{value: "eight", score: 8},
+				"ZdiffKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "three", Score: 3},
+					{Value: "four", Score: 4},
+					{Value: "five", Score: 5},
+					{Value: "six", Score: 6},
+					{Value: "seven", Score: 7},
+					{Value: "eight", Score: 8},
 				}),
 			},
 			command:          []string{"ZDIFF", "ZdiffKey1", "ZdiffKey2"},
@@ -674,19 +679,19 @@ func Test_HandleZDIFF(t *testing.T) {
 		{ // 2. Get the difference between 2 sorted sets with scores.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZdiffKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1},
-					{value: "two", score: 2},
-					{value: "three", score: 3},
-					{value: "four", score: 4},
+				"ZdiffKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1},
+					{Value: "two", Score: 2},
+					{Value: "three", Score: 3},
+					{Value: "four", Score: 4},
 				}),
-				"ZdiffKey2": NewSortedSet([]MemberParam{
-					{value: "three", score: 3},
-					{value: "four", score: 4},
-					{value: "five", score: 5},
-					{value: "six", score: 6},
-					{value: "seven", score: 7},
-					{value: "eight", score: 8},
+				"ZdiffKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "three", Score: 3},
+					{Value: "four", Score: 4},
+					{Value: "five", Score: 5},
+					{Value: "six", Score: 6},
+					{Value: "seven", Score: 7},
+					{Value: "eight", Score: 8},
 				}),
 			},
 			command:          []string{"ZDIFF", "ZdiffKey1", "ZdiffKey2", "WITHSCORES"},
@@ -696,21 +701,21 @@ func Test_HandleZDIFF(t *testing.T) {
 		{ // 3. Get the difference between 3 sets with scores.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZdiffKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZdiffKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZdiffKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11},
+				"ZdiffKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11},
 				}),
-				"ZdiffKey5": NewSortedSet([]MemberParam{
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZdiffKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZDIFF", "ZdiffKey3", "ZdiffKey4", "ZdiffKey5", "WITHSCORES"},
@@ -720,11 +725,11 @@ func Test_HandleZDIFF(t *testing.T) {
 		{ // 3. Return sorted set if only one key exists and is a sorted set
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZdiffKey6": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZdiffKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			command: []string{"ZDIFF", "ZdiffKey6", "ZdiffKey7", "ZdiffKey8", "WITHSCORES"},
@@ -738,15 +743,15 @@ func Test_HandleZDIFF(t *testing.T) {
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffKey9": "Default value",
-				"ZdiffKey10": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11},
+				"ZdiffKey10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11},
 				}),
-				"ZdiffKey11": NewSortedSet([]MemberParam{
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZdiffKey11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZDIFF", "ZdiffKey9", "ZdiffKey10", "ZdiffKey11"},
@@ -815,55 +820,55 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 		presetValues     map[string]interface{}
 		destination      string
 		command          []string
-		expectedValue    *SortedSet
+		expectedValue    *sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
 		{ // 1. Get the difference between 2 sorted sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZdiffStoreKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZdiffStoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
-				"ZdiffStoreKey2": NewSortedSet([]MemberParam{
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZdiffStoreKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			destination:      "ZdiffStoreDestinationKey1",
 			command:          []string{"ZDIFFSTORE", "ZdiffStoreDestinationKey1", "ZdiffStoreKey1", "ZdiffStoreKey2"},
-			expectedValue:    NewSortedSet([]MemberParam{{value: "one", score: 1}, {value: "two", score: 2}}),
+			expectedValue:    sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}, {Value: "two", Score: 2}}),
 			expectedResponse: 2,
 			expectedError:    nil,
 		},
 		{ // 2. Get the difference between 3 sorted sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZdiffStoreKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZdiffStoreKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZdiffStoreKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11},
+				"ZdiffStoreKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11},
 				}),
-				"ZdiffStoreKey5": NewSortedSet([]MemberParam{
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZdiffStoreKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZdiffStoreDestinationKey2",
 			command:     []string{"ZDIFFSTORE", "ZdiffStoreDestinationKey2", "ZdiffStoreKey3", "ZdiffStoreKey4", "ZdiffStoreKey5"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6},
 			}),
 			expectedResponse: 4,
 			expectedError:    nil,
@@ -871,20 +876,20 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 		{ // 3. Return base sorted set element if base set is the only existing key provided and is a valid sorted set
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZdiffStoreKey6": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZdiffStoreKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			destination: "ZdiffStoreDestinationKey3",
 			command:     []string{"ZDIFFSTORE", "ZdiffStoreDestinationKey3", "ZdiffStoreKey6", "ZdiffStoreKey7", "ZdiffStoreKey8"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6},
-				{value: "seven", score: 7}, {value: "eight", score: 8},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6},
+				{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 			}),
 			expectedResponse: 8,
 			expectedError:    nil,
@@ -893,15 +898,15 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffStoreKey9": "Default value",
-				"ZdiffStoreKey10": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11},
+				"ZdiffStoreKey10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11},
 				}),
-				"ZdiffStoreKey11": NewSortedSet([]MemberParam{
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZdiffStoreKey11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination:      "ZdiffStoreDestinationKey4",
@@ -914,15 +919,15 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			preset:      true,
 			destination: "ZdiffStoreDestinationKey5",
 			presetValues: map[string]interface{}{
-				"ZdiffStoreKey12": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11},
+				"ZdiffStoreKey12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11},
 				}),
-				"ZdiffStoreKey13": NewSortedSet([]MemberParam{
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZdiffStoreKey13": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZDIFFSTORE", "ZdiffStoreDestinationKey5", "non-existent", "ZdiffStoreKey12", "ZdiffStoreKey13"},
@@ -974,13 +979,13 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
 			for _, elem := range set.GetAll() {
-				if !test.expectedValue.Contains(elem.value) {
-					t.Errorf("could not find element %s in the expected values", elem.value)
+				if !test.expectedValue.Contains(elem.Value) {
+					t.Errorf("could not find element %s in the expected values", elem.Value)
 				}
 			}
 			mockServer.KeyRUnlock(ctx, test.destination)
@@ -994,40 +999,40 @@ func Test_HandleZINCRBY(t *testing.T) {
 		presetValue      interface{}
 		key              string
 		command          []string
-		expectedValue    *SortedSet
+		expectedValue    *sorted_set.SortedSet
 		expectedResponse string
 		expectedError    error
 	}{
 		{ // 1. Successfully increment by int. Return the new score
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
 			}),
 			key:     "ZincrbyKey1",
 			command: []string{"ZINCRBY", "ZincrbyKey1", "5", "one"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 6}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 6}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
 			}),
 			expectedResponse: "6",
 			expectedError:    nil,
 		},
 		{ // 2. Successfully increment by float. Return new score
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
 			}),
 			key:     "ZincrbyKey2",
 			command: []string{"ZINCRBY", "ZincrbyKey2", "346.785", "one"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 347.785}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 347.785}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
 			}),
 			expectedResponse: "347.785",
 			expectedError:    nil,
@@ -1037,59 +1042,59 @@ func Test_HandleZINCRBY(t *testing.T) {
 			presetValue: nil,
 			key:         "ZincrbyKey3",
 			command:     []string{"ZINCRBY", "ZincrbyKey3", "346.785", "one"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 346.785},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 346.785},
 			}),
 			expectedResponse: "346.785",
 			expectedError:    nil,
 		},
 		{ // 4. Increment score to +inf
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
 			}),
 			key:     "ZincrbyKey4",
 			command: []string{"ZINCRBY", "ZincrbyKey4", "+inf", "one"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: Score(math.Inf(1))}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: sorted_set.Score(math.Inf(1))}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
 			}),
 			expectedResponse: "+Inf",
 			expectedError:    nil,
 		},
 		{ // 5. Increment score to -inf
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
 			}),
 			key:     "ZincrbyKey5",
 			command: []string{"ZINCRBY", "ZincrbyKey5", "-inf", "one"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: Score(math.Inf(-1))}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: sorted_set.Score(math.Inf(-1))}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
 			}),
 			expectedResponse: "-Inf",
 			expectedError:    nil,
 		},
 		{ // 6. Incrementing score by negative increment should lower the score
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
 			}),
 			key:     "ZincrbyKey6",
 			command: []string{"ZINCRBY", "ZincrbyKey6", "-2.5", "five"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 2.5},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 2.5},
 			}),
 			expectedResponse: "2.5",
 			expectedError:    nil,
@@ -1105,39 +1110,39 @@ func Test_HandleZINCRBY(t *testing.T) {
 		},
 		{ // 8. Return error when trying to increment a member that already has score -inf
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "one", score: Score(math.Inf(-1))},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: sorted_set.Score(math.Inf(-1))},
 			}),
 			key:     "ZincrbyKey8",
 			command: []string{"ZINCRBY", "ZincrbyKey8", "2.5", "one"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: Score(math.Inf(-1))},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: sorted_set.Score(math.Inf(-1))},
 			}),
 			expectedResponse: "",
 			expectedError:    errors.New("cannot increment -inf or +inf"),
 		},
 		{ // 9. Return error when trying to increment a member that already has score +inf
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "one", score: Score(math.Inf(1))},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: sorted_set.Score(math.Inf(1))},
 			}),
 			key:     "ZincrbyKey9",
 			command: []string{"ZINCRBY", "ZincrbyKey9", "2.5", "one"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: Score(math.Inf(-1))},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: sorted_set.Score(math.Inf(-1))},
 			}),
 			expectedResponse: "",
 			expectedError:    errors.New("cannot increment -inf or +inf"),
 		},
 		{ // 10. Return error when increment is not a valid number
 			preset: true,
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1},
 			}),
 			key:     "ZincrbyKey10",
 			command: []string{"ZINCRBY", "ZincrbyKey10", "increment", "one"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1},
 			}),
 			expectedResponse: "",
 			expectedError:    errors.New("increment must be a double"),
@@ -1191,19 +1196,19 @@ func Test_HandleZINCRBY(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, test.key).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, test.key).(*sorted_set.SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.key)
 			}
 			for _, elem := range set.GetAll() {
-				if !test.expectedValue.Contains(elem.value) {
-					t.Errorf("could not find element %s in the expected values", elem.value)
+				if !test.expectedValue.Contains(elem.Value) {
+					t.Errorf("could not find element %s in the expected values", elem.Value)
 				}
-				if test.expectedValue.Get(elem.value).score != elem.score {
+				if test.expectedValue.Get(elem.Value).Score != elem.Score {
 					t.Errorf("expected score of element \"%s\" from set at key \"%s\" to be %s, got %s",
-						elem.value, test.key,
-						strconv.FormatFloat(float64(test.expectedValue.Get(elem.value).score), 'f', -1, 64),
-						strconv.FormatFloat(float64(elem.score), 'f', -1, 64),
+						elem.Value, test.key,
+						strconv.FormatFloat(float64(test.expectedValue.Get(elem.Value).Score), 'f', -1, 64),
+						strconv.FormatFloat(float64(elem.Score), 'f', -1, 64),
 					)
 				}
 			}
@@ -1217,25 +1222,25 @@ func Test_HandleZMPOP(t *testing.T) {
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
-		expectedValues   map[string]*SortedSet
+		expectedValues   map[string]*sorted_set.SortedSet
 		expectedResponse [][]string
 		expectedError    error
 	}{
 		{ // 1. Successfully pop one min element by default
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmpopKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZmpopKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
 			},
 			command: []string{"ZMPOP", "ZmpopKey1"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopKey1": NewSortedSet([]MemberParam{
-					{value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
 			},
 			expectedResponse: [][]string{
@@ -1246,18 +1251,18 @@ func Test_HandleZMPOP(t *testing.T) {
 		{ // 2. Successfully pop one min element by specifying MIN
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmpopKey2": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZmpopKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
 			},
 			command: []string{"ZMPOP", "ZmpopKey2", "MIN"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopKey2": NewSortedSet([]MemberParam{
-					{value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
 			},
 			expectedResponse: [][]string{
@@ -1268,17 +1273,17 @@ func Test_HandleZMPOP(t *testing.T) {
 		{ // 3. Successfully pop one max element by specifying MAX modifier
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmpopKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZmpopKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
 			},
 			command: []string{"ZMPOP", "ZmpopKey3", "MAX"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				}),
 			},
 			expectedResponse: [][]string{
@@ -1289,16 +1294,16 @@ func Test_HandleZMPOP(t *testing.T) {
 		{ // 4. Successfully pop multiple min elements
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmpopKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
+				"ZmpopKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 				}),
 			},
 			command: []string{"ZMPOP", "ZmpopKey4", "MIN", "COUNT", "5"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopKey4": NewSortedSet([]MemberParam{
-					{value: "six", score: 6},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "six", Score: 6},
 				}),
 			},
 			expectedResponse: [][]string{
@@ -1310,16 +1315,16 @@ func Test_HandleZMPOP(t *testing.T) {
 		{ // 5. Successfully pop multiple max elements
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmpopKey5": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
+				"ZmpopKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 				}),
 			},
 			command: []string{"ZMPOP", "ZmpopKey5", "MAX", "COUNT", "5"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopKey5": NewSortedSet([]MemberParam{
-					{value: "one", score: 1},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1},
 				}),
 			},
 			expectedResponse: [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
@@ -1328,18 +1333,18 @@ func Test_HandleZMPOP(t *testing.T) {
 		{ // 6. Successfully pop elements from the first set which is non-empty
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmpopKey6": NewSortedSet([]MemberParam{}),
-				"ZmpopKey7": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
+				"ZmpopKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{}),
+				"ZmpopKey7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 				}),
 			},
 			command: []string{"ZMPOP", "ZmpopKey6", "ZmpopKey7", "MAX", "COUNT", "5"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopKey6": NewSortedSet([]MemberParam{}),
-				"ZmpopKey7": NewSortedSet([]MemberParam{
-					{value: "one", score: 1},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{}),
+				"ZmpopKey7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1},
 				}),
 			},
 			expectedResponse: [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
@@ -1350,18 +1355,18 @@ func Test_HandleZMPOP(t *testing.T) {
 			presetValues: map[string]interface{}{
 				"ZmpopKey8":  "Default value",
 				"ZmpopKey9":  56,
-				"ZmpopKey10": NewSortedSet([]MemberParam{}),
-				"ZmpopKey11": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
+				"ZmpopKey10": sorted_set.NewSortedSet([]sorted_set.MemberParam{}),
+				"ZmpopKey11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 				}),
 			},
 			command: []string{"ZMPOP", "ZmpopKey8", "ZmpopKey9", "ZmpopKey10", "ZmpopKey11", "MIN", "COUNT", "5"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopKey10": NewSortedSet([]MemberParam{}),
-				"ZmpopKey11": NewSortedSet([]MemberParam{
-					{value: "six", score: 6},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopKey10": sorted_set.NewSortedSet([]sorted_set.MemberParam{}),
+				"ZmpopKey11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "six", Score: 6},
 				}),
 			},
 			expectedResponse: [][]string{{"one", "1"}, {"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}},
@@ -1428,7 +1433,7 @@ func Test_HandleZMPOP(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
 			if !ok {
 				t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
 			}
@@ -1444,25 +1449,25 @@ func Test_HandleZPOP(t *testing.T) {
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
-		expectedValues   map[string]*SortedSet
+		expectedValues   map[string]*sorted_set.SortedSet
 		expectedResponse [][]string
 		expectedError    error
 	}{
 		{ // 1. Successfully pop one min element by default
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmpopMinKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZmpopMinKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
 			},
 			command: []string{"ZPOPMIN", "ZmpopMinKey1"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopMinKey1": NewSortedSet([]MemberParam{
-					{value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopMinKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
 			},
 			expectedResponse: [][]string{
@@ -1473,17 +1478,17 @@ func Test_HandleZPOP(t *testing.T) {
 		{ // 2. Successfully pop one max element by default
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmpopMaxKey2": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZmpopMaxKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
 			},
 			command: []string{"ZPOPMAX", "ZmpopMaxKey2"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopMaxKey2": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopMaxKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				}),
 			},
 			expectedResponse: [][]string{
@@ -1494,16 +1499,16 @@ func Test_HandleZPOP(t *testing.T) {
 		{ // 3. Successfully pop multiple min elements
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmpopMinKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
+				"ZmpopMinKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 				}),
 			},
 			command: []string{"ZPOPMIN", "ZmpopMinKey3", "5"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopMinKey3": NewSortedSet([]MemberParam{
-					{value: "six", score: 6},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopMinKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "six", Score: 6},
 				}),
 			},
 			expectedResponse: [][]string{
@@ -1515,16 +1520,16 @@ func Test_HandleZPOP(t *testing.T) {
 		{ // 4. Successfully pop multiple max elements
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmpopMaxKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
+				"ZmpopMaxKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 				}),
 			},
 			command: []string{"ZPOPMAX", "ZmpopMaxKey4", "5"},
-			expectedValues: map[string]*SortedSet{
-				"ZmpopMaxKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZmpopMaxKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1},
 				}),
 			},
 			expectedResponse: [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
@@ -1601,7 +1606,7 @@ func Test_HandleZPOP(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
 			if !ok {
 				t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
 			}
@@ -1624,10 +1629,10 @@ func Test_HandleZMSCORE(t *testing.T) {
 			// Return nil for elements that do not exist in the sorted set.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZmScoreKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1.1}, {value: "two", score: 245},
-					{value: "three", score: 3}, {value: "four", score: 4.055},
-					{value: "five", score: 5},
+				"ZmScoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1.1}, {Value: "two", Score: 245},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4.055},
+					{Value: "five", Score: 5},
 				}),
 			},
 			command:          []string{"ZMSCORE", "ZmScoreKey1", "one", "none", "two", "one", "three", "four", "none", "five"},
@@ -1708,10 +1713,10 @@ func Test_HandleZSCORE(t *testing.T) {
 		{ // 1. Return score from a sorted set.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZscoreKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1.1}, {value: "two", score: 245},
-					{value: "three", score: 3}, {value: "four", score: 4.055},
-					{value: "five", score: 5},
+				"ZscoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1.1}, {Value: "two", Score: 245},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4.055},
+					{Value: "five", Score: 5},
 				}),
 			},
 			command:          []string{"ZSCORE", "ZscoreKey1", "four"},
@@ -1728,10 +1733,10 @@ func Test_HandleZSCORE(t *testing.T) {
 		{ // 3. If key exists and is a sorted set, but the member does not exist, return nil
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZscoreKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1.1}, {value: "two", score: 245},
-					{value: "three", score: 3}, {value: "four", score: 4.055},
-					{value: "five", score: 5},
+				"ZscoreKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1.1}, {Value: "two", Score: 245},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4.055},
+					{Value: "five", Score: 5},
 				}),
 			},
 			command:          []string{"ZSCORE", "ZscoreKey3", "non-existent"},
@@ -1812,9 +1817,9 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 			// Count is positive, do not allow repeated elements
 			preset: true,
 			key:    "ZrandMemberKey1",
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2}, {value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6}, {value: "seven", score: 7}, {value: "eight", score: 8},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2}, {Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6}, {Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 			}),
 			command:       []string{"ZRANDMEMBER", "ZrandMemberKey1", "3"},
 			expectedValue: 8,
@@ -1830,9 +1835,9 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 			// Count is negative, so allow repeated numbers.
 			preset: true,
 			key:    "ZrandMemberKey2",
-			presetValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2}, {value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6}, {value: "seven", score: 7}, {value: "eight", score: 8},
+			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2}, {Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6}, {Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 			}),
 			command:       []string{"ZRANDMEMBER", "ZrandMemberKey2", "-5", "WITHSCORES"},
 			expectedValue: 8,
@@ -1921,7 +1926,7 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 			t.Error(err)
 		}
-		set, ok := mockServer.GetValue(ctx, test.key).(*SortedSet)
+		set, ok := mockServer.GetValue(ctx, test.key).(*sorted_set.SortedSet)
 		if !ok {
 			t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
 		}
@@ -1930,27 +1935,27 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 		}
 		// 3. Check if all the returned elements we received are still in the set.
 		for _, element := range rv.Array() {
-			if !set.Contains(Value(element.Array()[0].String())) {
+			if !set.Contains(sorted_set.Value(element.Array()[0].String())) {
 				t.Errorf("expected element \"%s\" to be in set but it was not found", element.String())
 			}
 		}
 		// 4. If allowRepeat is false, check that all the elements make a valid set
 		if !test.allowRepeat {
-			var elems []MemberParam
+			var elems []sorted_set.MemberParam
 			for _, e := range rv.Array() {
 				if len(e.Array()) == 1 {
-					elems = append(elems, MemberParam{
-						value: Value(e.Array()[0].String()),
-						score: 1,
+					elems = append(elems, sorted_set.MemberParam{
+						Value: sorted_set.Value(e.Array()[0].String()),
+						Score: 1,
 					})
 					continue
 				}
-				elems = append(elems, MemberParam{
-					value: Value(e.Array()[0].String()),
-					score: Score(e.Array()[1].Float()),
+				elems = append(elems, sorted_set.MemberParam{
+					Value: sorted_set.Value(e.Array()[0].String()),
+					Score: sorted_set.Score(e.Array()[1].Float()),
 				})
 			}
-			s := NewSortedSet(elems)
+			s := sorted_set.NewSortedSet(elems)
 			if s.Cardinality() != len(elems) {
 				t.Errorf("expected non-repeating elements for random elements at key \"%s\"", test.key)
 			}
@@ -1969,10 +1974,10 @@ func Test_HandleZRANK(t *testing.T) {
 		{ // 1. Return element's rank from a sorted set.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrankKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZrankKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
 			},
 			command:          []string{"ZRANK", "ZrankKey1", "four"},
@@ -1982,10 +1987,10 @@ func Test_HandleZRANK(t *testing.T) {
 		{ // 2. Return element's rank from a sorted set with its score.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrankKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 100.1}, {value: "two", score: 245},
-					{value: "three", score: 305.43}, {value: "four", score: 411.055},
-					{value: "five", score: 500},
+				"ZrankKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100.1}, {Value: "two", Score: 245},
+					{Value: "three", Score: 305.43}, {Value: "four", Score: 411.055},
+					{Value: "five", Score: 500},
 				}),
 			},
 			command:          []string{"ZRANK", "ZrankKey1", "four", "WITHSCORES"},
@@ -2002,10 +2007,10 @@ func Test_HandleZRANK(t *testing.T) {
 		{ // 4. If key exists and is a sorted set, but the member does not exist, return nil
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrankKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1.1}, {value: "two", score: 245},
-					{value: "three", score: 3}, {value: "four", score: 4.055},
-					{value: "five", score: 5},
+				"ZrankKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1.1}, {Value: "two", Score: 245},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4.055},
+					{Value: "five", Score: 5},
 				}),
 			},
 			command:          []string{"ZRANK", "ZrankKey4", "non-existent"},
@@ -2081,7 +2086,7 @@ func Test_HandleZREM(t *testing.T) {
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
-		expectedValues   map[string]*SortedSet
+		expectedValues   map[string]*sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
@@ -2089,19 +2094,19 @@ func Test_HandleZREM(t *testing.T) {
 			// Return deleted count.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZremKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
+				"ZremKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 				}),
 			},
 			command: []string{"ZREM", "ZremKey1", "three", "four", "five", "none", "six", "none", "seven"},
-			expectedValues: map[string]*SortedSet{
-				"ZremKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZremKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 				}),
 			},
 			expectedResponse: 5,
@@ -2168,7 +2173,7 @@ func Test_HandleZREM(t *testing.T) {
 				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
+				set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2185,26 +2190,26 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
-		expectedValues   map[string]*SortedSet
+		expectedValues   map[string]*sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
 		{ // 1. Successfully remove multiple elements with scores inside the provided range
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZremRangeByScoreKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
+				"ZremRangeByScoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 				}),
 			},
 			command: []string{"ZREMRANGEBYSCORE", "ZremRangeByScoreKey1", "3", "7"},
-			expectedValues: map[string]*SortedSet{
-				"ZremRangeByScoreKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZremRangeByScoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 				}),
 			},
 			expectedResponse: 5,
@@ -2276,7 +2281,7 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
+				set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2293,26 +2298,26 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
-		expectedValues   map[string]*SortedSet
+		expectedValues   map[string]*sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
 		{ // 1. Successfully remove multiple elements within range
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZremRangeByRankKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
+				"ZremRangeByRankKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 				}),
 			},
 			command: []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey1", "0", "5"},
-			expectedValues: map[string]*SortedSet{
-				"ZremRangeByRankKey1": NewSortedSet([]MemberParam{
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZremRangeByRankKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 				}),
 			},
 			expectedResponse: 6,
@@ -2321,20 +2326,20 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 		{ // 2. Establish boundaries from the end of the set when negative boundaries are provided
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZremRangeByRankKey2": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
+				"ZremRangeByRankKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 				}),
 			},
 			command: []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey2", "-6", "-3"},
-			expectedValues: map[string]*SortedSet{
-				"ZremRangeByRankKey2": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZremRangeByRankKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 				}),
 			},
 			expectedResponse: 4,
@@ -2364,12 +2369,12 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 		{ // 5. Return error when start index is out of bounds
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZremRangeByRankKey5": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
+				"ZremRangeByRankKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 				}),
 			},
 			command:          []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey5", "-12", "5"},
@@ -2380,12 +2385,12 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 		{ // 6. Return error when end index is out of bounds
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZremRangeByRankKey6": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
+				"ZremRangeByRankKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 				}),
 			},
 			command:          []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey6", "0", "11"},
@@ -2438,7 +2443,7 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
+				set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2455,27 +2460,27 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
-		expectedValues   map[string]*SortedSet
+		expectedValues   map[string]*sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
 		{ // 1. Successfully remove multiple elements with scores inside the provided range
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZremRangeByLexKey1": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "b", score: 1},
-					{value: "c", score: 1}, {value: "d", score: 1},
-					{value: "e", score: 1}, {value: "f", score: 1},
-					{value: "g", score: 1}, {value: "h", score: 1},
-					{value: "i", score: 1}, {value: "j", score: 1},
+				"ZremRangeByLexKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "b", Score: 1},
+					{Value: "c", Score: 1}, {Value: "d", Score: 1},
+					{Value: "e", Score: 1}, {Value: "f", Score: 1},
+					{Value: "g", Score: 1}, {Value: "h", Score: 1},
+					{Value: "i", Score: 1}, {Value: "j", Score: 1},
 				}),
 			},
 			command: []string{"ZREMRANGEBYLEX", "ZremRangeByLexKey1", "a", "d"},
-			expectedValues: map[string]*SortedSet{
-				"ZremRangeByLexKey1": NewSortedSet([]MemberParam{
-					{value: "e", score: 1}, {value: "f", score: 1},
-					{value: "g", score: 1}, {value: "h", score: 1},
-					{value: "i", score: 1}, {value: "j", score: 1},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZremRangeByLexKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "e", Score: 1}, {Value: "f", Score: 1},
+					{Value: "g", Score: 1}, {Value: "h", Score: 1},
+					{Value: "i", Score: 1}, {Value: "j", Score: 1},
 				}),
 			},
 			expectedResponse: 4,
@@ -2484,22 +2489,22 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 		{ // 2. Return 0 if the members do not have the same score
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZremRangeByLexKey2": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "b", score: 2},
-					{value: "c", score: 3}, {value: "d", score: 4},
-					{value: "e", score: 5}, {value: "f", score: 6},
-					{value: "g", score: 7}, {value: "h", score: 8},
-					{value: "i", score: 9}, {value: "j", score: 10},
+				"ZremRangeByLexKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "b", Score: 2},
+					{Value: "c", Score: 3}, {Value: "d", Score: 4},
+					{Value: "e", Score: 5}, {Value: "f", Score: 6},
+					{Value: "g", Score: 7}, {Value: "h", Score: 8},
+					{Value: "i", Score: 9}, {Value: "j", Score: 10},
 				}),
 			},
 			command: []string{"ZREMRANGEBYLEX", "ZremRangeByLexKey2", "d", "g"},
-			expectedValues: map[string]*SortedSet{
-				"ZremRangeByLexKey2": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "b", score: 2},
-					{value: "c", score: 3}, {value: "d", score: 4},
-					{value: "e", score: 5}, {value: "f", score: 6},
-					{value: "g", score: 7}, {value: "h", score: 8},
-					{value: "i", score: 9}, {value: "j", score: 10},
+			expectedValues: map[string]*sorted_set.SortedSet{
+				"ZremRangeByLexKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "b", Score: 2},
+					{Value: "c", Score: 3}, {Value: "d", Score: 4},
+					{Value: "e", Score: 5}, {Value: "f", Score: 6},
+					{Value: "g", Score: 7}, {Value: "h", Score: 8},
+					{Value: "i", Score: 9}, {Value: "j", Score: 10},
 				}),
 			},
 			expectedResponse: 0,
@@ -2571,7 +2576,7 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				set, ok := mockServer.GetValue(ctx, key).(*SortedSet)
+				set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
 				if !ok {
 					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
 				}
@@ -2594,11 +2599,11 @@ func Test_HandleZRANGE(t *testing.T) {
 		{ // 1. Get elements withing score range without score.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZrangeKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			command:          []string{"ZRANGE", "ZrangeKey1", "3", "7", "BYSCORE"},
@@ -2608,11 +2613,11 @@ func Test_HandleZRANGE(t *testing.T) {
 		{ // 2. Get elements within score range with score.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeKey2": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZrangeKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			command: []string{"ZRANGE", "ZrangeKey2", "3", "7", "BYSCORE", "WITHSCORES"},
@@ -2625,11 +2630,11 @@ func Test_HandleZRANGE(t *testing.T) {
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZrangeKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			command:          []string{"ZRANGE", "ZrangeKey3", "3", "7", "BYSCORE", "WITHSCORES", "LIMIT", "2", "4"},
@@ -2641,11 +2646,11 @@ func Test_HandleZRANGE(t *testing.T) {
 			// REV reverses the original set before getting the range.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZrangeKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			command:          []string{"ZRANGE", "ZrangeKey4", "3", "7", "BYSCORE", "WITHSCORES", "LIMIT", "2", "4", "REV"},
@@ -2655,11 +2660,11 @@ func Test_HandleZRANGE(t *testing.T) {
 		{ // 5. Get elements within lex range without score.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeKey5": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "e", score: 1},
-					{value: "b", score: 1}, {value: "f", score: 1},
-					{value: "c", score: 1}, {value: "g", score: 1},
-					{value: "d", score: 1}, {value: "h", score: 1},
+				"ZrangeKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "e", Score: 1},
+					{Value: "b", Score: 1}, {Value: "f", Score: 1},
+					{Value: "c", Score: 1}, {Value: "g", Score: 1},
+					{Value: "d", Score: 1}, {Value: "h", Score: 1},
 				}),
 			},
 			command:          []string{"ZRANGE", "ZrangeKey5", "c", "g", "BYLEX"},
@@ -2669,11 +2674,11 @@ func Test_HandleZRANGE(t *testing.T) {
 		{ // 6. Get elements within lex range with score.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeKey6": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "e", score: 1},
-					{value: "b", score: 1}, {value: "f", score: 1},
-					{value: "c", score: 1}, {value: "g", score: 1},
-					{value: "d", score: 1}, {value: "h", score: 1},
+				"ZrangeKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "e", Score: 1},
+					{Value: "b", Score: 1}, {Value: "f", Score: 1},
+					{Value: "c", Score: 1}, {Value: "g", Score: 1},
+					{Value: "d", Score: 1}, {Value: "h", Score: 1},
 				}),
 			},
 			command: []string{"ZRANGE", "ZrangeKey6", "a", "f", "BYLEX", "WITHSCORES"},
@@ -2686,11 +2691,11 @@ func Test_HandleZRANGE(t *testing.T) {
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeKey7": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "b", score: 1},
-					{value: "c", score: 1}, {value: "d", score: 1},
-					{value: "e", score: 1}, {value: "f", score: 1},
-					{value: "g", score: 1}, {value: "h", score: 1},
+				"ZrangeKey7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "b", Score: 1},
+					{Value: "c", Score: 1}, {Value: "d", Score: 1},
+					{Value: "e", Score: 1}, {Value: "f", Score: 1},
+					{Value: "g", Score: 1}, {Value: "h", Score: 1},
 				}),
 			},
 			command:          []string{"ZRANGE", "ZrangeKey7", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
@@ -2702,11 +2707,11 @@ func Test_HandleZRANGE(t *testing.T) {
 			// REV reverses the original set before getting the range.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeKey8": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "b", score: 1},
-					{value: "c", score: 1}, {value: "d", score: 1},
-					{value: "e", score: 1}, {value: "f", score: 1},
-					{value: "g", score: 1}, {value: "h", score: 1},
+				"ZrangeKey8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "b", Score: 1},
+					{Value: "c", Score: 1}, {Value: "d", Score: 1},
+					{Value: "e", Score: 1}, {Value: "f", Score: 1},
+					{Value: "g", Score: 1}, {Value: "h", Score: 1},
 				}),
 			},
 			command:          []string{"ZRANGE", "ZrangeKey8", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4", "REV"},
@@ -2716,11 +2721,11 @@ func Test_HandleZRANGE(t *testing.T) {
 		{ // 9. Return an empty slice when we use BYLEX while elements have different scores
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeKey9": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "b", score: 5},
-					{value: "c", score: 2}, {value: "d", score: 6},
-					{value: "e", score: 3}, {value: "f", score: 7},
-					{value: "g", score: 4}, {value: "h", score: 8},
+				"ZrangeKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "b", Score: 5},
+					{Value: "c", Score: 2}, {Value: "d", Score: 6},
+					{Value: "e", Score: 3}, {Value: "f", Score: 7},
+					{Value: "g", Score: 4}, {Value: "h", Score: 8},
 				}),
 			},
 			command:          []string{"ZRANGE", "ZrangeKey9", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
@@ -2837,45 +2842,45 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 		presetValues     map[string]interface{}
 		destination      string
 		command          []string
-		expectedValue    *SortedSet
+		expectedValue    *sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
 		{ // 1. Get elements withing score range without score.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeStoreKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZrangeStoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			destination:      "ZrangeStoreDestinationKey1",
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey1", "ZrangeStoreKey1", "3", "7", "BYSCORE"},
 			expectedResponse: 5,
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "three", score: 3}, {value: "four", score: 4}, {value: "five", score: 5},
-				{value: "six", score: 6}, {value: "seven", score: 7},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "three", Score: 3}, {Value: "four", Score: 4}, {Value: "five", Score: 5},
+				{Value: "six", Score: 6}, {Value: "seven", Score: 7},
 			}),
 			expectedError: nil,
 		},
 		{ // 2. Get elements within score range with score.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeStoreKey2": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZrangeStoreKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			destination:      "ZrangeStoreDestinationKey2",
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey2", "ZrangeStoreKey2", "3", "7", "BYSCORE", "WITHSCORES"},
 			expectedResponse: 5,
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "three", score: 3}, {value: "four", score: 4}, {value: "five", score: 5},
-				{value: "six", score: 6}, {value: "seven", score: 7},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "three", Score: 3}, {Value: "four", Score: 4}, {Value: "five", Score: 5},
+				{Value: "six", Score: 6}, {Value: "seven", Score: 7},
 			}),
 			expectedError: nil,
 		},
@@ -2883,18 +2888,18 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeStoreKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZrangeStoreKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			destination:      "ZrangeStoreDestinationKey3",
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey3", "ZrangeStoreKey3", "3", "7", "BYSCORE", "WITHSCORES", "LIMIT", "2", "4"},
 			expectedResponse: 3,
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "three", score: 3}, {value: "four", score: 4}, {value: "five", score: 5},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "three", Score: 3}, {Value: "four", Score: 4}, {Value: "five", Score: 5},
 			}),
 			expectedError: nil,
 		},
@@ -2903,56 +2908,56 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			// REV reverses the original set before getting the range.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeStoreKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZrangeStoreKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			destination:      "ZrangeStoreDestinationKey4",
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey4", "ZrangeStoreKey4", "3", "7", "BYSCORE", "WITHSCORES", "LIMIT", "2", "4", "REV"},
 			expectedResponse: 3,
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "six", score: 6}, {value: "five", score: 5}, {value: "four", score: 4},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "six", Score: 6}, {Value: "five", Score: 5}, {Value: "four", Score: 4},
 			}),
 			expectedError: nil,
 		},
 		{ // 5. Get elements within lex range without score.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeStoreKey5": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "e", score: 1},
-					{value: "b", score: 1}, {value: "f", score: 1},
-					{value: "c", score: 1}, {value: "g", score: 1},
-					{value: "d", score: 1}, {value: "h", score: 1},
+				"ZrangeStoreKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "e", Score: 1},
+					{Value: "b", Score: 1}, {Value: "f", Score: 1},
+					{Value: "c", Score: 1}, {Value: "g", Score: 1},
+					{Value: "d", Score: 1}, {Value: "h", Score: 1},
 				}),
 			},
 			destination:      "ZrangeStoreDestinationKey5",
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey5", "ZrangeStoreKey5", "c", "g", "BYLEX"},
 			expectedResponse: 5,
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "c", score: 1}, {value: "d", score: 1}, {value: "e", score: 1},
-				{value: "f", score: 1}, {value: "g", score: 1},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "c", Score: 1}, {Value: "d", Score: 1}, {Value: "e", Score: 1},
+				{Value: "f", Score: 1}, {Value: "g", Score: 1},
 			}),
 			expectedError: nil,
 		},
 		{ // 6. Get elements within lex range with score.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeStoreKey6": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "e", score: 1},
-					{value: "b", score: 1}, {value: "f", score: 1},
-					{value: "c", score: 1}, {value: "g", score: 1},
-					{value: "d", score: 1}, {value: "h", score: 1},
+				"ZrangeStoreKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "e", Score: 1},
+					{Value: "b", Score: 1}, {Value: "f", Score: 1},
+					{Value: "c", Score: 1}, {Value: "g", Score: 1},
+					{Value: "d", Score: 1}, {Value: "h", Score: 1},
 				}),
 			},
 			destination:      "ZrangeStoreDestinationKey6",
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey6", "ZrangeStoreKey6", "a", "f", "BYLEX", "WITHSCORES"},
 			expectedResponse: 6,
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "a", score: 1}, {value: "b", score: 1}, {value: "c", score: 1},
-				{value: "d", score: 1}, {value: "e", score: 1}, {value: "f", score: 1},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "a", Score: 1}, {Value: "b", Score: 1}, {Value: "c", Score: 1},
+				{Value: "d", Score: 1}, {Value: "e", Score: 1}, {Value: "f", Score: 1},
 			}),
 			expectedError: nil,
 		},
@@ -2960,18 +2965,18 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeStoreKey7": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "b", score: 1},
-					{value: "c", score: 1}, {value: "d", score: 1},
-					{value: "e", score: 1}, {value: "f", score: 1},
-					{value: "g", score: 1}, {value: "h", score: 1},
+				"ZrangeStoreKey7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "b", Score: 1},
+					{Value: "c", Score: 1}, {Value: "d", Score: 1},
+					{Value: "e", Score: 1}, {Value: "f", Score: 1},
+					{Value: "g", Score: 1}, {Value: "h", Score: 1},
 				}),
 			},
 			destination:      "ZrangeStoreDestinationKey7",
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey7", "ZrangeStoreKey7", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4"},
 			expectedResponse: 3,
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "c", score: 1}, {value: "d", score: 1}, {value: "e", score: 1},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "c", Score: 1}, {Value: "d", Score: 1}, {Value: "e", Score: 1},
 			}),
 			expectedError: nil,
 		},
@@ -2980,29 +2985,29 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			// REV reverses the original set before getting the range.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeStoreKey8": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "b", score: 1},
-					{value: "c", score: 1}, {value: "d", score: 1},
-					{value: "e", score: 1}, {value: "f", score: 1},
-					{value: "g", score: 1}, {value: "h", score: 1},
+				"ZrangeStoreKey8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "b", Score: 1},
+					{Value: "c", Score: 1}, {Value: "d", Score: 1},
+					{Value: "e", Score: 1}, {Value: "f", Score: 1},
+					{Value: "g", Score: 1}, {Value: "h", Score: 1},
 				}),
 			},
 			destination:      "ZrangeStoreDestinationKey8",
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey8", "ZrangeStoreKey8", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2", "4", "REV"},
 			expectedResponse: 3,
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "f", score: 1}, {value: "e", score: 1}, {value: "d", score: 1},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "f", Score: 1}, {Value: "e", Score: 1}, {Value: "d", Score: 1},
 			}),
 			expectedError: nil,
 		},
 		{ // 9. Return an empty slice when we use BYLEX while elements have different scores
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZrangeStoreKey9": NewSortedSet([]MemberParam{
-					{value: "a", score: 1}, {value: "b", score: 5},
-					{value: "c", score: 2}, {value: "d", score: 6},
-					{value: "e", score: 3}, {value: "f", score: 7},
-					{value: "g", score: 4}, {value: "h", score: 8},
+				"ZrangeStoreKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "a", Score: 1}, {Value: "b", Score: 5},
+					{Value: "c", Score: 2}, {Value: "d", Score: 6},
+					{Value: "e", Score: 3}, {Value: "f", Score: 7},
+					{Value: "g", Score: 4}, {Value: "h", Score: 8},
 				}),
 			},
 			destination:      "ZrangeStoreDestinationKey9",
@@ -3100,7 +3105,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
@@ -3123,15 +3128,15 @@ func Test_HandleZINTER(t *testing.T) {
 		{ // 1. Get the intersection between 2 sorted sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZinterKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
-				"ZinterKey2": NewSortedSet([]MemberParam{
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			command:          []string{"ZINTER", "ZinterKey1", "ZinterKey2"},
@@ -3143,21 +3148,21 @@ func Test_HandleZINTER(t *testing.T) {
 			// By default, the SUM aggregate will be used.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 8},
+				"ZinterKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 8},
 				}),
-				"ZinterKey5": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZINTER", "ZinterKey3", "ZinterKey4", "ZinterKey5", "WITHSCORES"},
@@ -3169,21 +3174,21 @@ func Test_HandleZINTER(t *testing.T) {
 			// Use MIN aggregate.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey6": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterKey7": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZinterKey7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZinterKey8": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterKey8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZINTER", "ZinterKey6", "ZinterKey7", "ZinterKey8", "WITHSCORES", "AGGREGATE", "MIN"},
@@ -3195,21 +3200,21 @@ func Test_HandleZINTER(t *testing.T) {
 			// Use MAX aggregate.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey9": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterKey10": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZinterKey10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZinterKey11": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterKey11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZINTER", "ZinterKey9", "ZinterKey10", "ZinterKey11", "WITHSCORES", "AGGREGATE", "MAX"},
@@ -3221,21 +3226,21 @@ func Test_HandleZINTER(t *testing.T) {
 			// Use SUM aggregate with weights modifier.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey12": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterKey12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterKey13": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZinterKey13": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZinterKey14": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterKey14": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZINTER", "ZinterKey12", "ZinterKey13", "ZinterKey14", "WITHSCORES", "AGGREGATE", "SUM", "WEIGHTS", "1", "5", "3"},
@@ -3247,21 +3252,21 @@ func Test_HandleZINTER(t *testing.T) {
 			// Use MAX aggregate with added weights.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey15": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterKey15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterKey16": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZinterKey16": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZinterKey17": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterKey17": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZINTER", "ZinterKey15", "ZinterKey16", "ZinterKey17", "WITHSCORES", "AGGREGATE", "MAX", "WEIGHTS", "1", "5", "3"},
@@ -3273,21 +3278,21 @@ func Test_HandleZINTER(t *testing.T) {
 			// Use MIN aggregate with added weights.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey18": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterKey18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterKey19": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZinterKey19": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZinterKey20": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterKey20": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZINTER", "ZinterKey18", "ZinterKey19", "ZinterKey20", "WITHSCORES", "AGGREGATE", "MIN", "WEIGHTS", "1", "5", "3"},
@@ -3297,13 +3302,13 @@ func Test_HandleZINTER(t *testing.T) {
 		{ // 8. Throw an error if there are more weights than keys
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey21": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterKey21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterKey22": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZinterKey22": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZINTER", "ZinterKey21", "ZinterKey22", "WEIGHTS", "1", "2", "3"},
 			expectedResponse: nil,
@@ -3312,16 +3317,16 @@ func Test_HandleZINTER(t *testing.T) {
 		{ // 9. Throw an error if there are fewer weights than keys
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey23": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterKey23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterKey24": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
+				"ZinterKey24": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				}),
-				"ZinterKey25": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZinterKey25": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZINTER", "ZinterKey23", "ZinterKey24", "ZinterKey25", "WEIGHTS", "5", "4"},
 			expectedResponse: nil,
@@ -3330,9 +3335,9 @@ func Test_HandleZINTER(t *testing.T) {
 		{ // 10. Throw an error if there are no keys provided
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey26": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
-				"ZinterKey27": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
-				"ZinterKey28": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZinterKey26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"ZinterKey27": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"ZinterKey28": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZINTER", "WEIGHTS", "5", "4"},
 			expectedResponse: nil,
@@ -3341,14 +3346,14 @@ func Test_HandleZINTER(t *testing.T) {
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey29": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterKey29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 				"ZinterKey30": "Default value",
-				"ZinterKey31": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZinterKey31": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZINTER", "ZinterKey29", "ZinterKey30", "ZinterKey31"},
 			expectedResponse: nil,
@@ -3357,15 +3362,15 @@ func Test_HandleZINTER(t *testing.T) {
 		{ // 12. If any of the keys does not exist, return an empty array.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterKey32": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11},
+				"ZinterKey32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11},
 				}),
-				"ZinterKey33": NewSortedSet([]MemberParam{
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterKey33": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZINTER", "non-existent", "ZinterKey32", "ZinterKey33"},
@@ -3434,29 +3439,29 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		presetValues     map[string]interface{}
 		destination      string
 		command          []string
-		expectedValue    *SortedSet
+		expectedValue    *sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
 		{ // 1. Get the intersection between 2 sorted sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZinterStoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
-				"ZinterStoreKey2": NewSortedSet([]MemberParam{
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterStoreKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			destination: "ZinterStoreDestinationKey1",
 			command:     []string{"ZINTERSTORE", "ZinterStoreDestinationKey1", "ZinterStoreKey1", "ZinterStoreKey2"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
 			}),
 			expectedResponse: 3,
 			expectedError:    nil,
@@ -3466,27 +3471,27 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			// By default, the SUM aggregate will be used.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterStoreKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterStoreKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 8},
+				"ZinterStoreKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 8},
 				}),
-				"ZinterStoreKey5": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterStoreKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZinterStoreDestinationKey2",
 			command:     []string{"ZINTERSTORE", "ZinterStoreDestinationKey2", "ZinterStoreKey3", "ZinterStoreKey4", "ZinterStoreKey5", "WITHSCORES"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "eight", score: 24},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "eight", Score: 24},
 			}),
 			expectedResponse: 2,
 			expectedError:    nil,
@@ -3496,27 +3501,27 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			// Use MIN aggregate.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey6": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterStoreKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterStoreKey7": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZinterStoreKey7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZinterStoreKey8": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterStoreKey8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZinterStoreDestinationKey3",
 			command:     []string{"ZINTERSTORE", "ZinterStoreDestinationKey3", "ZinterStoreKey6", "ZinterStoreKey7", "ZinterStoreKey8", "WITHSCORES", "AGGREGATE", "MIN"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "eight", score: 8},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "eight", Score: 8},
 			}),
 			expectedResponse: 2,
 			expectedError:    nil,
@@ -3526,27 +3531,27 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			// Use MAX aggregate.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey9": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterStoreKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterStoreKey10": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZinterStoreKey10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZinterStoreKey11": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterStoreKey11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZinterStoreDestinationKey4",
 			command:     []string{"ZINTERSTORE", "ZinterStoreDestinationKey4", "ZinterStoreKey9", "ZinterStoreKey10", "ZinterStoreKey11", "WITHSCORES", "AGGREGATE", "MAX"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1000}, {value: "eight", score: 800},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 			}),
 			expectedResponse: 2,
 			expectedError:    nil,
@@ -3556,27 +3561,27 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			// Use SUM aggregate with weights modifier.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey12": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterStoreKey12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterStoreKey13": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZinterStoreKey13": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZinterStoreKey14": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterStoreKey14": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZinterStoreDestinationKey5",
 			command:     []string{"ZINTERSTORE", "ZinterStoreDestinationKey5", "ZinterStoreKey12", "ZinterStoreKey13", "ZinterStoreKey14", "WITHSCORES", "AGGREGATE", "SUM", "WEIGHTS", "1", "5", "3"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "eight", score: 2808},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "eight", Score: 2808},
 			}),
 			expectedResponse: 2,
 			expectedError:    nil,
@@ -3586,27 +3591,27 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			// Use MAX aggregate with added weights.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey15": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterStoreKey15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterStoreKey16": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZinterStoreKey16": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZinterStoreKey17": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterStoreKey17": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZinterStoreDestinationKey6",
 			command:     []string{"ZINTERSTORE", "ZinterStoreDestinationKey6", "ZinterStoreKey15", "ZinterStoreKey16", "ZinterStoreKey17", "WITHSCORES", "AGGREGATE", "MAX", "WEIGHTS", "1", "5", "3"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 3000}, {value: "eight", score: 2400},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 3000}, {Value: "eight", Score: 2400},
 			}),
 			expectedResponse: 2,
 			expectedError:    nil,
@@ -3616,27 +3621,27 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			// Use MIN aggregate with added weights.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey18": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterStoreKey18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterStoreKey19": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZinterStoreKey19": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZinterStoreKey20": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterStoreKey20": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZinterStoreDestinationKey7",
 			command:     []string{"ZINTERSTORE", "ZinterStoreDestinationKey7", "ZinterStoreKey18", "ZinterStoreKey19", "ZinterStoreKey20", "WITHSCORES", "AGGREGATE", "MIN", "WEIGHTS", "1", "5", "3"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 5}, {value: "eight", score: 8},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 5}, {Value: "eight", Score: 8},
 			}),
 			expectedResponse: 2,
 			expectedError:    nil,
@@ -3644,13 +3649,13 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{ // 8. Throw an error if there are more weights than keys
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey21": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterStoreKey21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterStoreKey22": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZinterStoreKey22": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZINTERSTORE", "ZinterStoreDestinationKey8", "ZinterStoreKey21", "ZinterStoreKey22", "WEIGHTS", "1", "2", "3"},
 			expectedResponse: 0,
@@ -3659,16 +3664,16 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{ // 9. Throw an error if there are fewer weights than keys
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey23": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterStoreKey23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZinterStoreKey24": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
+				"ZinterStoreKey24": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				}),
-				"ZinterStoreKey25": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZinterStoreKey25": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZINTERSTORE", "ZinterStoreDestinationKey9", "ZinterStoreKey23", "ZinterStoreKey24", "ZinterStoreKey25", "WEIGHTS", "5", "4"},
 			expectedResponse: 0,
@@ -3677,9 +3682,9 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{ // 10. Throw an error if there are no keys provided
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey26": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
-				"ZinterStoreKey27": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
-				"ZinterStoreKey28": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZinterStoreKey26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"ZinterStoreKey27": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"ZinterStoreKey28": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZINTERSTORE", "WEIGHTS", "5", "4"},
 			expectedResponse: 0,
@@ -3688,14 +3693,14 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey29": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZinterStoreKey29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 				"ZinterStoreKey30": "Default value",
-				"ZinterStoreKey31": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZinterStoreKey31": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZINTERSTORE", "ZinterStoreKey29", "ZinterStoreKey30", "ZinterStoreKey31"},
 			expectedResponse: 0,
@@ -3704,15 +3709,15 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{ // 12. If any of the keys does not exist, return an empty array.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZinterStoreKey32": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11},
+				"ZinterStoreKey32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11},
 				}),
-				"ZinterStoreKey33": NewSortedSet([]MemberParam{
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZinterStoreKey33": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command:          []string{"ZINTERSTORE", "ZinterStoreDestinationKey12", "non-existent", "ZinterStoreKey32", "ZinterStoreKey33"},
@@ -3763,13 +3768,13 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
 			for _, elem := range set.GetAll() {
-				if !test.expectedValue.Contains(elem.value) {
-					t.Errorf("could not find element %s in the expected values", elem.value)
+				if !test.expectedValue.Contains(elem.Value) {
+					t.Errorf("could not find element %s in the expected values", elem.Value)
 				}
 			}
 			mockServer.KeyRUnlock(ctx, test.destination)
@@ -3788,15 +3793,15 @@ func Test_HandleZUNION(t *testing.T) {
 		{ // 1. Get the union between 2 sorted sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZunionKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
-				"ZunionKey2": NewSortedSet([]MemberParam{
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			command:          []string{"ZUNION", "ZunionKey1", "ZunionKey2"},
@@ -3808,21 +3813,21 @@ func Test_HandleZUNION(t *testing.T) {
 			// By default, the SUM aggregate will be used.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 8},
+				"ZunionKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 8},
 				}),
-				"ZunionKey5": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12}, {value: "thirty-six", score: 36},
+				"ZunionKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 36},
 				}),
 			},
 			command: []string{"ZUNION", "ZunionKey3", "ZunionKey4", "ZunionKey5", "WITHSCORES"},
@@ -3838,21 +3843,21 @@ func Test_HandleZUNION(t *testing.T) {
 			// Use MIN aggregate.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey6": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionKey7": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZunionKey7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZunionKey8": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12}, {value: "thirty-six", score: 72},
+				"ZunionKey8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 72},
 				}),
 			},
 			command: []string{"ZUNION", "ZunionKey6", "ZunionKey7", "ZunionKey8", "WITHSCORES", "AGGREGATE", "MIN"},
@@ -3868,21 +3873,21 @@ func Test_HandleZUNION(t *testing.T) {
 			// Use MAX aggregate.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey9": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionKey10": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZunionKey10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZunionKey11": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12}, {value: "thirty-six", score: 72},
+				"ZunionKey11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 72},
 				}),
 			},
 			command: []string{"ZUNION", "ZunionKey9", "ZunionKey10", "ZunionKey11", "WITHSCORES", "AGGREGATE", "MAX"},
@@ -3898,21 +3903,21 @@ func Test_HandleZUNION(t *testing.T) {
 			// Use SUM aggregate with weights modifier.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey12": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionKey12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionKey13": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZunionKey13": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZunionKey14": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZunionKey14": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command: []string{"ZUNION", "ZunionKey12", "ZunionKey13", "ZunionKey14", "WITHSCORES", "AGGREGATE", "SUM", "WEIGHTS", "1", "2", "3"},
@@ -3928,21 +3933,21 @@ func Test_HandleZUNION(t *testing.T) {
 			// Use MAX aggregate with added weights.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey15": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionKey15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionKey16": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZunionKey16": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZunionKey17": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZunionKey17": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command: []string{"ZUNION", "ZunionKey15", "ZunionKey16", "ZunionKey17", "WITHSCORES", "AGGREGATE", "MAX", "WEIGHTS", "1", "2", "3"},
@@ -3958,21 +3963,21 @@ func Test_HandleZUNION(t *testing.T) {
 			// Use MIN aggregate with added weights.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey18": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionKey18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionKey19": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZunionKey19": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZunionKey20": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZunionKey20": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command: []string{"ZUNION", "ZunionKey18", "ZunionKey19", "ZunionKey20", "WITHSCORES", "AGGREGATE", "MIN", "WEIGHTS", "1", "2", "3"},
@@ -3985,13 +3990,13 @@ func Test_HandleZUNION(t *testing.T) {
 		{ // 8. Throw an error if there are more weights than keys
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey21": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionKey21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionKey22": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZunionKey22": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZUNION", "ZunionKey21", "ZunionKey22", "WEIGHTS", "1", "2", "3"},
 			expectedResponse: nil,
@@ -4000,16 +4005,16 @@ func Test_HandleZUNION(t *testing.T) {
 		{ // 9. Throw an error if there are fewer weights than keys
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey23": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionKey23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionKey24": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
+				"ZunionKey24": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				}),
-				"ZunionKey25": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZunionKey25": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZUNION", "ZunionKey23", "ZunionKey24", "ZunionKey25", "WEIGHTS", "5", "4"},
 			expectedResponse: nil,
@@ -4018,9 +4023,9 @@ func Test_HandleZUNION(t *testing.T) {
 		{ // 10. Throw an error if there are no keys provided
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey26": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
-				"ZunionKey27": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
-				"ZunionKey28": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZunionKey26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"ZunionKey27": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"ZunionKey28": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZUNION", "WEIGHTS", "5", "4"},
 			expectedResponse: nil,
@@ -4029,14 +4034,14 @@ func Test_HandleZUNION(t *testing.T) {
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey29": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionKey29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 				"ZunionKey30": "Default value",
-				"ZunionKey31": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZunionKey31": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZUNION", "ZunionKey29", "ZunionKey30", "ZunionKey31"},
 			expectedResponse: nil,
@@ -4045,15 +4050,15 @@ func Test_HandleZUNION(t *testing.T) {
 		{ // 12. If any of the keys does not exist, skip it.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionKey32": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11},
+				"ZunionKey32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11},
 				}),
-				"ZunionKey33": NewSortedSet([]MemberParam{
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZunionKey33": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			command: []string{"ZUNION", "non-existent", "ZunionKey32", "ZunionKey33"},
@@ -4124,31 +4129,31 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		presetValues     map[string]interface{}
 		destination      string
 		command          []string
-		expectedValue    *SortedSet
+		expectedValue    *sorted_set.SortedSet
 		expectedResponse int
 		expectedError    error
 	}{
 		{ // 1. Get the union between 2 sorted sets.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey1": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5},
+				"ZunionStoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5},
 				}),
-				"ZunionStoreKey2": NewSortedSet([]MemberParam{
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionStoreKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 			},
 			destination: "ZunionStoreDestinationKey1",
 			command:     []string{"ZUNIONSTORE", "ZunionStoreDestinationKey1", "ZunionStoreKey1", "ZunionStoreKey2"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2},
-				{value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6},
-				{value: "seven", score: 7}, {value: "eight", score: 8},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6},
+				{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 			}),
 			expectedResponse: 8,
 			expectedError:    nil,
@@ -4158,30 +4163,30 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			// By default, the SUM aggregate will be used.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey3": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionStoreKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionStoreKey4": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 8},
+				"ZunionStoreKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 8},
 				}),
-				"ZunionStoreKey5": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12}, {value: "thirty-six", score: 36},
+				"ZunionStoreKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 36},
 				}),
 			},
 			destination: "ZunionStoreDestinationKey2",
 			command:     []string{"ZUNIONSTORE", "ZunionStoreDestinationKey2", "ZunionStoreKey3", "ZunionStoreKey4", "ZunionStoreKey5", "WITHSCORES"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 3}, {value: "two", score: 4}, {value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6}, {value: "seven", score: 7}, {value: "eight", score: 24},
-				{value: "nine", score: 9}, {value: "ten", score: 10}, {value: "eleven", score: 11},
-				{value: "twelve", score: 24}, {value: "thirty-six", score: 72},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 3}, {Value: "two", Score: 4}, {Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6}, {Value: "seven", Score: 7}, {Value: "eight", Score: 24},
+				{Value: "nine", Score: 9}, {Value: "ten", Score: 10}, {Value: "eleven", Score: 11},
+				{Value: "twelve", Score: 24}, {Value: "thirty-six", Score: 72},
 			}),
 			expectedResponse: 13,
 			expectedError:    nil,
@@ -4191,30 +4196,30 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			// Use MIN aggregate.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey6": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionStoreKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionStoreKey7": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZunionStoreKey7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZunionStoreKey8": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12}, {value: "thirty-six", score: 72},
+				"ZunionStoreKey8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 72},
 				}),
 			},
 			destination: "ZunionStoreDestinationKey3",
 			command:     []string{"ZUNIONSTORE", "ZunionStoreDestinationKey3", "ZunionStoreKey6", "ZunionStoreKey7", "ZunionStoreKey8", "WITHSCORES", "AGGREGATE", "MIN"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2}, {value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6}, {value: "seven", score: 7}, {value: "eight", score: 8},
-				{value: "nine", score: 9}, {value: "ten", score: 10}, {value: "eleven", score: 11},
-				{value: "twelve", score: 12}, {value: "thirty-six", score: 36},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2}, {Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6}, {Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+				{Value: "nine", Score: 9}, {Value: "ten", Score: 10}, {Value: "eleven", Score: 11},
+				{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 36},
 			}),
 			expectedResponse: 13,
 			expectedError:    nil,
@@ -4224,32 +4229,32 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			// Use MAX aggregate.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey9": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionStoreKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionStoreKey10": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZunionStoreKey10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZunionStoreKey11": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12}, {value: "thirty-six", score: 72},
+				"ZunionStoreKey11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 72},
 				}),
 			},
 			destination: "ZunionStoreDestinationKey4",
 			command: []string{
 				"ZUNIONSTORE", "ZunionStoreDestinationKey4", "ZunionStoreKey9", "ZunionStoreKey10", "ZunionStoreKey11", "WITHSCORES", "AGGREGATE", "MAX",
 			},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1000}, {value: "two", score: 2}, {value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6}, {value: "seven", score: 7}, {value: "eight", score: 800},
-				{value: "nine", score: 9}, {value: "ten", score: 10}, {value: "eleven", score: 11},
-				{value: "twelve", score: 12}, {value: "thirty-six", score: 72},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1000}, {Value: "two", Score: 2}, {Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6}, {Value: "seven", Score: 7}, {Value: "eight", Score: 800},
+				{Value: "nine", Score: 9}, {Value: "ten", Score: 10}, {Value: "eleven", Score: 11},
+				{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 72},
 			}),
 			expectedResponse: 13,
 			expectedError:    nil,
@@ -4259,21 +4264,21 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			// Use SUM aggregate with weights modifier.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey12": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionStoreKey12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionStoreKey13": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZunionStoreKey13": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZunionStoreKey14": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZunionStoreKey14": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZunionStoreDestinationKey5",
@@ -4281,11 +4286,11 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 				"ZUNIONSTORE", "ZunionStoreDestinationKey5", "ZunionStoreKey12", "ZunionStoreKey13", "ZunionStoreKey14",
 				"WITHSCORES", "AGGREGATE", "SUM", "WEIGHTS", "1", "2", "3",
 			},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 3102}, {value: "two", score: 6}, {value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6}, {value: "seven", score: 7}, {value: "eight", score: 2568},
-				{value: "nine", score: 27}, {value: "ten", score: 30}, {value: "eleven", score: 22},
-				{value: "twelve", score: 60}, {value: "thirty-six", score: 72},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 3102}, {Value: "two", Score: 6}, {Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6}, {Value: "seven", Score: 7}, {Value: "eight", Score: 2568},
+				{Value: "nine", Score: 27}, {Value: "ten", Score: 30}, {Value: "eleven", Score: 22},
+				{Value: "twelve", Score: 60}, {Value: "thirty-six", Score: 72},
 			}),
 			expectedResponse: 13,
 			expectedError:    nil,
@@ -4295,32 +4300,32 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			// Use MAX aggregate with added weights.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey15": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionStoreKey15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionStoreKey16": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZunionStoreKey16": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZunionStoreKey17": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZunionStoreKey17": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZunionStoreDestinationKey6",
 			command: []string{
 				"ZUNIONSTORE", "ZunionStoreDestinationKey6", "ZunionStoreKey15", "ZunionStoreKey16", "ZunionStoreKey17",
 				"WITHSCORES", "AGGREGATE", "MAX", "WEIGHTS", "1", "2", "3"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 3000}, {value: "two", score: 4}, {value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6}, {value: "seven", score: 7}, {value: "eight", score: 2400},
-				{value: "nine", score: 27}, {value: "ten", score: 30}, {value: "eleven", score: 22},
-				{value: "twelve", score: 36}, {value: "thirty-six", score: 72},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 3000}, {Value: "two", Score: 4}, {Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6}, {Value: "seven", Score: 7}, {Value: "eight", Score: 2400},
+				{Value: "nine", Score: 27}, {Value: "ten", Score: 30}, {Value: "eleven", Score: 22},
+				{Value: "twelve", Score: 36}, {Value: "thirty-six", Score: 72},
 			}),
 			expectedResponse: 13,
 			expectedError:    nil,
@@ -4330,21 +4335,21 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			// Use MIN aggregate with added weights.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey18": NewSortedSet([]MemberParam{
-					{value: "one", score: 100}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionStoreKey18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 100}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionStoreKey19": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11}, {value: "eight", score: 80},
+				"ZunionStoreKey19": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"ZunionStoreKey20": NewSortedSet([]MemberParam{
-					{value: "one", score: 1000}, {value: "eight", score: 800},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZunionStoreKey20": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZunionStoreDestinationKey7",
@@ -4352,11 +4357,11 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 				"ZUNIONSTORE", "ZunionStoreDestinationKey7", "ZunionStoreKey18", "ZunionStoreKey19", "ZunionStoreKey20",
 				"WITHSCORES", "AGGREGATE", "MIN", "WEIGHTS", "1", "2", "3",
 			},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 2}, {value: "two", score: 2}, {value: "three", score: 3}, {value: "four", score: 4},
-				{value: "five", score: 5}, {value: "six", score: 6}, {value: "seven", score: 7}, {value: "eight", score: 8},
-				{value: "nine", score: 27}, {value: "ten", score: 30}, {value: "eleven", score: 22},
-				{value: "twelve", score: 24}, {value: "thirty-six", score: 72},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 2}, {Value: "two", Score: 2}, {Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6}, {Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+				{Value: "nine", Score: 27}, {Value: "ten", Score: 30}, {Value: "eleven", Score: 22},
+				{Value: "twelve", Score: 24}, {Value: "thirty-six", Score: 72},
 			}),
 			expectedResponse: 13,
 			expectedError:    nil,
@@ -4364,13 +4369,13 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{ // 8. Throw an error if there are more weights than keys
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey21": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionStoreKey21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionStoreKey22": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZunionStoreKey22": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			destination:      "ZunionStoreDestinationKey8",
 			command:          []string{"ZUNIONSTORE", "ZunionStoreDestinationKey8", "ZunionStoreKey21", "ZunionStoreKey22", "WEIGHTS", "1", "2", "3"},
@@ -4380,16 +4385,16 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{ // 9. Throw an error if there are fewer weights than keys
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey23": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionStoreKey23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"ZunionStoreKey24": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
+				"ZunionStoreKey24": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				}),
-				"ZunionStoreKey25": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZunionStoreKey25": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			destination:      "ZunionStoreDestinationKey9",
 			command:          []string{"ZUNIONSTORE", "ZunionStoreDestinationKey9", "ZunionStoreKey23", "ZunionStoreKey24", "ZunionStoreKey25", "WEIGHTS", "5", "4"},
@@ -4399,9 +4404,9 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{ // 10. Throw an error if there are no keys provided
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey26": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
-				"ZunionStoreKey27": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
-				"ZunionStoreKey28": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZunionStoreKey26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"ZunionStoreKey27": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"ZunionStoreKey28": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			command:          []string{"ZUNIONSTORE", "WEIGHTS", "5", "4"},
 			expectedResponse: 0,
@@ -4410,14 +4415,14 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{ // 11. Throw an error if any of the provided keys are not sorted sets
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey29": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "three", score: 3}, {value: "four", score: 4},
-					{value: "five", score: 5}, {value: "six", score: 6},
-					{value: "seven", score: 7}, {value: "eight", score: 8},
+				"ZunionStoreKey29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "three", Score: 3}, {Value: "four", Score: 4},
+					{Value: "five", Score: 5}, {Value: "six", Score: 6},
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 				"ZunionStoreKey30": "Default value",
-				"ZunionStoreKey31": NewSortedSet([]MemberParam{{value: "one", score: 1}}),
+				"ZunionStoreKey31": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			destination:      "ZunionStoreDestinationKey11",
 			command:          []string{"ZUNIONSTORE", "ZunionStoreDestinationKey11", "ZunionStoreKey29", "ZunionStoreKey30", "ZunionStoreKey31"},
@@ -4427,23 +4432,23 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{ // 12. If any of the keys does not exist, skip it.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"ZunionStoreKey32": NewSortedSet([]MemberParam{
-					{value: "one", score: 1}, {value: "two", score: 2},
-					{value: "thirty-six", score: 36}, {value: "twelve", score: 12},
-					{value: "eleven", score: 11},
+				"ZunionStoreKey32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "one", Score: 1}, {Value: "two", Score: 2},
+					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
+					{Value: "eleven", Score: 11},
 				}),
-				"ZunionStoreKey33": NewSortedSet([]MemberParam{
-					{value: "seven", score: 7}, {value: "eight", score: 8},
-					{value: "nine", score: 9}, {value: "ten", score: 10},
-					{value: "twelve", score: 12},
+				"ZunionStoreKey33": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+					{Value: "twelve", Score: 12},
 				}),
 			},
 			destination: "ZunionStoreDestinationKey12",
 			command:     []string{"ZUNIONSTORE", "ZunionStoreDestinationKey12", "non-existent", "ZunionStoreKey32", "ZunionStoreKey33"},
-			expectedValue: NewSortedSet([]MemberParam{
-				{value: "one", score: 1}, {value: "two", score: 2}, {value: "seven", score: 7}, {value: "eight", score: 8},
-				{value: "nine", score: 9}, {value: "ten", score: 10}, {value: "eleven", score: 11}, {value: "twelve", score: 12},
-				{value: "thirty-six", score: 36},
+			expectedValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2}, {Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+				{Value: "nine", Score: 9}, {Value: "ten", Score: 10}, {Value: "eleven", Score: 11}, {Value: "twelve", Score: 12},
+				{Value: "thirty-six", Score: 36},
 			}),
 			expectedResponse: 9,
 			expectedError:    nil,
@@ -4492,13 +4497,13 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, test.destination).(*SortedSet)
+			set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
 			if !ok {
 				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
 			}
 			for _, elem := range set.GetAll() {
-				if !test.expectedValue.Contains(elem.value) {
-					t.Errorf("could not find element %s in the expected values", elem.value)
+				if !test.expectedValue.Contains(elem.Value) {
+					t.Errorf("could not find element %s in the expected values", elem.Value)
 				}
 			}
 			mockServer.KeyRUnlock(ctx, test.destination)

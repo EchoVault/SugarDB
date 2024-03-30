@@ -15,7 +15,6 @@
 package sorted_set
 
 import (
-	"cmp"
 	"errors"
 	"slices"
 	"strconv"
@@ -90,110 +89,4 @@ func extractKeysWeightsAggregateWithScores(cmd []string) ([]string, []int, strin
 	}
 
 	return keys, weights, aggregate, withscores, nil
-}
-
-func validateUpdatePolicy(updatePolicy interface{}) (string, error) {
-	if updatePolicy == nil {
-		return "", nil
-	}
-	err := errors.New("update policy must be a string of value NX or XX")
-	policy, ok := updatePolicy.(string)
-	if !ok {
-		return "", err
-	}
-	if !slices.Contains([]string{"nx", "xx"}, strings.ToLower(policy)) {
-		return "", err
-	}
-	return policy, nil
-}
-
-func validateComparison(comparison interface{}) (string, error) {
-	if comparison == nil {
-		return "", nil
-	}
-	err := errors.New("comparison condition must be a string of value LT or GT")
-	comp, ok := comparison.(string)
-	if !ok {
-		return "", err
-	}
-	if !slices.Contains([]string{"lt", "gt"}, strings.ToLower(comp)) {
-		return "", err
-	}
-	return comp, nil
-}
-
-func validateChanged(changed interface{}) (string, error) {
-	if changed == nil {
-		return "", nil
-	}
-	err := errors.New("changed condition should be a string of value CH")
-	ch, ok := changed.(string)
-	if !ok {
-		return "", err
-	}
-	if !strings.EqualFold(ch, "ch") {
-		return "", err
-	}
-	return ch, nil
-}
-
-func validateIncr(incr interface{}) (string, error) {
-	if incr == nil {
-		return "", nil
-	}
-	err := errors.New("incr condition should be a string of value INCR")
-	i, ok := incr.(string)
-	if !ok {
-		return "", err
-	}
-	if !strings.EqualFold(i, "incr") {
-		return "", err
-	}
-	return i, nil
-}
-
-func compareScores(old Score, new Score, comp string) Score {
-	switch strings.ToLower(comp) {
-	default:
-		return new
-	case "lt":
-		if new < old {
-			return new
-		}
-		return old
-	case "gt":
-		if new > old {
-			return new
-		}
-		return old
-	}
-}
-
-// compareLex returns -1 when s2 is lexicographically greater than s1,
-// 0 if they're equal and 1 if s2 is lexicographically less than s1.
-func compareLex(s1 string, s2 string) int {
-	if s1 == s2 {
-		return 0
-	}
-	if strings.Contains(s1, s2) {
-		return 1
-	}
-	if strings.Contains(s2, s1) {
-		return -1
-	}
-
-	limit := len(s1)
-	if len(s2) < limit {
-		limit = len(s2)
-	}
-
-	var c int
-	for i := 0; i < limit; i++ {
-		c = cmp.Compare(s1[i], s2[i])
-		if c != 0 {
-			break
-		}
-	}
-
-	return c
 }

@@ -40,15 +40,15 @@ type ZUNIONSTOREOptions ZINTEROptions
 type ZMPOPOptions struct {
 	Min   bool
 	Max   bool
-	Count int
+	Count uint
 }
 
 type ZRANGEOptions struct {
-	ByScore bool
-	ByLex   bool
-	Rev     bool
-	Offset  int
-	Count   int
+	WithScores bool
+	ByScore    bool
+	ByLex      bool
+	Offset     uint
+	Count      uint
 }
 type ZRANGESTOREOptions ZRANGEOptions
 
@@ -87,8 +87,8 @@ func buildIntegerScoreMap(arr [][]string, withscores bool) (map[int]float64, err
 	return result, nil
 }
 
-func (server *EchoVault) ZADD(entries map[string]float64, options ZADDOptions) (int, error) {
-	cmd := []string{"ZADD"}
+func (server *EchoVault) ZADD(key string, entries map[string]float64, options ZADDOptions) (int, error) {
+	cmd := []string{"ZADD", key}
 
 	switch {
 	case options.NX:
@@ -113,7 +113,7 @@ func (server *EchoVault) ZADD(entries map[string]float64, options ZADDOptions) (
 	}
 
 	for member, score := range entries {
-		cmd = append(cmd, []string{member, strconv.FormatFloat(score, 'f', -1, 64)}...)
+		cmd = append(cmd, []string{strconv.FormatFloat(score, 'f', -1, 64), member}...)
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
@@ -191,8 +191,8 @@ func (server *EchoVault) ZINTER(keys []string, options ZINTEROptions) (map[strin
 
 	if len(options.Weights) > 0 {
 		cmd = append(cmd, "WEIGHTS")
-		for _, weight := range options.Weights {
-			cmd = append(cmd, strconv.FormatFloat(float64(weight), 'f', -1, 64))
+		for i := 0; i < len(options.Weights); i++ {
+			cmd = append(cmd, strconv.FormatFloat(options.Weights[i], 'f', -1, 64))
 		}
 	}
 
@@ -314,7 +314,7 @@ func (server *EchoVault) ZMPOP(keys []string, options ZMPOPOptions) ([][]string,
 
 	switch {
 	case options.Count != 0:
-		cmd = append(cmd, []string{"COUNT", strconv.Itoa(options.Count)}...)
+		cmd = append(cmd, []string{"COUNT", strconv.Itoa(int(options.Count))}...)
 	default:
 		cmd = append(cmd, []string{"COUNT", strconv.Itoa(1)}...)
 	}
@@ -327,7 +327,7 @@ func (server *EchoVault) ZMPOP(keys []string, options ZMPOPOptions) ([][]string,
 	return internal.ParseNestedStringArrayResponse(b)
 }
 
-func (server *EchoVault) ZMSCORE(key string, members ...string) ([]float64, error) {
+func (server *EchoVault) ZMSCORE(key string, members ...string) ([]interface{}, error) {
 	cmd := []string{"ZMSCORE", key}
 	for _, member := range members {
 		cmd = append(cmd, member)
@@ -343,8 +343,12 @@ func (server *EchoVault) ZMSCORE(key string, members ...string) ([]float64, erro
 		return nil, err
 	}
 
-	scores := make([]float64, len(arr))
+	scores := make([]interface{}, len(arr))
 	for i, e := range arr {
+		if e == "" {
+			scores[i] = nil
+			continue
+		}
 		score, err := strconv.ParseFloat(e, 64)
 		if err != nil {
 			return nil, err
@@ -381,7 +385,7 @@ func (server *EchoVault) ZPOPMIN(key string, count int) ([][]string, error) {
 	return internal.ParseNestedStringArrayResponse(b)
 }
 
-func (server *EchoVault) ZRANDMEMBER(key string, count int, withscores bool) (map[string]float64, error) {
+func (server *EchoVault) ZRANDMEMBER(key string, count int, withscores bool) ([][]string, error) {
 	cmd := []string{"ZRANDMEMBER", key}
 	if count != 0 {
 		cmd = append(cmd, strconv.Itoa(count))
@@ -395,12 +399,7 @@ func (server *EchoVault) ZRANDMEMBER(key string, count int, withscores bool) (ma
 		return nil, err
 	}
 
-	arr, err := internal.ParseNestedStringArrayResponse(b)
-	if err != nil {
-		return nil, err
-	}
-
-	return buildMemberScoreMap(arr, withscores)
+	return internal.ParseNestedStringArrayResponse(b)
 }
 
 func (server *EchoVault) ZRANK(key string, member string, withscores bool) (map[int]float64, error) {
@@ -414,9 +413,28 @@ func (server *EchoVault) ZRANK(key string, member string, withscores bool) (map[
 		return nil, err
 	}
 
-	arr, err := internal.ParseNestedStringArrayResponse(b)
+	arr, err := internal.ParseStringArrayResponse(b)
 
-	return buildIntegerScoreMap(arr, withscores)
+	if len(arr) == 0 {
+		return nil, nil
+	}
+
+	s, err := strconv.Atoi(arr[0])
+	if err != nil {
+		return nil, err
+	}
+
+	res := map[int]float64{s: 0}
+
+	if withscores {
+		f, err := strconv.ParseFloat(arr[1], 64)
+		if err != nil {
+			return nil, err
+		}
+		res[s] = f
+	}
+
+	return res, nil
 }
 
 func (server *EchoVault) ZREVRANK(key string, member string, withscores bool) (map[int]float64, error) {
@@ -508,11 +526,13 @@ func (server *EchoVault) ZRANGE(key, start, stop string, options ZRANGEOptions) 
 		cmd = append(cmd, "BYSCORE")
 	}
 
-	if options.Rev {
-		cmd = append(cmd, "REV")
+	if options.WithScores {
+		cmd = append(cmd, "WITHSCORES")
 	}
 
-	cmd = append(cmd, []string{"LIMIT", strconv.Itoa(options.Offset), strconv.Itoa(options.Count)}...)
+	if options.Offset != 0 && options.Count != 0 {
+		cmd = append(cmd, []string{"LIMIT", strconv.Itoa(int(options.Offset)), strconv.Itoa(int(options.Count))}...)
+	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
 	if err != nil {
@@ -524,7 +544,7 @@ func (server *EchoVault) ZRANGE(key, start, stop string, options ZRANGEOptions) 
 		return nil, err
 	}
 
-	return buildMemberScoreMap(arr, true)
+	return buildMemberScoreMap(arr, options.WithScores)
 }
 
 func (server *EchoVault) ZRANGESTORE(destination, source, start, stop string, options ZRANGESTOREOptions) (int, error) {
@@ -539,11 +559,9 @@ func (server *EchoVault) ZRANGESTORE(destination, source, start, stop string, op
 		cmd = append(cmd, "BYSCORE")
 	}
 
-	if options.Rev {
-		cmd = append(cmd, "REV")
+	if options.Offset != 0 && options.Count != 0 {
+		cmd = append(cmd, []string{"LIMIT", strconv.Itoa(int(options.Offset)), strconv.Itoa(int(options.Count))}...)
 	}
-
-	cmd = append(cmd, []string{"LIMIT", strconv.Itoa(options.Offset), strconv.Itoa(options.Count)}...)
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
 	if err != nil {
