@@ -1,14 +1,22 @@
 package echovault
 
 import (
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/commands"
+	"github.com/echovault/echovault/pkg/utils"
 	"reflect"
 	"slices"
 	"testing"
 )
 
 func TestEchoVault_HDEL(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -69,7 +77,13 @@ func TestEchoVault_HDEL(t *testing.T) {
 }
 
 func TestEchoVault_HEXISTS(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -122,7 +136,13 @@ func TestEchoVault_HEXISTS(t *testing.T) {
 }
 
 func TestEchoVault_HGETALL(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -178,7 +198,13 @@ func TestEchoVault_HGETALL(t *testing.T) {
 }
 
 func TestEchoVault_HINCRBY(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	const (
 		HINCRBY      = "HINCRBY"
@@ -286,7 +312,13 @@ func TestEchoVault_HINCRBY(t *testing.T) {
 }
 
 func TestEchoVault_HKEYS(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -340,7 +372,13 @@ func TestEchoVault_HKEYS(t *testing.T) {
 }
 
 func TestEchoVault_HLEN(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -389,7 +427,13 @@ func TestEchoVault_HLEN(t *testing.T) {
 }
 
 func TestEchoVault_HRANDFIELD(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -517,7 +561,13 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 }
 
 func TestEchoVault_HSET(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name            string
@@ -601,7 +651,13 @@ func TestEchoVault_HSET(t *testing.T) {
 }
 
 func TestEchoVault_HSTRLEN(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -664,7 +720,13 @@ func TestEchoVault_HSTRLEN(t *testing.T) {
 }
 
 func TestEchoVault_HVALS(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string

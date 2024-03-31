@@ -2,13 +2,21 @@ package echovault
 
 import (
 	"fmt"
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/commands"
+	"github.com/echovault/echovault/pkg/utils"
 	"reflect"
 	"testing"
 )
 
 func TestEchoVault_LLEN(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		preset      bool
@@ -61,7 +69,13 @@ func TestEchoVault_LLEN(t *testing.T) {
 }
 
 func TestEchoVault_LINDEX(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		preset      bool
@@ -155,7 +169,13 @@ func TestEchoVault_LINDEX(t *testing.T) {
 }
 
 func TestEchoVault_LMOVE(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -321,7 +341,13 @@ func TestEchoVault_LMOVE(t *testing.T) {
 }
 
 func TestEchoVault_POP(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -387,7 +413,13 @@ func TestEchoVault_POP(t *testing.T) {
 }
 
 func TestEchoVault_LPUSH(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -458,7 +490,13 @@ func TestEchoVault_LPUSH(t *testing.T) {
 }
 
 func TestEchoVault_RPUSH(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -509,7 +547,13 @@ func TestEchoVault_RPUSH(t *testing.T) {
 }
 
 func TestEchoVault_LRANGE(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -624,7 +668,13 @@ func TestEchoVault_LRANGE(t *testing.T) {
 }
 
 func TestEchoVault_LREM(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -685,7 +735,13 @@ func TestEchoVault_LREM(t *testing.T) {
 }
 
 func TestEchoVault_LSET(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -786,7 +842,13 @@ func TestEchoVault_LSET(t *testing.T) {
 }
 
 func TestEchoVault_LTRIM(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string

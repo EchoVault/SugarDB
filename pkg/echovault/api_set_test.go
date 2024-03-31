@@ -1,15 +1,23 @@
 package echovault
 
 import (
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/set"
 	"github.com/echovault/echovault/pkg/commands"
+	"github.com/echovault/echovault/pkg/utils"
 	"reflect"
 	"slices"
 	"testing"
 )
 
 func TestEchoVault_SADD(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -62,7 +70,13 @@ func TestEchoVault_SADD(t *testing.T) {
 }
 
 func TestEchoVault_SCARD(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -111,7 +125,13 @@ func TestEchoVault_SCARD(t *testing.T) {
 }
 
 func TestEchoVault_SDIFF(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name         string
@@ -199,7 +219,13 @@ func TestEchoVault_SDIFF(t *testing.T) {
 }
 
 func TestEchoVault_SDIFFSTORE(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name         string
@@ -288,7 +314,13 @@ func TestEchoVault_SDIFFSTORE(t *testing.T) {
 }
 
 func TestEchoVault_SINTER(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name         string
@@ -376,7 +408,13 @@ func TestEchoVault_SINTER(t *testing.T) {
 }
 
 func TestEchoVault_SINTERCARD(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name         string
@@ -476,7 +514,13 @@ func TestEchoVault_SINTERCARD(t *testing.T) {
 }
 
 func TestEchoVault_SINTERSTORE(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name         string
@@ -565,7 +609,13 @@ func TestEchoVault_SINTERSTORE(t *testing.T) {
 }
 
 func TestEchoVault_SISMEMBER(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -618,7 +668,13 @@ func TestEchoVault_SISMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_SMEMBERS(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -672,7 +728,13 @@ func TestEchoVault_SMEMBERS(t *testing.T) {
 }
 
 func TestEchoVault_SMISMEMBER(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -744,7 +806,13 @@ func TestEchoVault_SMISMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_SMOVE(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name         string
@@ -824,7 +892,13 @@ func TestEchoVault_SMOVE(t *testing.T) {
 }
 
 func TestEchoVault_SPOP(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -871,7 +945,13 @@ func TestEchoVault_SPOP(t *testing.T) {
 }
 
 func TestEchoVault_SRANDMEMBER(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -934,7 +1014,13 @@ func TestEchoVault_SRANDMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_SREM(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -987,7 +1073,13 @@ func TestEchoVault_SREM(t *testing.T) {
 }
 
 func TestEchoVault_SUNION(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name         string
@@ -1068,7 +1160,13 @@ func TestEchoVault_SUNION(t *testing.T) {
 }
 
 func TestEchoVault_SUNIONSTORE(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: utils.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name         string

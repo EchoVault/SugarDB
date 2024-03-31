@@ -113,6 +113,10 @@ func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
 func (store *AppendStore) Write(command []byte) error {
 	store.mut.Lock()
 	defer store.mut.Unlock()
+	// Skip operation if ReadWriter is not defined
+	if store.rw == nil {
+		return nil
+	}
 	// Add new line before writing to AOF file.
 	out := append(command, []byte("\r\n")...)
 	if _, err := store.rw.Write(out); err != nil {
