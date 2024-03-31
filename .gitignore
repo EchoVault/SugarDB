@@ -4,5 +4,6 @@ volumes
 /config/
 
 dist/
-src/modules/*/aof
+pkg/modules/*/aof
+pkg/echovault/aof
 dump.rdb

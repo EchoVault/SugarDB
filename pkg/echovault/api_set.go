@@ -65,7 +65,9 @@ func (server *EchoVault) SINTER(keys ...string) ([]string, error) {
 
 func (server *EchoVault) SINTERCARD(keys []string, limit int) (int, error) {
 	cmd := append([]string{"SINTERCARD"}, keys...)
-	cmd = append(cmd, strconv.Itoa(limit))
+	if limit > 0 {
+		cmd = append(cmd, []string{"LIMIT", strconv.Itoa(limit)}...)
+	}
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
 	if err != nil {
 		return 0, err
