@@ -23,7 +23,7 @@ services:
       - BOOTSTRAP_CLUSTER=false
       - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
-      - PASSWORD=default_password
+      - PASSWORD=password1
       - FORWARD_COMMAND=false
       - SNAPSHOT_THRESHOLD=1000
       - SNAPSHOT_INTERVAL=5m30s
@@ -34,9 +34,9 @@ services:
       - EVICTION_POLICY=noeviction
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
@@ -77,9 +77,9 @@ services:
       - EVICTION_POLICY=noeviction
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
@@ -120,9 +120,9 @@ services:
       - EVICTION_POLICY=noeviction
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
@@ -163,9 +163,9 @@ services:
       - EVICTION_POLICY=noeviction
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
@@ -206,9 +206,9 @@ services:
       - EVICTION_POLICY=noeviction
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
@@ -249,9 +249,9 @@ services:
       - EVICTION_POLICY=noeviction
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
-      # List of server cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
     ports:
