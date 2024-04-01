@@ -18,7 +18,7 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/set"
 	"github.com/echovault/echovault/pkg/commands"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
 	"reflect"
 	"slices"
 	"testing"
@@ -29,7 +29,7 @@ func TestEchoVault_SADD(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -88,7 +88,7 @@ func TestEchoVault_SCARD(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -143,7 +143,7 @@ func TestEchoVault_SDIFF(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -237,7 +237,7 @@ func TestEchoVault_SDIFFSTORE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -332,7 +332,7 @@ func TestEchoVault_SINTER(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -426,7 +426,7 @@ func TestEchoVault_SINTERCARD(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -532,7 +532,7 @@ func TestEchoVault_SINTERSTORE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -627,7 +627,7 @@ func TestEchoVault_SISMEMBER(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -686,7 +686,7 @@ func TestEchoVault_SMEMBERS(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -746,7 +746,7 @@ func TestEchoVault_SMISMEMBER(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -824,7 +824,7 @@ func TestEchoVault_SMOVE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -910,7 +910,7 @@ func TestEchoVault_SPOP(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -963,7 +963,7 @@ func TestEchoVault_SRANDMEMBER(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -1032,7 +1032,7 @@ func TestEchoVault_SREM(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -1091,7 +1091,7 @@ func TestEchoVault_SUNION(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -1178,7 +1178,7 @@ func TestEchoVault_SUNIONSTORE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 

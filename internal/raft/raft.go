@@ -27,16 +27,16 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 )
 
 type Opts struct {
 	Config     config.Config
-	EchoVault  utils.EchoVault
+	EchoVault  types.EchoVault
 	GetState   func() map[string]internal.KeyData
-	GetCommand func(command string) (utils.Command, error)
+	GetCommand func(command string) (types.Command, error)
 	DeleteKey  func(ctx context.Context, key string) error
 }
 

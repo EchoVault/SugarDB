@@ -20,13 +20,14 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	set2 "github.com/echovault/echovault/internal/set"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"net"
 	"slices"
 	"strings"
 )
 
-func handleSADD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSADD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := saddKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -63,7 +64,7 @@ func handleSADD(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleSCARD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSCARD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := scardKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -90,7 +91,7 @@ func handleSCARD(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	return []byte(fmt.Sprintf(":%d\r\n", cardinality)), nil
 }
 
-func handleSDIFF(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSDIFF(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sdiffKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -151,7 +152,7 @@ func handleSDIFF(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	return []byte(res), nil
 }
 
-func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sdiffstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -227,7 +228,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server utils.EchoVault,
 	return []byte(res), nil
 }
 
-func handleSINTER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSINTER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sinterKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -282,7 +283,7 @@ func handleSINTER(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(res), nil
 }
 
-func handleSINTERCARD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSINTERCARD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sintercardKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -294,7 +295,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.EchoVault,
 		return strings.EqualFold(s, "limit")
 	})
 	if limitIdx >= 0 && limitIdx < 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	if limitIdx != -1 {
 		limitIdx += 1
@@ -349,7 +350,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server utils.EchoVault,
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sinterstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -407,7 +408,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server utils.EchoVault
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleSISMEMBER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSISMEMBER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sismemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -436,7 +437,7 @@ func handleSISMEMBER(ctx context.Context, cmd []string, server utils.EchoVault, 
 	return []byte(":1\r\n"), nil
 }
 
-func handleSMEMBERS(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSMEMBERS(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := smembersKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -471,7 +472,7 @@ func handleSMEMBERS(ctx context.Context, cmd []string, server utils.EchoVault, c
 	return []byte(res), nil
 }
 
-func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSMISMEMBER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := smismemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -514,7 +515,7 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server utils.EchoVault,
 	return []byte(res), nil
 }
 
-func handleSMOVE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSMOVE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := smoveKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -568,7 +569,7 @@ func handleSMOVE(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	return []byte(fmt.Sprintf(":%d\r\n", res)), nil
 }
 
-func handleSPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSPOP(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := spopKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -612,7 +613,7 @@ func handleSPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	return []byte(res), nil
 }
 
-func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := srandmemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -656,7 +657,7 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server utils.EchoVault
 	return []byte(res), nil
 }
 
-func handleSREM(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSREM(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sremKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -684,7 +685,7 @@ func handleSREM(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleSUNION(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSUNION(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sunionKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -735,7 +736,7 @@ func handleSUNION(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(res), nil
 }
 
-func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := sunionstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -794,12 +795,12 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server utils.EchoVault
 	return []byte(fmt.Sprintf(":%d\r\n", union.Cardinality())), nil
 }
 
-func Commands() []utils.Command {
-	return []utils.Command{
+func Commands() []types.Command {
+	return []types.Command{
 		{
 			Command:           "sadd",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(SADD key member [member...]) Add one or more members to the set. If the set does not exist, it's created.",
 			Sync:              true,
 			KeyExtractionFunc: saddKeyFunc,
@@ -807,8 +808,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "scard",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(SCARD key) Returns the cardinality of the set.",
 			Sync:              false,
 			KeyExtractionFunc: scardKeyFunc,
@@ -816,8 +817,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:    "sdiff",
-			Module:     utils.SetModule,
-			Categories: []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SetModule,
+			Categories: []string{constants.SetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(SDIFF key [key...]) Returns the difference between all the sets in the given keys.
 If the first key provided is the only valid set, then this key's set will be returned as the result.
 All keys that are non-existed or hold values that are not sets will be skipped.`,
@@ -827,8 +828,8 @@ All keys that are non-existed or hold values that are not sets will be skipped.`
 		},
 		{
 			Command:    "sdiffstore",
-			Module:     utils.SetModule,
-			Categories: []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:     constants.SetModule,
+			Categories: []string{constants.SetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `(SDIFFSTORE destination key [key...]) Works the same as SDIFF but also stores the result at 'destination'.
 Returns the cardinality of the new set`,
 			Sync:              true,
@@ -837,8 +838,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sinter",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       "(SINTER key [key...]) Returns the intersection of multiple sets.",
 			Sync:              false,
 			KeyExtractionFunc: sinterKeyFunc,
@@ -846,8 +847,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sintercard",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
 			Sync:              false,
 			KeyExtractionFunc: sintercardKeyFunc,
@@ -855,8 +856,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sinterstore",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       "(SINTERSTORE destination key [key...]) Stores the intersection of multiple sets at the destination key.",
 			Sync:              true,
 			KeyExtractionFunc: sinterstoreKeyFunc,
@@ -864,8 +865,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sismember",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       "(SISMEMBER key member) Returns if member is contained in the set.",
 			Sync:              false,
 			KeyExtractionFunc: sismemberKeyFunc,
@@ -873,8 +874,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "smembers",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       "(SMEMBERS key) Returns all members of a set.",
 			Sync:              false,
 			KeyExtractionFunc: smembersKeyFunc,
@@ -882,8 +883,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "smismember",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.FastCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       "(SMISMEMBER key member [member...]) Returns if multiple members are in the set.",
 			Sync:              false,
 			KeyExtractionFunc: smismemberKeyFunc,
@@ -892,8 +893,8 @@ Returns the cardinality of the new set`,
 
 		{
 			Command:           "smove",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(SMOVE source destination member) Moves a member from source set to destination set.",
 			Sync:              true,
 			KeyExtractionFunc: smoveKeyFunc,
@@ -901,8 +902,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "spop",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       "(SPOP key [count]) Returns and removes one or more random members from the set.",
 			Sync:              true,
 			KeyExtractionFunc: spopKeyFunc,
@@ -910,8 +911,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "srandmember",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       "(SRANDMEMBER key [count]) Returns one or more random members from the set without removing them.",
 			Sync:              false,
 			KeyExtractionFunc: srandmemberKeyFunc,
@@ -919,8 +920,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "srem",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(SREM key member [member...]) Remove one or more members from a set.",
 			Sync:              true,
 			KeyExtractionFunc: sremKeyFunc,
@@ -928,8 +929,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sunion",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       "(SUNION key [key...]) Returns the members of the set resulting from the union of the provided sets.",
 			Sync:              false,
 			KeyExtractionFunc: sunionKeyFunc,
@@ -937,8 +938,8 @@ Returns the cardinality of the new set`,
 		},
 		{
 			Command:           "sunionstore",
-			Module:            utils.SetModule,
-			Categories:        []string{utils.SetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.SetModule,
+			Categories:        []string{constants.SetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       "(SUNIONSTORE destination key [key...]) Stores the union of the given sets into destination.",
 			Sync:              true,
 			KeyExtractionFunc: sunionstoreKeyFunc,

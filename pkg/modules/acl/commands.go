@@ -20,7 +20,8 @@ import (
 	"errors"
 	"fmt"
 	internal_acl "github.com/echovault/echovault/internal/acl"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"gopkg.in/yaml.v3"
 	"log"
 	"net"
@@ -30,9 +31,9 @@ import (
 	"strings"
 )
 
-func handleAuth(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleAuth(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
@@ -41,12 +42,12 @@ func handleAuth(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	if err := acl.AuthenticateConnection(ctx, conn, cmd); err != nil {
 		return nil, err
 	}
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handleGetUser(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleGetUser(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
 	acl, ok := server.GetACL().(*internal_acl.ACL)
@@ -161,9 +162,9 @@ func handleGetUser(_ context.Context, cmd []string, server utils.EchoVault, _ *n
 	return []byte(res), nil
 }
 
-func handleCat(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleCat(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
 	categories := make(map[string][]string)
@@ -221,7 +222,7 @@ func handleCat(_ context.Context, cmd []string, server utils.EchoVault, _ *net.C
 	return nil, fmt.Errorf("category %s not found", strings.ToUpper(cmd[2]))
 }
 
-func handleUsers(_ context.Context, _ []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleUsers(_ context.Context, _ []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -234,7 +235,7 @@ func handleUsers(_ context.Context, _ []string, server utils.EchoVault, _ *net.C
 	return []byte(res), nil
 }
 
-func handleSetUser(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleSetUser(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -242,12 +243,12 @@ func handleSetUser(_ context.Context, cmd []string, server utils.EchoVault, _ *n
 	if err := acl.SetUser(cmd[2:]); err != nil {
 		return nil, err
 	}
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handleDelUser(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleDelUser(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
@@ -256,10 +257,10 @@ func handleDelUser(ctx context.Context, cmd []string, server utils.EchoVault, _ 
 	if err := acl.DeleteUser(ctx, cmd[2:]); err != nil {
 		return nil, err
 	}
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handleWhoAmI(_ context.Context, _ []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleWhoAmI(_ context.Context, _ []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -268,9 +269,9 @@ func handleWhoAmI(_ context.Context, _ []string, server utils.EchoVault, conn *n
 	return []byte(fmt.Sprintf("+%s\r\n", connectionInfo.User.Username)), nil
 }
 
-func handleList(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleList(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	acl, ok := server.GetACL().(*internal_acl.ACL)
 	if !ok {
@@ -364,9 +365,9 @@ func handleList(_ context.Context, cmd []string, server utils.EchoVault, _ *net.
 	return []byte(res), nil
 }
 
-func handleLoad(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleLoad(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) != 3 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
 	acl, ok := server.GetACL().(*internal_acl.ACL)
@@ -428,12 +429,12 @@ func handleLoad(_ context.Context, cmd []string, server utils.EchoVault, _ *net.
 		}
 	}
 
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handleSave(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleSave(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
 	acl, ok := server.GetACL().(*internal_acl.ACL)
@@ -486,15 +487,15 @@ func handleSave(_ context.Context, cmd []string, server utils.EchoVault, _ *net.
 		return nil, err
 	}
 
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func Commands() []utils.Command {
-	return []utils.Command{
+func Commands() []types.Command {
+	return []types.Command{
 		{
 			Command:     "auth",
-			Module:      utils.ACLModule,
-			Categories:  []string{utils.ConnectionCategory, utils.SlowCategory},
+			Module:      constants.ACLModule,
+			Categories:  []string{constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(AUTH [username] password) Authenticates the connection",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -504,18 +505,18 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:     "acl",
-			Module:      utils.ACLModule,
+			Module:      constants.ACLModule,
 			Categories:  []string{},
 			Description: "Access-Control-List commands",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				return []string{}, nil
 			},
-			SubCommands: []utils.SubCommand{
+			SubCommands: []types.SubCommand{
 				{
 					Command:    "cat",
-					Module:     utils.ACLModule,
-					Categories: []string{utils.SlowCategory},
+					Module:     constants.ACLModule,
+					Categories: []string{constants.SlowCategory},
 					Description: `(ACL CAT [category]) List all the categories. 
 If the optional category is provided, list all the commands in the category`,
 					Sync: false,
@@ -526,8 +527,8 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "users",
-					Module:      utils.ACLModule,
-					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Module:      constants.ACLModule,
+					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL USERS) List all usernames of the configured ACL users",
 					Sync:        false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -537,8 +538,8 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "setuser",
-					Module:      utils.ACLModule,
-					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Module:      constants.ACLModule,
+					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL SETUSER) Configure a new or existing user",
 					Sync:        true,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -548,8 +549,8 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "getuser",
-					Module:      utils.ACLModule,
-					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Module:      constants.ACLModule,
+					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL GETUSER username) List the ACL rules of a user",
 					Sync:        false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -559,8 +560,8 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "deluser",
-					Module:      utils.ACLModule,
-					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Module:      constants.ACLModule,
+					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL DELUSER username [username ...]) Deletes users and terminates their connections. Cannot delete default user",
 					Sync:        true,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -570,8 +571,8 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "whoami",
-					Module:      utils.ACLModule,
-					Categories:  []string{utils.FastCategory},
+					Module:      constants.ACLModule,
+					Categories:  []string{constants.FastCategory},
 					Description: "(ACL WHOAMI) Returns the authenticated user of the current connection",
 					Sync:        true,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -581,8 +582,8 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:     "list",
-					Module:      utils.ACLModule,
-					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Module:      constants.ACLModule,
+					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL LIST) Dumps effective acl rules in acl config file format",
 					Sync:        true,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {
@@ -592,8 +593,8 @@ If the optional category is provided, list all the commands in the category`,
 				},
 				{
 					Command:    "load",
-					Module:     utils.ACLModule,
-					Categories: []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Module:     constants.ACLModule,
+					Categories: []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: `
 (ACL LOAD <MERGE | REPLACE>) Reloads the rules from the configured ACL config file.
 When 'MERGE' is passed, users from config file who share a username with users in memory will be merged.
@@ -606,8 +607,8 @@ When 'REPLACE' is passed, users from config file who share a username with users
 				},
 				{
 					Command:     "save",
-					Module:      utils.ACLModule,
-					Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+					Module:      constants.ACLModule,
+					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL SAVE) Saves the effective ACL rules the configured ACL config file",
 					Sync:        true,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) {

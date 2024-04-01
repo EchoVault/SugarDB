@@ -19,7 +19,7 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/sorted_set"
 	"github.com/echovault/echovault/pkg/commands"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
 	"math"
 	"reflect"
 	"strconv"
@@ -31,7 +31,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -257,7 +257,7 @@ func TestEchoVault_ZCARD(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -320,7 +320,7 @@ func TestEchoVault_ZCOUNT(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -421,7 +421,7 @@ func TestEchoVault_ZDIFF(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -573,7 +573,7 @@ func TestEchoVault_ZDIFFSTORE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -694,7 +694,7 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -844,7 +844,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -1157,7 +1157,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -1484,7 +1484,7 @@ func TestEchoVault_ZLEXCOUNT(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -1577,7 +1577,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -1733,7 +1733,7 @@ func TestEchoVault_ZMSCORE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -1814,7 +1814,7 @@ func TestEchoVault_ZPOP(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -1922,7 +1922,7 @@ func TestEchoVault_ZRANDMEMBER(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -1998,7 +1998,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -2163,7 +2163,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -2377,7 +2377,7 @@ func TestEchoVault_ZRANK(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -2476,7 +2476,7 @@ func TestEchoVault_ZREM(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -2547,7 +2547,7 @@ func TestEchoVault_ZREMRANGEBYSCORE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -2619,7 +2619,7 @@ func TestEchoVault_ZSCORE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -2699,7 +2699,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -3037,7 +3037,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 

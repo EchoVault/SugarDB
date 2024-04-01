@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/commands"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
 	"reflect"
 	"testing"
 )
@@ -28,7 +28,7 @@ func TestEchoVault_LLEN(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -87,7 +87,7 @@ func TestEchoVault_LINDEX(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -187,7 +187,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -359,7 +359,7 @@ func TestEchoVault_POP(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -431,7 +431,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -508,7 +508,7 @@ func TestEchoVault_RPUSH(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -565,7 +565,7 @@ func TestEchoVault_LRANGE(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -686,7 +686,7 @@ func TestEchoVault_LREM(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -753,7 +753,7 @@ func TestEchoVault_LSET(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -860,7 +860,7 @@ func TestEchoVault_LTRIM(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 

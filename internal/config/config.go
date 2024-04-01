@@ -20,7 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
 	"log"
 	"os"
 	"path"
@@ -108,7 +108,7 @@ There is no limit by default.`, func(memory string) error {
 		return nil
 	})
 
-	evictionPolicy := utils.NoEviction
+	evictionPolicy := constants.NoEviction
 	flag.Func("eviction-policy", `The eviction policy used to remove keys when max-memory is reached. The options are: 
 1) noeviction - Do not evict any keys even when max-memory is exceeded.
 2) allkeys-lfu - Evict the least frequently used keys.
@@ -118,9 +118,9 @@ There is no limit by default.`, func(memory string) error {
 6) allkeys-random - Evict random keys until we get under the max-memory limit.
 7) volatile-random - Evict random keys with an expiration.`, func(policy string) error {
 		policies := []string{
-			utils.NoEviction,
-			utils.AllKeysLFU, utils.AllKeysLRU, utils.AllKeysRandom,
-			utils.VolatileLFU, utils.VolatileLRU, utils.VolatileRandom,
+			constants.NoEviction,
+			constants.AllKeysLFU, constants.AllKeysLRU, constants.AllKeysRandom,
+			constants.VolatileLFU, constants.VolatileLRU, constants.VolatileRandom,
 		}
 		policyIdx := slices.Index(policies, strings.ToLower(policy))
 		if policyIdx == -1 {

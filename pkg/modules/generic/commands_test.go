@@ -20,8 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/tidwall/resp"
 	"testing"
 	"time"
@@ -38,7 +38,7 @@ func init() {
 	mockServer = echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 }
@@ -309,13 +309,13 @@ func Test_HandleSET(t *testing.T) {
 			command:          []string{"SET"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedErr:      errors.New(utils.WrongArgsResponse),
+			expectedErr:      errors.New(constants.WrongArgsResponse),
 		},
 		{ // 30. Command too long
 			command:          []string{"SET", "SetKey30", "value1", "value2", "value3", "value4", "value5", "value6"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedErr:      errors.New(utils.WrongArgsResponse),
+			expectedErr:      errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -524,11 +524,11 @@ func Test_HandleGET(t *testing.T) {
 	}{
 		{
 			command:  []string{"GET"},
-			expected: utils.WrongArgsResponse,
+			expected: constants.WrongArgsResponse,
 		},
 		{
 			command:  []string{"GET", "GetKey1", "test"},
-			expected: utils.WrongArgsResponse,
+			expected: constants.WrongArgsResponse,
 		},
 	}
 	for _, test := range errorTests {
@@ -569,7 +569,7 @@ func Test_HandleMGET(t *testing.T) {
 			presetValues:  []string{"value5"},
 			command:       []string{"MGET"},
 			expected:      nil,
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -650,7 +650,7 @@ func Test_HandleDEL(t *testing.T) {
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectToExist:    nil,
-			expectedErr:      errors.New(utils.WrongArgsResponse),
+			expectedErr:      errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -745,14 +745,14 @@ func Test_HandlePERSIST(t *testing.T) {
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			command:          []string{"PERSIST", "PersistKey5", "key6"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -858,13 +858,13 @@ func Test_HandleEXPIRETIME(t *testing.T) {
 			command:          []string{"PEXPIRETIME"},
 			presetValues:     nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			command:          []string{"PEXPIRETIME", "ExpireTimeKey5", "ExpireTimeKey6"},
 			presetValues:     nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -951,13 +951,13 @@ func Test_HandleTTL(t *testing.T) {
 			command:          []string{"TTL"},
 			presetValues:     nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			command:          []string{"TTL", "TTLKey5", "TTLKey6"},
 			presetValues:     nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -1164,14 +1164,14 @@ func Test_HandleEXPIRE(t *testing.T) {
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // 16. Command too long
 			command:          []string{"EXPIRE", "ExpireKey16", "10", "NX", "GT"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -1421,14 +1421,14 @@ func Test_HandleEXPIREAT(t *testing.T) {
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // 16. Command too long
 			command:          []string{"EXPIREAT", "ExpireAtKey16", "10", "NX", "GT"},
 			presetValues:     nil,
 			expectedResponse: 0,
 			expectedValues:   nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 

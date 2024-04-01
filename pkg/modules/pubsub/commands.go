@@ -19,12 +19,13 @@ import (
 	"errors"
 	"fmt"
 	internal_pubsub "github.com/echovault/echovault/internal/pubsub"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"net"
 	"strings"
 )
 
-func handleSubscribe(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSubscribe(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -33,7 +34,7 @@ func handleSubscribe(ctx context.Context, cmd []string, server utils.EchoVault, 
 	channels := cmd[1:]
 
 	if len(channels) == 0 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
 	withPattern := strings.EqualFold(cmd[0], "psubscribe")
@@ -42,7 +43,7 @@ func handleSubscribe(ctx context.Context, cmd []string, server utils.EchoVault, 
 	return nil, nil
 }
 
-func handleUnsubscribe(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleUnsubscribe(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -55,21 +56,21 @@ func handleUnsubscribe(ctx context.Context, cmd []string, server utils.EchoVault
 	return pubsub.Unsubscribe(ctx, conn, channels, withPattern), nil
 }
 
-func handlePublish(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handlePublish(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
 	if len(cmd) != 3 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	pubsub.Publish(ctx, cmd[2], cmd[1])
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handlePubSubChannels(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handlePubSubChannels(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	if len(cmd) > 3 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
 	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
@@ -85,7 +86,7 @@ func handlePubSubChannels(_ context.Context, cmd []string, server utils.EchoVaul
 	return pubsub.Channels(pattern), nil
 }
 
-func handlePubSubNumPat(_ context.Context, _ []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handlePubSubNumPat(_ context.Context, _ []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -94,7 +95,7 @@ func handlePubSubNumPat(_ context.Context, _ []string, server utils.EchoVault, _
 	return []byte(fmt.Sprintf(":%d\r\n", num)), nil
 }
 
-func handlePubSubNumSubs(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handlePubSubNumSubs(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -102,18 +103,18 @@ func handlePubSubNumSubs(_ context.Context, cmd []string, server utils.EchoVault
 	return pubsub.NumSub(cmd[2:]), nil
 }
 
-func Commands() []utils.Command {
-	return []utils.Command{
+func Commands() []types.Command {
+	return []types.Command{
 		{
 			Command:     "subscribe",
-			Module:      utils.PubSubModule,
-			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
+			Module:      constants.PubSubModule,
+			Categories:  []string{constants.PubSubCategory, constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(SUBSCRIBE channel [channel ...]) Subscribe to one or more channels.",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				// Treat the channels as keys
 				if len(cmd) < 2 {
-					return nil, errors.New(utils.WrongArgsResponse)
+					return nil, errors.New(constants.WrongArgsResponse)
 				}
 				return cmd[1:], nil
 			},
@@ -121,14 +122,14 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:     "psubscribe",
-			Module:      utils.PubSubModule,
-			Categories:  []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
+			Module:      constants.PubSubModule,
+			Categories:  []string{constants.PubSubCategory, constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(PSUBSCRIBE pattern [pattern ...]) Subscribe to one or more glob patterns.",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				// Treat the patterns as keys
 				if len(cmd) < 2 {
-					return nil, errors.New(utils.WrongArgsResponse)
+					return nil, errors.New(constants.WrongArgsResponse)
 				}
 				return cmd[1:], nil
 			},
@@ -136,14 +137,14 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:     "publish",
-			Module:      utils.PubSubModule,
-			Categories:  []string{utils.PubSubCategory, utils.FastCategory},
+			Module:      constants.PubSubModule,
+			Categories:  []string{constants.PubSubCategory, constants.FastCategory},
 			Description: "(PUBLISH channel message) Publish a message to the specified channel.",
 			Sync:        true,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				// Treat the channel as a key
 				if len(cmd) != 3 {
-					return nil, errors.New(utils.WrongArgsResponse)
+					return nil, errors.New(constants.WrongArgsResponse)
 				}
 				return []string{cmd[1]}, nil
 			},
@@ -151,8 +152,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:    "unsubscribe",
-			Module:     utils.PubSubModule,
-			Categories: []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
+			Module:     constants.PubSubModule,
+			Categories: []string{constants.PubSubCategory, constants.ConnectionCategory, constants.SlowCategory},
 			Description: `(UNSUBSCRIBE [channel [channel ...]]) Unsubscribe from a list of channels.
 If the channel list is not provided, then the connection will be unsubscribed from all the channels that
 it's currently subscribe to.`,
@@ -165,8 +166,8 @@ it's currently subscribe to.`,
 		},
 		{
 			Command:    "punsubscribe",
-			Module:     utils.PubSubModule,
-			Categories: []string{utils.PubSubCategory, utils.ConnectionCategory, utils.SlowCategory},
+			Module:     constants.PubSubModule,
+			Categories: []string{constants.PubSubCategory, constants.ConnectionCategory, constants.SlowCategory},
 			Description: `(PUNSUBSCRIBE [pattern [pattern ...]]) Unsubscribe from a list of channels using patterns.
 If the pattern list is not provided, then the connection will be unsubscribed from all the patterns that
 it's currently subscribe to.`,
@@ -179,19 +180,19 @@ it's currently subscribe to.`,
 		},
 		{
 			Command:           "pubsub",
-			Module:            utils.PubSubModule,
+			Module:            constants.PubSubModule,
 			Categories:        []string{},
 			Description:       "",
 			Sync:              false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
-			HandlerFunc: func(_ context.Context, _ []string, _ utils.EchoVault, _ *net.Conn) ([]byte, error) {
+			HandlerFunc: func(_ context.Context, _ []string, _ types.EchoVault, _ *net.Conn) ([]byte, error) {
 				return nil, errors.New("provide CHANNELS, NUMPAT, or NUMSUB subcommand")
 			},
-			SubCommands: []utils.SubCommand{
+			SubCommands: []types.SubCommand{
 				{
 					Command:    "channels",
-					Module:     utils.PubSubModule,
-					Categories: []string{utils.PubSubCategory, utils.SlowCategory},
+					Module:     constants.PubSubModule,
+					Categories: []string{constants.PubSubCategory, constants.SlowCategory},
 					Description: `(PUBSUB CHANNELS [pattern]) Returns an array containing the list of channels that
 match the given pattern. If no pattern is provided, all active channels are returned. Active channels are 
 channels with 1 or more subscribers.`,
@@ -201,8 +202,8 @@ channels with 1 or more subscribers.`,
 				},
 				{
 					Command:           "numpat",
-					Module:            utils.PubSubModule,
-					Categories:        []string{utils.PubSubCategory, utils.SlowCategory},
+					Module:            constants.PubSubModule,
+					Categories:        []string{constants.PubSubCategory, constants.SlowCategory},
 					Description:       `(PUBSUB NUMPAT) Return the number of patterns that are currently subscribed to by clients.`,
 					Sync:              false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
@@ -210,8 +211,8 @@ channels with 1 or more subscribers.`,
 				},
 				{
 					Command:    "numsub",
-					Module:     utils.PubSubModule,
-					Categories: []string{utils.PubSubCategory, utils.SlowCategory},
+					Module:     constants.PubSubModule,
+					Categories: []string{constants.PubSubCategory, constants.SlowCategory},
 					Description: `(PUBSUB NUMSUB [channel [channel ...]]) Return an array of arrays containing the provided
 channel name and how many clients are currently subscribed to the channel.`,
 					Sync:              false,

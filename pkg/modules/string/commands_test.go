@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/tidwall/resp"
 	"strconv"
 	"testing"
@@ -34,7 +34,7 @@ func init() {
 	mockServer = echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 }
@@ -121,13 +121,13 @@ func Test_HandleSetRange(t *testing.T) {
 			preset:           false,
 			command:          []string{"SETRANGE", "key"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
 			command:          []string{"SETRANGE", "key", "offset", "value", "value1"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -210,7 +210,7 @@ func Test_HandleStrLen(t *testing.T) {
 			presetValue:      "",
 			command:          []string{"STRLEN"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Too many args
 			preset:           false,
@@ -218,7 +218,7 @@ func Test_HandleStrLen(t *testing.T) {
 			presetValue:      "",
 			command:          []string{"STRLEN", "StrLenKey4", "StrLenKey5"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -316,12 +316,12 @@ func Test_HandleSubStr(t *testing.T) {
 		},
 		{ // Command too short
 			command:       []string{"SUBSTR", "key", "10"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{
 			// Command too long
 			command:       []string{"SUBSTR", "key", "10", "15", "20"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{ // Start index is not an integer
 			command:       []string{"SUBSTR", "key", "start", "10"},

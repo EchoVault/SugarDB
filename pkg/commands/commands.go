@@ -11,12 +11,12 @@ import (
 	"github.com/echovault/echovault/pkg/modules/set"
 	"github.com/echovault/echovault/pkg/modules/sorted_set"
 	str "github.com/echovault/echovault/pkg/modules/string"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/types"
 )
 
 // All returns all the commands currently available on EchoVault
-func All() []utils.Command {
-	var commands []utils.Command
+func All() []types.Command {
+	var commands []types.Command
 	commands = append(commands, acl.Commands()...)
 	commands = append(commands, admin.Commands()...)
 	commands = append(commands, generic.Commands()...)

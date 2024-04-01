@@ -19,8 +19,8 @@ import (
 	"fmt"
 	internal_acl "github.com/echovault/echovault/internal/acl"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/tidwall/resp"
 	"net"
 	"slices"
@@ -48,7 +48,7 @@ func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig strin
 		BindAddr:       bindAddr,
 		Port:           port,
 		DataDir:        "",
-		EvictionPolicy: utils.NoEviction,
+		EvictionPolicy: constants.NoEviction,
 		RequirePass:    requirePass,
 		Password:       "password1",
 		AclConfig:      aclConfig,
@@ -248,7 +248,7 @@ func Test_HandleAuth(t *testing.T) {
 		{ // 7. Command too short
 			cmd:     []resp.Value{resp.StringValue("AUTH")},
 			wantRes: "",
-			wantErr: fmt.Sprintf("Error %s", utils.WrongArgsResponse),
+			wantErr: fmt.Sprintf("Error %s", constants.WrongArgsResponse),
 		},
 		{ // 8. Command too long
 			cmd: []resp.Value{
@@ -258,7 +258,7 @@ func Test_HandleAuth(t *testing.T) {
 				resp.StringValue("password2"),
 			},
 			wantRes: "",
-			wantErr: fmt.Sprintf("Error %s", utils.WrongArgsResponse),
+			wantErr: fmt.Sprintf("Error %s", constants.WrongArgsResponse),
 		},
 	}
 
@@ -314,36 +314,36 @@ func Test_HandleCat(t *testing.T) {
 		{ // 1. Return list of categories
 			cmd: []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT")},
 			wantRes: []string{
-				utils.ConnectionCategory,
-				utils.SlowCategory,
-				utils.FastCategory,
-				utils.AdminCategory,
-				utils.DangerousCategory,
+				constants.ConnectionCategory,
+				constants.SlowCategory,
+				constants.FastCategory,
+				constants.AdminCategory,
+				constants.DangerousCategory,
 			},
 			wantErr: "",
 		},
 		{ // 2. Return list of commands in connection category
-			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue(utils.ConnectionCategory)},
+			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue(constants.ConnectionCategory)},
 			wantRes: []string{"auth"},
 			wantErr: "",
 		},
 		{ // 3. Return list of commands in slow category
-			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue(utils.SlowCategory)},
+			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue(constants.SlowCategory)},
 			wantRes: []string{"auth", "acl|cat", "acl|users", "acl|setuser", "acl|getuser", "acl|deluser", "acl|list", "acl|load", "acl|save"},
 			wantErr: "",
 		},
 		{ // 4. Return list of commands in fast category
-			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue(utils.FastCategory)},
+			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue(constants.FastCategory)},
 			wantRes: []string{"acl|whoami"},
 			wantErr: "",
 		},
 		{ // 5. Return list of commands in admin category
-			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue(utils.AdminCategory)},
+			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue(constants.AdminCategory)},
 			wantRes: []string{"acl|users", "acl|setuser", "acl|getuser", "acl|deluser", "acl|list", "acl|load", "acl|save"},
 			wantErr: "",
 		},
 		{ // 6. Return list of commands in dangerous category
-			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue(utils.DangerousCategory)},
+			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue(constants.DangerousCategory)},
 			wantRes: []string{"acl|users", "acl|setuser", "acl|getuser", "acl|deluser", "acl|list", "acl|load", "acl|save"},
 			wantErr: "",
 		},
@@ -355,7 +355,7 @@ func Test_HandleCat(t *testing.T) {
 		{ // 8. Command too long
 			cmd:     []resp.Value{resp.StringValue("ACL"), resp.StringValue("CAT"), resp.StringValue("category1"), resp.StringValue("category2")},
 			wantRes: nil,
-			wantErr: fmt.Sprintf("Error %s", utils.WrongArgsResponse),
+			wantErr: fmt.Sprintf("Error %s", constants.WrongArgsResponse),
 		},
 	}
 
@@ -640,20 +640,20 @@ func Test_HandleSetUser(t *testing.T) {
 				resp.StringValue("SETUSER"),
 				resp.StringValue("set_user_8"),
 				resp.StringValue("on"),
-				resp.StringValue(fmt.Sprintf("+@%s", utils.WriteCategory)),
-				resp.StringValue(fmt.Sprintf("+@%s", utils.ReadCategory)),
-				resp.StringValue(fmt.Sprintf("+@%s", utils.PubSubCategory)),
-				resp.StringValue(fmt.Sprintf("-@%s", utils.AdminCategory)),
-				resp.StringValue(fmt.Sprintf("-@%s", utils.ConnectionCategory)),
-				resp.StringValue(fmt.Sprintf("-@%s", utils.DangerousCategory)),
+				resp.StringValue(fmt.Sprintf("+@%s", constants.WriteCategory)),
+				resp.StringValue(fmt.Sprintf("+@%s", constants.ReadCategory)),
+				resp.StringValue(fmt.Sprintf("+@%s", constants.PubSubCategory)),
+				resp.StringValue(fmt.Sprintf("-@%s", constants.AdminCategory)),
+				resp.StringValue(fmt.Sprintf("-@%s", constants.ConnectionCategory)),
+				resp.StringValue(fmt.Sprintf("-@%s", constants.DangerousCategory)),
 			},
 			wantRes: "OK",
 			wantErr: "",
 			wantUser: func() *internal_acl.User {
 				user := internal_acl.CreateUser("set_user_8")
 				user.Enabled = true
-				user.IncludedCategories = []string{utils.WriteCategory, utils.ReadCategory, utils.PubSubCategory}
-				user.ExcludedCategories = []string{utils.AdminCategory, utils.ConnectionCategory, utils.DangerousCategory}
+				user.IncludedCategories = []string{constants.WriteCategory, constants.ReadCategory, constants.PubSubCategory}
+				user.ExcludedCategories = []string{constants.AdminCategory, constants.ConnectionCategory, constants.DangerousCategory}
 				user.Normalise()
 				return user
 			}(),
@@ -1065,8 +1065,8 @@ func Test_HandleGetUser(t *testing.T) {
 					{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "get_user_password_1"},
 					{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("get_user_password_2")},
 				},
-				IncludedCategories:     []string{utils.WriteCategory, utils.ReadCategory, utils.PubSubCategory},
-				ExcludedCategories:     []string{utils.AdminCategory, utils.ConnectionCategory, utils.DangerousCategory},
+				IncludedCategories:     []string{constants.WriteCategory, constants.ReadCategory, constants.PubSubCategory},
+				ExcludedCategories:     []string{constants.AdminCategory, constants.ConnectionCategory, constants.DangerousCategory},
 				IncludedCommands:       []string{"acl|setuser", "acl|getuser", "acl|deluser"},
 				ExcludedCommands:       []string{"rewriteaof", "save", "acl|load", "acl|save"},
 				IncludedReadKeys:       []string{"key1", "key2", "key3", "key4"},
@@ -1084,12 +1084,12 @@ func Test_HandleGetUser(t *testing.T) {
 				}),
 				resp.StringValue("categories"),
 				resp.ArrayValue([]resp.Value{
-					resp.StringValue(fmt.Sprintf("+@%s", utils.WriteCategory)),
-					resp.StringValue(fmt.Sprintf("+@%s", utils.ReadCategory)),
-					resp.StringValue(fmt.Sprintf("+@%s", utils.PubSubCategory)),
-					resp.StringValue(fmt.Sprintf("-@%s", utils.AdminCategory)),
-					resp.StringValue(fmt.Sprintf("-@%s", utils.ConnectionCategory)),
-					resp.StringValue(fmt.Sprintf("-@%s", utils.DangerousCategory)),
+					resp.StringValue(fmt.Sprintf("+@%s", constants.WriteCategory)),
+					resp.StringValue(fmt.Sprintf("+@%s", constants.ReadCategory)),
+					resp.StringValue(fmt.Sprintf("+@%s", constants.PubSubCategory)),
+					resp.StringValue(fmt.Sprintf("-@%s", constants.AdminCategory)),
+					resp.StringValue(fmt.Sprintf("-@%s", constants.ConnectionCategory)),
+					resp.StringValue(fmt.Sprintf("-@%s", constants.DangerousCategory)),
 				}),
 				resp.StringValue("commands"),
 				resp.ArrayValue([]resp.Value{
@@ -1219,7 +1219,7 @@ func Test_HandleDelUser(t *testing.T) {
 			presetUser: nil,
 			cmd:        []resp.Value{resp.StringValue("ACL"), resp.StringValue("DELUSER")},
 			wantRes:    "",
-			wantErr:    fmt.Sprintf("Error %s", utils.WrongArgsResponse),
+			wantErr:    fmt.Sprintf("Error %s", constants.WrongArgsResponse),
 		},
 	}
 
@@ -1353,8 +1353,8 @@ func Test_HandleList(t *testing.T) {
 						{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "list_user_password_1"},
 						{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("list_user_password_2")},
 					},
-					IncludedCategories:     []string{utils.WriteCategory, utils.ReadCategory, utils.PubSubCategory},
-					ExcludedCategories:     []string{utils.AdminCategory, utils.ConnectionCategory, utils.DangerousCategory},
+					IncludedCategories:     []string{constants.WriteCategory, constants.ReadCategory, constants.PubSubCategory},
+					ExcludedCategories:     []string{constants.AdminCategory, constants.ConnectionCategory, constants.DangerousCategory},
 					IncludedCommands:       []string{"acl|setuser", "acl|getuser", "acl|deluser"},
 					ExcludedCommands:       []string{"rewriteaof", "save", "acl|load", "acl|save"},
 					IncludedReadKeys:       []string{"key1", "key2", "key3", "key4"},
@@ -1368,8 +1368,8 @@ func Test_HandleList(t *testing.T) {
 					NoPassword:             true,
 					NoKeys:                 true,
 					Passwords:              []internal_acl.Password{},
-					IncludedCategories:     []string{utils.WriteCategory, utils.ReadCategory, utils.PubSubCategory},
-					ExcludedCategories:     []string{utils.AdminCategory, utils.ConnectionCategory, utils.DangerousCategory},
+					IncludedCategories:     []string{constants.WriteCategory, constants.ReadCategory, constants.PubSubCategory},
+					ExcludedCategories:     []string{constants.AdminCategory, constants.ConnectionCategory, constants.DangerousCategory},
 					IncludedCommands:       []string{"acl|setuser", "acl|getuser", "acl|deluser"},
 					ExcludedCommands:       []string{"rewriteaof", "save", "acl|load", "acl|save"},
 					IncludedReadKeys:       []string{},
@@ -1386,8 +1386,8 @@ func Test_HandleList(t *testing.T) {
 						{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "list_user_password_3"},
 						{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("list_user_password_4")},
 					},
-					IncludedCategories:     []string{utils.WriteCategory, utils.ReadCategory, utils.PubSubCategory},
-					ExcludedCategories:     []string{utils.AdminCategory, utils.ConnectionCategory, utils.DangerousCategory},
+					IncludedCategories:     []string{constants.WriteCategory, constants.ReadCategory, constants.PubSubCategory},
+					ExcludedCategories:     []string{constants.AdminCategory, constants.ConnectionCategory, constants.DangerousCategory},
 					IncludedCommands:       []string{"acl|setuser", "acl|getuser", "acl|deluser"},
 					ExcludedCommands:       []string{"rewriteaof", "save", "acl|load", "acl|save"},
 					IncludedReadKeys:       []string{"key1", "key2", "key3", "key4"},

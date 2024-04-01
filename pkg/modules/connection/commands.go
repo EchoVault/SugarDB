@@ -18,14 +18,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"net"
 )
 
-func handlePing(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handlePing(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	switch len(cmd) {
 	default:
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	case 1:
 		return []byte("+PONG\r\n"), nil
 	case 2:
@@ -33,12 +34,12 @@ func handlePing(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	}
 }
 
-func Commands() []utils.Command {
-	return []utils.Command{
+func Commands() []types.Command {
+	return []types.Command{
 		{
 			Command:     "connection",
-			Module:      utils.ConnectionModule,
-			Categories:  []string{utils.FastCategory, utils.ConnectionCategory},
+			Module:      constants.ConnectionModule,
+			Categories:  []string{constants.FastCategory, constants.ConnectionCategory},
 			Description: "(PING [value]) Ping the echovault. If a value is provided, the value will be echoed.",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {

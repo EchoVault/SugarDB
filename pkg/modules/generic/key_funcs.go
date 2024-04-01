@@ -16,12 +16,12 @@ package generic
 
 import (
 	"errors"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
 )
 
 func setKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) < 3 || len(cmd) > 7 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return []string{cmd[1]}, nil
 }
@@ -41,56 +41,56 @@ func msetKeyFunc(cmd []string) ([]string, error) {
 
 func getKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return []string{cmd[1]}, nil
 }
 
 func mgetKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return cmd[1:], nil
 }
 
 func delKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return cmd[1:], nil
 }
 
 func persistKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return cmd[1:], nil
 }
 
 func expireTimeKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return cmd[1:], nil
 }
 
 func ttlKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return cmd[1:], nil
 }
 
 func expireKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) < 3 || len(cmd) > 4 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return []string{cmd[1]}, nil
 }
 
 func expireAtKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) < 3 || len(cmd) > 4 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return []string{cmd[1]}, nil
 }

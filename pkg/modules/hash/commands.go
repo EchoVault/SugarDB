@@ -19,7 +19,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"math/rand"
 	"net"
 	"slices"
@@ -27,7 +28,7 @@ import (
 	"strings"
 )
 
-func handleHSET(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleHSET(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hsetKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -85,7 +86,7 @@ func handleHSET(ctx context.Context, cmd []string, server utils.EchoVault, _ *ne
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleHGET(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleHGET(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hgetKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -136,7 +137,7 @@ func handleHGET(ctx context.Context, cmd []string, server utils.EchoVault, _ *ne
 	return []byte(res), nil
 }
 
-func handleHSTRLEN(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHSTRLEN(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := hstrlenKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -187,7 +188,7 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server utils.EchoVault, co
 	return []byte(res), nil
 }
 
-func handleHVALS(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHVALS(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := hvalsKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -228,7 +229,7 @@ func handleHVALS(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	return []byte(res), nil
 }
 
-func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHRANDFIELD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := hrandfieldKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -344,7 +345,7 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server utils.EchoVault,
 	return []byte(res), nil
 }
 
-func handleHLEN(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHLEN(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := hlenKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -369,7 +370,7 @@ func handleHLEN(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	return []byte(fmt.Sprintf(":%d\r\n", len(hash))), nil
 }
 
-func handleHKEYS(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHKEYS(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := hkeysKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -399,7 +400,7 @@ func handleHKEYS(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	return []byte(res), nil
 }
 
-func handleHINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHINCRBY(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := hincrbyKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -491,7 +492,7 @@ func handleHINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, co
 	return []byte(fmt.Sprintf(":%d\r\n", i)), nil
 }
 
-func handleHGETALL(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHGETALL(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := hgetallKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -531,7 +532,7 @@ func handleHGETALL(ctx context.Context, cmd []string, server utils.EchoVault, co
 	return []byte(res), nil
 }
 
-func handleHEXISTS(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHEXISTS(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := hexistsKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -561,7 +562,7 @@ func handleHEXISTS(ctx context.Context, cmd []string, server utils.EchoVault, co
 	return []byte(":0\r\n"), nil
 }
 
-func handleHDEL(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHDEL(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := hdelKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -600,12 +601,12 @@ func handleHDEL(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func Commands() []utils.Command {
-	return []utils.Command{
+func Commands() []types.Command {
+	return []types.Command{
 		{
 			Command:           "hset",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       `(HSET key field value [field value ...]) Set update each field of the hash with the corresponding value`,
 			Sync:              true,
 			KeyExtractionFunc: hsetKeyFunc,
@@ -613,8 +614,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "hsetnx",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       `(HSETNX key field value [field value ...]) Set hash field value only if the field does not exist`,
 			Sync:              true,
 			KeyExtractionFunc: hsetnxKeyFunc,
@@ -622,8 +623,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "hget",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       `(HGET key field [field ...]) Retrieve the value of each of the listed fields from the hash`,
 			Sync:              false,
 			KeyExtractionFunc: hgetKeyFunc,
@@ -631,8 +632,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:    "hstrlen",
-			Module:     utils.HashModule,
-			Categories: []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Module:     constants.HashModule,
+			Categories: []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
 			Description: `(HSTRLEN key field [field ...]) 
 Return the string length of the values stored at the specified fields. 0 if the value does not exist`,
 			Sync:              false,
@@ -641,8 +642,8 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hvals",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       `(HVALS key) Returns all the values of the hash at key.`,
 			Sync:              false,
 			KeyExtractionFunc: hvalsKeyFunc,
@@ -650,8 +651,8 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hrandfield",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       `(HRANDFIELD key [count [WITHVALUES]]) Returns one or more random fields from the hash`,
 			Sync:              false,
 			KeyExtractionFunc: hrandfieldKeyFunc,
@@ -659,8 +660,8 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hlen",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       `(HLEN key) Returns the number of fields in the hash`,
 			Sync:              false,
 			KeyExtractionFunc: hlenKeyFunc,
@@ -668,8 +669,8 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hkeys",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       `(HKEYS key) Returns all the fields in a hash`,
 			Sync:              false,
 			KeyExtractionFunc: hkeysKeyFunc,
@@ -677,8 +678,8 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hincrbyfloat",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       `(HINCRBYFLOAT key field increment) Increment the hash value by the float increment`,
 			Sync:              true,
 			KeyExtractionFunc: hincrbyKeyFunc,
@@ -686,8 +687,8 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hincrby",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       `(HINCRBY key field increment) Increment the hash value by the integer increment`,
 			Sync:              true,
 			KeyExtractionFunc: hincrbyKeyFunc,
@@ -695,8 +696,8 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hgetall",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       `(HGETALL key) Get all fields and values of a hash`,
 			Sync:              false,
 			KeyExtractionFunc: hgetallKeyFunc,
@@ -704,8 +705,8 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hexists",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       `(HEXISTS key field) Returns if field is an existing field in the hash`,
 			Sync:              false,
 			KeyExtractionFunc: hexistsKeyFunc,
@@ -713,8 +714,8 @@ Return the string length of the values stored at the specified fields. 0 if the 
 		},
 		{
 			Command:           "hdel",
-			Module:            utils.HashModule,
-			Categories:        []string{utils.HashCategory, utils.ReadCategory, utils.FastCategory},
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       `(HDEL key field [field ...]) Deletes the specified fields from the hash`,
 			Sync:              true,
 			KeyExtractionFunc: hdelKeyFunc,

@@ -20,7 +20,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"log"
 	"net"
 	"strconv"
@@ -48,7 +49,7 @@ type KeyObject struct {
 	locked bool
 }
 
-func handleSet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleSet(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := setKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net
 
 	key := keys[0]
 	value := cmd[2]
-	res := []byte(utils.OkResponse)
+	res := []byte(constants.OkResponse)
 
 	params, err := getSetCommandParams(cmd[3:], SetParams{})
 	if err != nil {
@@ -112,7 +113,7 @@ func handleSet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net
 	return res, nil
 }
 
-func handleMSet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleMSet(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	if _, err := msetKeyFunc(cmd); err != nil {
 		return nil, err
 	}
@@ -165,10 +166,10 @@ func handleMSet(ctx context.Context, cmd []string, server utils.EchoVault, _ *ne
 		}
 	}
 
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handleGet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleGet(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := getKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -190,7 +191,7 @@ func handleGet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net
 	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
 }
 
-func handleMGet(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleMGet(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := mgetKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -240,7 +241,7 @@ func handleMGet(ctx context.Context, cmd []string, server utils.EchoVault, _ *ne
 	return bytes, nil
 }
 
-func handleDel(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleDel(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := delKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -257,7 +258,7 @@ func handleDel(ctx context.Context, cmd []string, server utils.EchoVault, _ *net
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handlePersist(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handlePersist(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := persistKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -284,7 +285,7 @@ func handlePersist(ctx context.Context, cmd []string, server utils.EchoVault, _ 
 	return []byte(":1\r\n"), nil
 }
 
-func handleExpireTime(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleExpireTime(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := expireTimeKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -315,7 +316,7 @@ func handleExpireTime(ctx context.Context, cmd []string, server utils.EchoVault,
 	return []byte(fmt.Sprintf(":%d\r\n", t)), nil
 }
 
-func handleTTL(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleTTL(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := ttlKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -350,7 +351,7 @@ func handleTTL(ctx context.Context, cmd []string, server utils.EchoVault, _ *net
 	return []byte(fmt.Sprintf(":%d\r\n", t)), nil
 }
 
-func handleExpire(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleExpire(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := expireKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -418,7 +419,7 @@ func handleExpire(ctx context.Context, cmd []string, server utils.EchoVault, _ *
 	return []byte(":1\r\n"), nil
 }
 
-func handleExpireAt(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleExpireAt(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := expireKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -486,12 +487,12 @@ func handleExpireAt(ctx context.Context, cmd []string, server utils.EchoVault, _
 	return []byte(":1\r\n"), nil
 }
 
-func Commands() []utils.Command {
-	return []utils.Command{
+func Commands() []types.Command {
+	return []types.Command{
 		{
 			Command:    "set",
-			Module:     utils.GenericModule,
-			Categories: []string{utils.WriteCategory, utils.SlowCategory},
+			Module:     constants.GenericModule,
+			Categories: []string{constants.WriteCategory, constants.SlowCategory},
 			Description: `
 (SET key value [NX | XX] [GET] [EX seconds | PX milliseconds | EXAT unix-time-seconds | PXAT unix-time-milliseconds]) 
 Set the value of a key, considering the value's type.
@@ -508,8 +509,8 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:           "mset",
-			Module:            utils.GenericModule,
-			Categories:        []string{utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.WriteCategory, constants.SlowCategory},
 			Description:       "(MSET key value [key value ...]) Automatically generic or modify multiple key/value pairs.",
 			Sync:              true,
 			KeyExtractionFunc: msetKeyFunc,
@@ -517,8 +518,8 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:           "get",
-			Module:            utils.GenericModule,
-			Categories:        []string{utils.ReadCategory, utils.FastCategory},
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.ReadCategory, constants.FastCategory},
 			Description:       "(GET key) Get the value at the specified key.",
 			Sync:              false,
 			KeyExtractionFunc: getKeyFunc,
@@ -526,8 +527,8 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:           "mget",
-			Module:            utils.GenericModule,
-			Categories:        []string{utils.ReadCategory, utils.FastCategory},
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.ReadCategory, constants.FastCategory},
 			Description:       "(MGET key [key ...]) Get multiple values from the specified keys.",
 			Sync:              false,
 			KeyExtractionFunc: mgetKeyFunc,
@@ -535,8 +536,8 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:           "del",
-			Module:            utils.GenericModule,
-			Categories:        []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(DEL key [key ...]) Removes one or more keys from the store.",
 			Sync:              true,
 			KeyExtractionFunc: delKeyFunc,
@@ -544,8 +545,8 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 		},
 		{
 			Command:    "persist",
-			Module:     utils.GenericModule,
-			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
 			Description: `(PERSIST key) Removes the TTl associated with a key, 
 turning it from a volatile key to a persistent key.`,
 			Sync:              true,
@@ -554,8 +555,8 @@ turning it from a volatile key to a persistent key.`,
 		},
 		{
 			Command:    "expiretime",
-			Module:     utils.GenericModule,
-			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
 			Description: `(EXPIRETIME key) Returns the absolute unix time in seconds when the key will expire.
 Return -1 if the key exists but has no associated expiry time.
 Returns -2 if the key does not exist.`,
@@ -565,8 +566,8 @@ Returns -2 if the key does not exist.`,
 		},
 		{
 			Command:    "pexpiretime",
-			Module:     utils.GenericModule,
-			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
 			Description: `(PEXPIRETIME key) Returns the absolute unix time in milliseconds when the key will expire.
 Return -1 if the key exists but has no associated expiry time.
 Returns -2 if the key does not exist.`,
@@ -576,8 +577,8 @@ Returns -2 if the key does not exist.`,
 		},
 		{
 			Command:    "ttl",
-			Module:     utils.GenericModule,
-			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
 			Description: `(TTL key) Returns the remaining time to live for a key that has an expiry time in seconds.
 If the key exists but does not have an associated expiry time, -1 is returned.
 If the key does not exist, -2 is returned.`,
@@ -587,8 +588,8 @@ If the key does not exist, -2 is returned.`,
 		},
 		{
 			Command:    "pttl",
-			Module:     utils.GenericModule,
-			Categories: []string{utils.KeyspaceCategory, utils.ReadCategory, utils.FastCategory},
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
 			Description: `(PTTL key) Returns the remaining time to live for a key that has an expiry time in milliseconds.
 If the key exists but does not have an associated expiry time, -1 is returned.
 If the key does not exist, -2 is returned.`,
@@ -598,8 +599,8 @@ If the key does not exist, -2 is returned.`,
 		},
 		{
 			Command:    "expire",
-			Module:     utils.GenericModule,
-			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
 			Description: `(EXPIRE key seconds [NX | XX | GT | LT])
 Expire the key in the specified number of seconds. This commands turns a key into a volatile one.
 NX - Only set the expiry time if the key has no associated expiry.
@@ -612,8 +613,8 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 		},
 		{
 			Command:    "pexpire",
-			Module:     utils.GenericModule,
-			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
 			Description: `(PEXPIRE key milliseconds [NX | XX | GT | LT])
 Expire the key in the specified number of milliseconds. This commands turns a key into a volatile one.
 NX - Only set the expiry time if the key has no associated expiry.
@@ -626,8 +627,8 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 		},
 		{
 			Command:    "expireat",
-			Module:     utils.GenericModule,
-			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
 			Description: `(EXPIREAT key unix-time-seconds [NX | XX | GT | LT])
 Expire the key in at the exact unix time in seconds. 
 This commands turns a key into a volatile one.
@@ -641,8 +642,8 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 		},
 		{
 			Command:    "pexpireat",
-			Module:     utils.GenericModule,
-			Categories: []string{utils.KeyspaceCategory, utils.WriteCategory, utils.FastCategory},
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
 			Description: `(PEXPIREAT key unix-time-milliseconds [NX | XX | GT | LT])
 Expire the key in at the exact unix time in milliseconds. 
 This commands turns a key into a volatile one.

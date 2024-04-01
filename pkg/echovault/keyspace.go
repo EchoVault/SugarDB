@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
 	"log"
 	"math/rand"
 	"runtime"
@@ -128,7 +128,7 @@ func (server *EchoVault) KeyExists(ctx context.Context, key string) bool {
 // CreateKeyAndLock creates a new key lock and immediately locks it if the key does not exist.
 // If the key exists, the existing key is locked.
 func (server *EchoVault) CreateKeyAndLock(ctx context.Context, key string) (bool, error) {
-	if internal.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == utils.NoEviction {
+	if internal.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == constants.NoEviction {
 		return false, errors.New("max memory reached, key not created")
 	}
 
@@ -166,7 +166,7 @@ func (server *EchoVault) GetValue(ctx context.Context, key string) interface{} {
 // This count triggers a snapshot when the threshold is reached.
 // The key must be locked prior to calling this function.
 func (server *EchoVault) SetValue(ctx context.Context, key string, value interface{}) error {
-	if internal.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == utils.NoEviction {
+	if internal.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == constants.NoEviction {
 		return errors.New("max memory reached, key value not set")
 	}
 
@@ -276,9 +276,9 @@ func (server *EchoVault) DeleteKey(ctx context.Context, key string) error {
 
 	// Remove the key from the cache.
 	switch {
-	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, server.config.EvictionPolicy):
+	case slices.Contains([]string{constants.AllKeysLFU, constants.VolatileLFU}, server.config.EvictionPolicy):
 		server.lfuCache.cache.Delete(key)
-	case slices.Contains([]string{utils.AllKeysLRU, utils.VolatileLRU}, server.config.EvictionPolicy):
+	case slices.Contains([]string{constants.AllKeysLRU, constants.VolatileLRU}, server.config.EvictionPolicy):
 		server.lruCache.cache.Delete(key)
 	}
 
@@ -299,21 +299,21 @@ func (server *EchoVault) updateKeyInCache(ctx context.Context, key string) error
 		return nil
 	}
 	switch strings.ToLower(server.config.EvictionPolicy) {
-	case utils.AllKeysLFU:
+	case constants.AllKeysLFU:
 		server.lfuCache.mutex.Lock()
 		defer server.lfuCache.mutex.Unlock()
 		server.lfuCache.cache.Update(key)
-	case utils.AllKeysLRU:
+	case constants.AllKeysLRU:
 		server.lruCache.mutex.Lock()
 		defer server.lruCache.mutex.Unlock()
 		server.lruCache.cache.Update(key)
-	case utils.VolatileLFU:
+	case constants.VolatileLFU:
 		server.lfuCache.mutex.Lock()
 		defer server.lfuCache.mutex.Unlock()
 		if server.store[key].ExpireAt != (time.Time{}) {
 			server.lfuCache.cache.Update(key)
 		}
-	case utils.VolatileLRU:
+	case constants.VolatileLRU:
 		server.lruCache.mutex.Lock()
 		defer server.lruCache.mutex.Unlock()
 		if server.store[key].ExpireAt != (time.Time{}) {
@@ -350,7 +350,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	// Start a loop that evicts keys until either the heap is empty or
 	// we're below the max memory limit.
 	switch {
-	case slices.Contains([]string{utils.AllKeysLFU, utils.VolatileLFU}, strings.ToLower(server.config.EvictionPolicy)):
+	case slices.Contains([]string{constants.AllKeysLFU, constants.VolatileLFU}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove keys from LFU cache until we're below the max memory limit or
 		// until the LFU cache is empty.
 		server.lfuCache.mutex.Lock()
@@ -382,7 +382,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 				return nil
 			}
 		}
-	case slices.Contains([]string{utils.AllKeysLRU, utils.VolatileLRU}, strings.ToLower(server.config.EvictionPolicy)):
+	case slices.Contains([]string{constants.AllKeysLRU, constants.VolatileLRU}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove keys from th LRU cache until we're below the max memory limit or
 		// until the LRU cache is empty.
 		server.lruCache.mutex.Lock()
@@ -415,7 +415,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 				return nil
 			}
 		}
-	case slices.Contains([]string{utils.AllKeysRandom}, strings.ToLower(server.config.EvictionPolicy)):
+	case slices.Contains([]string{constants.AllKeysRandom}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove random keys until we're below the max memory limit
 		// or there are no more keys remaining.
 		for {
@@ -449,7 +449,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 				idx--
 			}
 		}
-	case slices.Contains([]string{utils.VolatileRandom}, strings.ToLower(server.config.EvictionPolicy)):
+	case slices.Contains([]string{constants.VolatileRandom}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove random keys with an associated expiry time until we're below the max memory limit
 		// or there are no more keys with expiry time.
 		for {

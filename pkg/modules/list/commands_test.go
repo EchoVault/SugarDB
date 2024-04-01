@@ -20,8 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/tidwall/resp"
 	"testing"
 )
@@ -32,7 +32,7 @@ func init() {
 	mockServer = echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 }
@@ -72,7 +72,7 @@ func Test_HandleLLEN(t *testing.T) {
 			command:          []string{"LLEN"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -81,7 +81,7 @@ func Test_HandleLLEN(t *testing.T) {
 			command:          []string{"LLEN", "LlenKey4", "LlenKey4"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non-list returns error
 			preset:           true,
@@ -177,7 +177,7 @@ func Test_HandleLINDEX(t *testing.T) {
 			command:          []string{"LINDEX", "LindexKey3"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -186,7 +186,7 @@ func Test_HandleLINDEX(t *testing.T) {
 			command:          []string{"LINDEX", "LindexKey4", "0", "20"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get element by index on a non-list returns error
 			preset:           true,
@@ -312,7 +312,7 @@ func Test_HandleLRANGE(t *testing.T) {
 			command:          []string{"LRANGE", "LrangeKey5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -321,7 +321,7 @@ func Test_HandleLRANGE(t *testing.T) {
 			command:          []string{"LRANGE", "LrangeKey6", "0", "element", "element"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Error when executing command on non-list command
 			preset:           true,
@@ -468,7 +468,7 @@ func Test_HandleLSET(t *testing.T) {
 			command:          []string{"LSET", "LsetKey5"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -477,7 +477,7 @@ func Test_HandleLSET(t *testing.T) {
 			command:          []string{"LSET", "LsetKey6", "0", "element", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get element by index on a non-list returns error
 			preset:           true,
@@ -619,7 +619,7 @@ func Test_HandleLTRIM(t *testing.T) {
 			command:          []string{"LTRIM", "LtrimKey5"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -628,7 +628,7 @@ func Test_HandleLTRIM(t *testing.T) {
 			command:          []string{"LTRIM", "LtrimKey6", "0", "element", "element"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get element by index on a non-list returns error
 			preset:           true,
@@ -758,7 +758,7 @@ func Test_HandleLREM(t *testing.T) {
 			command:          []string{"LREM", "LremKey5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -767,7 +767,7 @@ func Test_HandleLREM(t *testing.T) {
 			command:          []string{"LREM", "LremKey6", "0", "element", "element"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Throw error when count is not an integer
 			preset:           false,
@@ -976,7 +976,7 @@ func Test_HandleLMOVE(t *testing.T) {
 			command:          []string{"LMOVE", "source9", "destination9"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{
 			// 10. Throw error when command is too long
@@ -985,7 +985,7 @@ func Test_HandleLMOVE(t *testing.T) {
 			command:          []string{"LMOVE", "source10", "destination10", "LEFT", "LEFT", "RIGHT"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{
 			// 11. Throw error when WHEREFROM argument is not LEFT/RIGHT
@@ -1105,7 +1105,7 @@ func Test_HandleLPUSH(t *testing.T) {
 			command:          []string{"LPUSH", "LpushKey5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // LPUSHX command returns error on non-existent list
 			preset:           false,
@@ -1208,7 +1208,7 @@ func Test_HandleRPUSH(t *testing.T) {
 			command:          []string{"RPUSH", "RpushKey5"},
 			expectedResponse: nil,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // RPUSHX command returns error on non-existent list
 			preset:           false,
@@ -1302,7 +1302,7 @@ func Test_HandlePOP(t *testing.T) {
 			command:          []string{"LPOP"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -1311,7 +1311,7 @@ func Test_HandlePOP(t *testing.T) {
 			command:          []string{"LPOP", "PopKey4", "PopKey4"},
 			expectedResponse: 0,
 			expectedValue:    nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to execute LPOP from a non-list item return an error
 			preset:           true,

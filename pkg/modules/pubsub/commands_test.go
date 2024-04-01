@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal/config"
 	internal_pubsub "github.com/echovault/echovault/internal/pubsub"
+	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/tidwall/resp"
 	"net"
 	"slices"
@@ -50,7 +50,7 @@ func setUpServer(bindAddr string, port uint16) *echovault.EchoVault {
 			BindAddr:       bindAddr,
 			Port:           port,
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 }

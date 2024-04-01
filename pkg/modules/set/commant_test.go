@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/set"
+	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/tidwall/resp"
 	"slices"
 	"testing"
@@ -34,7 +34,7 @@ func init() {
 	mockServer = echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 }
@@ -81,7 +81,7 @@ func Test_HandleSADD(t *testing.T) {
 			command:          []string{"SADD", "SaddKey4"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -176,7 +176,7 @@ func Test_HandleSCARD(t *testing.T) {
 			command:          []string{"SCARD"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:           false,
@@ -184,7 +184,7 @@ func Test_HandleSCARD(t *testing.T) {
 			command:          []string{"SCARD", "ScardKey5", "ScardKey5"},
 			expectedValue:    nil,
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -286,7 +286,7 @@ func Test_HandleSDIFF(t *testing.T) {
 			preset:           false,
 			command:          []string{"SDIFF"},
 			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -404,7 +404,7 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"SDIFFSTORE", "SdiffStoreDestination6"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -523,7 +523,7 @@ func Test_HandleSINTER(t *testing.T) {
 			preset:           false,
 			command:          []string{"SINTER"},
 			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -640,7 +640,7 @@ func Test_HandleSINTERCARD(t *testing.T) {
 			preset:           false,
 			command:          []string{"SINTERCARD"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -756,7 +756,7 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"SINTERSTORE", "SinterStoreDestination6"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -848,14 +848,14 @@ func Test_HandleSISMEMBER(t *testing.T) {
 			key:              "SIsMemberKey4",
 			command:          []string{"SISMEMBER", "SIsMemberKey4"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:           false,
 			key:              "SIsMemberKey5",
 			command:          []string{"SISMEMBER", "SIsMemberKey5", "one", "two", "three"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -929,13 +929,13 @@ func Test_HandleSMEMBERS(t *testing.T) {
 			preset:           false,
 			command:          []string{"SMEMBERS"},
 			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:           false,
 			command:          []string{"SMEMBERS", "SmembersKey5", "SmembersKey6"},
 			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -1019,7 +1019,7 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 			key:              "SmismemberKey4",
 			command:          []string{"SMISMEMBER", "SmismemberKey4"},
 			expectedResponse: nil,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -1127,12 +1127,12 @@ func Test_HandleSMOVE(t *testing.T) {
 		{ // 5. Command too short
 			preset:        false,
 			command:       []string{"SMOVE", "SmoveSource5", "SmoveSource6"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{ // 6. Command too long
 			preset:        false,
 			command:       []string{"SMOVE", "SmoveSource5", "SmoveSource6", "member1", "member2"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -1224,12 +1224,12 @@ func Test_HandleSPOP(t *testing.T) {
 		{ // 3. Command too short
 			preset:        false,
 			command:       []string{"SPOP"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{ // 4. Command too long
 			preset:        false,
 			command:       []string{"SPOP", "SpopSource5", "SpopSource6", "member1", "member2"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{ // 5. Throw error when count is not an integer
 			preset:        false,
@@ -1337,12 +1337,12 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 		{ // 4. Command too short
 			preset:        false,
 			command:       []string{"SRANDMEMBER"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{ // 5. Command too long
 			preset:        false,
 			command:       []string{"SRANDMEMBER", "SRandMemberSource5", "SRandMemberSource6", "member1", "member2"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{ // 6. Throw error when count is not an integer
 			preset:        false,
@@ -1455,7 +1455,7 @@ func Test_HandleSREM(t *testing.T) {
 		{ // 4. Command too short
 			preset:        false,
 			command:       []string{"SREM", "SremKey"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -1565,7 +1565,7 @@ func Test_HandleSUNION(t *testing.T) {
 			preset:           false,
 			command:          []string{"SUNION"},
 			expectedResponse: []string{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -1661,7 +1661,7 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 			preset:           false,
 			command:          []string{"SUNIONSTORE", "SunionStoreDestination6"},
 			expectedResponse: 0,
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 

@@ -19,8 +19,8 @@ import (
 	"context"
 	"errors"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/tidwall/resp"
 	"testing"
 )
@@ -31,7 +31,7 @@ func init() {
 	mockServer = echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 }
@@ -57,7 +57,7 @@ func Test_HandlePing(t *testing.T) {
 		{
 			command:     []string{"PING", "Hello, world!", "Once more"},
 			expected:    "",
-			expectedErr: errors.New(utils.WrongArgsResponse),
+			expectedErr: errors.New(constants.WrongArgsResponse),
 		},
 	}
 

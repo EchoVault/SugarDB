@@ -20,8 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/utils"
 	"github.com/tidwall/resp"
 	"slices"
 	"testing"
@@ -33,7 +33,7 @@ func init() {
 	mockServer = echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 }
@@ -119,7 +119,7 @@ func Test_HandleHSET(t *testing.T) {
 			command:          []string{"HSET", "field1"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -219,7 +219,7 @@ func Test_HandleHINCRBY(t *testing.T) {
 			command:          []string{"HINCRBY", "HincrbyKey5"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -228,7 +228,7 @@ func Test_HandleHINCRBY(t *testing.T) {
 			command:          []string{"HINCRBY", "HincrbyKey6", "field1", "23", "45"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Error when increment by float does not pass valid float
 			preset:           false,
@@ -364,7 +364,7 @@ func Test_HandleHGET(t *testing.T) {
 			command:          []string{"HGET", "HgetKey4"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
@@ -457,7 +457,7 @@ func Test_HandleHSTRLEN(t *testing.T) {
 			command:          []string{"HSTRLEN", "HstrlenKey3"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -545,7 +545,7 @@ func Test_HandleHVALS(t *testing.T) {
 			command:          []string{"HVALS"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -554,7 +554,7 @@ func Test_HandleHVALS(t *testing.T) {
 			command:          []string{"HVALS", "HvalsKey4", "HvalsKey4"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -729,14 +729,14 @@ func Test_HandleHRANDFIELD(t *testing.T) {
 			key:           "HrandfieldKey10",
 			presetValue:   map[string]interface{}{},
 			command:       []string{"HRANDFIELD"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:        false,
 			key:           "HrandfieldKey11",
 			presetValue:   map[string]interface{}{},
 			command:       []string{"HRANDFIELD", "HrandfieldKey11", "HrandfieldKey11", "HrandfieldKey11", "HrandfieldKey11"},
-			expectedError: errors.New(utils.WrongArgsResponse),
+			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get random field on a non hash map returns error
 			preset:        true,
@@ -855,7 +855,7 @@ func Test_HandleHLEN(t *testing.T) {
 			command:          []string{"HLEN"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -864,7 +864,7 @@ func Test_HandleHLEN(t *testing.T) {
 			command:          []string{"HLEN", "HlenKey4", "HlenKey4"},
 			expectedResponse: 0,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -947,7 +947,7 @@ func Test_HandleHKeys(t *testing.T) {
 			command:          []string{"HKEYS"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -956,7 +956,7 @@ func Test_HandleHKeys(t *testing.T) {
 			command:          []string{"HKEYS", "HkeysKey4", "HkeysKey4"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -1046,7 +1046,7 @@ func Test_HandleHGETALL(t *testing.T) {
 			command:          []string{"HGETALL"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -1055,7 +1055,7 @@ func Test_HandleHGETALL(t *testing.T) {
 			command:          []string{"HGETALL", "HGetAllKey4", "HGetAllKey4"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -1156,7 +1156,7 @@ func Test_HandleHEXISTS(t *testing.T) {
 			command:          []string{"HEXISTS", "HexistsKey3"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Command too long
 			preset:           false,
@@ -1165,7 +1165,7 @@ func Test_HandleHEXISTS(t *testing.T) {
 			command:          []string{"HEXISTS", "HexistsKey4", "field1", "field2"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,
@@ -1257,7 +1257,7 @@ func Test_HandleHDEL(t *testing.T) {
 			command:          []string{"HDEL", "HdelKey4"},
 			expectedResponse: nil,
 			expectedValue:    map[string]interface{}{},
-			expectedError:    errors.New(utils.WrongArgsResponse),
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{ // Trying to get lengths on a non hash map returns error
 			preset:           true,

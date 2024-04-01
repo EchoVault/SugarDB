@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
 	"time"
 )
 
@@ -30,7 +30,7 @@ func DefaultConfig() Config {
 		RestoreSnapshot:    false,
 		AOFSyncStrategy:    "everysec",
 		MaxMemory:          0,
-		EvictionPolicy:     utils.NoEviction,
+		EvictionPolicy:     constants.NoEviction,
 		EvictionSample:     20,
 		EvictionInterval:   100 * time.Millisecond,
 	}

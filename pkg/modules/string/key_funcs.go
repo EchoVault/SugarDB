@@ -16,26 +16,26 @@ package str
 
 import (
 	"errors"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
 )
 
 func setRangeKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return []string{cmd[1]}, nil
 }
 
 func strLenKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return []string{cmd[1]}, nil
 }
 
 func subStrKeyFunc(cmd []string) ([]string, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 	return []string{cmd[1]}, nil
 }

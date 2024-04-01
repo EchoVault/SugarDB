@@ -19,12 +19,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"net"
 	"strings"
 )
 
-func (server *EchoVault) GetAllCommands() []utils.Command {
+func (server *EchoVault) GetAllCommands() []types.Command {
 	return server.commands
 }
 
@@ -36,13 +37,13 @@ func (server *EchoVault) GetPubSub() interface{} {
 	return server.PubSub
 }
 
-func (server *EchoVault) getCommand(cmd string) (utils.Command, error) {
+func (server *EchoVault) getCommand(cmd string) (types.Command, error) {
 	for _, command := range server.commands {
 		if strings.EqualFold(command.Command, cmd) {
 			return command, nil
 		}
 	}
-	return utils.Command{}, fmt.Errorf("command %s not supported", cmd)
+	return types.Command{}, fmt.Errorf("command %s not supported", cmd)
 }
 
 func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool) ([]byte, error) {
@@ -59,7 +60,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	synchronize := command.Sync
 	handler := command.HandlerFunc
 
-	subCommand, ok := internal.GetSubCommand(command, cmd).(utils.SubCommand)
+	subCommand, ok := internal.GetSubCommand(command, cmd).(types.SubCommand)
 	if ok {
 		synchronize = subCommand.Sync
 		handler = subCommand.HandlerFunc
@@ -110,7 +111,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	// Forward message to leader and return immediate OK response
 	if server.config.ForwardCommand {
 		server.memberList.ForwardDataMutation(ctx, message)
-		return []byte(utils.OkResponse), nil
+		return []byte(constants.OkResponse), nil
 	}
 
 	return nil, errors.New("not cluster leader, cannot carry out command")

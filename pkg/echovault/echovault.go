@@ -29,7 +29,8 @@ import (
 	"github.com/echovault/echovault/internal/pubsub"
 	"github.com/echovault/echovault/internal/raft"
 	"github.com/echovault/echovault/internal/snapshot"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"io"
 	"log"
 	"net"
@@ -69,7 +70,7 @@ type EchoVault struct {
 	}
 
 	// Holds the list of all commands supported by the echovault.
-	commands []utils.Command
+	commands []types.Command
 
 	raft       *raft.Raft             // The raft replication layer for the echovault.
 	memberList *memberlist.MemberList // The memberlist layer for the echovault.
@@ -100,7 +101,7 @@ func WithConfig(config config.Config) func(echovault *EchoVault) {
 	}
 }
 
-func WithCommands(commands []utils.Command) func(echovault *EchoVault) {
+func WithCommands(commands []types.Command) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.commands = commands
 	}
@@ -109,7 +110,7 @@ func WithCommands(commands []utils.Command) func(echovault *EchoVault) {
 func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 	echovault := &EchoVault{
 		context:         context.Background(),
-		commands:        make([]utils.Command, 0),
+		commands:        make([]types.Command, 0),
 		config:          config.DefaultConfig(),
 		store:           make(map[string]internal.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
@@ -220,7 +221,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 	}
 
 	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
-	if echovault.config.EvictionPolicy != utils.NoEviction {
+	if echovault.config.EvictionPolicy != constants.NoEviction {
 		go func() {
 			for {
 				<-time.After(echovault.config.EvictionInterval)

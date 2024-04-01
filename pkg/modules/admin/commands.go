@@ -18,14 +18,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/gobwas/glob"
 	"net"
 	"slices"
 	"strings"
 )
 
-func handleGetAllCommands(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleGetAllCommands(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	commands := server.GetAllCommands()
 
 	res := ""
@@ -70,7 +71,7 @@ func handleGetAllCommands(ctx context.Context, cmd []string, server utils.EchoVa
 	return []byte(res), nil
 }
 
-func handleCommandCount(_ context.Context, _ []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleCommandCount(_ context.Context, _ []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	var count int
 
 	commands := server.GetAllCommands()
@@ -87,7 +88,7 @@ func handleCommandCount(_ context.Context, _ []string, server utils.EchoVault, _
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleCommandList(_ context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleCommandList(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	switch len(cmd) {
 	case 2:
 		// Command is COMMAND LIST
@@ -182,20 +183,20 @@ func handleCommandList(_ context.Context, cmd []string, server utils.EchoVault, 
 		res = fmt.Sprintf("*%d\r\n%s", count, res)
 		return []byte(res), nil
 	default:
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 }
 
-func handleCommandDocs(_ context.Context, _ []string, _ utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleCommandDocs(_ context.Context, _ []string, _ types.EchoVault, _ *net.Conn) ([]byte, error) {
 	return []byte("*0\r\n"), nil
 }
 
-func Commands() []utils.Command {
-	return []utils.Command{
+func Commands() []types.Command {
+	return []types.Command{
 		{
 			Command:           "commands",
-			Module:            utils.AdminModule,
-			Categories:        []string{utils.AdminCategory, utils.SlowCategory},
+			Module:            constants.AdminModule,
+			Categories:        []string{constants.AdminCategory, constants.SlowCategory},
 			Description:       "Get a list of all the commands in available on the echovault with categories and descriptions",
 			Sync:              false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
@@ -203,18 +204,18 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:     "command",
-			Module:      utils.AdminModule,
+			Module:      constants.AdminModule,
 			Categories:  []string{},
 			Description: "Commands pertaining to echovault commands",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				return []string{}, nil
 			},
-			SubCommands: []utils.SubCommand{
+			SubCommands: []types.SubCommand{
 				{
 					Command:           "docs",
-					Module:            utils.AdminModule,
-					Categories:        []string{utils.SlowCategory, utils.ConnectionCategory},
+					Module:            constants.AdminModule,
+					Categories:        []string{constants.SlowCategory, constants.ConnectionCategory},
 					Description:       "Get command documentation",
 					Sync:              false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
@@ -222,8 +223,8 @@ func Commands() []utils.Command {
 				},
 				{
 					Command:           "count",
-					Module:            utils.AdminModule,
-					Categories:        []string{utils.SlowCategory},
+					Module:            constants.AdminModule,
+					Categories:        []string{constants.SlowCategory},
 					Description:       "Get the dumber of commands in the echovault",
 					Sync:              false,
 					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
@@ -231,8 +232,8 @@ func Commands() []utils.Command {
 				},
 				{
 					Command:    "list",
-					Module:     utils.AdminModule,
-					Categories: []string{utils.SlowCategory},
+					Module:     constants.AdminModule,
+					Categories: []string{constants.SlowCategory},
 					Description: `(COMMAND LIST [FILTERBY <ACLCAT category | PATTERN pattern | MODULE module>]) Get the list of command names.
 Allows for filtering by ACL category or glob pattern.`,
 					Sync:              false,
@@ -243,30 +244,30 @@ Allows for filtering by ACL category or glob pattern.`,
 		},
 		{
 			Command:     "save",
-			Module:      utils.AdminModule,
-			Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+			Module:      constants.AdminModule,
+			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(SAVE) Trigger a snapshot save",
 			Sync:        true,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				return []string{}, nil
 			},
-			HandlerFunc: func(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+			HandlerFunc: func(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 				if err := server.TakeSnapshot(); err != nil {
 					return nil, err
 				}
-				return []byte(utils.OkResponse), nil
+				return []byte(constants.OkResponse), nil
 			},
 		},
 		{
 			Command:     "lastsave",
-			Module:      utils.AdminModule,
-			Categories:  []string{utils.AdminCategory, utils.FastCategory, utils.DangerousCategory},
+			Module:      constants.AdminModule,
+			Categories:  []string{constants.AdminCategory, constants.FastCategory, constants.DangerousCategory},
 			Description: "(LASTSAVE) Get unix timestamp for the latest snapshot in milliseconds.",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				return []string{}, nil
 			},
-			HandlerFunc: func(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+			HandlerFunc: func(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 				msec := server.GetLatestSnapshot()
 				if msec == 0 {
 					return nil, errors.New("no snapshot")
@@ -276,18 +277,18 @@ Allows for filtering by ACL category or glob pattern.`,
 		},
 		{
 			Command:     "rewriteaof",
-			Module:      utils.AdminModule,
-			Categories:  []string{utils.AdminCategory, utils.SlowCategory, utils.DangerousCategory},
+			Module:      constants.AdminModule,
+			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(REWRITEAOF) Trigger re-writing of append process",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) ([]string, error) {
 				return []string{}, nil
 			},
-			HandlerFunc: func(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+			HandlerFunc: func(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 				if err := server.RewriteAOF(); err != nil {
 					return nil, err
 				}
-				return []byte(utils.OkResponse), nil
+				return []byte(constants.OkResponse), nil
 			},
 		},
 	}

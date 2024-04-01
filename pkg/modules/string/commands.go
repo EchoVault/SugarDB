@@ -19,11 +19,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"net"
 )
 
-func handleSetRange(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSetRange(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := setRangeKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -98,7 +99,7 @@ func handleSetRange(ctx context.Context, cmd []string, server utils.EchoVault, c
 	return []byte(fmt.Sprintf(":%d\r\n", len(strRunes))), nil
 }
 
-func handleStrLen(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleStrLen(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := strLenKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -124,7 +125,7 @@ func handleStrLen(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(fmt.Sprintf(":%d\r\n", len(value))), nil
 }
 
-func handleSubStr(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSubStr(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := subStrKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -187,12 +188,12 @@ func handleSubStr(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(str), str)), nil
 }
 
-func Commands() []utils.Command {
-	return []utils.Command{
+func Commands() []types.Command {
+	return []types.Command{
 		{
 			Command:           "setrange",
-			Module:            utils.StringModule,
-			Categories:        []string{utils.StringCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.StringModule,
+			Categories:        []string{constants.StringCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
 			Sync:              true,
 			KeyExtractionFunc: setRangeKeyFunc,
@@ -200,8 +201,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "strlen",
-			Module:            utils.StringModule,
-			Categories:        []string{utils.StringCategory, utils.ReadCategory, utils.FastCategory},
+			Module:            constants.StringModule,
+			Categories:        []string{constants.StringCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       "(STRLEN key) Returns length of the key's value if it's a string.",
 			Sync:              false,
 			KeyExtractionFunc: strLenKeyFunc,
@@ -209,8 +210,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "substr",
-			Module:            utils.StringModule,
-			Categories:        []string{utils.StringCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.StringModule,
+			Categories:        []string{constants.StringCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       "(SUBSTR key start end) Returns a substring from the string value.",
 			Sync:              false,
 			KeyExtractionFunc: subStrKeyFunc,
@@ -218,8 +219,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "getrange",
-			Module:            utils.StringModule,
-			Categories:        []string{utils.StringCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.StringModule,
+			Categories:        []string{constants.StringCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       "(GETRANGE key start end) Returns a substring from the string value.",
 			Sync:              false,
 			KeyExtractionFunc: subStrKeyFunc,

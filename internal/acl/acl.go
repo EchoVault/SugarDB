@@ -21,7 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/gobwas/glob"
 	"gopkg.in/yaml.v3"
 	"log"
@@ -285,7 +286,7 @@ func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []
 	return errors.New("could not authenticate user")
 }
 
-func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.Command, subCommand utils.SubCommand) error {
+func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command types.Command, subCommand types.SubCommand) error {
 	acl.RLockUsers()
 	defer acl.RUnlockUsers()
 
@@ -298,7 +299,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		return err
 	}
 
-	if !reflect.DeepEqual(subCommand, utils.SubCommand{}) {
+	if !reflect.DeepEqual(subCommand, types.SubCommand{}) {
 		comm = fmt.Sprintf("%s|%s", comm, subCommand.Command)
 		categories = append(categories, subCommand.Categories...)
 		keys, err = subCommand.KeyExtractionFunc(cmd)
@@ -380,7 +381,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 	}
 
 	// 6. PUBSUB authorisation.
-	if slices.Contains(categories, utils.PubSubCategory) {
+	if slices.Contains(categories, constants.PubSubCategory) {
 		// In PUBSUB, KeyExtractionFunc returns channels so keys[0] is aliased to channel
 		channel := keys[0]
 		// 2.1) Check if the channel is in IncludedPubSubChannels
@@ -405,7 +406,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		}
 
 		// 8. If @read is in the list of categories, check if keys are in IncludedReadKeys
-		if slices.Contains(categories, utils.ReadCategory) {
+		if slices.Contains(categories, constants.ReadCategory) {
 			if !slices.ContainsFunc(keys, func(key string) bool {
 				return slices.ContainsFunc(connection.User.IncludedReadKeys, func(readKeyGlob string) bool {
 					if acl.GlobPatterns[readKeyGlob].Match(key) {
@@ -420,7 +421,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command utils.
 		}
 
 		// 9. If @write is in the list of categories, check if keys are in IncludedWriteKeys
-		if slices.Contains(categories, utils.WriteCategory) {
+		if slices.Contains(categories, constants.WriteCategory) {
 			if !slices.ContainsFunc(keys, func(key string) bool {
 				return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKeyGlob string) bool {
 					if acl.GlobPatterns[writeKeyGlob].Match(key) {

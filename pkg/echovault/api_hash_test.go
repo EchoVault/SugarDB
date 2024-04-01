@@ -17,7 +17,7 @@ package echovault
 import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/commands"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
 	"reflect"
 	"slices"
 	"testing"
@@ -28,7 +28,7 @@ func TestEchoVault_HDEL(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -95,7 +95,7 @@ func TestEchoVault_HEXISTS(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -154,7 +154,7 @@ func TestEchoVault_HGETALL(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -216,7 +216,7 @@ func TestEchoVault_HINCRBY(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -330,7 +330,7 @@ func TestEchoVault_HKEYS(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -390,7 +390,7 @@ func TestEchoVault_HLEN(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -445,7 +445,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -579,7 +579,7 @@ func TestEchoVault_HSET(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -669,7 +669,7 @@ func TestEchoVault_HSTRLEN(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 
@@ -738,7 +738,7 @@ func TestEchoVault_HVALS(t *testing.T) {
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
-			EvictionPolicy: utils.NoEviction,
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 

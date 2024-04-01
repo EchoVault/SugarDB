@@ -21,7 +21,8 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/sorted_set"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"math"
 	"net"
 	"slices"
@@ -29,7 +30,7 @@ import (
 	"strings"
 )
 
-func handleZADD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZADD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zaddKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -180,7 +181,7 @@ func handleZADD(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
 
-func handleZCARD(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZCARD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zcardKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -204,7 +205,7 @@ func handleZCARD(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
 
-func handleZCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZCOUNT(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zcountKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -272,7 +273,7 @@ func handleZCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(fmt.Sprintf(":%d\r\n", len(members))), nil
 }
 
-func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleZLEXCOUNT(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zlexcountKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -317,7 +318,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server utils.EchoVault, 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleZDIFF(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZDIFF(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zdiffKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -327,7 +328,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.EchoVault, conn
 		return strings.EqualFold(s, "withscores")
 	})
 	if withscoresIndex > -1 && withscoresIndex < 2 {
-		return nil, errors.New(utils.WrongArgsResponse)
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
 	locks := make(map[string]bool)
@@ -390,7 +391,7 @@ func handleZDIFF(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	return []byte(res), nil
 }
 
-func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zdiffstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -456,7 +457,7 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server utils.EchoVault,
 	return []byte(fmt.Sprintf(":%d\r\n", diff.Cardinality())), nil
 }
 
-func handleZINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZINCRBY(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zincrbyKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -523,7 +524,7 @@ func handleZINCRBY(ctx context.Context, cmd []string, server utils.EchoVault, co
 		strconv.FormatFloat(float64(set.Get(member).Score), 'f', -1, 64))), nil
 }
 
-func handleZINTER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZINTER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zinterKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -583,7 +584,7 @@ func handleZINTER(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(res), nil
 }
 
-func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zinterstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -650,7 +651,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server utils.EchoVault
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleZMPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZMPOP(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zmpopKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -666,7 +667,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	})
 	if countIdx != -1 {
 		if countIdx < 2 {
-			return nil, errors.New(utils.WrongArgsResponse)
+			return nil, errors.New(constants.WrongArgsResponse)
 		}
 		if countIdx == len(cmd)-1 {
 			return nil, errors.New("count must be a positive integer")
@@ -688,7 +689,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	})
 	if policyIdx != -1 {
 		if policyIdx < 2 {
-			return nil, errors.New(utils.WrongArgsResponse)
+			return nil, errors.New(constants.WrongArgsResponse)
 		}
 		policy = strings.ToLower(cmd[policyIdx])
 		if modifierIdx == -1 || (policyIdx < modifierIdx) {
@@ -728,7 +729,7 @@ func handleZMPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	return []byte("*0\r\n"), nil
 }
 
-func handleZPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZPOP(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zpopKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -779,7 +780,7 @@ func handleZPOP(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	return []byte(res), nil
 }
 
-func handleZMSCORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZMSCORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zmscoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -821,7 +822,7 @@ func handleZMSCORE(ctx context.Context, cmd []string, server utils.EchoVault, co
 	return []byte(res), nil
 }
 
-func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zrandmemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -876,7 +877,7 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server utils.EchoVault
 	return []byte(res), nil
 }
 
-func handleZRANK(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleZRANK(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zrankKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -926,7 +927,7 @@ func handleZRANK(ctx context.Context, cmd []string, server utils.EchoVault, _ *n
 	return []byte("$-1\r\n"), nil
 }
 
-func handleZREM(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZREM(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zremKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -958,7 +959,7 @@ func handleZREM(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZSCORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZSCORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zscoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -987,7 +988,7 @@ func handleZSCORE(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(score), score)), nil
 }
 
-func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zremrangebyscoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1031,7 +1032,7 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server utils.Echo
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zremrangebyrankKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1096,7 +1097,7 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server utils.EchoV
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zremrangebylexKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1143,7 +1144,7 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server utils.EchoVa
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZRANGE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZRANGE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zrangeKeyCount(cmd)
 	if err != nil {
 		return nil, err
@@ -1283,7 +1284,7 @@ func handleZRANGE(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(res), nil
 }
 
-func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZRANGESTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zrangeStoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1425,7 +1426,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server utils.EchoVault
 	return []byte(fmt.Sprintf(":%d\r\n", newSortedSet.Cardinality())), nil
 }
 
-func handleZUNION(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZUNION(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	if _, err := zunionKeyFunc(cmd); err != nil {
 		return nil, err
 	}
@@ -1479,7 +1480,7 @@ func handleZUNION(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(res), nil
 }
 
-func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := zunionstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1545,12 +1546,12 @@ func handleZUNIONSTORE(ctx context.Context, cmd []string, server utils.EchoVault
 	return []byte(fmt.Sprintf(":%d\r\n", union.Cardinality())), nil
 }
 
-func Commands() []utils.Command {
-	return []utils.Command{
+func Commands() []types.Command {
+	return []types.Command{
 		{
 			Command:    "zadd",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.FastCategory},
 			Description: `(ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member...])
 Adds all the specified members with the specified scores to the sorted set at the key.
 "NX" only adds the member if it currently does not exist in the sorted set.
@@ -1565,8 +1566,8 @@ Adds all the specified members with the specified scores to the sorted set at th
 		},
 		{
 			Command:    "zcard",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZCARD key) Returns the set cardinality of the sorted set at key.
 If the key does not exist, 0 is returned, otherwise the cardinality of the sorted set is returned.
 If the key holds a value that is not a sorted set, this command will return an error.`,
@@ -1576,8 +1577,8 @@ If the key holds a value that is not a sorted set, this command will return an e
 		},
 		{
 			Command:    "zcount",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZCOUNT key min max) 
 Returns the number of elements in the sorted set key with scores in the range of min and max.
 If the key does not exist, a count of 0 is returned, otherwise return the count.
@@ -1588,8 +1589,8 @@ If the key holds a value that is not a sorted set, an error is returned.`,
 		},
 		{
 			Command:    "zdiff",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZDIFF key [key...] [WITHSCORES]) 
 Computes the difference between all the sorted sets specifies in the list of keys and returns the result.`,
 			Sync:              false,
@@ -1598,8 +1599,8 @@ Computes the difference between all the sorted sets specifies in the list of key
 		},
 		{
 			Command:    "zdiffstore",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `(ZDIFFSTORE destination key [key...]). 
 Computes the difference between all the sorted sets specifies in the list of keys. Stores the result in destination.
 If the base set (first key) does not exist, return 0, otherwise, return the cardinality of the diff.`,
@@ -1609,8 +1610,8 @@ If the base set (first key) does not exist, return 0, otherwise, return the card
 		},
 		{
 			Command:    "zincrby",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.FastCategory},
 			Description: `(ZINCRBY key increment member). 
 Increments the score of the specified sorted set's member by the increment. If the member does not exist, it is created.
 If the key does not exist, it is created with new sorted set and the member added with the increment as its score.`,
@@ -1620,8 +1621,8 @@ If the key does not exist, it is created with new sorted set and the member adde
 		},
 		{
 			Command:    "zinter",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZINTER key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]).
 Computes the intersection of the sets in the keys, with weights, aggregate and scores`,
 			Sync:              false,
@@ -1630,8 +1631,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 		},
 		{
 			Command:    "zinterstore",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `
 (ZINTERSTORE destination key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]).
 Computes the intersection of the sets in the keys, with weights, aggregate and scores. The result is stored in destination.`,
@@ -1641,8 +1642,8 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 		},
 		{
 			Command:    "zmpop",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `(ZMPOP key [key ...] <MIN | MAX> [COUNT count])
 Pop a 'count' elements from sorted set. MIN or MAX determines whether to pop elements with the lowest or highest scores
 respectively.`,
@@ -1652,8 +1653,8 @@ respectively.`,
 		},
 		{
 			Command:    "zmscore",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.FastCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.FastCategory},
 			Description: `(ZMSCORE key member [member ...])
 Returns the associated scores of the specified member in the sorted set. 
 Returns nil for members that do not exist in the set`,
@@ -1663,8 +1664,8 @@ Returns nil for members that do not exist in the set`,
 		},
 		{
 			Command:    "zpopmax",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `(ZPOPMAX key [count])
 Removes and returns 'count' number of members in the sorted set with the highest scores. Default count is 1.`,
 			Sync:              true,
@@ -1673,8 +1674,8 @@ Removes and returns 'count' number of members in the sorted set with the highest
 		},
 		{
 			Command:    "zpopmin",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `(ZPOPMIN key [count])
 Removes and returns 'count' number of members in the sorted set with the lowest scores. Default count is 1.`,
 			Sync:              true,
@@ -1683,8 +1684,8 @@ Removes and returns 'count' number of members in the sorted set with the lowest 
 		},
 		{
 			Command:    "zrandmember",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZRANDMEMBER key [count [WITHSCORES]])
 Return a list of length equivalent to count containing random members of the sorted set.
 If count is negative, repeated elements are allowed. If count is positive, the returned elements will be distinct.
@@ -1695,8 +1696,8 @@ WITHSCORES modifies the result to include scores in the result.`,
 		},
 		{
 			Command:    "zrank",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZRANK key member [WITHSCORE])
 Returns the rank of the specified member in the sorted set. WITHSCORE modifies the result to also return the score.`,
 			Sync:              false,
@@ -1705,8 +1706,8 @@ Returns the rank of the specified member in the sorted set. WITHSCORE modifies t
 		},
 		{
 			Command:    "zrevrank",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZREVRANK key member [WITHSCORE])
 Returns the rank of the member in the sorted set in reverse order. 
 WITHSCORE modifies the result to include the score.`,
@@ -1716,8 +1717,8 @@ WITHSCORE modifies the result to include the score.`,
 		},
 		{
 			Command:    "zrem",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.FastCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.FastCategory},
 			Description: `(ZREM key member [member ...]) Removes the listed members from the sorted set.
 Returns the number of elements removed.`,
 			Sync:              true,
@@ -1726,8 +1727,8 @@ Returns the number of elements removed.`,
 		},
 		{
 			Command:           "zscore",
-			Module:            utils.SortedSetModule,
-			Categories:        []string{utils.SortedSetCategory, utils.ReadCategory, utils.FastCategory},
+			Module:            constants.SortedSetModule,
+			Categories:        []string{constants.SortedSetCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       `(ZSCORE key member) Returns the score of the member in the sorted set.`,
 			Sync:              false,
 			KeyExtractionFunc: zscoreKeyFunc,
@@ -1735,8 +1736,8 @@ Returns the number of elements removed.`,
 		},
 		{
 			Command:           "zremrangebylex",
-			Module:            utils.SortedSetModule,
-			Categories:        []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.SortedSetModule,
+			Categories:        []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       `(ZREMRANGEBYLEX key min max) Removes the elements in the lexicographical range between min and max`,
 			Sync:              true,
 			KeyExtractionFunc: zremrangebylexKeyFunc,
@@ -1744,8 +1745,8 @@ Returns the number of elements removed.`,
 		},
 		{
 			Command:    "zremrangebyrank",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `(ZREMRANGEBYRANK key start stop) Removes the elements in the rank range between start and stop.
 The elements are ordered from lowest score to highest score`,
 			Sync:              true,
@@ -1754,8 +1755,8 @@ The elements are ordered from lowest score to highest score`,
 		},
 		{
 			Command:           "zremrangebyscore",
-			Module:            utils.SortedSetModule,
-			Categories:        []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.SortedSetModule,
+			Categories:        []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       `(ZREMRANGEBYSCORE key min max) Removes the elements whose scores are in the range between min and max`,
 			Sync:              true,
 			KeyExtractionFunc: zremrangebyscoreKeyFunc,
@@ -1763,8 +1764,8 @@ The elements are ordered from lowest score to highest score`,
 		},
 		{
 			Command:    "zlexcount",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZLEXCOUNT key min max) Returns the number of elements in within the sorted set within the 
 lexicographical range between min and max. Returns 0, if the keys does not exist or if all the members do not have
 the same score. If the value held at key is not a sorted set, an error is returned`,
@@ -1774,8 +1775,8 @@ the same score. If the value held at key is not a sorted set, an error is return
 		},
 		{
 			Command:    "zrange",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZRANGE key start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count]
   [WITHSCORES]) Returns the range of elements in the sorted set`,
 			Sync:              false,
@@ -1784,8 +1785,8 @@ the same score. If the value held at key is not a sorted set, an error is return
 		},
 		{
 			Command:    "zrangestore",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `ZRANGESTORE destination source start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count]
   [WITHSCORES] Retrieve the range of elements in the sorted set and store it in destination`,
 			Sync:              true,
@@ -1794,8 +1795,8 @@ the same score. If the value held at key is not a sorted set, an error is return
 		},
 		{
 			Command:    "zunion",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZUNION key [key ...] [WEIGHTS weight [weight ...]]
 [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]) Return the union of the sorted sets in keys. The scores of each member of 
 a sorted set are multiplied by the corresponding weight in WEIGHTS. Aggregate determines how the scores are combined.
@@ -1806,8 +1807,8 @@ WITHSCORES option determines whether to return the result with scores included.`
 		},
 		{
 			Command:    "zunionstore",
-			Module:     utils.SortedSetModule,
-			Categories: []string{utils.SortedSetCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:     constants.SortedSetModule,
+			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `(ZUNIONSTORE destination key [key ...] [WEIGHTS weight [weight ...]]
 [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]) Return the union of the sorted sets in keys. The scores of each member of 
 a sorted set are multiplied by the corresponding weight in WEIGHTS. Aggregate determines how the scores are combined.

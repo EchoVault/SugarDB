@@ -20,7 +20,8 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"io"
 	"log"
 	"math/big"
@@ -128,7 +129,7 @@ func GetIPAddress() (string, error) {
 	return localAddr, nil
 }
 
-func GetSubCommand(command utils.Command, cmd []string) interface{} {
+func GetSubCommand(command types.Command, cmd []string) interface{} {
 	if len(command.SubCommands) == 0 || len(cmd) < 2 {
 		return nil
 	}
@@ -140,8 +141,8 @@ func GetSubCommand(command utils.Command, cmd []string) interface{} {
 	return nil
 }
 
-func IsWriteCommand(command utils.Command, subCommand utils.SubCommand) bool {
-	return slices.Contains(append(command.Categories, subCommand.Categories...), utils.WriteCategory)
+func IsWriteCommand(command types.Command, subCommand types.SubCommand) bool {
+	return slices.Contains(append(command.Categories, subCommand.Categories...), constants.WriteCategory)
 }
 
 func AbsInt(n int) int {

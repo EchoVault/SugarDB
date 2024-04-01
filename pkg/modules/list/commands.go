@@ -19,14 +19,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"math"
 	"net"
 	"slices"
 	"strings"
 )
 
-func handleLLen(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleLLen(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := llenKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -51,7 +52,7 @@ func handleLLen(ctx context.Context, cmd []string, server utils.EchoVault, _ *ne
 	return nil, errors.New("LLEN command on non-list item")
 }
 
-func handleLIndex(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLIndex(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lindexKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -85,7 +86,7 @@ func handleLIndex(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return []byte(fmt.Sprintf("+%s\r\n", list[index])), nil
 }
 
-func handleLRange(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLRange(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lrangeKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -164,7 +165,7 @@ func handleLRange(ctx context.Context, cmd []string, server utils.EchoVault, con
 	return bytes, nil
 }
 
-func handleLSet(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLSet(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lsetKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -200,10 +201,10 @@ func handleLSet(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 		return nil, err
 	}
 
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handleLTrim(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLTrim(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := ltrimKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -243,16 +244,16 @@ func handleLTrim(ctx context.Context, cmd []string, server utils.EchoVault, conn
 		if err = server.SetValue(ctx, key, list[start:]); err != nil {
 			return nil, err
 		}
-		return []byte(utils.OkResponse), nil
+		return []byte(constants.OkResponse), nil
 	}
 
 	if err = server.SetValue(ctx, key, list[start:end]); err != nil {
 		return nil, err
 	}
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handleLRem(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLRem(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lremKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -317,10 +318,10 @@ func handleLRem(ctx context.Context, cmd []string, server utils.EchoVault, conn 
 		return nil, err
 	}
 
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handleLMove(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLMove(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lmoveKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -378,10 +379,10 @@ func handleLMove(ctx context.Context, cmd []string, server utils.EchoVault, conn
 		return nil, err
 	}
 
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handleLPush(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLPush(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := lpushKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -424,10 +425,10 @@ func handleLPush(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	if err = server.SetValue(ctx, key, append(newElems, l...)); err != nil {
 		return nil, err
 	}
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handleRPush(ctx context.Context, cmd []string, server utils.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleRPush(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 	keys, err := rpushKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -472,10 +473,10 @@ func handleRPush(ctx context.Context, cmd []string, server utils.EchoVault, conn
 	if err = server.SetValue(ctx, key, append(l, newElems...)); err != nil {
 		return nil, err
 	}
-	return []byte(utils.OkResponse), nil
+	return []byte(constants.OkResponse), nil
 }
 
-func handlePop(ctx context.Context, cmd []string, server utils.EchoVault, _ *net.Conn) ([]byte, error) {
+func handlePop(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := popKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -511,12 +512,12 @@ func handlePop(ctx context.Context, cmd []string, server utils.EchoVault, _ *net
 	}
 }
 
-func Commands() []utils.Command {
-	return []utils.Command{
+func Commands() []types.Command {
+	return []types.Command{
 		{
 			Command:           "lpush",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(LPUSH key element [element ...]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
 			Sync:              true,
 			KeyExtractionFunc: lpushKeyFunc,
@@ -524,8 +525,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lpushx",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(LPUSHX key element [element ...]) Prepends a value to the beginning of a list only if the list exists.",
 			Sync:              true,
 			KeyExtractionFunc: lpushKeyFunc,
@@ -533,8 +534,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lpop",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(LPOP key) Removes and returns the first element of a list.",
 			Sync:              true,
 			KeyExtractionFunc: popKeyFunc,
@@ -542,8 +543,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "llen",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.ReadCategory, utils.FastCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       "(LLEN key) Return the length of a list.",
 			Sync:              false,
 			KeyExtractionFunc: llenKeyFunc,
@@ -551,8 +552,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lrange",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       "(LRANGE key start end) Return a range of elements between the given indices.",
 			Sync:              false,
 			KeyExtractionFunc: lrangeKeyFunc,
@@ -560,8 +561,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lindex",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.ReadCategory, utils.SlowCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       "(LINDEX key index) Gets list element by index.",
 			Sync:              false,
 			KeyExtractionFunc: lindexKeyFunc,
@@ -569,8 +570,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lset",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       "(LSET key index element) Sets the value of an element in a list by its index.",
 			Sync:              true,
 			KeyExtractionFunc: lsetKeyFunc,
@@ -578,8 +579,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "ltrim",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       "(LTRIM key start end) Trims a list to the specified range.",
 			Sync:              true,
 			KeyExtractionFunc: ltrimKeyFunc,
@@ -587,8 +588,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lrem",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       "(LREM key count element) Remove elements from list.",
 			Sync:              true,
 			KeyExtractionFunc: lremKeyFunc,
@@ -596,8 +597,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "lmove",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.SlowCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>) Move element from one list to the other specifying left/right for both lists.",
 			Sync:              true,
 			KeyExtractionFunc: lmoveKeyFunc,
@@ -605,8 +606,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "rpop",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(RPOP key) Removes and gets the last element in a list.",
 			Sync:              true,
 			KeyExtractionFunc: popKeyFunc,
@@ -614,8 +615,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "rpush",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(RPUSH key element [element ...]) Appends one or multiple elements to the end of a list.",
 			Sync:              true,
 			KeyExtractionFunc: rpushKeyFunc,
@@ -623,8 +624,8 @@ func Commands() []utils.Command {
 		},
 		{
 			Command:           "rpushx",
-			Module:            utils.ListModule,
-			Categories:        []string{utils.ListCategory, utils.WriteCategory, utils.FastCategory},
+			Module:            constants.ListModule,
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(RPUSHX key element [element ...]) Appends an element to the end of a list, only if the list exists.",
 			Sync:              true,
 			KeyExtractionFunc: rpushKeyFunc,

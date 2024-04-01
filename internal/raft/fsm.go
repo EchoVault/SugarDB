@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/utils"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/hashicorp/raft"
 	"io"
 	"log"
@@ -29,9 +29,9 @@ import (
 
 type FSMOpts struct {
 	Config     config.Config
-	EchoVault  utils.EchoVault
+	EchoVault  types.EchoVault
 	GetState   func() map[string]internal.KeyData
-	GetCommand func(command string) (utils.Command, error)
+	GetCommand func(command string) (types.Command, error)
 	DeleteKey  func(ctx context.Context, key string) error
 }
 
@@ -94,7 +94,7 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 
 			handler := command.HandlerFunc
 
-			subCommand, ok := internal.GetSubCommand(command, request.CMD).(utils.SubCommand)
+			subCommand, ok := internal.GetSubCommand(command, request.CMD).(types.SubCommand)
 			if ok {
 				handler = subCommand.HandlerFunc
 			}
