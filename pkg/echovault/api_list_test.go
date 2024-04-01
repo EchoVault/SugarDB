@@ -15,7 +15,6 @@
 package echovault
 
 import (
-	"fmt"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/commands"
 	"github.com/echovault/echovault/pkg/constants"
@@ -24,7 +23,7 @@ import (
 )
 
 func TestEchoVault_LLEN(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -83,7 +82,7 @@ func TestEchoVault_LLEN(t *testing.T) {
 }
 
 func TestEchoVault_LINDEX(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -171,7 +170,6 @@ func TestEchoVault_LINDEX(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := server.LINDEX(tt.key, tt.index)
 			if (err != nil) != tt.wantErr {
-				fmt.Println("GOT: ", got, "ERROR: ", err, "KEY: ", tt.key)
 				t.Errorf("LINDEX() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
@@ -183,7 +181,7 @@ func TestEchoVault_LINDEX(t *testing.T) {
 }
 
 func TestEchoVault_LMOVE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -355,7 +353,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 }
 
 func TestEchoVault_POP(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -427,7 +425,7 @@ func TestEchoVault_POP(t *testing.T) {
 }
 
 func TestEchoVault_LPUSH(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -504,7 +502,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 }
 
 func TestEchoVault_RPUSH(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -561,7 +559,7 @@ func TestEchoVault_RPUSH(t *testing.T) {
 }
 
 func TestEchoVault_LRANGE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -682,7 +680,7 @@ func TestEchoVault_LRANGE(t *testing.T) {
 }
 
 func TestEchoVault_LREM(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -749,7 +747,7 @@ func TestEchoVault_LREM(t *testing.T) {
 }
 
 func TestEchoVault_LSET(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -856,7 +854,7 @@ func TestEchoVault_LSET(t *testing.T) {
 }
 
 func TestEchoVault_LTRIM(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",

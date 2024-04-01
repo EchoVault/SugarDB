@@ -22,7 +22,7 @@ import (
 )
 
 func TestEchoVault_SUBSTR(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -183,7 +183,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 }
 
 func TestEchoVault_SETRANGE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -273,7 +273,7 @@ func TestEchoVault_SETRANGE(t *testing.T) {
 }
 
 func TestEchoVault_STRLEN(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",

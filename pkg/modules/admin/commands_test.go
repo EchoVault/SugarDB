@@ -26,7 +26,7 @@ import (
 )
 
 func Test_CommandsHandler(t *testing.T) {
-	mockServer := echovault.NewEchoVault(
+	mockServer, _ := echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,

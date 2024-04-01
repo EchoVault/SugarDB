@@ -35,7 +35,7 @@ type KeyData struct {
 }
 
 func init() {
-	mockServer = echovault.NewEchoVault(
+	mockServer, _ = echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,

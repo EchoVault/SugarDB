@@ -54,7 +54,7 @@ func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig strin
 		AclConfig:      aclConfig,
 	}
 
-	mockServer := echovault.NewEchoVault(
+	mockServer, _ := echovault.NewEchoVault(
 		echovault.WithConfig(conf),
 		echovault.WithCommands(Commands()),
 	)

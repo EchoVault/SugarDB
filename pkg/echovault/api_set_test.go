@@ -25,7 +25,7 @@ import (
 )
 
 func TestEchoVault_SADD(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -84,7 +84,7 @@ func TestEchoVault_SADD(t *testing.T) {
 }
 
 func TestEchoVault_SCARD(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -139,7 +139,7 @@ func TestEchoVault_SCARD(t *testing.T) {
 }
 
 func TestEchoVault_SDIFF(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -233,7 +233,7 @@ func TestEchoVault_SDIFF(t *testing.T) {
 }
 
 func TestEchoVault_SDIFFSTORE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -328,7 +328,7 @@ func TestEchoVault_SDIFFSTORE(t *testing.T) {
 }
 
 func TestEchoVault_SINTER(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -422,7 +422,7 @@ func TestEchoVault_SINTER(t *testing.T) {
 }
 
 func TestEchoVault_SINTERCARD(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -528,7 +528,7 @@ func TestEchoVault_SINTERCARD(t *testing.T) {
 }
 
 func TestEchoVault_SINTERSTORE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -623,7 +623,7 @@ func TestEchoVault_SINTERSTORE(t *testing.T) {
 }
 
 func TestEchoVault_SISMEMBER(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -682,7 +682,7 @@ func TestEchoVault_SISMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_SMEMBERS(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -742,7 +742,7 @@ func TestEchoVault_SMEMBERS(t *testing.T) {
 }
 
 func TestEchoVault_SMISMEMBER(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -820,7 +820,7 @@ func TestEchoVault_SMISMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_SMOVE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -906,7 +906,7 @@ func TestEchoVault_SMOVE(t *testing.T) {
 }
 
 func TestEchoVault_SPOP(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -959,7 +959,7 @@ func TestEchoVault_SPOP(t *testing.T) {
 }
 
 func TestEchoVault_SRANDMEMBER(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -1028,7 +1028,7 @@ func TestEchoVault_SRANDMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_SREM(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -1087,7 +1087,7 @@ func TestEchoVault_SREM(t *testing.T) {
 }
 
 func TestEchoVault_SUNION(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -1174,7 +1174,7 @@ func TestEchoVault_SUNION(t *testing.T) {
 }
 
 func TestEchoVault_SUNIONSTORE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",

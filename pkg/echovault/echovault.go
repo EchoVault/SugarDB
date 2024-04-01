@@ -107,7 +107,7 @@ func WithCommands(commands []types.Command) func(echovault *EchoVault) {
 	}
 }
 
-func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
+func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	echovault := &EchoVault{
 		context:         context.Background(),
 		commands:        make([]types.Command, 0),
@@ -232,7 +232,39 @@ func NewEchoVault(options ...func(echovault *EchoVault)) *EchoVault {
 		}()
 	}
 
-	return echovault
+	if echovault.config.TLS && len(echovault.config.CertKeyPairs) <= 0 {
+		return nil, errors.New("must provide certificate and key file paths for TLS mode")
+	}
+
+	if echovault.isInCluster() {
+		// Initialise raft and memberlist
+		echovault.raft.RaftInit(echovault.context)
+		echovault.memberList.MemberListInit(echovault.context)
+		if echovault.raft.IsRaftLeader() {
+			echovault.initialiseCaches()
+		}
+	}
+
+	if !echovault.isInCluster() {
+		echovault.initialiseCaches()
+		// Restore from AOF by default if it's enabled
+		if echovault.config.RestoreAOF {
+			err := echovault.aofEngine.Restore()
+			if err != nil {
+				log.Println(err)
+			}
+		}
+
+		// Restore from snapshot if snapshot restore is enabled and AOF restore is disabled
+		if echovault.config.RestoreSnapshot && !echovault.config.RestoreAOF {
+			err := echovault.snapshotEngine.Restore()
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
+
+	return echovault, nil
 }
 
 func (server *EchoVault) startTCP() {
@@ -385,41 +417,6 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 }
 
 func (server *EchoVault) Start() {
-	conf := server.config
-
-	if conf.TLS && len(conf.CertKeyPairs) <= 0 {
-		log.Fatal("must provide certificate and key file paths for TLS mode")
-		return
-	}
-
-	if server.isInCluster() {
-		// Initialise raft and memberlist
-		server.raft.RaftInit(server.context)
-		server.memberList.MemberListInit(server.context)
-		if server.raft.IsRaftLeader() {
-			server.initialiseCaches()
-		}
-	}
-
-	if !server.isInCluster() {
-		server.initialiseCaches()
-		// Restore from AOF by default if it's enabled
-		if conf.RestoreAOF {
-			err := server.aofEngine.Restore()
-			if err != nil {
-				log.Println(err)
-			}
-		}
-
-		// Restore from snapshot if snapshot restore is enabled and AOF restore is disabled
-		if conf.RestoreSnapshot && !conf.RestoreAOF {
-			err := server.snapshotEngine.Restore()
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}
-
 	server.startTCP()
 }
 

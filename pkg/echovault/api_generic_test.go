@@ -34,7 +34,7 @@ var timeNow = func() time.Time {
 }
 
 func TestEchoVault_DEL(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			EvictionPolicy: constants.NoEviction,
@@ -81,7 +81,7 @@ func TestEchoVault_DEL(t *testing.T) {
 }
 
 func TestEchoVault_EXPIRE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			EvictionPolicy: constants.NoEviction,
@@ -258,7 +258,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 }
 
 func TestEchoVault_EXPIREAT(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			EvictionPolicy: constants.NoEviction,
@@ -446,7 +446,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 }
 
 func TestEchoVault_EXPIRETIME(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			EvictionPolicy: constants.NoEviction,
@@ -519,7 +519,7 @@ func TestEchoVault_EXPIRETIME(t *testing.T) {
 }
 
 func TestEchoVault_GET(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			EvictionPolicy: constants.NoEviction,
@@ -566,7 +566,7 @@ func TestEchoVault_GET(t *testing.T) {
 }
 
 func TestEchoVault_MGET(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			EvictionPolicy: constants.NoEviction,
@@ -623,7 +623,7 @@ func TestEchoVault_MGET(t *testing.T) {
 }
 
 func TestEchoVault_SET(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			EvictionPolicy: constants.NoEviction,
@@ -774,7 +774,7 @@ func TestEchoVault_SET(t *testing.T) {
 }
 
 func TestEchoVault_MSET(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			EvictionPolicy: constants.NoEviction,
@@ -809,7 +809,7 @@ func TestEchoVault_MSET(t *testing.T) {
 }
 
 func TestEchoVault_PERSIST(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			EvictionPolicy: constants.NoEviction,
@@ -869,7 +869,7 @@ func TestEchoVault_PERSIST(t *testing.T) {
 }
 
 func TestEchoVault_TTL(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			EvictionPolicy: constants.NoEviction,

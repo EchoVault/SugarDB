@@ -44,7 +44,7 @@ func init() {
 }
 
 func setUpServer(bindAddr string, port uint16) *echovault.EchoVault {
-	return echovault.NewEchoVault(
+	server, _ := echovault.NewEchoVault(
 		echovault.WithCommands(Commands()),
 		echovault.WithConfig(config.Config{
 			BindAddr:       bindAddr,
@@ -53,6 +53,7 @@ func setUpServer(bindAddr string, port uint16) *echovault.EchoVault {
 			EvictionPolicy: constants.NoEviction,
 		}),
 	)
+	return server
 }
 
 func Test_HandleSubscribe(t *testing.T) {

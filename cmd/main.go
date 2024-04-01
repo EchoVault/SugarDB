@@ -46,11 +46,15 @@ func main() {
 	cancelCh := make(chan os.Signal, 1)
 	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
-	server := echovault.NewEchoVault(
+	server, err := echovault.NewEchoVault(
 		echovault.WithContext(ctx),
 		echovault.WithConfig(conf),
 		echovault.WithCommands(commands.All()),
 	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	go server.Start()
 

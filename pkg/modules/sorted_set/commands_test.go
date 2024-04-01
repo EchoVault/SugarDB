@@ -33,7 +33,7 @@ import (
 var mockServer *echovault.EchoVault
 
 func init() {
-	mockServer = echovault.NewEchoVault(
+	mockServer, _ = echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,

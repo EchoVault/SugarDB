@@ -27,7 +27,7 @@ import (
 )
 
 func TestEchoVault_ZADD(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -253,7 +253,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 }
 
 func TestEchoVault_ZCARD(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -316,7 +316,7 @@ func TestEchoVault_ZCARD(t *testing.T) {
 }
 
 func TestEchoVault_ZCOUNT(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -417,7 +417,7 @@ func TestEchoVault_ZCOUNT(t *testing.T) {
 }
 
 func TestEchoVault_ZDIFF(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -569,7 +569,7 @@ func TestEchoVault_ZDIFF(t *testing.T) {
 }
 
 func TestEchoVault_ZDIFFSTORE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -690,7 +690,7 @@ func TestEchoVault_ZDIFFSTORE(t *testing.T) {
 }
 
 func TestEchoVault_ZINCRBY(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -840,7 +840,7 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 }
 
 func TestEchoVault_ZINTER(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -1153,7 +1153,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 }
 
 func TestEchoVault_ZINTERSTORE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -1480,7 +1480,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 }
 
 func TestEchoVault_ZLEXCOUNT(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -1573,7 +1573,7 @@ func TestEchoVault_ZLEXCOUNT(t *testing.T) {
 }
 
 func TestEchoVault_ZMPOP(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -1729,7 +1729,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 }
 
 func TestEchoVault_ZMSCORE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -1810,7 +1810,7 @@ func TestEchoVault_ZMSCORE(t *testing.T) {
 }
 
 func TestEchoVault_ZPOP(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -1918,7 +1918,7 @@ func TestEchoVault_ZPOP(t *testing.T) {
 }
 
 func TestEchoVault_ZRANDMEMBER(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -1994,7 +1994,7 @@ func TestEchoVault_ZRANDMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_ZRANGE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -2159,7 +2159,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 }
 
 func TestEchoVault_ZRANGESTORE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -2373,7 +2373,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 }
 
 func TestEchoVault_ZRANK(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -2472,7 +2472,7 @@ func TestEchoVault_ZRANK(t *testing.T) {
 }
 
 func TestEchoVault_ZREM(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -2543,7 +2543,7 @@ func TestEchoVault_ZREM(t *testing.T) {
 }
 
 func TestEchoVault_ZREMRANGEBYSCORE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -2615,7 +2615,7 @@ func TestEchoVault_ZREMRANGEBYSCORE(t *testing.T) {
 }
 
 func TestEchoVault_ZSCORE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -2695,7 +2695,7 @@ func TestEchoVault_ZSCORE(t *testing.T) {
 }
 
 func TestEchoVault_ZUNION(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
@@ -3033,7 +3033,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 }
 
 func TestEchoVault_ZUNIONSTORE(t *testing.T) {
-	server := NewEchoVault(
+	server, _ := NewEchoVault(
 		WithCommands(commands.All()),
 		WithConfig(config.Config{
 			DataDir:        "",
