@@ -12,25 +12,20 @@
 
 EchoVault is a highly configurable, distributed, in-memory data store and cache implemented in Go.
 EchoVault aims to provide a rich set of data structures and functions for
-manipulating data in memory, these data structures include, but are not limited to:
-lists, sets, sorted sets, hashes, with much more to come in the near future.
+manipulating data in memory. These data structures include, but are not limited to:
+Lists, Sets, Sorted Sets, Hashes, and much more to come soon.
 
 EchoVault provides a persistence layer for increased reliability. Both Append-Only files 
-and snapshots can be used to persist data to disk for recovery in case of unexpected shutdowns.
+and snapshots can be used to persist data in the disk for recovery in case of unexpected shutdowns.
 
 Replication is a core feature of EchoVault and is implemented using the RAFT algorithm, 
 allowing you to create a fault-tolerant cluster of EchoVault nodes to improve reliability.
 If you do not need a replication cluster, you can always run EchoVault
 in standalone mode and have a fully capable single node.
 
-EchoVault aims to not only be a server, but to be importable into existing 
-projects in order to enhance them with EchoVault features, this 
+EchoVault aims to not only be a server but to be importable to existing 
+projects to enhance them with EchoVault features, this 
 capability is always being worked on and improved.
-
-Speed and reliability are top priorities of Echovault, as a result,
-we're always working to improve these 2 characteristics. While we might
-not be there yet, we are consistently working to make gains
-in this area.
 
 # Features
 
@@ -64,13 +59,13 @@ To install via homebrew, run:
 2) `brew install echovault/echovault/echovault`
 
 Once installed, you can run the server with the following command:
-`echovault --bind-addr=localhost --data-dir="path/to/persistence/direcotry"`
+`echovault --bind-addr=localhost --data-dir="path/to/persistence/directory"`
 
 Next, [install the client via homebrew](https://github.com/EchoVault/EchoVault-CLI).
 
 ### Binaries
 
-You can download the binaries by clicking the on a release tag and downloading
+You can download the binaries by clicking on a release tag and downloading
 the binary for your system.
 
 ### Configuration
@@ -82,23 +77,17 @@ flags
 EchoVault uses RESP, which makes it compatible with existing 
 Redis clients.
 
-- [CLI Client](https://github.com/EchoVault/EchoVault-CLI)
-- Go (Coming Soon)
-- JavaScript/TypeScript (Coming Soon)
-- Java (Coming Soon)
-- C# (Coming Soon)
-
 # Development Setup
 
 Pre-requisites:
 1) Go
 2) Docker
 3) Docker Compose
-4) x86_64-linux-musl-gcc cross-compile toolchain as the development image is build for an alpine container
+4) x86_64-linux-musl-gcc cross-compile toolchain as the development image is built for an Alpine container
 
 Steps:
 1) Clone the repository.
-2) If you're on MacOS, you can run `make buld && docker-compose up --build` to build the project and spin up the development docker container.
+2) If you're on MacOS, you can run `make build && docker-compose up --build` to build the project and spin up the development docker container.
 3) If you're on another OS, you will have to use `go build` with the relevant flags for your system.
 
 # Contribution
