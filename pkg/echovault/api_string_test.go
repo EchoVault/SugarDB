@@ -15,12 +15,20 @@
 package echovault
 
 import (
+	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/commands"
+	"github.com/echovault/echovault/pkg/constants"
 	"testing"
 )
 
 func TestEchoVault_SUBSTR(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: constants.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -175,7 +183,13 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 }
 
 func TestEchoVault_SETRANGE(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: constants.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string
@@ -259,7 +273,13 @@ func TestEchoVault_SETRANGE(t *testing.T) {
 }
 
 func TestEchoVault_STRLEN(t *testing.T) {
-	server := NewEchoVault(WithCommands(commands.All()))
+	server := NewEchoVault(
+		WithCommands(commands.All()),
+		WithConfig(config.Config{
+			DataDir:        "",
+			EvictionPolicy: constants.NoEviction,
+		}),
+	)
 
 	tests := []struct {
 		name        string

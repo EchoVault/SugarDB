@@ -8,4 +8,4 @@ run:
 	make build && docker-compose up --build
 
 test:
-	go clean -testcache && go test ./pkg/... -coverprofile coverage/coverage.out
+	go clean -testcache && go test ./... -coverprofile coverage/coverage.out
