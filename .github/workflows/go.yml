@@ -24,10 +24,10 @@ jobs:
         go-version: '1.21.4'
 
     - name: Build
-      run: go build -v ./src/...
+      run: go build -v ./cmd/main.go
 
     - name: Test
-      run: go test -coverprofile=coverage.out -v ./src/...
+      run: go test -coverprofile=coverage.out -v ./...
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4.0.1
