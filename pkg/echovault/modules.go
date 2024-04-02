@@ -30,11 +30,11 @@ func (server *EchoVault) GetAllCommands() []types.Command {
 }
 
 func (server *EchoVault) GetACL() interface{} {
-	return server.ACL
+	return server.acl
 }
 
 func (server *EchoVault) GetPubSub() interface{} {
-	return server.PubSub
+	return server.pubSub
 }
 
 func (server *EchoVault) getCommand(cmd string) (types.Command, error) {
@@ -66,9 +66,9 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 		handler = subCommand.HandlerFunc
 	}
 
-	if conn != nil && server.ACL != nil {
+	if conn != nil && server.acl != nil {
 		// Authorize connection if it's provided and if ACL module is present
-		if err = server.ACL.AuthorizeConnection(conn, cmd, command, subCommand); err != nil {
+		if err = server.acl.AuthorizeConnection(conn, cmd, command, subCommand); err != nil {
 			return nil, err
 		}
 	}

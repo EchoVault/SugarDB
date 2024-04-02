@@ -77,8 +77,8 @@ type EchoVault struct {
 
 	context context.Context
 
-	ACL    *acl.ACL
-	PubSub *pubsub.PubSub
+	acl    *acl.ACL
+	pubSub *pubsub.PubSub
 
 	snapshotInProgress         atomic.Bool      // Atomic boolean that's true when actively taking a snapshot.
 	rewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
@@ -124,10 +124,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	echovault.context = context.WithValue(echovault.context, "ServerID", internal.ContextServerID(echovault.config.ServerID))
 
 	// Set up ACL module
-	echovault.ACL = acl.NewACL(echovault.config)
+	echovault.acl = acl.NewACL(echovault.config)
 
 	// Set up Pub/Sub module
-	echovault.PubSub = pubsub.NewPubSub()
+	echovault.pubSub = pubsub.NewPubSub()
 
 	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{
@@ -343,8 +343,8 @@ func (server *EchoVault) startTCP() {
 
 func (server *EchoVault) handleConnection(conn net.Conn) {
 	// If ACL module is loaded, register the connection with the ACL
-	if server.ACL != nil {
-		server.ACL.RegisterConnection(&conn)
+	if server.acl != nil {
+		server.acl.RegisterConnection(&conn)
 	}
 
 	w, r := io.Writer(conn), io.Reader(conn)
