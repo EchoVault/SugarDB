@@ -820,7 +820,7 @@ func TestEchoVault_PERSIST(t *testing.T) {
 		name         string
 		presetValues map[string]internal.KeyData
 		key          string
-		want         int
+		want         bool
 		wantErr      bool
 	}{
 		{
@@ -829,23 +829,23 @@ func TestEchoVault_PERSIST(t *testing.T) {
 			presetValues: map[string]internal.KeyData{
 				"key1": {Value: "value1", ExpireAt: timeNow().Add(1000 * time.Second)},
 			},
-			want:    1,
+			want:    true,
 			wantErr: false,
 		},
 		{
-			name:         "Return 0 when trying to persist a non-existent key",
+			name:         "Return false when trying to persist a non-existent key",
 			key:          "key2",
 			presetValues: nil,
-			want:         0,
+			want:         false,
 			wantErr:      false,
 		},
 		{
-			name: "Return 0 when trying to persist a non-volatile key",
+			name: "Return false when trying to persist a non-volatile key",
 			key:  "key3",
 			presetValues: map[string]internal.KeyData{
 				"key3": {Value: "value3", ExpireAt: time.Time{}},
 			},
-			want:    0,
+			want:    false,
 			wantErr: false,
 		},
 	}
