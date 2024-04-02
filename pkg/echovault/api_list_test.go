@@ -94,7 +94,7 @@ func TestEchoVault_LINDEX(t *testing.T) {
 		preset      bool
 		presetValue interface{}
 		key         string
-		index       int
+		index       uint
 		name        string
 		want        string
 		wantErr     bool
@@ -150,15 +150,6 @@ func TestEchoVault_LINDEX(t *testing.T) {
 			presetValue: []interface{}{"value1", "value2", "value3"},
 			key:         "key6",
 			index:       3,
-			want:        "",
-			wantErr:     true,
-		},
-		{
-			name:        "Trying to get index out of range with negative index",
-			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3"},
-			key:         "key7",
-			index:       -1,
 			want:        "",
 			wantErr:     true,
 		},
