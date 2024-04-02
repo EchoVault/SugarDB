@@ -28,6 +28,12 @@ type connMap struct {
 
 var conns map[string]connMap
 
+// ReadPubSubMessage is returned by the SUBSCRIBE and PSUBSCRIBE functions.
+//
+// This function is lazy, therefore it needs to be invoked in order to read the next message.
+// When the message is read, the function returns a string slice with 3 elements.
+// Index 0 holds the event type which in this case will be "message". Index 1 holds the channel name.
+// Index 2 holds the actual message.
 type ReadPubSubMessage func() []string
 
 // SUBSCRIBE subscribes the caller to the list of provided channels.
