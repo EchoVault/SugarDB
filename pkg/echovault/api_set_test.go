@@ -434,7 +434,7 @@ func TestEchoVault_SINTERCARD(t *testing.T) {
 		name         string
 		presetValues map[string]interface{}
 		keys         []string
-		limit        int
+		limit        uint
 		want         int
 		wantErr      bool
 	}{
@@ -918,7 +918,7 @@ func TestEchoVault_SPOP(t *testing.T) {
 		name        string
 		presetValue interface{}
 		key         string
-		count       int
+		count       uint
 		want        []string
 		wantErr     bool
 	}{
