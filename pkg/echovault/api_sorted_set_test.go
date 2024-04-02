@@ -1823,8 +1823,8 @@ func TestEchoVault_ZPOP(t *testing.T) {
 		preset      bool
 		presetValue interface{}
 		key         string
-		count       int
-		popFunc     func(key string, count int) ([][]string, error)
+		count       uint
+		popFunc     func(key string, count uint) ([][]string, error)
 		want        [][]string
 		wantErr     bool
 	}{

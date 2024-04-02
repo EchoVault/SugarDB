@@ -30,7 +30,7 @@ import (
 	"strings"
 )
 
-func handleZADD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZADD(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zaddKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -748,7 +748,9 @@ func handleZPOP(ctx context.Context, cmd []string, server types.EchoVault, conn 
 		if err != nil {
 			return nil, err
 		}
-		count = c
+		if c > 0 {
+			count = c
+		}
 	}
 
 	if !server.KeyExists(ctx, key) {
@@ -832,9 +834,12 @@ func handleZRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault
 
 	count := 1
 	if len(cmd) >= 3 {
-		count, err = strconv.Atoi(cmd[2])
+		c, err := strconv.Atoi(cmd[2])
 		if err != nil {
 			return nil, errors.New("count must be an integer")
+		}
+		if c != 0 {
+			count = c
 		}
 	}
 
@@ -927,7 +932,7 @@ func handleZRANK(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 	return []byte("$-1\r\n"), nil
 }
 
-func handleZREM(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZREM(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zremKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1480,7 +1485,7 @@ func handleZUNION(ctx context.Context, cmd []string, server types.EchoVault, con
 	return []byte(res), nil
 }
 
-func handleZUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zunionstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -1592,7 +1597,7 @@ If the key holds a value that is not a sorted set, an error is returned.`,
 			Module:     constants.SortedSetModule,
 			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZDIFF key [key...] [WITHSCORES]) 
-Computes the difference between all the sorted sets specifies in the list of keys and returns the result.`,
+Computes the difference between all the sorted sets specified in the list of keys and returns the result.`,
 			Sync:              false,
 			KeyExtractionFunc: zdiffKeyFunc,
 			HandlerFunc:       handleZDIFF,
@@ -1645,7 +1650,7 @@ Computes the intersection of the sets in the keys, with weights, aggregate and s
 			Module:     constants.SortedSetModule,
 			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `(ZMPOP key [key ...] <MIN | MAX> [COUNT count])
-Pop a 'count' elements from sorted set. MIN or MAX determines whether to pop elements with the lowest or highest scores
+Pop a 'count' elements from multiple sorted sets. MIN or MAX determines whether to pop elements with the lowest or highest scores
 respectively.`,
 			Sync:              true,
 			KeyExtractionFunc: zmpopKeyFunc,
