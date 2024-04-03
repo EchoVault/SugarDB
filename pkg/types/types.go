@@ -37,11 +37,8 @@ type EchoVault interface {
 	GetACL() interface{}
 	GetPubSub() interface{}
 	TakeSnapshot() error
-	StartSnapshot()
-	FinishSnapshot()
-	SetLatestSnapshot(msec int64)
-	GetLatestSnapshot() int64
 	RewriteAOF() error
+	GetLatestSnapshotTime() int64
 }
 
 type KeyExtractionFunc func(cmd []string) ([]string, error)

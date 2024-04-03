@@ -382,7 +382,7 @@ func handleLMove(ctx context.Context, cmd []string, server types.EchoVault, conn
 	return []byte(constants.OkResponse), nil
 }
 
-func handleLPush(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLPush(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := lpushKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -581,7 +581,7 @@ func Commands() []types.Command {
 			Command:           "ltrim",
 			Module:            constants.ListModule,
 			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.SlowCategory},
-			Description:       "(LTRIM key start end) Trims a list to the specified range.",
+			Description:       "(LTRIM key start end) Trims a list using the specified range.",
 			Sync:              true,
 			KeyExtractionFunc: ltrimKeyFunc,
 			HandlerFunc:       handleLTrim,

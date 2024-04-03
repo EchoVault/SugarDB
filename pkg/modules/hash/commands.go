@@ -137,7 +137,7 @@ func handleHGET(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	return []byte(res), nil
 }
 
-func handleHSTRLEN(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHSTRLEN(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hstrlenKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server types.EchoVault, co
 	return []byte(res), nil
 }
 
-func handleHVALS(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHVALS(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hvalsKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -229,7 +229,7 @@ func handleHVALS(ctx context.Context, cmd []string, server types.EchoVault, conn
 	return []byte(res), nil
 }
 
-func handleHRANDFIELD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHRANDFIELD(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hrandfieldKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -345,7 +345,7 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server types.EchoVault,
 	return []byte(res), nil
 }
 
-func handleHLEN(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHLEN(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hlenKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -370,7 +370,7 @@ func handleHLEN(ctx context.Context, cmd []string, server types.EchoVault, conn 
 	return []byte(fmt.Sprintf(":%d\r\n", len(hash))), nil
 }
 
-func handleHKEYS(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHKEYS(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hkeysKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -400,7 +400,7 @@ func handleHKEYS(ctx context.Context, cmd []string, server types.EchoVault, conn
 	return []byte(res), nil
 }
 
-func handleHINCRBY(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHINCRBY(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hincrbyKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -492,7 +492,7 @@ func handleHINCRBY(ctx context.Context, cmd []string, server types.EchoVault, co
 	return []byte(fmt.Sprintf(":%d\r\n", i)), nil
 }
 
-func handleHGETALL(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHGETALL(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hgetallKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -532,7 +532,7 @@ func handleHGETALL(ctx context.Context, cmd []string, server types.EchoVault, co
 	return []byte(res), nil
 }
 
-func handleHEXISTS(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHEXISTS(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hexistsKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -562,7 +562,7 @@ func handleHEXISTS(ctx context.Context, cmd []string, server types.EchoVault, co
 	return []byte(":0\r\n"), nil
 }
 
-func handleHDEL(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleHDEL(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := hdelKeyFunc(cmd)
 	if err != nil {
 		return nil, err

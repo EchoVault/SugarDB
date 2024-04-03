@@ -31,6 +31,9 @@ import (
 
 // KeyLock tries to acquire the write lock for the specified key.
 // If the context passed to the function finishes before the lock is acquired, an error is returned.
+//
+// If this functions is called on a node in a replication cluster, the key is only locked
+// on that particular node.
 func (server *EchoVault) KeyLock(ctx context.Context, key string) (bool, error) {
 	// If context did not set deadline, set the default deadline
 	var cancelFunc context.CancelFunc
@@ -55,6 +58,10 @@ func (server *EchoVault) KeyLock(ctx context.Context, key string) (bool, error) 
 	}
 }
 
+// KeyUnlock releases the write lock for the specified key.
+//
+// If this functions is called on a node in a replication cluster, the key is only unlocked
+// on that particular node.
 func (server *EchoVault) KeyUnlock(_ context.Context, key string) {
 	if _, ok := server.keyLocks[key]; ok {
 		server.keyLocks[key].Unlock()
@@ -63,6 +70,9 @@ func (server *EchoVault) KeyUnlock(_ context.Context, key string) {
 
 // KeyRLock tries to acquire the read lock for the specified key.
 // If the context passed to the function finishes before the lock is acquired, an error is returned.
+//
+// If this functions is called on a node in a replication cluster, the key is only locked
+// on that particular node.
 func (server *EchoVault) KeyRLock(ctx context.Context, key string) (bool, error) {
 	// If context did not set deadline, set the default deadline
 	var cancelFunc context.CancelFunc
@@ -87,12 +97,21 @@ func (server *EchoVault) KeyRLock(ctx context.Context, key string) (bool, error)
 	}
 }
 
+// KeyRUnlock releases the read lock for the specified key.
+//
+// If this functions is called on a node in a replication cluster, the key is only unlocked
+// on that particular node.
 func (server *EchoVault) KeyRUnlock(_ context.Context, key string) {
 	if _, ok := server.keyLocks[key]; ok {
 		server.keyLocks[key].RUnlock()
 	}
 }
 
+// KeyExists returns true if the key exists in the store.
+//
+// If the key is volatile and expired, checking for its existence with KeyExists will trigger a key deletion and
+// then return false. If the key is determined to be expired by KeyExists, it will be evicted across the entire
+// replication cluster.
 func (server *EchoVault) KeyExists(ctx context.Context, key string) bool {
 	entry, ok := server.store[key]
 	if !ok {
@@ -127,6 +146,9 @@ func (server *EchoVault) KeyExists(ctx context.Context, key string) bool {
 
 // CreateKeyAndLock creates a new key lock and immediately locks it if the key does not exist.
 // If the key exists, the existing key is locked.
+//
+// If this functions is called on a node in a replication cluster, the key is only created/locked
+// on that particular node.
 func (server *EchoVault) CreateKeyAndLock(ctx context.Context, key string) (bool, error) {
 	if internal.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == constants.NoEviction {
 		return false, errors.New("max memory reached, key not created")
@@ -161,8 +183,7 @@ func (server *EchoVault) GetValue(ctx context.Context, key string) interface{} {
 }
 
 // SetValue updates the value in the store at the specified key with the given value.
-// If we're in not in cluster (i.e. in standalone mode), then the change count is incremented
-// in the snapshot engine.
+// If we're in not in cluster (i.e. in standalone mode), then the change count is incremented in the snapshot engine.
 // This count triggers a snapshot when the threshold is reached.
 // The key must be locked prior to calling this function.
 func (server *EchoVault) SetValue(ctx context.Context, key string, value interface{}) error {
@@ -262,6 +283,9 @@ func (server *EchoVault) getState() map[string]interface{} {
 }
 
 // DeleteKey removes the key from store, keyLocks and keyExpiry maps.
+//
+// If this functions is called on a node in a replication cluster, the key is only deleted
+// on that particular node.
 func (server *EchoVault) DeleteKey(ctx context.Context, key string) error {
 	if _, err := server.KeyLock(ctx, key); err != nil {
 		return fmt.Errorf("deleteKey error: %+v", err)

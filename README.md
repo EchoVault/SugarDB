@@ -11,6 +11,8 @@
 # What is EchoVault?
 
 EchoVault is a highly configurable, distributed, in-memory data store and cache implemented in Go.
+It can be imported as a Go library or run as an independent service.
+
 EchoVault aims to provide a rich set of data structures and functions for
 manipulating data in memory. These data structures include, but are not limited to:
 Lists, Sets, Sorted Sets, Hashes, and much more to come soon.
@@ -32,23 +34,80 @@ capability is always being worked on and improved.
 Some key features offered by EchoVault include:
 
 1) TLS and mTLS support with support for multiple server and client RootCAs
-2) Replication clustering using RAFT algorithm
+2) Replication cluster support using RAFT algorithm
 3) ACL Layer for user Authentication and Authorization
 4) Distributed Pub/Sub functionality with consumer groups
 5) Sets, Sorted Sets, Hashes
 6) Persistence layer with Snapshots and Append-Only files
+7) Key Eviction Policies
 
 We are working hard to add more features to EchoVault to make it
 much more powerful. Features in the roadmap include:
 
-1) Eviction Policies to reduce memory footprint
-2) Encryption for Snapshot and AOF files
-3) Streams
-4) Transactions
-5) Bitmap
-6) HyperLogLog
-7) JSON
-8) Improved Observability
+1) Streams
+2) Transactions
+3) Bitmap
+4) HyperLogLog
+5) Lua Modules
+6) JSON
+7) Improved Observability
+
+# Usage
+
+Here's an example of using EchoVault as an embedded library.
+You can access all of EchoVault's commands using an ergonomic API.
+
+```go
+func main() {
+	server, err := echovault.NewEchoVault(
+		echovault.WithConfig(config.DefaultConfig()),
+		echovault.WithCommands(commands.All()),
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, _ = server.SET("key", "Hello, world!", echovault.SETOptions{})
+
+	v, _ := server.GET("key")
+
+	fmt.Println(v) // Hello, world!
+
+	wg := sync.WaitGroup{}
+
+	// Subscribe to multiple EchoVault channels.
+	readMessage := server.SUBSCRIBE("subscriber1", "channel_1", "channel_2", "channel_3")
+	wg.Add(1)
+	go func() {
+		wg.Done()
+		for {
+			message := readMessage()
+			fmt.Printf("EVENT: %s, CHANNEL: %s, MESSAGE: %s\n", message[0], message[1], message[2])
+		}
+	}()
+	wg.Wait()
+
+	wg.Add(1)
+	go func() {
+		for i := 1; i <= 3; i++ {
+			// Simulating delay.
+			<-time.After(1 * time.Second)
+			// Publish message to each EchoVault channel.
+			_, _ = server.PUBLISH(fmt.Sprintf("channel_%d", i), "Hello!")
+		}
+		wg.Done()
+	}()
+	wg.Wait()
+
+	// (Optional): Listen for TCP connections on this EchoVault instance.
+	server.Start()
+}
+```
+
+An embedded EchoVault instance can still be part of a cluster, and the changes triggered 
+from the API will be consistent across the cluster.
+
 
 # Installing
 

@@ -191,10 +191,11 @@ func handleSubStr(ctx context.Context, cmd []string, server types.EchoVault, con
 func Commands() []types.Command {
 	return []types.Command{
 		{
-			Command:           "setrange",
-			Module:            constants.StringModule,
-			Categories:        []string{constants.StringCategory, constants.WriteCategory, constants.SlowCategory},
-			Description:       "(SETRANGE key offset value) Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.",
+			Command:    "setrange",
+			Module:     constants.StringModule,
+			Categories: []string{constants.StringCategory, constants.WriteCategory, constants.SlowCategory},
+			Description: `(SETRANGE key offset value) 
+Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.`,
 			Sync:              true,
 			KeyExtractionFunc: setRangeKeyFunc,
 			HandlerFunc:       handleSetRange,

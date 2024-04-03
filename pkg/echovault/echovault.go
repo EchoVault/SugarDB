@@ -77,8 +77,8 @@ type EchoVault struct {
 
 	context context.Context
 
-	ACL    *acl.ACL
-	PubSub *pubsub.PubSub
+	acl    *acl.ACL
+	pubSub *pubsub.PubSub
 
 	snapshotInProgress         atomic.Bool      // Atomic boolean that's true when actively taking a snapshot.
 	rewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
@@ -89,24 +89,35 @@ type EchoVault struct {
 	aofEngine                  *aof.Engine      // AOF engine for standalone mode
 }
 
+// WithContext is an options that for the NewEchoVault function that allows you to
+// configure a custom context object to be used in EchoVault. If you don't provide this
+// option, EchoVault will create its own internal context object.
 func WithContext(ctx context.Context) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.context = ctx
 	}
 }
 
+// WithConfig is an option for the NewEchoVault function that allows you to pass a
+// custom configuration to EchoVault. If not specified, EchoVault will use the default
+// configuration from config.DefaultConfig().
 func WithConfig(config config.Config) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.config = config
 	}
 }
 
+// WithCommands is an options for the NewEchoVault function that allows you to pass a
+// list of commands that should be supported by your EchoVault instance. If you don't pass
+// this option, EchoVault will start with no commands loaded.
 func WithCommands(commands []types.Command) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.commands = commands
 	}
 }
 
+// NewEchoVault creates a new EchoVault instance.
+// This functions accepts the WithContext, WithConfig and WithCommands options.
 func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	echovault := &EchoVault{
 		context:         context.Background(),
@@ -121,20 +132,26 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		option(echovault)
 	}
 
-	echovault.context = context.WithValue(echovault.context, "ServerID", internal.ContextServerID(echovault.config.ServerID))
+	echovault.context = context.WithValue(
+		echovault.context, "ServerID",
+		internal.ContextServerID(echovault.config.ServerID),
+	)
 
 	// Set up ACL module
-	echovault.ACL = acl.NewACL(echovault.config)
+	echovault.acl = acl.NewACL(echovault.config)
 
 	// Set up Pub/Sub module
-	echovault.PubSub = pubsub.NewPubSub()
+	echovault.pubSub = pubsub.NewPubSub()
 
 	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{
-			Config:     echovault.config,
-			EchoVault:  echovault,
-			GetCommand: echovault.getCommand,
-			DeleteKey:  echovault.DeleteKey,
+			Config:                echovault.config,
+			EchoVault:             echovault,
+			GetCommand:            echovault.getCommand,
+			DeleteKey:             echovault.DeleteKey,
+			StartSnapshot:         echovault.startSnapshot,
+			FinishSnapshot:        echovault.finishSnapshot,
+			SetLatestSnapshotTime: echovault.setLatestSnapshot,
 			GetState: func() map[string]internal.KeyData {
 				state := make(map[string]internal.KeyData)
 				for k, v := range echovault.getState() {
@@ -160,10 +177,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			snapshot.WithDirectory(echovault.config.DataDir),
 			snapshot.WithThreshold(echovault.config.SnapShotThreshold),
 			snapshot.WithInterval(echovault.config.SnapshotInterval),
-			snapshot.WithStartSnapshotFunc(echovault.StartSnapshot),
-			snapshot.WithFinishSnapshotFunc(echovault.FinishSnapshot),
-			snapshot.WithSetLatestSnapshotTimeFunc(echovault.SetLatestSnapshot),
-			snapshot.WithGetLatestSnapshotTimeFunc(echovault.GetLatestSnapshot),
+			snapshot.WithStartSnapshotFunc(echovault.startSnapshot),
+			snapshot.WithFinishSnapshotFunc(echovault.finishSnapshot),
+			snapshot.WithSetLatestSnapshotTimeFunc(echovault.setLatestSnapshot),
+			snapshot.WithGetLatestSnapshotTimeFunc(echovault.GetLatestSnapshotTime),
 			snapshot.WithGetStateFunc(func() map[string]internal.KeyData {
 				state := make(map[string]internal.KeyData)
 				for k, v := range echovault.getState() {
@@ -189,8 +206,8 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		echovault.aofEngine = aof.NewAOFEngine(
 			aof.WithDirectory(echovault.config.DataDir),
 			aof.WithStrategy(echovault.config.AOFSyncStrategy),
-			aof.WithStartRewriteFunc(echovault.StartRewriteAOF),
-			aof.WithFinishRewriteFunc(echovault.FinishRewriteAOF),
+			aof.WithStartRewriteFunc(echovault.startRewriteAOF),
+			aof.WithFinishRewriteFunc(echovault.finishRewriteAOF),
 			aof.WithGetStateFunc(func() map[string]internal.KeyData {
 				state := make(map[string]internal.KeyData)
 				for k, v := range echovault.getState() {
@@ -343,8 +360,8 @@ func (server *EchoVault) startTCP() {
 
 func (server *EchoVault) handleConnection(conn net.Conn) {
 	// If ACL module is loaded, register the connection with the ACL
-	if server.ACL != nil {
-		server.ACL.RegisterConnection(&conn)
+	if server.acl != nil {
+		server.acl.RegisterConnection(&conn)
 	}
 
 	w, r := io.Writer(conn), io.Reader(conn)
@@ -416,10 +433,16 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 	}
 }
 
+// Start starts the EchoVault instance's TCP listener.
+// This allows the instance to accept connections handle client commands over TCP.
+//
+// You can still use command functions like echovault.SET if you're embedding EchoVault in you application.
+// However, if you'd like to also accept TCP request on the same instance, you must call this function.
 func (server *EchoVault) Start() {
 	server.startTCP()
 }
 
+// TakeSnapshot triggers a snapshot when called.
 func (server *EchoVault) TakeSnapshot() error {
 	if server.snapshotInProgress.Load() {
 		return errors.New("snapshot already in progress")
@@ -442,30 +465,32 @@ func (server *EchoVault) TakeSnapshot() error {
 	return nil
 }
 
-func (server *EchoVault) StartSnapshot() {
+func (server *EchoVault) startSnapshot() {
 	server.snapshotInProgress.Store(true)
 }
 
-func (server *EchoVault) FinishSnapshot() {
+func (server *EchoVault) finishSnapshot() {
 	server.snapshotInProgress.Store(false)
 }
 
-func (server *EchoVault) SetLatestSnapshot(msec int64) {
+func (server *EchoVault) setLatestSnapshot(msec int64) {
 	server.latestSnapshotMilliseconds.Store(msec)
 }
 
-func (server *EchoVault) GetLatestSnapshot() int64 {
+// GetLatestSnapshotTime returns the latest snapshot time in unix epoch milliseconds.
+func (server *EchoVault) GetLatestSnapshotTime() int64 {
 	return server.latestSnapshotMilliseconds.Load()
 }
 
-func (server *EchoVault) StartRewriteAOF() {
+func (server *EchoVault) startRewriteAOF() {
 	server.rewriteAOFInProgress.Store(true)
 }
 
-func (server *EchoVault) FinishRewriteAOF() {
+func (server *EchoVault) finishRewriteAOF() {
 	server.rewriteAOFInProgress.Store(false)
 }
 
+// RewriteAOF triggers an AOF compaction when running in standalone mode.
 func (server *EchoVault) RewriteAOF() error {
 	if server.rewriteAOFInProgress.Load() {
 		return errors.New("aof rewrite in progress")
@@ -478,6 +503,8 @@ func (server *EchoVault) RewriteAOF() error {
 	return nil
 }
 
+// ShutDown gracefully shuts down the EchoVault instance.
+// This function shuts down the memberlist and raft layers.
 func (server *EchoVault) ShutDown() {
 	if server.isInCluster() {
 		server.raft.RaftShutdown()
