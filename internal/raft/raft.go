@@ -33,11 +33,14 @@ import (
 )
 
 type Opts struct {
-	Config     config.Config
-	EchoVault  types.EchoVault
-	GetState   func() map[string]internal.KeyData
-	GetCommand func(command string) (types.Command, error)
-	DeleteKey  func(ctx context.Context, key string) error
+	Config                config.Config
+	EchoVault             types.EchoVault
+	GetState              func() map[string]internal.KeyData
+	GetCommand            func(command string) (types.Command, error)
+	DeleteKey             func(ctx context.Context, key string) error
+	StartSnapshot         func()
+	FinishSnapshot        func()
+	SetLatestSnapshotTime func(msec int64)
 }
 
 type Raft struct {
@@ -109,11 +112,14 @@ func (r *Raft) RaftInit(ctx context.Context) {
 	raftServer, err := raft.NewRaft(
 		raftConfig,
 		NewFSM(FSMOpts{
-			Config:     r.options.Config,
-			EchoVault:  r.options.EchoVault,
-			GetState:   r.options.GetState,
-			GetCommand: r.options.GetCommand,
-			DeleteKey:  r.options.DeleteKey,
+			Config:                r.options.Config,
+			EchoVault:             r.options.EchoVault,
+			GetState:              r.options.GetState,
+			GetCommand:            r.options.GetCommand,
+			DeleteKey:             r.options.DeleteKey,
+			StartSnapshot:         r.options.StartSnapshot,
+			FinishSnapshot:        r.options.FinishSnapshot,
+			SetLatestSnapshotTime: r.options.SetLatestSnapshotTime,
 		}),
 		logStore,
 		stableStore,

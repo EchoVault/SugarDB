@@ -28,11 +28,14 @@ import (
 )
 
 type FSMOpts struct {
-	Config     config.Config
-	EchoVault  types.EchoVault
-	GetState   func() map[string]internal.KeyData
-	GetCommand func(command string) (types.Command, error)
-	DeleteKey  func(ctx context.Context, key string) error
+	Config                config.Config
+	EchoVault             types.EchoVault
+	GetState              func() map[string]internal.KeyData
+	GetCommand            func(command string) (types.Command, error)
+	DeleteKey             func(ctx context.Context, key string) error
+	StartSnapshot         func()
+	FinishSnapshot        func()
+	SetLatestSnapshotTime func(msec int64)
 }
 
 type FSM struct {
@@ -119,11 +122,11 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 // Snapshot implements raft.FSM interface
 func (fsm *FSM) Snapshot() (raft.FSMSnapshot, error) {
 	return NewFSMSnapshot(SnapshotOpts{
-		config:            fsm.options.Config,
-		startSnapshot:     fsm.options.EchoVault.StartSnapshot,
-		finishSnapshot:    fsm.options.EchoVault.FinishSnapshot,
-		setLatestSnapshot: fsm.options.EchoVault.SetLatestSnapshot,
-		data:              fsm.options.GetState(),
+		config:                fsm.options.Config,
+		startSnapshot:         fsm.options.StartSnapshot,
+		finishSnapshot:        fsm.options.FinishSnapshot,
+		setLatestSnapshotTime: fsm.options.SetLatestSnapshotTime,
+		data:                  fsm.options.GetState(),
 	}), nil
 }
 
@@ -159,7 +162,7 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 		fsm.options.EchoVault.KeyUnlock(ctx, k)
 	}
 	// Set latest snapshot milliseconds
-	fsm.options.EchoVault.SetLatestSnapshot(data.LatestSnapshotMilliseconds)
+	fsm.options.SetLatestSnapshotTime(data.LatestSnapshotMilliseconds)
 
 	return nil
 }

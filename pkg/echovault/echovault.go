@@ -89,24 +89,35 @@ type EchoVault struct {
 	aofEngine                  *aof.Engine      // AOF engine for standalone mode
 }
 
+// WithContext is an options that for the NewEchoVault function that allows you to
+// configure a custom context object to be used in EchoVault. If you don't provide this
+// option, EchoVault will create its own internal context object.
 func WithContext(ctx context.Context) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.context = ctx
 	}
 }
 
+// WithConfig is an option for the NewEchoVault function that allows you to pass a
+// custom configuration to EchoVault. If not specified, EchoVault will use the default
+// configuration from config.DefaultConfig().
 func WithConfig(config config.Config) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.config = config
 	}
 }
 
+// WithCommands is an options for the NewEchoVault function that allows you to pass a
+// list of commands that should be supported by your EchoVault instance. If you don't pass
+// this option, EchoVault will start with no commands loaded.
 func WithCommands(commands []types.Command) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.commands = commands
 	}
 }
 
+// NewEchoVault creates a new EchoVault instance.
+// This functions accepts the WithContext, WithConfig and WithCommands options.
 func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	echovault := &EchoVault{
 		context:         context.Background(),
@@ -131,10 +142,13 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 
 	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{
-			Config:     echovault.config,
-			EchoVault:  echovault,
-			GetCommand: echovault.getCommand,
-			DeleteKey:  echovault.DeleteKey,
+			Config:                echovault.config,
+			EchoVault:             echovault,
+			GetCommand:            echovault.getCommand,
+			DeleteKey:             echovault.DeleteKey,
+			StartSnapshot:         echovault.startSnapshot,
+			FinishSnapshot:        echovault.finishSnapshot,
+			SetLatestSnapshotTime: echovault.setLatestSnapshot,
 			GetState: func() map[string]internal.KeyData {
 				state := make(map[string]internal.KeyData)
 				for k, v := range echovault.getState() {
@@ -160,10 +174,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			snapshot.WithDirectory(echovault.config.DataDir),
 			snapshot.WithThreshold(echovault.config.SnapShotThreshold),
 			snapshot.WithInterval(echovault.config.SnapshotInterval),
-			snapshot.WithStartSnapshotFunc(echovault.StartSnapshot),
-			snapshot.WithFinishSnapshotFunc(echovault.FinishSnapshot),
-			snapshot.WithSetLatestSnapshotTimeFunc(echovault.SetLatestSnapshot),
-			snapshot.WithGetLatestSnapshotTimeFunc(echovault.GetLatestSnapshot),
+			snapshot.WithStartSnapshotFunc(echovault.startSnapshot),
+			snapshot.WithFinishSnapshotFunc(echovault.finishSnapshot),
+			snapshot.WithSetLatestSnapshotTimeFunc(echovault.setLatestSnapshot),
+			snapshot.WithGetLatestSnapshotTimeFunc(echovault.getLatestSnapshotTime),
 			snapshot.WithGetStateFunc(func() map[string]internal.KeyData {
 				state := make(map[string]internal.KeyData)
 				for k, v := range echovault.getState() {
@@ -189,8 +203,8 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		echovault.aofEngine = aof.NewAOFEngine(
 			aof.WithDirectory(echovault.config.DataDir),
 			aof.WithStrategy(echovault.config.AOFSyncStrategy),
-			aof.WithStartRewriteFunc(echovault.StartRewriteAOF),
-			aof.WithFinishRewriteFunc(echovault.FinishRewriteAOF),
+			aof.WithStartRewriteFunc(echovault.startRewriteAOF),
+			aof.WithFinishRewriteFunc(echovault.finishRewriteAOF),
 			aof.WithGetStateFunc(func() map[string]internal.KeyData {
 				state := make(map[string]internal.KeyData)
 				for k, v := range echovault.getState() {
@@ -416,10 +430,16 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 	}
 }
 
+// Start starts the EchoVault instance's TCP listener.
+// This allows the instance to accept connections handle client commands over TCP.
+//
+// You can still use command functions like echovault.SET if you're embedding EchoVault in you application.
+// However, if you'd like to also accept TCP request on the same instance, you must call this function.
 func (server *EchoVault) Start() {
 	server.startTCP()
 }
 
+// TakeSnapshot triggers a snapshot when called.
 func (server *EchoVault) TakeSnapshot() error {
 	if server.snapshotInProgress.Load() {
 		return errors.New("snapshot already in progress")
@@ -442,27 +462,27 @@ func (server *EchoVault) TakeSnapshot() error {
 	return nil
 }
 
-func (server *EchoVault) StartSnapshot() {
+func (server *EchoVault) startSnapshot() {
 	server.snapshotInProgress.Store(true)
 }
 
-func (server *EchoVault) FinishSnapshot() {
+func (server *EchoVault) finishSnapshot() {
 	server.snapshotInProgress.Store(false)
 }
 
-func (server *EchoVault) SetLatestSnapshot(msec int64) {
+func (server *EchoVault) setLatestSnapshot(msec int64) {
 	server.latestSnapshotMilliseconds.Store(msec)
 }
 
-func (server *EchoVault) GetLatestSnapshot() int64 {
+func (server *EchoVault) getLatestSnapshotTime() int64 {
 	return server.latestSnapshotMilliseconds.Load()
 }
 
-func (server *EchoVault) StartRewriteAOF() {
+func (server *EchoVault) startRewriteAOF() {
 	server.rewriteAOFInProgress.Store(true)
 }
 
-func (server *EchoVault) FinishRewriteAOF() {
+func (server *EchoVault) finishRewriteAOF() {
 	server.rewriteAOFInProgress.Store(false)
 }
 

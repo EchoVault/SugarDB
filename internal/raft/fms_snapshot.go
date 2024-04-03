@@ -24,11 +24,11 @@ import (
 )
 
 type SnapshotOpts struct {
-	config            config.Config
-	data              map[string]internal.KeyData
-	startSnapshot     func()
-	finishSnapshot    func()
-	setLatestSnapshot func(msec int64)
+	config                config.Config
+	data                  map[string]internal.KeyData
+	startSnapshot         func()
+	finishSnapshot        func()
+	setLatestSnapshotTime func(msec int64)
 }
 
 type Snapshot struct {
@@ -68,7 +68,7 @@ func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
 		return err
 	}
 
-	s.options.setLatestSnapshot(int64(msec))
+	s.options.setLatestSnapshotTime(int64(msec))
 
 	return nil
 }
