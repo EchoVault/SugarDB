@@ -474,6 +474,7 @@ func (server *EchoVault) setLatestSnapshot(msec int64) {
 	server.latestSnapshotMilliseconds.Store(msec)
 }
 
+// GetLatestSnapshotTime returns the latest snapshot time in unix epoch milliseconds.
 func (server *EchoVault) GetLatestSnapshotTime() int64 {
 	return server.latestSnapshotMilliseconds.Load()
 }
@@ -486,6 +487,7 @@ func (server *EchoVault) finishRewriteAOF() {
 	server.rewriteAOFInProgress.Store(false)
 }
 
+// RewriteAOF triggers an AOF compaction when running in standalone mode.
 func (server *EchoVault) RewriteAOF() error {
 	if server.rewriteAOFInProgress.Load() {
 		return errors.New("aof rewrite in progress")
@@ -498,6 +500,8 @@ func (server *EchoVault) RewriteAOF() error {
 	return nil
 }
 
+// ShutDown gracefully shuts down the EchoVault instance.
+// This function shuts down the memberlist and raft layers.
 func (server *EchoVault) ShutDown() {
 	if server.isInCluster() {
 		server.raft.RaftShutdown()

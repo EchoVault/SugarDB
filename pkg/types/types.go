@@ -39,9 +39,6 @@ type EchoVault interface {
 	TakeSnapshot() error
 	RewriteAOF() error
 	GetLatestSnapshotTime() int64
-	//StartSnapshot()
-	//FinishSnapshot()
-	//SetLatestSnapshot(msec int64)
 }
 
 type KeyExtractionFunc func(cmd []string) ([]string, error)
