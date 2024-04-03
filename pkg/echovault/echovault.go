@@ -132,7 +132,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		option(echovault)
 	}
 
-	echovault.context = context.WithValue(echovault.context, "ServerID", internal.ContextServerID(echovault.config.ServerID))
+	echovault.context = context.WithValue(
+		echovault.context, "ServerID",
+		internal.ContextServerID(echovault.config.ServerID),
+	)
 
 	// Set up ACL module
 	echovault.acl = acl.NewACL(echovault.config)
