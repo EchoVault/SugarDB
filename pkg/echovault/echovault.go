@@ -177,7 +177,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			snapshot.WithStartSnapshotFunc(echovault.startSnapshot),
 			snapshot.WithFinishSnapshotFunc(echovault.finishSnapshot),
 			snapshot.WithSetLatestSnapshotTimeFunc(echovault.setLatestSnapshot),
-			snapshot.WithGetLatestSnapshotTimeFunc(echovault.getLatestSnapshotTime),
+			snapshot.WithGetLatestSnapshotTimeFunc(echovault.GetLatestSnapshotTime),
 			snapshot.WithGetStateFunc(func() map[string]internal.KeyData {
 				state := make(map[string]internal.KeyData)
 				for k, v := range echovault.getState() {
@@ -474,7 +474,7 @@ func (server *EchoVault) setLatestSnapshot(msec int64) {
 	server.latestSnapshotMilliseconds.Store(msec)
 }
 
-func (server *EchoVault) getLatestSnapshotTime() int64 {
+func (server *EchoVault) GetLatestSnapshotTime() int64 {
 	return server.latestSnapshotMilliseconds.Load()
 }
 

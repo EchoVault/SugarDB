@@ -268,7 +268,7 @@ Allows for filtering by ACL category or glob pattern.`,
 				return []string{}, nil
 			},
 			HandlerFunc: func(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-				msec := server.GetLatestSnapshot()
+				msec := server.GetLatestSnapshotTime()
 				if msec == 0 {
 					return nil, errors.New("no snapshot")
 				}

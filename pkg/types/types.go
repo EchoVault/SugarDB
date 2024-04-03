@@ -38,10 +38,10 @@ type EchoVault interface {
 	GetPubSub() interface{}
 	TakeSnapshot() error
 	RewriteAOF() error
+	GetLatestSnapshotTime() int64
 	//StartSnapshot()
 	//FinishSnapshot()
 	//SetLatestSnapshot(msec int64)
-	//GetLatestSnapshot() int64
 }
 
 type KeyExtractionFunc func(cmd []string) ([]string, error)
