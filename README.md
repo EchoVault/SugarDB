@@ -34,7 +34,7 @@ capability is always being worked on and improved.
 Some key features offered by EchoVault include:
 
 1) TLS and mTLS support with support for multiple server and client RootCAs
-2) Replication clustering using RAFT algorithm
+2) Replication cluster support using RAFT algorithm
 3) ACL Layer for user Authentication and Authorization
 4) Distributed Pub/Sub functionality with consumer groups
 5) Sets, Sorted Sets, Hashes
