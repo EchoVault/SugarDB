@@ -16,8 +16,6 @@ builds:
     goarch:
       - amd64
       - arm64
-    flags:
-      - -mod=vendor
 
 brews:
   - name: echovault
