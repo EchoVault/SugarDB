@@ -17,7 +17,6 @@ package generic
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
@@ -28,21 +27,6 @@ import (
 	"strings"
 	"time"
 )
-
-var timeNow func() time.Time
-
-func init() {
-	if flag.Lookup("test.v") == nil {
-		// Normal run
-		timeNow = time.Now
-		return
-	}
-	// Test run
-	now := time.Now()
-	timeNow = func() time.Time {
-		return now.Add(5 * time.Hour).Add(30 * time.Minute).Add(30 * time.Second).Add(10 * time.Millisecond)
-	}
-}
 
 type KeyObject struct {
 	value  interface{}
@@ -339,9 +323,9 @@ func handleTTL(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 		return []byte(":-1\r\n"), nil
 	}
 
-	t := expireAt.Unix() - timeNow().Unix()
+	t := expireAt.Unix() - time.Now().Unix()
 	if strings.ToLower(cmd[0]) == "pttl" {
-		t = expireAt.UnixMilli() - timeNow().UnixMilli()
+		t = expireAt.UnixMilli() - time.Now().UnixMilli()
 	}
 
 	if t <= 0 {
@@ -364,9 +348,9 @@ func handleExpire(ctx context.Context, cmd []string, server types.EchoVault, _ *
 	if err != nil {
 		return nil, errors.New("expire time must be integer")
 	}
-	expireAt := timeNow().Add(time.Duration(n) * time.Second)
+	expireAt := time.Now().Add(time.Duration(n) * time.Second)
 	if strings.ToLower(cmd[0]) == "pexpire" {
-		expireAt = timeNow().Add(time.Duration(n) * time.Millisecond)
+		expireAt = time.Now().Add(time.Duration(n) * time.Millisecond)
 	}
 
 	if !server.KeyExists(ctx, key) {

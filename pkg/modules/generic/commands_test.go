@@ -139,7 +139,7 @@ func Test_HandleSET(t *testing.T) {
 			presetValues:     nil,
 			expectedResponse: "OK",
 			expectedValue:    "value10",
-			expectedExpiry:   timeNow().Add(100 * time.Second),
+			expectedExpiry:   time.Now().Add(100 * time.Second),
 			expectedErr:      nil,
 		},
 		{ // 11. Return error when EX flag is passed without seconds value
@@ -171,7 +171,7 @@ func Test_HandleSET(t *testing.T) {
 			presetValues:     nil,
 			expectedResponse: "OK",
 			expectedValue:    "value14",
-			expectedExpiry:   timeNow().Add(4096 * time.Millisecond),
+			expectedExpiry:   time.Now().Add(4096 * time.Millisecond),
 			expectedErr:      nil,
 		},
 		{ // 15. Return error when PX flag is passed without milliseconds value
@@ -201,19 +201,19 @@ func Test_HandleSET(t *testing.T) {
 		{ // 18. Set exact expiry time in seconds from unix epoch
 			command: []string{
 				"SET", "SetKey18", "value18",
-				"EXAT", fmt.Sprintf("%d", timeNow().Add(200*time.Second).Unix()),
+				"EXAT", fmt.Sprintf("%d", time.Now().Add(200*time.Second).Unix()),
 			},
 			presetValues:     nil,
 			expectedResponse: "OK",
 			expectedValue:    "value18",
-			expectedExpiry:   timeNow().Add(200 * time.Second),
+			expectedExpiry:   time.Now().Add(200 * time.Second),
 			expectedErr:      nil,
 		},
 		{ // 19. Return error when trying to set exact seconds expiry time when expiry time is already provided
 			command: []string{
 				"SET", "SetKey19", "value19",
 				"EX", "10",
-				"EXAT", fmt.Sprintf("%d", timeNow().Add(200*time.Second).Unix()),
+				"EXAT", fmt.Sprintf("%d", time.Now().Add(200*time.Second).Unix()),
 			},
 			presetValues:     nil,
 			expectedResponse: nil,
@@ -240,19 +240,19 @@ func Test_HandleSET(t *testing.T) {
 		{ // 22. Set exact expiry time in milliseconds from unix epoch
 			command: []string{
 				"SET", "SetKey22", "value22",
-				"PXAT", fmt.Sprintf("%d", timeNow().Add(4096*time.Millisecond).UnixMilli()),
+				"PXAT", fmt.Sprintf("%d", time.Now().Add(4096*time.Millisecond).UnixMilli()),
 			},
 			presetValues:     nil,
 			expectedResponse: "OK",
 			expectedValue:    "value22",
-			expectedExpiry:   timeNow().Add(4096 * time.Millisecond),
+			expectedExpiry:   time.Now().Add(4096 * time.Millisecond),
 			expectedErr:      nil,
 		},
 		{ // 23. Return error when trying to set exact milliseconds expiry time when expiry time is already provided
 			command: []string{
 				"SET", "SetKey23", "value23",
 				"PX", "1000",
-				"PXAT", fmt.Sprintf("%d", timeNow().Add(4096*time.Millisecond).UnixMilli()),
+				"PXAT", fmt.Sprintf("%d", time.Now().Add(4096*time.Millisecond).UnixMilli()),
 			},
 			presetValues:     nil,
 			expectedResponse: nil,
@@ -286,7 +286,7 @@ func Test_HandleSET(t *testing.T) {
 			},
 			expectedResponse: "previous-value",
 			expectedValue:    "value26",
-			expectedExpiry:   timeNow().Add(1000 * time.Second),
+			expectedExpiry:   time.Now().Add(1000 * time.Second),
 			expectedErr:      nil,
 		},
 		{ // 27. Return nil when GET value is passed and no previous value exists
@@ -294,7 +294,7 @@ func Test_HandleSET(t *testing.T) {
 			presetValues:     nil,
 			expectedResponse: nil,
 			expectedValue:    "value27",
-			expectedExpiry:   timeNow().Add(1000 * time.Second),
+			expectedExpiry:   time.Now().Add(1000 * time.Second),
 			expectedErr:      nil,
 		},
 		{ // 28. Throw error when unknown optional flag is passed to SET command.
@@ -714,7 +714,7 @@ func Test_HandlePERSIST(t *testing.T) {
 		{ // 1. Successfully persist a volatile key
 			command: []string{"PERSIST", "PersistKey1"},
 			presetValues: map[string]KeyData{
-				"PersistKey1": {Value: "value1", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"PersistKey1": {Value: "value1", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
@@ -827,17 +827,17 @@ func Test_HandleEXPIRETIME(t *testing.T) {
 		{ // 1. Return expire time in seconds
 			command: []string{"EXPIRETIME", "ExpireTimeKey1"},
 			presetValues: map[string]KeyData{
-				"ExpireTimeKey1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
+				"ExpireTimeKey1": {Value: "value1", ExpireAt: time.Now().Add(100 * time.Second)},
 			},
-			expectedResponse: int(timeNow().Add(100 * time.Second).Unix()),
+			expectedResponse: int(time.Now().Add(100 * time.Second).Unix()),
 			expectedError:    nil,
 		},
 		{ // 2. Return expire time in milliseconds
 			command: []string{"PEXPIRETIME", "ExpireTimeKey2"},
 			presetValues: map[string]KeyData{
-				"ExpireTimeKey2": {Value: "value2", ExpireAt: timeNow().Add(4096 * time.Millisecond)},
+				"ExpireTimeKey2": {Value: "value2", ExpireAt: time.Now().Add(4096 * time.Millisecond)},
 			},
-			expectedResponse: int(timeNow().Add(4096 * time.Millisecond).UnixMilli()),
+			expectedResponse: int(time.Now().Add(4096 * time.Millisecond).UnixMilli()),
 			expectedError:    nil,
 		},
 		{ // 3. If the key is non-volatile, return -1
@@ -920,7 +920,7 @@ func Test_HandleTTL(t *testing.T) {
 		{ // 1. Return TTL time in seconds
 			command: []string{"TTL", "TTLKey1"},
 			presetValues: map[string]KeyData{
-				"TTLKey1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
+				"TTLKey1": {Value: "value1", ExpireAt: time.Now().Add(100 * time.Second)},
 			},
 			expectedResponse: 100,
 			expectedError:    nil,
@@ -928,7 +928,7 @@ func Test_HandleTTL(t *testing.T) {
 		{ // 2. Return TTL time in milliseconds
 			command: []string{"PTTL", "TTLKey2"},
 			presetValues: map[string]KeyData{
-				"TTLKey2": {Value: "value2", ExpireAt: timeNow().Add(4096 * time.Millisecond)},
+				"TTLKey2": {Value: "value2", ExpireAt: time.Now().Add(4096 * time.Millisecond)},
 			},
 			expectedResponse: 4096,
 			expectedError:    nil,
@@ -1018,7 +1018,7 @@ func Test_HandleEXPIRE(t *testing.T) {
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireKey1": {Value: "value1", ExpireAt: timeNow().Add(100 * time.Second)},
+				"ExpireKey1": {Value: "value1", ExpireAt: time.Now().Add(100 * time.Second)},
 			},
 			expectedError: nil,
 		},
@@ -1029,7 +1029,7 @@ func Test_HandleEXPIRE(t *testing.T) {
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireKey2": {Value: "value2", ExpireAt: timeNow().Add(1000 * time.Millisecond)},
+				"ExpireKey2": {Value: "value2", ExpireAt: time.Now().Add(1000 * time.Millisecond)},
 			},
 			expectedError: nil,
 		},
@@ -1040,29 +1040,29 @@ func Test_HandleEXPIRE(t *testing.T) {
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireKey3": {Value: "value3", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey3": {Value: "value3", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 4. Return 0, when NX flag is provided and key already has an expiry time
 			command: []string{"EXPIRE", "ExpireKey4", "1000", "NX"},
 			presetValues: map[string]KeyData{
-				"ExpireKey4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey4": {Value: "value4", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]KeyData{
-				"ExpireKey4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey4": {Value: "value4", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 5. Set new expire time from now key only when the key already has an expiry time with XX flag
 			command: []string{"EXPIRE", "ExpireKey5", "1000", "XX"},
 			presetValues: map[string]KeyData{
-				"ExpireKey5": {Value: "value5", ExpireAt: timeNow().Add(30 * time.Second)},
+				"ExpireKey5": {Value: "value5", ExpireAt: time.Now().Add(30 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireKey5": {Value: "value5", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey5": {Value: "value5", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
@@ -1080,22 +1080,22 @@ func Test_HandleEXPIRE(t *testing.T) {
 		{ // 7. Set expiry time when the provided time is after the current expiry time when GT flag is provided
 			command: []string{"EXPIRE", "ExpireKey7", "1000", "GT"},
 			presetValues: map[string]KeyData{
-				"ExpireKey7": {Value: "value7", ExpireAt: timeNow().Add(30 * time.Second)},
+				"ExpireKey7": {Value: "value7", ExpireAt: time.Now().Add(30 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireKey7": {Value: "value7", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey7": {Value: "value7", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 8. Return 0 when GT flag is passed and current expiry time is greater than provided time
 			command: []string{"EXPIRE", "ExpireKey8", "1000", "GT"},
 			presetValues: map[string]KeyData{
-				"ExpireKey8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireKey8": {Value: "value8", ExpireAt: time.Now().Add(3000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]KeyData{
-				"ExpireKey8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireKey8": {Value: "value8", ExpireAt: time.Now().Add(3000 * time.Second)},
 			},
 			expectedError: nil,
 		},
@@ -1113,22 +1113,22 @@ func Test_HandleEXPIRE(t *testing.T) {
 		{ // 10. Set expiry time when the provided time is before the current expiry time when LT flag is provided
 			command: []string{"EXPIRE", "ExpireKey10", "1000", "LT"},
 			presetValues: map[string]KeyData{
-				"ExpireKey10": {Value: "value10", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireKey10": {Value: "value10", ExpireAt: time.Now().Add(3000 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireKey10": {Value: "value10", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey10": {Value: "value10", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 11. Return 0 when LT flag is passed and current expiry time is less than provided time
 			command: []string{"EXPIRE", "ExpireKey11", "5000", "LT"},
 			presetValues: map[string]KeyData{
-				"ExpireKey11": {Value: "value11", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireKey11": {Value: "value11", ExpireAt: time.Now().Add(3000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]KeyData{
-				"ExpireKey11": {Value: "value11", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireKey11": {Value: "value11", ExpireAt: time.Now().Add(3000 * time.Second)},
 			},
 			expectedError: nil,
 		},
@@ -1139,7 +1139,7 @@ func Test_HandleEXPIRE(t *testing.T) {
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireKey12": {Value: "value12", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireKey12": {Value: "value12", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
@@ -1245,67 +1245,67 @@ func Test_HandleEXPIREAT(t *testing.T) {
 		expectedError    error
 	}{
 		{ // 1. Set new expire by unix seconds
-			command: []string{"EXPIREAT", "ExpireAtKey1", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix())},
+			command: []string{"EXPIREAT", "ExpireAtKey1", fmt.Sprintf("%d", time.Now().Add(1000*time.Second).Unix())},
 			presetValues: map[string]KeyData{
 				"ExpireAtKey1": {Value: "value1", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireAtKey1": {Value: "value1", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey1": {Value: "value1", ExpireAt: time.Unix(time.Now().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 2. Set new expire by milliseconds
-			command: []string{"PEXPIREAT", "ExpireAtKey2", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).UnixMilli())},
+			command: []string{"PEXPIREAT", "ExpireAtKey2", fmt.Sprintf("%d", time.Now().Add(1000*time.Second).UnixMilli())},
 			presetValues: map[string]KeyData{
 				"ExpireAtKey2": {Value: "value2", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireAtKey2": {Value: "value2", ExpireAt: time.UnixMilli(timeNow().Add(1000 * time.Second).UnixMilli())},
+				"ExpireAtKey2": {Value: "value2", ExpireAt: time.UnixMilli(time.Now().Add(1000 * time.Second).UnixMilli())},
 			},
 			expectedError: nil,
 		},
 		{ // 3. Set new expire only when key does not have an expiry time with NX flag
-			command: []string{"EXPIREAT", "ExpireAtKey3", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "NX"},
+			command: []string{"EXPIREAT", "ExpireAtKey3", fmt.Sprintf("%d", time.Now().Add(1000*time.Second).Unix()), "NX"},
 			presetValues: map[string]KeyData{
 				"ExpireAtKey3": {Value: "value3", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireAtKey3": {Value: "value3", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey3": {Value: "value3", ExpireAt: time.Unix(time.Now().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 4. Return 0, when NX flag is provided and key already has an expiry time
-			command: []string{"EXPIREAT", "ExpireAtKey4", fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "NX"},
+			command: []string{"EXPIREAT", "ExpireAtKey4", fmt.Sprintf("%d", time.Now().Add(1000*time.Second).Unix()), "NX"},
 			presetValues: map[string]KeyData{
-				"ExpireAtKey4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireAtKey4": {Value: "value4", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]KeyData{
-				"ExpireAtKey4": {Value: "value4", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireAtKey4": {Value: "value4", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 5. Set new expire time from now key only when the key already has an expiry time with XX flag
 			command: []string{
 				"EXPIREAT", "ExpireAtKey5",
-				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "XX",
+				fmt.Sprintf("%d", time.Now().Add(1000*time.Second).Unix()), "XX",
 			},
 			presetValues: map[string]KeyData{
-				"ExpireAtKey5": {Value: "value5", ExpireAt: timeNow().Add(30 * time.Second)},
+				"ExpireAtKey5": {Value: "value5", ExpireAt: time.Now().Add(30 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireAtKey5": {Value: "value5", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey5": {Value: "value5", ExpireAt: time.Unix(time.Now().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 6. Return 0 when key does not have an expiry and the XX flag is provided
 			command: []string{
 				"EXPIREAT", "ExpireAtKey6",
-				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "XX",
+				fmt.Sprintf("%d", time.Now().Add(1000*time.Second).Unix()), "XX",
 			},
 			presetValues: map[string]KeyData{
 				"ExpireAtKey6": {Value: "value6", ExpireAt: time.Time{}},
@@ -1319,35 +1319,35 @@ func Test_HandleEXPIREAT(t *testing.T) {
 		{ // 7. Set expiry time when the provided time is after the current expiry time when GT flag is provided
 			command: []string{
 				"EXPIREAT", "ExpireAtKey7",
-				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "GT",
+				fmt.Sprintf("%d", time.Now().Add(1000*time.Second).Unix()), "GT",
 			},
 			presetValues: map[string]KeyData{
-				"ExpireAtKey7": {Value: "value7", ExpireAt: timeNow().Add(30 * time.Second)},
+				"ExpireAtKey7": {Value: "value7", ExpireAt: time.Now().Add(30 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireAtKey7": {Value: "value7", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey7": {Value: "value7", ExpireAt: time.Unix(time.Now().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 8. Return 0 when GT flag is passed and current expiry time is greater than provided time
 			command: []string{
 				"EXPIREAT", "ExpireAtKey8",
-				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "GT",
+				fmt.Sprintf("%d", time.Now().Add(1000*time.Second).Unix()), "GT",
 			},
 			presetValues: map[string]KeyData{
-				"ExpireAtKey8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireAtKey8": {Value: "value8", ExpireAt: time.Now().Add(3000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]KeyData{
-				"ExpireAtKey8": {Value: "value8", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireAtKey8": {Value: "value8", ExpireAt: time.Now().Add(3000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 9. Return 0 when GT flag is passed and key does not have an expiry time
 			command: []string{
 				"EXPIREAT", "ExpireAtKey9",
-				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "GT",
+				fmt.Sprintf("%d", time.Now().Add(1000*time.Second).Unix()), "GT",
 			},
 			presetValues: map[string]KeyData{
 				"ExpireAtKey9": {Value: "value9", ExpireAt: time.Time{}},
@@ -1361,42 +1361,42 @@ func Test_HandleEXPIREAT(t *testing.T) {
 		{ // 10. Set expiry time when the provided time is before the current expiry time when LT flag is provided
 			command: []string{
 				"EXPIREAT", "ExpireAtKey10",
-				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "LT",
+				fmt.Sprintf("%d", time.Now().Add(1000*time.Second).Unix()), "LT",
 			},
 			presetValues: map[string]KeyData{
-				"ExpireAtKey10": {Value: "value10", ExpireAt: timeNow().Add(3000 * time.Second)},
+				"ExpireAtKey10": {Value: "value10", ExpireAt: time.Now().Add(3000 * time.Second)},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireAtKey10": {Value: "value10", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey10": {Value: "value10", ExpireAt: time.Unix(time.Now().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
 		{ // 11. Return 0 when LT flag is passed and current expiry time is less than provided time
 			command: []string{
 				"EXPIREAT", "ExpireAtKey11",
-				fmt.Sprintf("%d", timeNow().Add(3000*time.Second).Unix()), "LT",
+				fmt.Sprintf("%d", time.Now().Add(3000*time.Second).Unix()), "LT",
 			},
 			presetValues: map[string]KeyData{
-				"ExpireAtKey11": {Value: "value11", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireAtKey11": {Value: "value11", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedResponse: 0,
 			expectedValues: map[string]KeyData{
-				"ExpireAtKey11": {Value: "value11", ExpireAt: timeNow().Add(1000 * time.Second)},
+				"ExpireAtKey11": {Value: "value11", ExpireAt: time.Now().Add(1000 * time.Second)},
 			},
 			expectedError: nil,
 		},
 		{ // 12. Return 0 when LT flag is passed and key does not have an expiry time
 			command: []string{
 				"EXPIREAT", "ExpireAtKey12",
-				fmt.Sprintf("%d", timeNow().Add(1000*time.Second).Unix()), "LT",
+				fmt.Sprintf("%d", time.Now().Add(1000*time.Second).Unix()), "LT",
 			},
 			presetValues: map[string]KeyData{
 				"ExpireAtKey12": {Value: "value12", ExpireAt: time.Time{}},
 			},
 			expectedResponse: 1,
 			expectedValues: map[string]KeyData{
-				"ExpireAtKey12": {Value: "value12", ExpireAt: time.Unix(timeNow().Add(1000*time.Second).Unix(), 0)},
+				"ExpireAtKey12": {Value: "value12", ExpireAt: time.Unix(time.Now().Add(1000*time.Second).Unix(), 0)},
 			},
 			expectedError: nil,
 		},
