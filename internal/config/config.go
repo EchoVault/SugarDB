@@ -109,7 +109,8 @@ There is no limit by default.`, func(memory string) error {
 	})
 
 	evictionPolicy := constants.NoEviction
-	flag.Func("eviction-policy", `The eviction policy used to remove keys when max-memory is reached. The options are: 
+	flag.Func("eviction-policy",
+		`The eviction policy used to remove keys when max-memory is reached. The options are: 
 1) noeviction - Do not evict any keys even when max-memory is exceeded.
 2) allkeys-lfu - Evict the least frequently used keys.
 3) allkeys-lru - Evict the least recently used keys.
@@ -117,18 +118,18 @@ There is no limit by default.`, func(memory string) error {
 5) volatile-lru - Evict the least recently used keys with an expiration.
 6) allkeys-random - Evict random keys until we get under the max-memory limit.
 7) volatile-random - Evict random keys with an expiration.`, func(policy string) error {
-		policies := []string{
-			constants.NoEviction,
-			constants.AllKeysLFU, constants.AllKeysLRU, constants.AllKeysRandom,
-			constants.VolatileLFU, constants.VolatileLRU, constants.VolatileRandom,
-		}
-		policyIdx := slices.Index(policies, strings.ToLower(policy))
-		if policyIdx == -1 {
-			return fmt.Errorf("policy %s is not a valid policy", policy)
-		}
-		evictionPolicy = strings.ToLower(policy)
-		return nil
-	})
+			policies := []string{
+				constants.NoEviction,
+				constants.AllKeysLFU, constants.AllKeysLRU, constants.AllKeysRandom,
+				constants.VolatileLFU, constants.VolatileLRU, constants.VolatileRandom,
+			}
+			policyIdx := slices.Index(policies, strings.ToLower(policy))
+			if policyIdx == -1 {
+				return fmt.Errorf("policy %s is not a valid policy", policy)
+			}
+			evictionPolicy = strings.ToLower(policy)
+			return nil
+		})
 
 	tls := flag.Bool("tls", false, "Start the echovault in TLS mode. Default is false.")
 	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
