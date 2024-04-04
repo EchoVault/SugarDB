@@ -46,13 +46,14 @@ Some key features offered by EchoVault include:
 We are working hard to add more features to EchoVault to make it
 much more powerful. Features in the roadmap include:
 
-1) Streams
-2) Transactions
-3) Bitmap
-4) HyperLogLog
-5) Lua Modules
-6) JSON
-7) Improved Observability
+1) Sharding
+2) Streams
+3) Transactions
+4) Bitmap
+5) HyperLogLog
+6) Lua Modules
+7) JSON
+8) Improved Observability
 
 # Usage (Embedded)
 
@@ -277,13 +278,13 @@ Description: The interval between each sampling of keys to evict. By default, th
 # Eviction
 
 ### Memory Limit
-The memory limit can be set using the --max-memory config flag. This flag accepts a parsable memory value (e.g 100mb, 16gb). If the limit set is 0, then no memory limit is imposed. The default value is 0.
+The memory limit can be set using the `--max-memory` config flag. This flag accepts a parsable memory value (e.g 100mb, 16gb). If the limit set is 0, then no memory limit is imposed. The default value is 0.
 
 ### Passive eviction
-In passive eviction, the expired key is not deleted immediately once the expiry time is reached. The key will remain in the store until the next time it is accessed. When attempting to access an expired key, that is when the keys is deleted.
+In passive eviction, the expired key is not deleted immediately after the expiry time. The key will remain in the store until the next time it is accessed. When attempting to access an expired key, that is when the key is deleted.
 
 ### Active eviction
-Echovault will run a background goroutine that samples a set of volatile keys at a given interval. Any keys that are found to be expired will be deleted. If 20% or more of the sampled keys are deleted, then the process will immediately begin again. Otherwise, wait for the given interval until the next round of sampling/eviction. The default number of keys sampled is 20 and the default interval for sampling is 100 milliseconds. These can be configured using the --eviction-sample and --eviction-interval flags respectively.
+Echovault will run a background goroutine that samples a set of volatile keys at a given interval. Any keys that are found to be expired will be deleted. If 20% or more of the sampled keys are deleted, then the process will immediately begin again. Otherwise, wait for the given interval until the next round of sampling/eviction. The default number of keys sampled is 20, and the default interval for sampling is 100 milliseconds. These can be configured using the `--eviction-sample` and `--eviction-interval` flags.
 
 ### Eviction Policies
 Eviction policy can be set using the --eviction-policy flag. The following options are available.
