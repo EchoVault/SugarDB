@@ -19,6 +19,7 @@ import (
 	"github.com/echovault/echovault/internal"
 	logstore "github.com/echovault/echovault/internal/aof/log"
 	"github.com/echovault/echovault/internal/aof/preamble"
+	"github.com/echovault/echovault/internal/clock"
 	"log"
 	"sync"
 )
@@ -27,6 +28,7 @@ import (
 // Logging in replication clusters is handled in the raft layer.
 
 type Engine struct {
+	clock        clock.Clock
 	syncStrategy string
 	directory    string
 	preambleRW   preamble.PreambleReadWriter
@@ -43,6 +45,12 @@ type Engine struct {
 	getStateFunc      func() map[string]internal.KeyData
 	setKeyDataFunc    func(key string, data internal.KeyData)
 	handleCommand     func(command []byte)
+}
+
+func WithClock(clock clock.Clock) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.clock = clock
+	}
 }
 
 func WithStrategy(strategy string) func(engine *Engine) {
@@ -101,6 +109,7 @@ func WithAppendReadWriter(rw logstore.AppendReadWriter) func(engine *Engine) {
 
 func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 	engine := &Engine{
+		clock:             clock.NewClock(),
 		syncStrategy:      "everysec",
 		directory:         "",
 		mut:               sync.Mutex{},
@@ -121,6 +130,7 @@ func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 
 	// Setup Preamble engine
 	engine.preambleStore = preamble.NewPreambleStore(
+		preamble.WithClock(engine.clock),
 		preamble.WithDirectory(engine.directory),
 		preamble.WithReadWriter(engine.preambleRW),
 		preamble.WithGetStateFunc(engine.getStateFunc),
@@ -129,6 +139,7 @@ func NewAOFEngine(options ...func(engine *Engine)) *Engine {
 
 	// Setup AOF log store engine
 	engine.appendStore = logstore.NewAppendStore(
+		logstore.WithClock(engine.clock),
 		logstore.WithDirectory(engine.directory),
 		logstore.WithStrategy(engine.syncStrategy),
 		logstore.WithReadWriter(engine.appendRW),

@@ -23,6 +23,7 @@ import (
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/acl"
 	"github.com/echovault/echovault/internal/aof"
+	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/eviction"
 	"github.com/echovault/echovault/internal/memberlist"
@@ -41,6 +42,9 @@ import (
 )
 
 type EchoVault struct {
+	// clock is an implementation of a time interface that allows mocking of time functions during testing.
+	clock clock.Clock
+
 	// config holds the echovault configuration variables.
 	config config.Config
 
@@ -90,8 +94,8 @@ type EchoVault struct {
 }
 
 // WithContext is an options that for the NewEchoVault function that allows you to
-// configure a custom context object to be used in EchoVault. If you don't provide this
-// option, EchoVault will create its own internal context object.
+// configure a custom context object to be used in EchoVault.
+// If you don't provide this option, EchoVault will create its own internal context object.
 func WithContext(ctx context.Context) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.context = ctx
@@ -99,8 +103,8 @@ func WithContext(ctx context.Context) func(echovault *EchoVault) {
 }
 
 // WithConfig is an option for the NewEchoVault function that allows you to pass a
-// custom configuration to EchoVault. If not specified, EchoVault will use the default
-// configuration from config.DefaultConfig().
+// custom configuration to EchoVault.
+// If not specified, EchoVault will use the default configuration from config.DefaultConfig().
 func WithConfig(config config.Config) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.config = config
@@ -108,8 +112,8 @@ func WithConfig(config config.Config) func(echovault *EchoVault) {
 }
 
 // WithCommands is an options for the NewEchoVault function that allows you to pass a
-// list of commands that should be supported by your EchoVault instance. If you don't pass
-// this option, EchoVault will start with no commands loaded.
+// list of commands that should be supported by your EchoVault instance.
+// If you don't pass this option, EchoVault will start with no commands loaded.
 func WithCommands(commands []types.Command) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
 		echovault.commands = commands
@@ -120,6 +124,7 @@ func WithCommands(commands []types.Command) func(echovault *EchoVault) {
 // This functions accepts the WithContext, WithConfig and WithCommands options.
 func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	echovault := &EchoVault{
+		clock:           clock.NewClock(),
 		context:         context.Background(),
 		commands:        make([]types.Command, 0),
 		config:          config.DefaultConfig(),
@@ -174,6 +179,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	} else {
 		// Set up standalone snapshot engine
 		echovault.snapshotEngine = snapshot.NewSnapshotEngine(
+			snapshot.WithClock(echovault.clock),
 			snapshot.WithDirectory(echovault.config.DataDir),
 			snapshot.WithThreshold(echovault.config.SnapShotThreshold),
 			snapshot.WithInterval(echovault.config.SnapshotInterval),
@@ -204,6 +210,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		)
 		// Set up standalone AOF engine
 		echovault.aofEngine = aof.NewAOFEngine(
+			aof.WithClock(echovault.clock),
 			aof.WithDirectory(echovault.config.DataDir),
 			aof.WithStrategy(echovault.config.AOFSyncStrategy),
 			aof.WithStartRewriteFunc(echovault.startRewriteAOF),
@@ -241,7 +248,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	if echovault.config.EvictionPolicy != constants.NoEviction {
 		go func() {
 			for {
-				<-time.After(echovault.config.EvictionInterval)
+				<-echovault.clock.After(echovault.config.EvictionInterval)
 				if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
 					log.Println(err)
 				}
@@ -463,6 +470,11 @@ func (server *EchoVault) TakeSnapshot() error {
 	}()
 
 	return nil
+}
+
+// GetClock returns the server's clock implementation
+func (server *EchoVault) GetClock() clock.Clock {
+	return server.clock
 }
 
 func (server *EchoVault) startSnapshot() {

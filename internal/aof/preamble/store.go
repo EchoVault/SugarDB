@@ -18,12 +18,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/clock"
 	"io"
 	"log"
 	"os"
 	"path"
 	"sync"
-	"time"
 )
 
 type PreambleReadWriter interface {
@@ -34,11 +34,18 @@ type PreambleReadWriter interface {
 }
 
 type PreambleStore struct {
+	clock          clock.Clock
 	rw             PreambleReadWriter
 	mut            sync.Mutex
 	directory      string
 	getStateFunc   func() map[string]internal.KeyData
 	setKeyDataFunc func(key string, data internal.KeyData)
+}
+
+func WithClock(clock clock.Clock) func(store *PreambleStore) {
+	return func(store *PreambleStore) {
+		store.clock = clock
+	}
 }
 
 func WithReadWriter(rw PreambleReadWriter) func(store *PreambleStore) {
@@ -67,6 +74,7 @@ func WithDirectory(directory string) func(store *PreambleStore) {
 
 func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 	store := &PreambleStore{
+		clock:     clock.NewClock(),
 		rw:        nil,
 		mut:       sync.Mutex{},
 		directory: "",
@@ -166,7 +174,7 @@ func (store *PreambleStore) Close() error {
 func (store *PreambleStore) filterExpiredKeys(state map[string]internal.KeyData) map[string]internal.KeyData {
 	var keysToDelete []string
 	for k, v := range state {
-		if v.ExpireAt.Before(time.Now()) {
+		if v.ExpireAt.Before(store.clock.Now()) {
 			keysToDelete = append(keysToDelete, k)
 		}
 	}

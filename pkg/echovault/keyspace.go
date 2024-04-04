@@ -118,7 +118,7 @@ func (server *EchoVault) KeyExists(ctx context.Context, key string) bool {
 		return false
 	}
 
-	if entry.ExpireAt != (time.Time{}) && entry.ExpireAt.Before(time.Now()) {
+	if entry.ExpireAt != (time.Time{}) && entry.ExpireAt.Before(server.clock.Now()) {
 		if !server.isInCluster() {
 			// If in standalone mode, delete the key directly.
 			err := server.DeleteKey(ctx, key)
@@ -553,7 +553,7 @@ func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
 		}
 
 		// If the current key is not expired, skip to the next key
-		if server.store[k].ExpireAt.After(time.Now()) {
+		if server.store[k].ExpireAt.After(server.clock.Now()) {
 			server.KeyRUnlock(ctx, k)
 			continue
 		}

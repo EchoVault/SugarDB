@@ -42,8 +42,9 @@ func handleSet(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 	key := keys[0]
 	value := cmd[2]
 	res := []byte(constants.OkResponse)
+	clock := server.GetClock()
 
-	params, err := getSetCommandParams(cmd[3:], SetParams{})
+	params, err := getSetCommandParams(clock, cmd[3:], SetParams{})
 	if err != nil {
 		return nil, err
 	}
@@ -308,6 +309,8 @@ func handleTTL(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 
 	key := keys[0]
 
+	clock := server.GetClock()
+
 	if !server.KeyExists(ctx, key) {
 		return []byte(":-2\r\n"), nil
 	}
@@ -323,9 +326,9 @@ func handleTTL(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 		return []byte(":-1\r\n"), nil
 	}
 
-	t := expireAt.Unix() - time.Now().Unix()
+	t := expireAt.Unix() - clock.Now().Unix()
 	if strings.ToLower(cmd[0]) == "pttl" {
-		t = expireAt.UnixMilli() - time.Now().UnixMilli()
+		t = expireAt.UnixMilli() - clock.Now().UnixMilli()
 	}
 
 	if t <= 0 {
@@ -348,9 +351,9 @@ func handleExpire(ctx context.Context, cmd []string, server types.EchoVault, _ *
 	if err != nil {
 		return nil, errors.New("expire time must be integer")
 	}
-	expireAt := time.Now().Add(time.Duration(n) * time.Second)
+	expireAt := server.GetClock().Now().Add(time.Duration(n) * time.Second)
 	if strings.ToLower(cmd[0]) == "pexpire" {
-		expireAt = time.Now().Add(time.Duration(n) * time.Millisecond)
+		expireAt = server.GetClock().Now().Add(time.Duration(n) * time.Millisecond)
 	}
 
 	if !server.KeyExists(ctx, key) {

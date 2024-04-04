@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal/clock"
 	"io"
 	"log"
 	"os"
@@ -36,11 +37,18 @@ type AppendReadWriter interface {
 }
 
 type AppendStore struct {
+	clock         clock.Clock
 	strategy      string               // Append file sync strategy. Can only be "always", "everysec", or "no
 	mut           sync.Mutex           // Store mutex
 	rw            AppendReadWriter     // The ReadWriter used to persist and load the log
 	directory     string               // The directory for the AOF file if we must create one
 	handleCommand func(command []byte) // Function to handle command read from AOF log after restore
+}
+
+func WithClock(clock clock.Clock) func(store *AppendStore) {
+	return func(store *AppendStore) {
+		store.clock = clock
+	}
 }
 
 func WithStrategy(strategy string) func(store *AppendStore) {
@@ -69,6 +77,7 @@ func WithHandleCommandFunc(f func(command []byte)) func(store *AppendStore) {
 
 func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
 	store := &AppendStore{
+		clock:         clock.NewClock(),
 		directory:     "",
 		strategy:      "everysec",
 		rw:            nil,
@@ -103,7 +112,7 @@ func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
 					log.Println(fmt.Errorf("new append store error: %+v", err))
 					break
 				}
-				<-time.After(1 * time.Second)
+				<-store.clock.After(1 * time.Second)
 			}
 		}()
 	}

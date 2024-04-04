@@ -16,6 +16,7 @@ package types
 
 import (
 	"context"
+	"github.com/echovault/echovault/internal/clock"
 	"net"
 	"time"
 )
@@ -33,6 +34,7 @@ type EchoVault interface {
 	SetExpiry(ctx context.Context, key string, expire time.Time, touch bool)
 	RemoveExpiry(key string)
 	DeleteKey(ctx context.Context, key string) error
+	GetClock() clock.Clock
 	GetAllCommands() []Command
 	GetACL() interface{}
 	GetPubSub() interface{}
