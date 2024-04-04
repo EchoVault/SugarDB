@@ -186,7 +186,9 @@ func Test_HandleAuth(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		_ = conn.Close()
+		if conn != nil {
+			_ = conn.Close()
+		}
 	}()
 	r := resp.NewConn(conn)
 
@@ -288,7 +290,9 @@ func Test_HandleCat(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		_ = conn.Close()
+		if conn != nil {
+			_ = conn.Close()
+		}
 	}()
 	r := resp.NewConn(conn)
 
@@ -405,7 +409,9 @@ func Test_HandleUsers(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		_ = conn.Close()
+		if conn != nil {
+			_ = conn.Close()
+		}
 	}()
 
 	r := resp.NewConn(conn)
@@ -458,7 +464,9 @@ func Test_HandleSetUser(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		_ = conn.Close()
+		if conn != nil {
+			_ = conn.Close()
+		}
 	}()
 
 	r := resp.NewConn(conn)
@@ -1044,7 +1052,9 @@ func Test_HandleGetUser(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		_ = conn.Close()
+		if conn != nil {
+			_ = conn.Close()
+		}
 	}()
 
 	r := resp.NewConn(conn)
@@ -1190,7 +1200,9 @@ func Test_HandleDelUser(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		_ = conn.Close()
+		if conn != nil {
+			_ = conn.Close()
+		}
 	}()
 
 	r := resp.NewConn(conn)
@@ -1261,7 +1273,9 @@ func Test_HandleWhoAmI(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		_ = conn.Close()
+		if conn != nil {
+			_ = conn.Close()
+		}
 	}()
 
 	r := resp.NewConn(conn)
@@ -1331,7 +1345,9 @@ func Test_HandleList(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		_ = conn.Close()
+		if conn != nil {
+			_ = conn.Close()
+		}
 	}()
 
 	r := resp.NewConn(conn)
