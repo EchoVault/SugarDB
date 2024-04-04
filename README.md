@@ -4,6 +4,8 @@
 <br/>
 [![GitHub Release](https://img.shields.io/github/v/release/EchoVault/EchoVault)]()
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+<br/>
+[![Go Reference](https://pkg.go.dev/badge/github.com/echovault/echovault.svg)](https://pkg.go.dev/github.com/echovault/echovault)
 <hr/>
 
 <img alt="echovault_logo" src="./images/EchoVault GitHub Cover.png" width="5062" />
