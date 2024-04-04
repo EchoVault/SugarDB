@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/clock"
 	"io"
 	"io/fs"
 	"log"
@@ -37,6 +38,7 @@ type Manifest struct {
 }
 
 type Engine struct {
+	clock                     clock.Clock
 	changeCount               uint64
 	directory                 string
 	snapshotInterval          time.Duration
@@ -47,6 +49,12 @@ type Engine struct {
 	setLatestSnapshotTimeFunc func(msec int64)
 	getLatestSnapshotTimeFunc func() int64
 	setKeyDataFunc            func(key string, data internal.KeyData)
+}
+
+func WithClock(clock clock.Clock) func(engine *Engine) {
+	return func(engine *Engine) {
+		engine.clock = clock
+	}
 }
 
 func WithDirectory(directory string) func(engine *Engine) {
@@ -105,6 +113,7 @@ func WithSetKeyDataFunc(f func(key string, data internal.KeyData)) func(engine *
 
 func NewSnapshotEngine(options ...func(engine *Engine)) *Engine {
 	engine := &Engine{
+		clock:              clock.NewClock(),
 		changeCount:        0,
 		directory:          "",
 		snapshotInterval:   5 * time.Minute,
@@ -128,7 +137,7 @@ func NewSnapshotEngine(options ...func(engine *Engine)) *Engine {
 	if engine.snapshotInterval != 0 {
 		go func() {
 			for {
-				<-time.After(engine.snapshotInterval)
+				<-engine.clock.After(engine.snapshotInterval)
 				if engine.changeCount == engine.snapshotThreshold {
 					if err := engine.TakeSnapshot(); err != nil {
 						log.Println(err)
@@ -146,7 +155,7 @@ func (engine *Engine) TakeSnapshot() error {
 	defer engine.finishSnapshotFunc()
 
 	// Extract current time
-	now := time.Now()
+	now := engine.clock.Now()
 	msec := now.UnixNano() / int64(time.Millisecond)
 
 	// Update manifest file to indicate the latest snapshot.
