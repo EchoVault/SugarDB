@@ -25,6 +25,7 @@ import (
 	"net"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -38,9 +39,13 @@ func init() {
 
 	mockServer = setUpServer(bindAddr, port, true, "")
 
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
+		wg.Done()
 		mockServer.Start()
 	}()
+	wg.Wait()
 }
 
 func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig string) *echovault.EchoVault {
@@ -400,9 +405,13 @@ func Test_HandleCat(t *testing.T) {
 func Test_HandleUsers(t *testing.T) {
 	var port uint16 = 7491
 	mockServer := setUpServer(bindAddr, port, false, "")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
+		wg.Done()
 		mockServer.Start()
 	}()
+	wg.Wait()
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 	if err != nil {
@@ -451,9 +460,14 @@ func Test_HandleUsers(t *testing.T) {
 func Test_HandleSetUser(t *testing.T) {
 	var port uint16 = 7492
 	mockServer := setUpServer(bindAddr, port, false, "")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
+		wg.Done()
 		mockServer.Start()
 	}()
+	wg.Wait()
+
 	acl, ok := mockServer.GetACL().(*internal_acl.ACL)
 	if !ok {
 		t.Error("error loading ACL module")
@@ -1042,9 +1056,14 @@ func Test_HandleSetUser(t *testing.T) {
 func Test_HandleGetUser(t *testing.T) {
 	var port uint16 = 7493
 	mockServer := setUpServer(bindAddr, port, false, "")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
+		wg.Done()
 		mockServer.Start()
 	}()
+	wg.Wait()
+
 	acl, _ := mockServer.GetACL().(*internal_acl.ACL)
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
@@ -1190,9 +1209,14 @@ func Test_HandleGetUser(t *testing.T) {
 func Test_HandleDelUser(t *testing.T) {
 	var port uint16 = 7494
 	mockServer := setUpServer(bindAddr, port, false, "")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
+		wg.Done()
 		mockServer.Start()
 	}()
+	wg.Wait()
+
 	acl, _ := mockServer.GetACL().(*internal_acl.ACL)
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
@@ -1335,9 +1359,14 @@ func Test_HandleWhoAmI(t *testing.T) {
 func Test_HandleList(t *testing.T) {
 	var port uint16 = 7495
 	mockServer := setUpServer(bindAddr, port, false, "")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
+		wg.Done()
 		mockServer.Start()
 	}()
+	wg.Wait()
+
 	acl, _ := mockServer.GetACL().(*internal_acl.ACL)
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
