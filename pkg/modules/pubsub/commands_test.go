@@ -43,7 +43,7 @@ func init() {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		wg.Add(1)
+		wg.Done()
 		mockServer.Start()
 	}()
 	wg.Wait()
