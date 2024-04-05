@@ -29,6 +29,9 @@ jobs:
     - name: Test
       run: go test -coverprofile=coverage.out -v ./...
 
+    - name: Test for Data Race
+      run: go test ./... --race
+
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4.0.1
       with:
