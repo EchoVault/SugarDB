@@ -9,3 +9,6 @@ run:
 
 test:
 	go clean -testcache && go test ./... -coverprofile coverage/coverage.out
+
+test-race:
+	go clean -testcache && go test ./... --race

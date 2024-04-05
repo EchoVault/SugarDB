@@ -43,6 +43,7 @@ func init() {
 
 func Test_HandleZADD(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValue      *sorted_set.SortedSet
 		key              string
@@ -51,7 +52,8 @@ func Test_HandleZADD(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Create new sorted set and return the cardinality of the new sorted set.
+		{
+			name:        "1. Create new sorted set and return the cardinality of the new sorted set",
 			preset:      false,
 			presetValue: nil,
 			key:         "ZaddKey1",
@@ -66,7 +68,8 @@ func Test_HandleZADD(t *testing.T) {
 			expectedResponse: 5,
 			expectedError:    nil,
 		},
-		{ // 2. Only add the elements that do not currently exist in the sorted set when NX flag is provided
+		{
+			name:   "2. Only add the elements that do not currently exist in the sorted set when NX flag is provided",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -85,7 +88,8 @@ func Test_HandleZADD(t *testing.T) {
 			expectedResponse: 2,
 			expectedError:    nil,
 		},
-		{ // 3. Do not add any elements when providing existing members with NX flag
+		{
+			name:   "Do not add any elements when providing existing members with NX flag",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -102,7 +106,8 @@ func Test_HandleZADD(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 4. Successfully add elements to an existing set when XX flag is provided with existing elements
+		{
+			name:   "Successfully add elements to an existing set when XX flag is provided with existing elements",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -119,7 +124,8 @@ func Test_HandleZADD(t *testing.T) {
 			expectedResponse: 3,
 			expectedError:    nil,
 		},
-		{ // 5. Fail to add element when providing XX flag with elements that do not exist in the sorted set.
+		{
+			name:   "5. Fail to add element when providing XX flag with elements that do not exist in the sorted set.",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -137,8 +143,9 @@ func Test_HandleZADD(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			// 6. Only update the elements where provided score is greater than current score if GT flag
+			// 6. Only update the elements where provided score is greater than current score and GT flag is provided
 			// Return only the new elements added by default
+			name:   "6. Only update the elements where provided score is greater than current score and GT flag is provided",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -158,6 +165,7 @@ func Test_HandleZADD(t *testing.T) {
 		{
 			// 7. Only update the elements where provided score is less than current score if LT flag is provided
 			// Return only the new elements added by default.
+			name:   "7. Only update the elements where provided score is less than current score if LT flag is provided",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -175,7 +183,7 @@ func Test_HandleZADD(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			// 8. Return all the elements that were updated AND added when CH flag is provided
+			name:   "8. Return all the elements that were updated AND added when CH flag is provided",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -193,7 +201,7 @@ func Test_HandleZADD(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			// 9. Increment the member by score
+			name:   "9. Increment the member by score",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -210,7 +218,8 @@ func Test_HandleZADD(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 10. Fail when GT/LT flag is provided alongside NX flag
+		{
+			name:             "10. Fail when GT/LT flag is provided alongside NX flag",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZaddKey10",
@@ -219,7 +228,8 @@ func Test_HandleZADD(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("GT/LT flags not allowed if NX flag is provided"),
 		},
-		{ // 11. Command is too short
+		{
+			name:             "11. Command is too short",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZaddKey11",
@@ -228,7 +238,8 @@ func Test_HandleZADD(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 12. Throw error when score/member entries are do not match
+		{
+			name:             "12. Throw error when score/member entries are do not match",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZaddKey11",
@@ -237,7 +248,8 @@ func Test_HandleZADD(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("score/member pairs must be float/string"),
 		},
-		{ // 13. Throw error when INCR flag is passed with more than one score/member pair
+		{
+			name:             "13. Throw error when INCR flag is passed with more than one score/member pair",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZaddKey13",
@@ -249,55 +261,58 @@ func Test_HandleZADD(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZADD, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZADD, %d", i))
 
-		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+			if test.preset {
+				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, test.key)
+			}
+			res, err := handleZADD(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
 				t.Error(err)
 			}
-			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+			rd := resp.NewReader(bytes.NewReader(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
 				t.Error(err)
 			}
-			mockServer.KeyUnlock(ctx, test.key)
-		}
-		res, err := handleZADD(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
 			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewReader(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
-		}
-		// Fetch the sorted set from the echovault and check it against the expected result
-		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
-			t.Error(err)
-		}
-		sortedSet, ok := mockServer.GetValue(ctx, test.key).(*sorted_set.SortedSet)
-		if !ok {
-			t.Errorf("expected the value at key \"%s\" to be a sorted set, got another type", test.key)
-		}
-		if test.expectedValue == nil {
-			continue
-		}
-		if !sortedSet.Equals(test.expectedValue) {
-			t.Errorf("expected sorted set %+v, got %+v", test.expectedValue, sortedSet)
-		}
-		mockServer.KeyRUnlock(ctx, test.key)
+			// Fetch the sorted set from the echovault and check it against the expected result
+			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
+				t.Error(err)
+			}
+			sortedSet, ok := mockServer.GetValue(ctx, test.key).(*sorted_set.SortedSet)
+			if !ok {
+				t.Errorf("expected the value at key \"%s\" to be a sorted set, got another type", test.key)
+			}
+			if test.expectedValue == nil {
+				return
+			}
+			if !sortedSet.Equals(test.expectedValue) {
+				t.Errorf("expected sorted set %+v, got %+v", test.expectedValue, sortedSet)
+			}
+			mockServer.KeyRUnlock(ctx, test.key)
+		})
 	}
 }
 
 func Test_HandleZCARD(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValue      interface{}
 		key              string
@@ -306,7 +321,8 @@ func Test_HandleZCARD(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Get cardinality of valid sorted set.
+		{
+			name:   "1. Get cardinality of valid sorted set.",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -319,7 +335,8 @@ func Test_HandleZCARD(t *testing.T) {
 			expectedResponse: 3,
 			expectedError:    nil,
 		},
-		{ // 2. Return 0 when trying to get cardinality from non-existent key
+		{
+			name:             "2. Return 0 when trying to get cardinality from non-existent key",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZcardKey2",
@@ -328,7 +345,8 @@ func Test_HandleZCARD(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 3. Command is too short
+		{
+			name:             "3. Command is too short",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZcardKey3",
@@ -337,7 +355,8 @@ func Test_HandleZCARD(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 4. Command too long
+		{ //
+			name:             "4. Command too long",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZcardKey4",
@@ -346,7 +365,8 @@ func Test_HandleZCARD(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 5. Return error when not a sorted set
+		{
+			name:             "5. Return error when not a sorted set",
 			preset:           true,
 			presetValue:      "Default value",
 			key:              "ZcardKey5",
@@ -358,40 +378,43 @@ func Test_HandleZCARD(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZCARD, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZCARD, %d", i))
 
-		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+			if test.preset {
+				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, test.key)
+			}
+			res, err := handleZCARD(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
 				t.Error(err)
 			}
-			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+			rd := resp.NewReader(bytes.NewReader(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
 				t.Error(err)
 			}
-			mockServer.KeyUnlock(ctx, test.key)
-		}
-		res, err := handleZCARD(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
 			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewReader(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
-		}
+		})
 	}
 }
 
 func Test_HandleZCOUNT(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValue      interface{}
 		key              string
@@ -400,7 +423,8 @@ func Test_HandleZCOUNT(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Get entire count using infinity boundaries
+		{
+			name:   "1. Get entire count using infinity boundaries",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -417,7 +441,8 @@ func Test_HandleZCOUNT(t *testing.T) {
 			expectedResponse: 7,
 			expectedError:    nil,
 		},
-		{ // 2. Get count of sub-set from -inf to limit
+		{
+			name:   "2. Get count of sub-set from -inf to limit",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -434,7 +459,8 @@ func Test_HandleZCOUNT(t *testing.T) {
 			expectedResponse: 5,
 			expectedError:    nil,
 		},
-		{ // 3. Get count of sub-set from bottom boundary to +inf limit
+		{
+			name:   "3. Get count of sub-set from bottom boundary to +inf limit",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
@@ -451,7 +477,8 @@ func Test_HandleZCOUNT(t *testing.T) {
 			expectedResponse: 2,
 			expectedError:    nil,
 		},
-		{ // 4. Return error when bottom boundary is not a valid double/float
+		{
+			name:             "4. Return error when bottom boundary is not a valid double/float",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZcountKey4",
@@ -460,7 +487,8 @@ func Test_HandleZCOUNT(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("min constraint must be a double"),
 		},
-		{ // 5. Return error when top boundary is not a valid double/float
+		{
+			name:             "5. Return error when top boundary is not a valid double/float",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZcountKey5",
@@ -469,7 +497,8 @@ func Test_HandleZCOUNT(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("max constraint must be a double"),
 		},
-		{ // 6. Command is too short
+		{
+			name:             "6. Command is too short",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZcountKey6",
@@ -478,7 +507,8 @@ func Test_HandleZCOUNT(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 7. Command too long
+		{
+			name:             "7. Command too long",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZcountKey7",
@@ -487,7 +517,8 @@ func Test_HandleZCOUNT(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 8. Throw error when value at the key is not a sorted set
+		{
+			name:             "8. Throw error when value at the key is not a sorted set",
 			preset:           true,
 			presetValue:      "Default value",
 			key:              "ZcountKey8",
@@ -499,40 +530,43 @@ func Test_HandleZCOUNT(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZCARD, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZCARD, %d", i))
 
-		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+			if test.preset {
+				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, test.key)
+			}
+			res, err := handleZCOUNT(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
 				t.Error(err)
 			}
-			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+			rd := resp.NewReader(bytes.NewReader(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
 				t.Error(err)
 			}
-			mockServer.KeyUnlock(ctx, test.key)
-		}
-		res, err := handleZCOUNT(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
 			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewReader(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
-		}
+		})
 	}
 }
 
 func Test_HandleZLEXCOUNT(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValue      interface{}
 		key              string
@@ -541,7 +575,8 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Get entire count using infinity boundaries
+		{
+			name:   "1. Get entire count using infinity boundaries",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "e", Score: sorted_set.Score(1)},
@@ -558,7 +593,8 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 			expectedResponse: 5,
 			expectedError:    nil,
 		},
-		{ // 2. Return 0 when the members do not have the same score
+		{
+			name:   "2. Return 0 when the members do not have the same score",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "a", Score: sorted_set.Score(5.5)},
@@ -575,7 +611,8 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 3. Return 0 when the key does not exist
+		{
+			name:             "3. Return 0 when the key does not exist",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZlexCountKey3",
@@ -584,7 +621,8 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 4. Return error when the value at the key is not a sorted set
+		{
+			name:             "4. Return error when the value at the key is not a sorted set",
 			preset:           true,
 			presetValue:      "Default value",
 			key:              "ZlexCountKey4",
@@ -593,7 +631,8 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("value at ZlexCountKey4 is not a sorted set"),
 		},
-		{ // 5. Command is too short
+		{
+			name:             "5. Command is too short",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZlexCountKey5",
@@ -602,7 +641,8 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 6. Command too long
+		{
+			name:             "6. Command too long",
 			preset:           false,
 			presetValue:      nil,
 			key:              "ZlexCountKey6",
@@ -614,47 +654,51 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZLEXCOUNT, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZLEXCOUNT, %d", i))
 
-		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+			if test.preset {
+				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, test.key)
+			}
+			res, err := handleZLEXCOUNT(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
 				t.Error(err)
 			}
-			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+			rd := resp.NewReader(bytes.NewReader(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
 				t.Error(err)
 			}
-			mockServer.KeyUnlock(ctx, test.key)
-		}
-		res, err := handleZLEXCOUNT(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
 			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewReader(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response %d at key \"%s\", got %d", test.expectedResponse, test.key, rv.Integer())
-		}
+		})
 	}
 }
 
 func Test_HandleZDIFF(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse [][]string
 		expectedError    error
 	}{
-		{ // 1. Get the difference between 2 sorted sets without scores.
+		{
+			name:   "1. Get the difference between 2 sorted sets without scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -676,7 +720,8 @@ func Test_HandleZDIFF(t *testing.T) {
 			expectedResponse: [][]string{{"one"}, {"two"}},
 			expectedError:    nil,
 		},
-		{ // 2. Get the difference between 2 sorted sets with scores.
+		{
+			name:   "2. Get the difference between 2 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -698,7 +743,8 @@ func Test_HandleZDIFF(t *testing.T) {
 			expectedResponse: [][]string{{"one", "1"}, {"two", "2"}},
 			expectedError:    nil,
 		},
-		{ // 3. Get the difference between 3 sets with scores.
+		{
+			name:   "3. Get the difference between 3 sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -722,7 +768,8 @@ func Test_HandleZDIFF(t *testing.T) {
 			expectedResponse: [][]string{{"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
 			expectedError:    nil,
 		},
-		{ // 3. Return sorted set if only one key exists and is a sorted set
+		{
+			name:   "4. Return sorted set if only one key exists and is a sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -739,7 +786,8 @@ func Test_HandleZDIFF(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 4. Throw error when one of the keys is not a sorted set.
+		{
+			name:   "5. Throw error when one of the keys is not a sorted set.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffKey9": "Default value",
@@ -758,7 +806,8 @@ func Test_HandleZDIFF(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    errors.New("value at ZdiffKey9 is not a sorted set"),
 		},
-		{ // 6. Command too short
+		{
+			name:             "6. Command too short",
 			preset:           false,
 			command:          []string{"ZDIFF"},
 			expectedResponse: [][]string{},
@@ -767,55 +816,58 @@ func Test_HandleZDIFF(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZDIFF, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZDIFF, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
 			}
-		}
-		res, err := handleZDIFF(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		for _, element := range rv.Array() {
-			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
-				// The current sub-slice is a different length, return false because they're not equal
-				if len(element.Array()) != len(expected) {
-					return false
+			res, err := handleZDIFF(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				for i := 0; i < len(expected); i++ {
-					if element.Array()[i].String() != expected[i] {
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+			for _, element := range rv.Array() {
+				if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+					// The current sub-slice is a different length, return false because they're not equal
+					if len(element.Array()) != len(expected) {
 						return false
 					}
+					for i := 0; i < len(expected); i++ {
+						if element.Array()[i].String() != expected[i] {
+							return false
+						}
+					}
+					return true
+				}) {
+					t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 				}
-				return true
-			}) {
-				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
-		}
+		})
 	}
 }
 
 func Test_HandleZDIFFSTORE(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		destination      string
@@ -824,7 +876,8 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Get the difference between 2 sorted sets.
+		{
+			name:   "1. Get the difference between 2 sorted sets.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffStoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -844,7 +897,8 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			expectedResponse: 2,
 			expectedError:    nil,
 		},
-		{ // 2. Get the difference between 3 sorted sets.
+		{
+			name:   "2. Get the difference between 3 sorted sets.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffStoreKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -873,7 +927,8 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			expectedResponse: 4,
 			expectedError:    nil,
 		},
-		{ // 3. Return base sorted set element if base set is the only existing key provided and is a valid sorted set
+		{
+			name:   "3. Return base sorted set element if base set is the only existing key provided and is a valid sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffStoreKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -894,7 +949,8 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			expectedResponse: 8,
 			expectedError:    nil,
 		},
-		{ // 4. Throw error when base sorted set is not a set.
+		{
+			name:   "4. Throw error when base sorted set is not a set.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZdiffStoreKey9": "Default value",
@@ -915,7 +971,8 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("value at ZdiffStoreKey9 is not a sorted set"),
 		},
-		{ // 5. Throw error when base set is non-existent.
+		{
+			name:        "5. Throw error when base set is non-existent.",
 			preset:      true,
 			destination: "ZdiffStoreDestinationKey5",
 			presetValues: map[string]interface{}{
@@ -935,7 +992,8 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 6. Command too short
+		{
+			name:             "6. Command too short",
 			preset:           false,
 			command:          []string{"ZDIFFSTORE", "ZdiffStoreDestinationKey6"},
 			expectedResponse: 0,
@@ -944,57 +1002,60 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZDIFFSTORE, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZDIFFSTORE, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
+			}
+			res, err := handleZDIFFSTORE(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				mockServer.KeyUnlock(ctx, key)
+				return
 			}
-		}
-		res, err := handleZDIFFSTORE(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
-		}
-		if test.expectedValue != nil {
-			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
+			if err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
-			if !ok {
-				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
 			}
-			for _, elem := range set.GetAll() {
-				if !test.expectedValue.Contains(elem.Value) {
-					t.Errorf("could not find element %s in the expected values", elem.Value)
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
+			}
+			if test.expectedValue != nil {
+				if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
+					t.Error(err)
 				}
+				set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
+				if !ok {
+					t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+				}
+				for _, elem := range set.GetAll() {
+					if !test.expectedValue.Contains(elem.Value) {
+						t.Errorf("could not find element %s in the expected values", elem.Value)
+					}
+				}
+				mockServer.KeyRUnlock(ctx, test.destination)
 			}
-			mockServer.KeyRUnlock(ctx, test.destination)
-		}
+		})
 	}
 }
 
 func Test_HandleZINCRBY(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValue      interface{}
 		key              string
@@ -1003,7 +1064,8 @@ func Test_HandleZINCRBY(t *testing.T) {
 		expectedResponse string
 		expectedError    error
 	}{
-		{ // 1. Successfully increment by int. Return the new score
+		{
+			name:   "1. Successfully increment by int. Return the new score",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
@@ -1020,7 +1082,8 @@ func Test_HandleZINCRBY(t *testing.T) {
 			expectedResponse: "6",
 			expectedError:    nil,
 		},
-		{ // 2. Successfully increment by float. Return new score
+		{
+			name:   "2. Successfully increment by float. Return new score",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
@@ -1037,7 +1100,8 @@ func Test_HandleZINCRBY(t *testing.T) {
 			expectedResponse: "347.785",
 			expectedError:    nil,
 		},
-		{ // 3. Increment on non-existent sorted set will create the set with the member and increment as its score
+		{
+			name:        "3. Increment on non-existent sorted set will create the set with the member and increment as its score",
 			preset:      false,
 			presetValue: nil,
 			key:         "ZincrbyKey3",
@@ -1048,7 +1112,8 @@ func Test_HandleZINCRBY(t *testing.T) {
 			expectedResponse: "346.785",
 			expectedError:    nil,
 		},
-		{ // 4. Increment score to +inf
+		{
+			name:   "4. Increment score to +inf",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
@@ -1065,7 +1130,8 @@ func Test_HandleZINCRBY(t *testing.T) {
 			expectedResponse: "+Inf",
 			expectedError:    nil,
 		},
-		{ // 5. Increment score to -inf
+		{
+			name:   "5. Increment score to -inf",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
@@ -1082,7 +1148,8 @@ func Test_HandleZINCRBY(t *testing.T) {
 			expectedResponse: "-Inf",
 			expectedError:    nil,
 		},
-		{ // 6. Incrementing score by negative increment should lower the score
+		{
+			name:   "6. Incrementing score by negative increment should lower the score",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
@@ -1099,7 +1166,8 @@ func Test_HandleZINCRBY(t *testing.T) {
 			expectedResponse: "2.5",
 			expectedError:    nil,
 		},
-		{ // 7. Return error when attempting to increment on a value that is not a valid sorted set
+		{
+			name:             "7. Return error when attempting to increment on a value that is not a valid sorted set",
 			preset:           true,
 			presetValue:      "Default value",
 			key:              "ZincrbyKey7",
@@ -1108,7 +1176,8 @@ func Test_HandleZINCRBY(t *testing.T) {
 			expectedResponse: "",
 			expectedError:    errors.New("value at ZincrbyKey7 is not a sorted set"),
 		},
-		{ // 8. Return error when trying to increment a member that already has score -inf
+		{
+			name:   "8. Return error when trying to increment a member that already has score -inf",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "one", Score: sorted_set.Score(math.Inf(-1))},
@@ -1121,7 +1190,8 @@ func Test_HandleZINCRBY(t *testing.T) {
 			expectedResponse: "",
 			expectedError:    errors.New("cannot increment -inf or +inf"),
 		},
-		{ // 9. Return error when trying to increment a member that already has score +inf
+		{
+			name:   "9. Return error when trying to increment a member that already has score +inf",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "one", Score: sorted_set.Score(math.Inf(1))},
@@ -1134,7 +1204,8 @@ func Test_HandleZINCRBY(t *testing.T) {
 			expectedResponse: "",
 			expectedError:    errors.New("cannot increment -inf or +inf"),
 		},
-		{ // 10. Return error when increment is not a valid number
+		{
+			name:   "10. Return error when increment is not a valid number",
 			preset: true,
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "one", Score: 1},
@@ -1147,13 +1218,15 @@ func Test_HandleZINCRBY(t *testing.T) {
 			expectedResponse: "",
 			expectedError:    errors.New("increment must be a double"),
 		},
-		{ // 11. Command too short
+		{
+			name:             "11. Command too short",
 			key:              "ZincrbyKey11",
 			command:          []string{"ZINCRBY", "ZincrbyKey11", "one"},
 			expectedResponse: "",
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 12. Command too long
+		{
+			name:             "12. Command too long",
 			key:              "ZincrbyKey12",
 			command:          []string{"ZINCRBY", "ZincrbyKey12", "one", "1", "2"},
 			expectedResponse: "",
@@ -1219,6 +1292,7 @@ func Test_HandleZINCRBY(t *testing.T) {
 
 func Test_HandleZMPOP(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
@@ -1226,7 +1300,8 @@ func Test_HandleZMPOP(t *testing.T) {
 		expectedResponse [][]string
 		expectedError    error
 	}{
-		{ // 1. Successfully pop one min element by default
+		{
+			name:   "1. Successfully pop one min element by default",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1248,7 +1323,8 @@ func Test_HandleZMPOP(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 2. Successfully pop one min element by specifying MIN
+		{
+			name:   "2. Successfully pop one min element by specifying MIN",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1270,7 +1346,8 @@ func Test_HandleZMPOP(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 3. Successfully pop one max element by specifying MAX modifier
+		{
+			name:   "3. Successfully pop one max element by specifying MAX modifier",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1291,7 +1368,8 @@ func Test_HandleZMPOP(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 4. Successfully pop multiple min elements
+		{
+			name:   "4. Successfully pop multiple min elements",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1312,7 +1390,8 @@ func Test_HandleZMPOP(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 5. Successfully pop multiple max elements
+		{
+			name:   "5. Successfully pop multiple max elements",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1330,7 +1409,8 @@ func Test_HandleZMPOP(t *testing.T) {
 			expectedResponse: [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
 			expectedError:    nil,
 		},
-		{ // 6. Successfully pop elements from the first set which is non-empty
+		{
+			name:   "6. Successfully pop elements from the first set which is non-empty",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{}),
@@ -1350,7 +1430,8 @@ func Test_HandleZMPOP(t *testing.T) {
 			expectedResponse: [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
 			expectedError:    nil,
 		},
-		{ // 7. Skip the non-set items and pop elements from the first non-empty sorted set found
+		{
+			name:   "7. Skip the non-set items and pop elements from the first non-empty sorted set found",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopKey8":  "Default value",
@@ -1372,12 +1453,14 @@ func Test_HandleZMPOP(t *testing.T) {
 			expectedResponse: [][]string{{"one", "1"}, {"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}},
 			expectedError:    nil,
 		},
-		{ // 9. Return error when count is a negative integer
+		{
+			name:          "9. Return error when count is a negative integer",
 			preset:        false,
 			command:       []string{"ZMPOP", "ZmpopKey8", "MAX", "COUNT", "-20"},
 			expectedError: errors.New("count must be a positive integer"),
 		},
-		{ // 9. Command too short
+		{
+			name:          "9. Command too short",
 			preset:        false,
 			command:       []string{"ZMPOP"},
 			expectedError: errors.New(constants.WrongArgsResponse),
@@ -1385,67 +1468,70 @@ func Test_HandleZMPOP(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZMPOP, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZMPOP, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
-				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
-			}
-		}
-		res, err := handleZMPOP(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		for _, element := range rv.Array() {
-			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
-				// The current sub-slice is a different length, return false because they're not equal
-				if len(element.Array()) != len(expected) {
-					return false
-				}
-				for i := 0; i < len(expected); i++ {
-					if element.Array()[i].String() != expected[i] {
-						return false
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
 					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				return true
-			}) {
-				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
-		}
-		for key, expectedSortedSet := range test.expectedValues {
-			if _, err = mockServer.KeyRLock(ctx, key); err != nil {
+			res, err := handleZMPOP(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
-			if !ok {
-				t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
 			}
-			if !set.Equals(expectedSortedSet) {
-				t.Errorf("expected sorted set at key \"%s\" %+v, got %+v", key, expectedSortedSet, set)
+			for _, element := range rv.Array() {
+				if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+					// The current sub-slice is a different length, return false because they're not equal
+					if len(element.Array()) != len(expected) {
+						return false
+					}
+					for i := 0; i < len(expected); i++ {
+						if element.Array()[i].String() != expected[i] {
+							return false
+						}
+					}
+					return true
+				}) {
+					t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
+				}
 			}
-		}
+			for key, expectedSortedSet := range test.expectedValues {
+				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
+					t.Error(err)
+				}
+				set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
+				if !ok {
+					t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
+				}
+				if !set.Equals(expectedSortedSet) {
+					t.Errorf("expected sorted set at key \"%s\" %+v, got %+v", key, expectedSortedSet, set)
+				}
+			}
+		})
 	}
 }
 
 func Test_HandleZPOP(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
@@ -1453,7 +1539,8 @@ func Test_HandleZPOP(t *testing.T) {
 		expectedResponse [][]string
 		expectedError    error
 	}{
-		{ // 1. Successfully pop one min element by default
+		{
+			name:   "1. Successfully pop one min element by default",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopMinKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1475,7 +1562,8 @@ func Test_HandleZPOP(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 2. Successfully pop one max element by default
+		{
+			name:   "2. Successfully pop one max element by default",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopMaxKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1496,7 +1584,8 @@ func Test_HandleZPOP(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 3. Successfully pop multiple min elements
+		{
+			name:   "3. Successfully pop multiple min elements",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopMinKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1517,7 +1606,8 @@ func Test_HandleZPOP(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 4. Successfully pop multiple max elements
+		{
+			name:   "4. Successfully pop multiple max elements",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopMaxKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1535,7 +1625,8 @@ func Test_HandleZPOP(t *testing.T) {
 			expectedResponse: [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
 			expectedError:    nil,
 		},
-		{ // 5. Throw an error when trying to pop from an element that's not a sorted set
+		{
+			name:   "5. Throw an error when trying to pop from an element that's not a sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopMinKey5": "Default value",
@@ -1545,12 +1636,14 @@ func Test_HandleZPOP(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    errors.New("value at key ZmpopMinKey5 is not a sorted set"),
 		},
-		{ // 6. Command too short
+		{
+			name:          "6. Command too short",
 			preset:        false,
 			command:       []string{"ZPOPMAX"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
-		{ // 7. Command too long
+		{
+			name:          "7. Command too long",
 			preset:        false,
 			command:       []string{"ZPOPMAX", "ZmpopMaxKey7", "6", "3"},
 			expectedError: errors.New(constants.WrongArgsResponse),
@@ -1558,75 +1651,80 @@ func Test_HandleZPOP(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZPOPMIN/ZPOPMAX, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZPOPMIN/ZPOPMAX, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
-				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
-			}
-		}
-		res, err := handleZPOP(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		for _, element := range rv.Array() {
-			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
-				// The current sub-slice is a different length, return false because they're not equal
-				if len(element.Array()) != len(expected) {
-					return false
-				}
-				for i := 0; i < len(expected); i++ {
-					if element.Array()[i].String() != expected[i] {
-						return false
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
 					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				return true
-			}) {
-				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
-		}
-		for key, expectedSortedSet := range test.expectedValues {
-			if _, err = mockServer.KeyRLock(ctx, key); err != nil {
+			res, err := handleZPOP(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
-			if !ok {
-				t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
 			}
-			if !set.Equals(expectedSortedSet) {
-				t.Errorf("expected sorted set at key \"%s\" %+v, got %+v", key, expectedSortedSet, set)
+			for _, element := range rv.Array() {
+				if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+					// The current sub-slice is a different length, return false because they're not equal
+					if len(element.Array()) != len(expected) {
+						return false
+					}
+					for i := 0; i < len(expected); i++ {
+						if element.Array()[i].String() != expected[i] {
+							return false
+						}
+					}
+					return true
+				}) {
+					t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
+				}
 			}
-		}
+			for key, expectedSortedSet := range test.expectedValues {
+				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
+					t.Error(err)
+				}
+				set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
+				if !ok {
+					t.Errorf("expected key \"%s\" to be a sorted set, got another type", key)
+				}
+				if !set.Equals(expectedSortedSet) {
+					t.Errorf("expected sorted set at key \"%s\" %+v, got %+v", key, expectedSortedSet, set)
+				}
+			}
+		})
 	}
 }
 
 func Test_HandleZMSCORE(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse []interface{}
 		expectedError    error
 	}{
-		{ // 1. Return multiple scores from the sorted set.
+		{
+			// 1. Return multiple scores from the sorted set.
 			// Return nil for elements that do not exist in the sorted set.
+			name:   "Return multiple scores from the sorted set.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmScoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1639,20 +1737,23 @@ func Test_HandleZMSCORE(t *testing.T) {
 			expectedResponse: []interface{}{"1.1", nil, "245", "1.1", "3", "4.055", nil, "5"},
 			expectedError:    nil,
 		},
-		{ // 2. If key does not exist, return empty array
+		{
+			name:             "2. If key does not exist, return empty array",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZMSCORE", "ZmScoreKey2", "one", "two", "three", "four"},
 			expectedResponse: []interface{}{},
 			expectedError:    nil,
 		},
-		{ // 3. Throw error when trying to find scores from elements that are not sorted sets
+		{
+			name:          "3. Throw error when trying to find scores from elements that are not sorted sets",
 			preset:        true,
 			presetValues:  map[string]interface{}{"ZmScoreKey3": "Default value"},
 			command:       []string{"ZMSCORE", "ZmScoreKey3", "one", "two", "three"},
 			expectedError: errors.New("value at ZmScoreKey3 is not a sorted set"),
 		},
-		{ // 9. Command too short
+		{
+			name:          "9. Command too short",
 			preset:        false,
 			command:       []string{"ZMSCORE"},
 			expectedError: errors.New(constants.WrongArgsResponse),
@@ -1660,57 +1761,61 @@ func Test_HandleZMSCORE(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZMSCORE, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZMSCORE, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
+			}
+			res, err := handleZMSCORE(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				mockServer.KeyUnlock(ctx, key)
+				return
 			}
-		}
-		res, err := handleZMSCORE(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			if err != nil {
+				t.Error(err)
 			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		for i := 0; i < len(rv.Array()); i++ {
-			if rv.Array()[i].IsNull() {
-				if test.expectedResponse[i] != nil {
-					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedResponse[i], rv.Array()[i])
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+			for i := 0; i < len(rv.Array()); i++ {
+				if rv.Array()[i].IsNull() {
+					if test.expectedResponse[i] != nil {
+						t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedResponse[i], rv.Array()[i])
+					}
+					continue
 				}
-				continue
+				if rv.Array()[i].String() != test.expectedResponse[i] {
+					t.Errorf("expected \"%s\" at index %d, got %s", test.expectedResponse[i], i, rv.Array()[i].String())
+				}
 			}
-			if rv.Array()[i].String() != test.expectedResponse[i] {
-				t.Errorf("expected \"%s\" at index %d, got %s", test.expectedResponse[i], i, rv.Array()[i].String())
-			}
-		}
+		})
 	}
 }
 
 func Test_HandleZSCORE(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse interface{}
 		expectedError    error
 	}{
-		{ // 1. Return score from a sorted set.
+		{
+			name:   "1. Return score from a sorted set.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZscoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1723,14 +1828,16 @@ func Test_HandleZSCORE(t *testing.T) {
 			expectedResponse: "4.055",
 			expectedError:    nil,
 		},
-		{ // 2. If key does not exist, return nil value
+		{
+			name:             "2. If key does not exist, return nil value",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZSCORE", "ZscoreKey2", "one"},
 			expectedResponse: nil,
 			expectedError:    nil,
 		},
-		{ // 3. If key exists and is a sorted set, but the member does not exist, return nil
+		{
+			name:   "3. If key exists and is a sorted set, but the member does not exist, return nil",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZscoreKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1743,18 +1850,21 @@ func Test_HandleZSCORE(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    nil,
 		},
-		{ // 4. Throw error when trying to find scores from elements that are not sorted sets
+		{
+			name:          "4. Throw error when trying to find scores from elements that are not sorted sets",
 			preset:        true,
 			presetValues:  map[string]interface{}{"ZscoreKey4": "Default value"},
 			command:       []string{"ZSCORE", "ZscoreKey4", "one"},
 			expectedError: errors.New("value at ZscoreKey4 is not a sorted set"),
 		},
-		{ // 5. Command too short
+		{
+			name:          "5. Command too short",
 			preset:        false,
 			command:       []string{"ZSCORE"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
-		{ // 6. Command too long
+		{
+			name:          "6. Command too long",
 			preset:        false,
 			command:       []string{"ZSCORE", "ZscoreKey5", "one", "two"},
 			expectedError: errors.New(constants.WrongArgsResponse),
@@ -1762,48 +1872,51 @@ func Test_HandleZSCORE(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZSCORE, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZSCORE, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
+			}
+			res, err := handleZSCORE(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				mockServer.KeyUnlock(ctx, key)
+				return
 			}
-		}
-		res, err := handleZSCORE(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			if err != nil {
+				t.Error(err)
 			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if test.expectedResponse == nil {
-			if !rv.IsNull() {
-				t.Errorf("expected nil response, got %+v", rv)
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
 			}
-			continue
-		}
-		if rv.String() != test.expectedResponse {
-			t.Errorf("expected response \"%s\", got %s", test.expectedResponse, rv.String())
-		}
+			if test.expectedResponse == nil {
+				if !rv.IsNull() {
+					t.Errorf("expected nil response, got %+v", rv)
+				}
+				return
+			}
+			if rv.String() != test.expectedResponse {
+				t.Errorf("expected response \"%s\", got %s", test.expectedResponse, rv.String())
+			}
+		})
 	}
 }
 
 func Test_HandleZRANDMEMBER(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		key              string
 		presetValue      interface{}
@@ -1813,8 +1926,10 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 		expectedResponse [][]string
 		expectedError    error
 	}{
-		{ // 1. Return multiple random elements without removing them
+		{
+			// 1. Return multiple random elements without removing them.
 			// Count is positive, do not allow repeated elements
+			name:   "1. Return multiple random elements without removing them.",
 			preset: true,
 			key:    "ZrandMemberKey1",
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1833,6 +1948,7 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 		{
 			// 2. Return multiple random elements and their scores without removing them.
 			// Count is negative, so allow repeated numbers.
+			name:   "2. Return multiple random elements and their scores without removing them.",
 			preset: true,
 			key:    "ZrandMemberKey2",
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1848,7 +1964,8 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 2. Return error when the source key is not a sorted set.
+		{
+			name:          "2. Return error when the source key is not a sorted set.",
 			preset:        true,
 			key:           "ZrandMemberKey3",
 			presetValue:   "Default value",
@@ -1856,22 +1973,26 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 			expectedValue: 0,
 			expectedError: errors.New("value at ZrandMemberKey3 is not a sorted set"),
 		},
-		{ // 5. Command too short
+		{
+			name:          "5. Command too short",
 			preset:        false,
 			command:       []string{"ZRANDMEMBER"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
-		{ // 6. Command too long
+		{
+			name:          "6. Command too long",
 			preset:        false,
 			command:       []string{"ZRANDMEMBER", "source5", "source6", "member1", "member2"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
-		{ // 7. Throw error when count is not an integer
+		{
+			name:          "7. Throw error when count is not an integer",
 			preset:        false,
 			command:       []string{"ZRANDMEMBER", "ZrandMemberKey1", "count"},
 			expectedError: errors.New("count must be an integer"),
 		},
-		{ // 8. Throw error when the fourth argument is not WITHSCORES
+		{
+			name:          "8. Throw error when the fourth argument is not WITHSCORES",
 			preset:        false,
 			command:       []string{"ZRANDMEMBER", "ZrandMemberKey1", "8", "ANOTHER"},
 			expectedError: errors.New("last option must be WITHSCORES"),
@@ -1879,99 +2000,103 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANDMEMBER, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANDMEMBER, %d", i))
 
-		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
-				t.Error(err)
-			}
-			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
-				t.Error(err)
-			}
-			mockServer.KeyUnlock(ctx, test.key)
-		}
-		res, err := handleZRANDMEMBER(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		// 1. Check if the response array members are all included in test.expectedResponse.
-		for _, element := range rv.Array() {
-			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
-				// The current sub-slice is a different length, return false because they're not equal
-				if len(element.Array()) != len(expected) {
-					return false
+			if test.preset {
+				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+					t.Error(err)
 				}
-				for i := 0; i < len(expected); i++ {
-					if element.Array()[i].String() != expected[i] {
+				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, test.key)
+			}
+			res, err := handleZRANDMEMBER(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+			// 1. Check if the response array members are all included in test.expectedResponse.
+			for _, element := range rv.Array() {
+				if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+					// The current sub-slice is a different length, return false because they're not equal
+					if len(element.Array()) != len(expected) {
 						return false
 					}
+					for i := 0; i < len(expected); i++ {
+						if element.Array()[i].String() != expected[i] {
+							return false
+						}
+					}
+					return true
+				}) {
+					t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 				}
-				return true
-			}) {
-				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
-		}
-		// 2. Fetch the set and check if its cardinality is what we expect.
-		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
-			t.Error(err)
-		}
-		set, ok := mockServer.GetValue(ctx, test.key).(*sorted_set.SortedSet)
-		if !ok {
-			t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
-		}
-		if set.Cardinality() != test.expectedValue {
-			t.Errorf("expected cardinality of final set to be %d, got %d", test.expectedValue, set.Cardinality())
-		}
-		// 3. Check if all the returned elements we received are still in the set.
-		for _, element := range rv.Array() {
-			if !set.Contains(sorted_set.Value(element.Array()[0].String())) {
-				t.Errorf("expected element \"%s\" to be in set but it was not found", element.String())
+			// 2. Fetch the set and check if its cardinality is what we expect.
+			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
+				t.Error(err)
 			}
-		}
-		// 4. If allowRepeat is false, check that all the elements make a valid set
-		if !test.allowRepeat {
-			var elems []sorted_set.MemberParam
-			for _, e := range rv.Array() {
-				if len(e.Array()) == 1 {
+			set, ok := mockServer.GetValue(ctx, test.key).(*sorted_set.SortedSet)
+			if !ok {
+				t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
+			}
+			if set.Cardinality() != test.expectedValue {
+				t.Errorf("expected cardinality of final set to be %d, got %d", test.expectedValue, set.Cardinality())
+			}
+			// 3. Check if all the returned elements we received are still in the set.
+			for _, element := range rv.Array() {
+				if !set.Contains(sorted_set.Value(element.Array()[0].String())) {
+					t.Errorf("expected element \"%s\" to be in set but it was not found", element.String())
+				}
+			}
+			// 4. If allowRepeat is false, check that all the elements make a valid set
+			if !test.allowRepeat {
+				var elems []sorted_set.MemberParam
+				for _, e := range rv.Array() {
+					if len(e.Array()) == 1 {
+						elems = append(elems, sorted_set.MemberParam{
+							Value: sorted_set.Value(e.Array()[0].String()),
+							Score: 1,
+						})
+						continue
+					}
 					elems = append(elems, sorted_set.MemberParam{
 						Value: sorted_set.Value(e.Array()[0].String()),
-						Score: 1,
+						Score: sorted_set.Score(e.Array()[1].Float()),
 					})
-					continue
 				}
-				elems = append(elems, sorted_set.MemberParam{
-					Value: sorted_set.Value(e.Array()[0].String()),
-					Score: sorted_set.Score(e.Array()[1].Float()),
-				})
+				s := sorted_set.NewSortedSet(elems)
+				if s.Cardinality() != len(elems) {
+					t.Errorf("expected non-repeating elements for random elements at key \"%s\"", test.key)
+				}
 			}
-			s := sorted_set.NewSortedSet(elems)
-			if s.Cardinality() != len(elems) {
-				t.Errorf("expected non-repeating elements for random elements at key \"%s\"", test.key)
-			}
-		}
+		})
 	}
 }
 
 func Test_HandleZRANK(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse []string
 		expectedError    error
 	}{
-		{ // 1. Return element's rank from a sorted set.
+		{
+			name:   "1. Return element's rank from a sorted set.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrankKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1984,7 +2109,8 @@ func Test_HandleZRANK(t *testing.T) {
 			expectedResponse: []string{"3"},
 			expectedError:    nil,
 		},
-		{ // 2. Return element's rank from a sorted set with its score.
+		{
+			name:   "2. Return element's rank from a sorted set with its score.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrankKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -1997,14 +2123,16 @@ func Test_HandleZRANK(t *testing.T) {
 			expectedResponse: []string{"3", "411.055"},
 			expectedError:    nil,
 		},
-		{ // 3. If key does not exist, return nil value
+		{
+			name:             "3. If key does not exist, return nil value",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANK", "ZrankKey3", "one"},
 			expectedResponse: nil,
 			expectedError:    nil,
 		},
-		{ // 4. If key exists and is a sorted set, but the member does not exist, return nil
+		{
+			name:   "4. If key exists and is a sorted set, but the member does not exist, return nil",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrankKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2017,18 +2145,21 @@ func Test_HandleZRANK(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    nil,
 		},
-		{ // 5. Throw error when trying to find scores from elements that are not sorted sets
+		{
+			name:          "5. Throw error when trying to find scores from elements that are not sorted sets",
 			preset:        true,
 			presetValues:  map[string]interface{}{"ZrankKey5": "Default value"},
 			command:       []string{"ZRANK", "ZrankKey5", "one"},
 			expectedError: errors.New("value at ZrankKey5 is not a sorted set"),
 		},
-		{ // 5. Command too short
+		{
+			name:          "5. Command too short",
 			preset:        false,
 			command:       []string{"ZRANK"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
-		{ // 6. Command too long
+		{
+			name:          "6. Command too long",
 			preset:        false,
 			command:       []string{"ZRANK", "ZrankKey5", "one", "WITHSCORES", "two"},
 			expectedError: errors.New(constants.WrongArgsResponse),
@@ -2036,53 +2167,56 @@ func Test_HandleZRANK(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANK, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANK, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
+			}
+			res, err := handleZRANK(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				mockServer.KeyUnlock(ctx, key)
+				return
 			}
-		}
-		res, err := handleZRANK(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			if err != nil {
+				t.Error(err)
 			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if test.expectedResponse == nil {
-			if !rv.IsNull() {
-				t.Errorf("expected nil response, got %+v", rv)
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
 			}
-			continue
-		}
-		if len(rv.Array()) != len(test.expectedResponse) {
-			t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
-		}
-		for i := 0; i < len(test.expectedResponse); i++ {
-			if rv.Array()[i].String() != test.expectedResponse[i] {
-				t.Errorf("expected element at index %d to be %s, got %s", i, test.expectedResponse[i], rv.Array()[i].String())
+			if test.expectedResponse == nil {
+				if !rv.IsNull() {
+					t.Errorf("expected nil response, got %+v", rv)
+				}
+				return
 			}
-		}
+			if len(rv.Array()) != len(test.expectedResponse) {
+				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
+			}
+			for i := 0; i < len(test.expectedResponse); i++ {
+				if rv.Array()[i].String() != test.expectedResponse[i] {
+					t.Errorf("expected element at index %d to be %s, got %s", i, test.expectedResponse[i], rv.Array()[i].String())
+				}
+			}
+		})
 	}
 }
 
 func Test_HandleZREM(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
@@ -2090,8 +2224,10 @@ func Test_HandleZREM(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Successfully remove multiple elements from sorted set, skipping non-existent members.
+		{
+			// Successfully remove multiple elements from sorted set, skipping non-existent members.
 			// Return deleted count.
+			name:   "1. Successfully remove multiple elements from sorted set, skipping non-existent members.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2112,7 +2248,8 @@ func Test_HandleZREM(t *testing.T) {
 			expectedResponse: 5,
 			expectedError:    nil,
 		},
-		{ // 2. If key does not exist, return 0
+		{
+			name:             "2. If key does not exist, return 0",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZREM", "ZremKey2", "member"},
@@ -2120,7 +2257,8 @@ func Test_HandleZREM(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 3. Return error key is not a sorted set
+		{
+			name:   "3. Return error key is not a sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremKey3": "Default value",
@@ -2128,7 +2266,8 @@ func Test_HandleZREM(t *testing.T) {
 			command:       []string{"ZREM", "ZremKey3", "member"},
 			expectedError: errors.New("value at ZremKey3 is not a sorted set"),
 		},
-		{ // 9. Command too short
+		{
+			name:          "9. Command too short",
 			preset:        false,
 			command:       []string{"ZREM"},
 			expectedError: errors.New(constants.WrongArgsResponse),
@@ -2136,57 +2275,60 @@ func Test_HandleZREM(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREM, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREM, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
-				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
-			}
-		}
-		res, err := handleZREM(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
-		}
-		// Check if the expected sorted set is the same at the current one
-		if test.expectedValues != nil {
-			for key, expectedSet := range test.expectedValues {
-				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
-					t.Error(err)
-				}
-				set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
-				if !ok {
-					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
-				}
-				if !set.Equals(expectedSet) {
-					t.Errorf("exptected sorted set %+v, got %+v", expectedSet, set)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-		}
+			res, err := handleZREM(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+			}
+			// Check if the expected sorted set is the same at the current one
+			if test.expectedValues != nil {
+				for key, expectedSet := range test.expectedValues {
+					if _, err = mockServer.KeyRLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
+					if !ok {
+						t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
+					}
+					if !set.Equals(expectedSet) {
+						t.Errorf("exptected sorted set %+v, got %+v", expectedSet, set)
+					}
+				}
+			}
+		})
 	}
 }
 
 func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
@@ -2194,7 +2336,8 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Successfully remove multiple elements with scores inside the provided range
+		{
+			name:   "1. Successfully remove multiple elements with scores inside the provided range",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremRangeByScoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2215,7 +2358,8 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 			expectedResponse: 5,
 			expectedError:    nil,
 		},
-		{ // 2. If key does not exist, return 0
+		{
+			name:             "2. If key does not exist, return 0",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZREMRANGEBYSCORE", "ZremRangeByScoreKey2", "2", "4"},
@@ -2223,7 +2367,8 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 3. Return error key is not a sorted set
+		{
+			name:   "3. Return error key is not a sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremRangeByScoreKey3": "Default value",
@@ -2231,12 +2376,14 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 			command:       []string{"ZREMRANGEBYSCORE", "ZremRangeByScoreKey3", "4", "4"},
 			expectedError: errors.New("value at ZremRangeByScoreKey3 is not a sorted set"),
 		},
-		{ // 4. Command too short
+		{
+			name:          "4. Command too short",
 			preset:        false,
 			command:       []string{"ZREMRANGEBYSCORE", "ZremRangeByScoreKey4", "3"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
-		{ // 5. Command too long
+		{
+			name:          "5. Command too long",
 			preset:        false,
 			command:       []string{"ZREMRANGEBYSCORE", "ZremRangeByScoreKey5", "4", "5", "8"},
 			expectedError: errors.New(constants.WrongArgsResponse),
@@ -2244,57 +2391,60 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREMRANGEBYSCORE, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREMRANGEBYSCORE, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
-				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
-			}
-		}
-		res, err := handleZREMRANGEBYSCORE(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
-		}
-		// Check if the expected values are the same
-		if test.expectedValues != nil {
-			for key, expectedSet := range test.expectedValues {
-				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
-					t.Error(err)
-				}
-				set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
-				if !ok {
-					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
-				}
-				if !set.Equals(expectedSet) {
-					t.Errorf("exptected sorted set %+v, got %+v", expectedSet, set)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-		}
+			res, err := handleZREMRANGEBYSCORE(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+			}
+			// Check if the expected values are the same
+			if test.expectedValues != nil {
+				for key, expectedSet := range test.expectedValues {
+					if _, err = mockServer.KeyRLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
+					if !ok {
+						t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
+					}
+					if !set.Equals(expectedSet) {
+						t.Errorf("exptected sorted set %+v, got %+v", expectedSet, set)
+					}
+				}
+			}
+		})
 	}
 }
 
 func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
@@ -2302,7 +2452,8 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Successfully remove multiple elements within range
+		{
+			name:   "1. Successfully remove multiple elements within range",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremRangeByRankKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2323,7 +2474,8 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 			expectedResponse: 6,
 			expectedError:    nil,
 		},
-		{ // 2. Establish boundaries from the end of the set when negative boundaries are provided
+		{
+			name:   "2. Establish boundaries from the end of the set when negative boundaries are provided",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremRangeByRankKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2345,7 +2497,8 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 			expectedResponse: 4,
 			expectedError:    nil,
 		},
-		{ // 2. If key does not exist, return 0
+		{
+			name:             "2. If key does not exist, return 0",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey3", "2", "4"},
@@ -2353,7 +2506,8 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 3. Return error key is not a sorted set
+		{
+			name:   "3. Return error key is not a sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremRangeByRankKey3": "Default value",
@@ -2361,12 +2515,14 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 			command:       []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey3", "4", "4"},
 			expectedError: errors.New("value at ZremRangeByRankKey3 is not a sorted set"),
 		},
-		{ // 4. Command too short
+		{
+			name:          "4. Command too short",
 			preset:        false,
 			command:       []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey4", "3"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
-		{ // 5. Return error when start index is out of bounds
+		{
+			name:   "5. Return error when start index is out of bounds",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremRangeByRankKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2382,7 +2538,8 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("indices out of bounds"),
 		},
-		{ // 6. Return error when end index is out of bounds
+		{
+			name:   "6. Return error when end index is out of bounds",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremRangeByRankKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2398,7 +2555,8 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("indices out of bounds"),
 		},
-		{ // 7. Command too long
+		{
+			name:          "7. Command too long",
 			preset:        false,
 			command:       []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey7", "4", "5", "8"},
 			expectedError: errors.New(constants.WrongArgsResponse),
@@ -2406,57 +2564,60 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREMRANGEBYRANK, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREMRANGEBYRANK, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
-				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
-			}
-		}
-		res, err := handleZREMRANGEBYRANK(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
-		}
-		// Check if the expected values are the same
-		if test.expectedValues != nil {
-			for key, expectedSet := range test.expectedValues {
-				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
-					t.Error(err)
-				}
-				set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
-				if !ok {
-					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
-				}
-				if !set.Equals(expectedSet) {
-					t.Errorf("exptected sorted set %+v, got %+v", expectedSet, set)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-		}
+			res, err := handleZREMRANGEBYRANK(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+			}
+			// Check if the expected values are the same
+			if test.expectedValues != nil {
+				for key, expectedSet := range test.expectedValues {
+					if _, err = mockServer.KeyRLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
+					if !ok {
+						t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
+					}
+					if !set.Equals(expectedSet) {
+						t.Errorf("exptected sorted set %+v, got %+v", expectedSet, set)
+					}
+				}
+			}
+		})
 	}
 }
 
 func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
@@ -2464,7 +2625,8 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Successfully remove multiple elements with scores inside the provided range
+		{
+			name:   "1. Successfully remove multiple elements with scores inside the provided range",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremRangeByLexKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2486,7 +2648,8 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 			expectedResponse: 4,
 			expectedError:    nil,
 		},
-		{ // 2. Return 0 if the members do not have the same score
+		{
+			name:   "2. Return 0 if the members do not have the same score",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremRangeByLexKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2510,7 +2673,8 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 3. If key does not exist, return 0
+		{
+			name:             "3. If key does not exist, return 0",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZREMRANGEBYLEX", "ZremRangeByLexKey3", "2", "4"},
@@ -2518,7 +2682,8 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 3. Return error key is not a sorted set
+		{
+			name:   "3. Return error key is not a sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZremRangeByLexKey3": "Default value",
@@ -2526,12 +2691,14 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 			command:       []string{"ZREMRANGEBYLEX", "ZremRangeByLexKey3", "a", "d"},
 			expectedError: errors.New("value at ZremRangeByLexKey3 is not a sorted set"),
 		},
-		{ // 4. Command too short
+		{
+			name:          "4. Command too short",
 			preset:        false,
 			command:       []string{"ZREMRANGEBYLEX", "ZremRangeByLexKey4", "a"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
-		{ // 5. Command too long
+		{
+			name:          "5. Command too long",
 			preset:        false,
 			command:       []string{"ZREMRANGEBYLEX", "ZremRangeByLexKey5", "a", "b", "c"},
 			expectedError: errors.New(constants.WrongArgsResponse),
@@ -2539,64 +2706,68 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREMRANGEBYLEX, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZREMRANGEBYLEX, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
-				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
-			}
-		}
-		res, err := handleZREMRANGEBYLEX(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
-		}
-		// Check if the expected values are the same
-		if test.expectedValues != nil {
-			for key, expectedSet := range test.expectedValues {
-				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
-					t.Error(err)
-				}
-				set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
-				if !ok {
-					t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
-				}
-				if !set.Equals(expectedSet) {
-					t.Errorf("exptected sorted set %+v, got %+v", expectedSet, set)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-		}
+			res, err := handleZREMRANGEBYLEX(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+			}
+			// Check if the expected values are the same
+			if test.expectedValues != nil {
+				for key, expectedSet := range test.expectedValues {
+					if _, err = mockServer.KeyRLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					set, ok := mockServer.GetValue(ctx, key).(*sorted_set.SortedSet)
+					if !ok {
+						t.Errorf("expected value at key \"%s\" to be a sorted set, got another type", key)
+					}
+					if !set.Equals(expectedSet) {
+						t.Errorf("exptected sorted set %+v, got %+v", expectedSet, set)
+					}
+				}
+			}
+		})
 	}
 }
 
 func Test_HandleZRANGE(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse [][]string
 		expectedError    error
 	}{
-		{ // 1. Get elements withing score range without score.
+		{
+			name:   "1. Get elements withing score range without score.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2610,7 +2781,8 @@ func Test_HandleZRANGE(t *testing.T) {
 			expectedResponse: [][]string{{"three"}, {"four"}, {"five"}, {"six"}, {"seven"}},
 			expectedError:    nil,
 		},
-		{ // 2. Get elements within score range with score.
+		{
+			name:   "2. Get elements within score range with score.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2626,8 +2798,10 @@ func Test_HandleZRANGE(t *testing.T) {
 				{"six", "6"}, {"seven", "7"}},
 			expectedError: nil,
 		},
-		{ // 3. Get elements within score range with offset and limit.
+		{
+			// 3. Get elements within score range with offset and limit.
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
+			name:   "3. Get elements within score range with offset and limit.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2641,9 +2815,11 @@ func Test_HandleZRANGE(t *testing.T) {
 			expectedResponse: [][]string{{"three", "3"}, {"four", "4"}, {"five", "5"}},
 			expectedError:    nil,
 		},
-		{ // 4. Get elements within score range with offset and limit + reverse the results.
+		{
+			// 4. Get elements within score range with offset and limit + reverse the results.
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
 			// REV reverses the original set before getting the range.
+			name:   "4. Get elements within score range with offset and limit + reverse the results.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2657,7 +2833,8 @@ func Test_HandleZRANGE(t *testing.T) {
 			expectedResponse: [][]string{{"six", "6"}, {"five", "5"}, {"four", "4"}},
 			expectedError:    nil,
 		},
-		{ // 5. Get elements within lex range without score.
+		{
+			name:   "5. Get elements within lex range without score.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2671,7 +2848,8 @@ func Test_HandleZRANGE(t *testing.T) {
 			expectedResponse: [][]string{{"c"}, {"d"}, {"e"}, {"f"}, {"g"}},
 			expectedError:    nil,
 		},
-		{ // 6. Get elements within lex range with score.
+		{
+			name:   "6. Get elements within lex range with score.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2687,8 +2865,10 @@ func Test_HandleZRANGE(t *testing.T) {
 				{"d", "1"}, {"e", "1"}, {"f", "1"}},
 			expectedError: nil,
 		},
-		{ // 7. Get elements within lex range with offset and limit.
+		{
+			// 7. Get elements within lex range with offset and limit.
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
+			name:   "7. Get elements within lex range with offset and limit.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeKey7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2702,9 +2882,11 @@ func Test_HandleZRANGE(t *testing.T) {
 			expectedResponse: [][]string{{"c", "1"}, {"d", "1"}, {"e", "1"}},
 			expectedError:    nil,
 		},
-		{ // 8. Get elements within lex range with offset and limit + reverse the results.
+		{
+			// 8. Get elements within lex range with offset and limit + reverse the results.
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
 			// REV reverses the original set before getting the range.
+			name:   "8. Get elements within lex range with offset and limit + reverse the results.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeKey8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2718,7 +2900,8 @@ func Test_HandleZRANGE(t *testing.T) {
 			expectedResponse: [][]string{{"f", "1"}, {"e", "1"}, {"d", "1"}},
 			expectedError:    nil,
 		},
-		{ // 9. Return an empty slice when we use BYLEX while elements have different scores
+		{
+			name:   "9. Return an empty slice when we use BYLEX while elements have different scores",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2732,35 +2915,40 @@ func Test_HandleZRANGE(t *testing.T) {
 			expectedResponse: [][]string{},
 			expectedError:    nil,
 		},
-		{ // 10. Throw error when limit does not provide both offset and limit
+		{
+			name:             "10. Throw error when limit does not provide both offset and limit",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "ZrangeKey10", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2"},
 			expectedResponse: [][]string{},
 			expectedError:    errors.New("limit should contain offset and count as integers"),
 		},
-		{ // 11. Throw error when offset is not a valid integer
+		{
+			name:             "11. Throw error when offset is not a valid integer",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "ZrangeKey11", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "offset", "4"},
 			expectedResponse: [][]string{},
 			expectedError:    errors.New("limit offset must be integer"),
 		},
-		{ // 12. Throw error when limit is not a valid integer
+		{
+			name:             "12. Throw error when limit is not a valid integer",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "ZrangeKey12", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "4", "limit"},
 			expectedResponse: [][]string{},
 			expectedError:    errors.New("limit count must be integer"),
 		},
-		{ // 13. Throw error when offset is negative
+		{
+			name:             "13. Throw error when offset is negative",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "ZrangeKey13", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9"},
 			expectedResponse: [][]string{},
 			expectedError:    errors.New("limit offset must be >= 0"),
 		},
-		{ // 14. Throw error when the key does not hold a sorted set
+		{
+			name:   "14. Throw error when the key does not hold a sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeKey14": "Default value",
@@ -2769,14 +2957,16 @@ func Test_HandleZRANGE(t *testing.T) {
 			expectedResponse: [][]string{},
 			expectedError:    errors.New("value at ZrangeKey14 is not a sorted set"),
 		},
-		{ // 15. Command too short
+		{
+			name:             "15. Command too short",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "ZrangeKey15", "1"},
 			expectedResponse: [][]string{},
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 16 Command too long
+		{
+			name:             "16 Command too long",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGE", "ZrangeKey16", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9", "REV", "WITHSCORES"},
@@ -2786,58 +2976,61 @@ func Test_HandleZRANGE(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANGE, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANGE, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
 			}
-		}
-		res, err := handleZRANGE(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if len(rv.Array()) != len(test.expectedResponse) {
-			t.Errorf("expected response array of length %d, got %d", len(test.expectedResponse), len(rv.Array()))
-		}
-		for _, element := range rv.Array() {
-			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
-				// The current sub-slice is a different length, return false because they're not equal
-				if len(element.Array()) != len(expected) {
-					return false
+			res, err := handleZRANGE(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				for i := 0; i < len(expected); i++ {
-					if element.Array()[i].String() != expected[i] {
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+			if len(rv.Array()) != len(test.expectedResponse) {
+				t.Errorf("expected response array of length %d, got %d", len(test.expectedResponse), len(rv.Array()))
+			}
+			for _, element := range rv.Array() {
+				if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+					// The current sub-slice is a different length, return false because they're not equal
+					if len(element.Array()) != len(expected) {
 						return false
 					}
+					for i := 0; i < len(expected); i++ {
+						if element.Array()[i].String() != expected[i] {
+							return false
+						}
+					}
+					return true
+				}) {
+					t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 				}
-				return true
-			}) {
-				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
-		}
+		})
 	}
 }
 
 func Test_HandleZRANGESTORE(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		destination      string
@@ -2846,7 +3039,8 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Get elements withing score range without score.
+		{
+			name:   "1. Get elements withing score range without score.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeStoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2865,7 +3059,8 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			}),
 			expectedError: nil,
 		},
-		{ // 2. Get elements within score range with score.
+		{
+			name:   "2. Get elements within score range with score.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeStoreKey2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2884,8 +3079,10 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			}),
 			expectedError: nil,
 		},
-		{ // 3. Get elements within score range with offset and limit.
+		{
+			// 3. Get elements within score range with offset and limit.
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
+			name:   "3. Get elements within score range with offset and limit.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeStoreKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2903,9 +3100,11 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			}),
 			expectedError: nil,
 		},
-		{ // 4. Get elements within score range with offset and limit + reverse the results.
+		{
+			// 4. Get elements within score range with offset and limit + reverse the results.
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
 			// REV reverses the original set before getting the range.
+			name:   "4. Get elements within score range with offset and limit + reverse the results.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeStoreKey4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2923,7 +3122,8 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			}),
 			expectedError: nil,
 		},
-		{ // 5. Get elements within lex range without score.
+		{
+			name:   "5. Get elements within lex range without score.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeStoreKey5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2942,7 +3142,8 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			}),
 			expectedError: nil,
 		},
-		{ // 6. Get elements within lex range with score.
+		{
+			name:   "6. Get elements within lex range with score.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeStoreKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2961,8 +3162,10 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			}),
 			expectedError: nil,
 		},
-		{ // 7. Get elements within lex range with offset and limit.
+		{
+			// 7. Get elements within lex range with offset and limit.
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
+			name:   "7. Get elements within lex range with offset and limit.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeStoreKey7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -2980,9 +3183,11 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			}),
 			expectedError: nil,
 		},
-		{ // 8. Get elements within lex range with offset and limit + reverse the results.
+		{
+			// 8. Get elements within lex range with offset and limit + reverse the results.
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
 			// REV reverses the original set before getting the range.
+			name:   "8. Get elements within lex range with offset and limit + reverse the results.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeStoreKey8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3000,7 +3205,8 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			}),
 			expectedError: nil,
 		},
-		{ // 9. Return an empty slice when we use BYLEX while elements have different scores
+		{
+			name:   "9. Return an empty slice when we use BYLEX while elements have different scores",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeStoreKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3016,35 +3222,40 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			expectedValue:    nil,
 			expectedError:    nil,
 		},
-		{ // 10. Throw error when limit does not provide both offset and limit
+		{
+			name:             "10. Throw error when limit does not provide both offset and limit",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey10", "ZrangeStoreKey10", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "2"},
 			expectedResponse: 0,
 			expectedError:    errors.New("limit should contain offset and count as integers"),
 		},
-		{ // 11. Throw error when offset is not a valid integer
+		{
+			name:             "11. Throw error when offset is not a valid integer",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey11", "ZrangeStoreKey11", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "offset", "4"},
 			expectedResponse: 0,
 			expectedError:    errors.New("limit offset must be integer"),
 		},
-		{ // 12. Throw error when limit is not a valid integer
+		{
+			name:             "12. Throw error when limit is not a valid integer",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey12", "ZrangeStoreKey12", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "4", "limit"},
 			expectedResponse: 0,
 			expectedError:    errors.New("limit count must be integer"),
 		},
-		{ // 13. Throw error when offset is negative
+		{
+			name:             "13. Throw error when offset is negative",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey13", "ZrangeStoreKey13", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9"},
 			expectedResponse: 0,
 			expectedError:    errors.New("limit offset must be >= 0"),
 		},
-		{ // 14. Throw error when the key does not hold a sorted set
+		{
+			name:   "14. Throw error when the key does not hold a sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZrangeStoreKey14": "Default value",
@@ -3053,14 +3264,16 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("value at ZrangeStoreKey14 is not a sorted set"),
 		},
-		{ // 15. Command too short
+		{
+			name:             "15. Command too short",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGESTORE", "ZrangeStoreKey15", "1"},
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 16 Command too long
+		{
+			name:             "16 Command too long",
 			preset:           false,
 			presetValues:     nil,
 			command:          []string{"ZRANGESTORE", "ZrangeStoreDestinationKey16", "ZrangeStoreKey16", "a", "h", "BYLEX", "WITHSCORES", "LIMIT", "-4", "9", "REV", "WITHSCORES"},
@@ -3070,62 +3283,66 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANGESTORE, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZRANGESTORE, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
+			}
+			res, err := handleZRANGESTORE(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				mockServer.KeyUnlock(ctx, key)
+				return
 			}
-		}
-		res, err := handleZRANGESTORE(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
-		}
-		if test.expectedValue != nil {
-			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
+			if err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
-			if !ok {
-				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
 			}
-			if !set.Equals(test.expectedValue) {
-				t.Errorf("expected sorted set %+v, got %+v", test.expectedValue, set)
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
 			}
-			mockServer.KeyRUnlock(ctx, test.destination)
-		}
+			if test.expectedValue != nil {
+				if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
+					t.Error(err)
+				}
+				set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
+				if !ok {
+					t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+				}
+				if !set.Equals(test.expectedValue) {
+					t.Errorf("expected sorted set %+v, got %+v", test.expectedValue, set)
+				}
+				mockServer.KeyRUnlock(ctx, test.destination)
+			}
+		})
 	}
 }
 
 func Test_HandleZINTER(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse [][]string
 		expectedError    error
 	}{
-		{ // 1. Get the intersection between 2 sorted sets.
+		{
+			name:   "1. Get the intersection between 2 sorted sets.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3146,6 +3363,7 @@ func Test_HandleZINTER(t *testing.T) {
 		{
 			// 2. Get the intersection between 3 sorted sets with scores.
 			// By default, the SUM aggregate will be used.
+			name:   "2. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3172,6 +3390,7 @@ func Test_HandleZINTER(t *testing.T) {
 		{
 			// 3. Get the intersection between 3 sorted sets with scores.
 			// Use MIN aggregate.
+			name:   "3. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3198,6 +3417,7 @@ func Test_HandleZINTER(t *testing.T) {
 		{
 			// 4. Get the intersection between 3 sorted sets with scores.
 			// Use MAX aggregate.
+			name:   "4. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3224,6 +3444,7 @@ func Test_HandleZINTER(t *testing.T) {
 		{
 			// 5. Get the intersection between 3 sorted sets with scores.
 			// Use SUM aggregate with weights modifier.
+			name:   "5. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3250,6 +3471,7 @@ func Test_HandleZINTER(t *testing.T) {
 		{
 			// 6. Get the intersection between 3 sorted sets with scores.
 			// Use MAX aggregate with added weights.
+			name:   "6. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3276,6 +3498,7 @@ func Test_HandleZINTER(t *testing.T) {
 		{
 			// 7. Get the intersection between 3 sorted sets with scores.
 			// Use MIN aggregate with added weights.
+			name:   "7. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3299,7 +3522,8 @@ func Test_HandleZINTER(t *testing.T) {
 			expectedResponse: [][]string{{"one", "5"}, {"eight", "8"}},
 			expectedError:    nil,
 		},
-		{ // 8. Throw an error if there are more weights than keys
+		{
+			name:   "8. Throw an error if there are more weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3314,7 +3538,8 @@ func Test_HandleZINTER(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    errors.New("number of weights should match number of keys"),
 		},
-		{ // 9. Throw an error if there are fewer weights than keys
+		{
+			name:   "9. Throw an error if there are fewer weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3332,7 +3557,8 @@ func Test_HandleZINTER(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    errors.New("number of weights should match number of keys"),
 		},
-		{ // 10. Throw an error if there are no keys provided
+		{
+			name:   "10. Throw an error if there are no keys provided",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
@@ -3343,7 +3569,8 @@ func Test_HandleZINTER(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 11. Throw an error if any of the provided keys are not sorted sets
+		{
+			name:   "11. Throw an error if any of the provided keys are not sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3359,7 +3586,8 @@ func Test_HandleZINTER(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    errors.New("value at ZinterKey30 is not a sorted set"),
 		},
-		{ // 12. If any of the keys does not exist, return an empty array.
+		{
+			name:   "12. If any of the keys does not exist, return an empty array.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterKey32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3377,7 +3605,8 @@ func Test_HandleZINTER(t *testing.T) {
 			expectedResponse: [][]string{},
 			expectedError:    nil,
 		},
-		{ // 13. Command too short
+		{
+			name:             "13. Command too short",
 			preset:           false,
 			command:          []string{"ZINTER"},
 			expectedResponse: [][]string{},
@@ -3386,55 +3615,58 @@ func Test_HandleZINTER(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZINTER, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZINTER, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
 			}
-		}
-		res, err := handleZINTER(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		for _, element := range rv.Array() {
-			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
-				// The current sub-slice is a different length, return false because they're not equal
-				if len(element.Array()) != len(expected) {
-					return false
+			res, err := handleZINTER(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				for i := 0; i < len(expected); i++ {
-					if element.Array()[i].String() != expected[i] {
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+			for _, element := range rv.Array() {
+				if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+					// The current sub-slice is a different length, return false because they're not equal
+					if len(element.Array()) != len(expected) {
 						return false
 					}
+					for i := 0; i < len(expected); i++ {
+						if element.Array()[i].String() != expected[i] {
+							return false
+						}
+					}
+					return true
+				}) {
+					t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 				}
-				return true
-			}) {
-				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
-		}
+		})
 	}
 }
 
 func Test_HandleZINTERSTORE(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		destination      string
@@ -3443,7 +3675,8 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Get the intersection between 2 sorted sets.
+		{
+			name:   "1. Get the intersection between 2 sorted sets.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3469,6 +3702,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{
 			// 2. Get the intersection between 3 sorted sets with scores.
 			// By default, the SUM aggregate will be used.
+			name:   "2. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3499,6 +3733,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{
 			// 3. Get the intersection between 3 sorted sets with scores.
 			// Use MIN aggregate.
+			name:   "3. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3529,6 +3764,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{
 			// 4. Get the intersection between 3 sorted sets with scores.
 			// Use MAX aggregate.
+			name:   "4. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3559,6 +3795,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{
 			// 5. Get the intersection between 3 sorted sets with scores.
 			// Use SUM aggregate with weights modifier.
+			name:   "5. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3589,6 +3826,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{
 			// 6. Get the intersection between 3 sorted sets with scores.
 			// Use MAX aggregate with added weights.
+			name:   "6. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3619,6 +3857,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 		{
 			// 7. Get the intersection between 3 sorted sets with scores.
 			// Use MIN aggregate with added weights.
+			name:   "7. Get the intersection between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3646,7 +3885,8 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			expectedResponse: 2,
 			expectedError:    nil,
 		},
-		{ // 8. Throw an error if there are more weights than keys
+		{
+			name:   "8. Throw an error if there are more weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3661,7 +3901,8 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("number of weights should match number of keys"),
 		},
-		{ // 9. Throw an error if there are fewer weights than keys
+		{
+			name:   "9. Throw an error if there are fewer weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3679,7 +3920,8 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("number of weights should match number of keys"),
 		},
-		{ // 10. Throw an error if there are no keys provided
+		{
+			name:   "10. Throw an error if there are no keys provided",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
@@ -3690,7 +3932,8 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 11. Throw an error if any of the provided keys are not sorted sets
+		{
+			name:   "11. Throw an error if any of the provided keys are not sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3706,7 +3949,8 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("value at ZinterStoreKey30 is not a sorted set"),
 		},
-		{ // 12. If any of the keys does not exist, return an empty array.
+		{
+			name:   "12. If any of the keys does not exist, return an empty array.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZinterStoreKey32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3724,7 +3968,8 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // 13. Command too short
+		{
+			name:             "13. Command too short",
 			preset:           false,
 			command:          []string{"ZINTERSTORE"},
 			expectedResponse: 0,
@@ -3733,64 +3978,68 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZINTERSTORE, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZINTERSTORE, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
+			}
+			res, err := handleZINTERSTORE(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				mockServer.KeyUnlock(ctx, key)
+				return
 			}
-		}
-		res, err := handleZINTERSTORE(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
-		}
-		if test.expectedValue != nil {
-			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
+			if err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
-			if !ok {
-				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
 			}
-			for _, elem := range set.GetAll() {
-				if !test.expectedValue.Contains(elem.Value) {
-					t.Errorf("could not find element %s in the expected values", elem.Value)
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
+			}
+			if test.expectedValue != nil {
+				if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
+					t.Error(err)
 				}
+				set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
+				if !ok {
+					t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+				}
+				for _, elem := range set.GetAll() {
+					if !test.expectedValue.Contains(elem.Value) {
+						t.Errorf("could not find element %s in the expected values", elem.Value)
+					}
+				}
+				mockServer.KeyRUnlock(ctx, test.destination)
 			}
-			mockServer.KeyRUnlock(ctx, test.destination)
-		}
+		})
 	}
 }
 
 func Test_HandleZUNION(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse [][]string
 		expectedError    error
 	}{
-		{ // 1. Get the union between 2 sorted sets.
+		{
+			name:   "1. Get the union between 2 sorted sets.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3811,6 +4060,7 @@ func Test_HandleZUNION(t *testing.T) {
 		{
 			// 2. Get the union between 3 sorted sets with scores.
 			// By default, the SUM aggregate will be used.
+			name:   "2. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3841,6 +4091,7 @@ func Test_HandleZUNION(t *testing.T) {
 		{
 			// 3. Get the union between 3 sorted sets with scores.
 			// Use MIN aggregate.
+			name:   "3. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3871,6 +4122,7 @@ func Test_HandleZUNION(t *testing.T) {
 		{
 			// 4. Get the union between 3 sorted sets with scores.
 			// Use MAX aggregate.
+			name:   "4. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3901,6 +4153,7 @@ func Test_HandleZUNION(t *testing.T) {
 		{
 			// 5. Get the union between 3 sorted sets with scores.
 			// Use SUM aggregate with weights modifier.
+			name:   "5. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3931,6 +4184,7 @@ func Test_HandleZUNION(t *testing.T) {
 		{
 			// 6. Get the union between 3 sorted sets with scores.
 			// Use MAX aggregate with added weights.
+			name:   "6. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3961,6 +4215,7 @@ func Test_HandleZUNION(t *testing.T) {
 		{
 			// 7. Get the union between 3 sorted sets with scores.
 			// Use MIN aggregate with added weights.
+			name:   "7. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -3987,7 +4242,8 @@ func Test_HandleZUNION(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 8. Throw an error if there are more weights than keys
+		{
+			name:   "8. Throw an error if there are more weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4002,7 +4258,8 @@ func Test_HandleZUNION(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    errors.New("number of weights should match number of keys"),
 		},
-		{ // 9. Throw an error if there are fewer weights than keys
+		{
+			name:   "9. Throw an error if there are fewer weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4020,7 +4277,8 @@ func Test_HandleZUNION(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    errors.New("number of weights should match number of keys"),
 		},
-		{ // 10. Throw an error if there are no keys provided
+		{
+			name:   "10. Throw an error if there are no keys provided",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
@@ -4031,7 +4289,8 @@ func Test_HandleZUNION(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 11. Throw an error if any of the provided keys are not sorted sets
+		{
+			name:   "11. Throw an error if any of the provided keys are not sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4047,7 +4306,8 @@ func Test_HandleZUNION(t *testing.T) {
 			expectedResponse: nil,
 			expectedError:    errors.New("value at ZunionKey30 is not a sorted set"),
 		},
-		{ // 12. If any of the keys does not exist, skip it.
+		{
+			name:   "12. If any of the keys does not exist, skip it.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionKey32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4068,7 +4328,8 @@ func Test_HandleZUNION(t *testing.T) {
 			},
 			expectedError: nil,
 		},
-		{ // 13. Command too short
+		{
+			name:          "13. Command too short",
 			preset:        false,
 			command:       []string{"ZUNION"},
 			expectedError: errors.New(constants.WrongArgsResponse),
@@ -4076,55 +4337,58 @@ func Test_HandleZUNION(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZUNION, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZUNION, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
 			}
-		}
-		res, err := handleZUNION(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		for _, element := range rv.Array() {
-			if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
-				// The current sub-slice is a different length, return false because they're not equal
-				if len(element.Array()) != len(expected) {
-					return false
+			res, err := handleZUNION(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				for i := 0; i < len(expected); i++ {
-					if element.Array()[i].String() != expected[i] {
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+			for _, element := range rv.Array() {
+				if !slices.ContainsFunc(test.expectedResponse, func(expected []string) bool {
+					// The current sub-slice is a different length, return false because they're not equal
+					if len(element.Array()) != len(expected) {
 						return false
 					}
+					for i := 0; i < len(expected); i++ {
+						if element.Array()[i].String() != expected[i] {
+							return false
+						}
+					}
+					return true
+				}) {
+					t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 				}
-				return true
-			}) {
-				t.Errorf("expected response %+v, got %+v", test.expectedResponse, rv.Array())
 			}
-		}
+		})
 	}
 }
 
 func Test_HandleZUNIONSTORE(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		presetValues     map[string]interface{}
 		destination      string
@@ -4133,7 +4397,8 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // 1. Get the union between 2 sorted sets.
+		{
+			name:   "1. Get the union between 2 sorted sets.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4161,6 +4426,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{
 			// 2. Get the union between 3 sorted sets with scores.
 			// By default, the SUM aggregate will be used.
+			name:   "2. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4194,6 +4460,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{
 			// 3. Get the union between 3 sorted sets with scores.
 			// Use MIN aggregate.
+			name:   "3. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4227,6 +4494,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{
 			// 4. Get the union between 3 sorted sets with scores.
 			// Use MAX aggregate.
+			name:   "4. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4262,6 +4530,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{
 			// 5. Get the union between 3 sorted sets with scores.
 			// Use SUM aggregate with weights modifier.
+			name:   "5. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4298,6 +4567,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{
 			// 6. Get the union between 3 sorted sets with scores.
 			// Use MAX aggregate with added weights.
+			name:   "6. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4333,6 +4603,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 		{
 			// 7. Get the union between 3 sorted sets with scores.
 			// Use MIN aggregate with added weights.
+			name:   "7. Get the union between 3 sorted sets with scores.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4366,7 +4637,8 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			expectedResponse: 13,
 			expectedError:    nil,
 		},
-		{ // 8. Throw an error if there are more weights than keys
+		{
+			name:   "8. Throw an error if there are more weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4382,7 +4654,8 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("number of weights should match number of keys"),
 		},
-		{ // 9. Throw an error if there are fewer weights than keys
+		{
+			name:   "9. Throw an error if there are fewer weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4401,7 +4674,8 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("number of weights should match number of keys"),
 		},
-		{ // 10. Throw an error if there are no keys provided
+		{
+			name:   "10. Throw an error if there are no keys provided",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
@@ -4412,7 +4686,8 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // 11. Throw an error if any of the provided keys are not sorted sets
+		{
+			name:   "11. Throw an error if any of the provided keys are not sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4429,7 +4704,8 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("value at ZunionStoreKey30 is not a sorted set"),
 		},
-		{ // 12. If any of the keys does not exist, skip it.
+		{
+			name:   "12. If any of the keys does not exist, skip it.",
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZunionStoreKey32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
@@ -4453,7 +4729,8 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 			expectedResponse: 9,
 			expectedError:    nil,
 		},
-		{ // 13. Command too short
+		{
+			name:             "13. Command too short",
 			preset:           false,
 			command:          []string{"ZUNIONSTORE"},
 			expectedResponse: 0,
@@ -4462,51 +4739,53 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZUNIONSTORE, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("ZUNIONSTORE, %d", i))
 
-		if test.preset {
-			for key, value := range test.presetValues {
-				if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
-					t.Error(err)
+			if test.preset {
+				for key, value := range test.presetValues {
+					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+						t.Error(err)
+					}
+					if err := mockServer.SetValue(ctx, key, value); err != nil {
+						t.Error(err)
+					}
+					mockServer.KeyUnlock(ctx, key)
 				}
-				if err := mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
+			}
+			res, err := handleZUNIONSTORE(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
-				mockServer.KeyUnlock(ctx, key)
+				return
 			}
-		}
-		res, err := handleZUNIONSTORE(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
-		}
-		if test.expectedValue != nil {
-			if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
+			if err != nil {
 				t.Error(err)
 			}
-			set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
-			if !ok {
-				t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
 			}
-			for _, elem := range set.GetAll() {
-				if !test.expectedValue.Contains(elem.Value) {
-					t.Errorf("could not find element %s in the expected values", elem.Value)
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
+			}
+			if test.expectedValue != nil {
+				if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
+					t.Error(err)
 				}
+				set, ok := mockServer.GetValue(ctx, test.destination).(*sorted_set.SortedSet)
+				if !ok {
+					t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
+				}
+				for _, elem := range set.GetAll() {
+					if !test.expectedValue.Contains(elem.Value) {
+						t.Errorf("could not find element %s in the expected values", elem.Value)
+					}
+				}
+				mockServer.KeyRUnlock(ctx, test.destination)
 			}
-			mockServer.KeyRUnlock(ctx, test.destination)
-		}
+		})
 	}
 }

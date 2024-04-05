@@ -41,6 +41,7 @@ func init() {
 
 func Test_HandleSetRange(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		key              string
 		presetValue      string
@@ -49,7 +50,8 @@ func Test_HandleSetRange(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // Test that SETRANGE on non-existent string creates new string
+		{
+			name:             "Test that SETRANGE on non-existent string creates new string",
 			preset:           false,
 			key:              "SetRangeKey1",
 			presetValue:      "",
@@ -58,7 +60,8 @@ func Test_HandleSetRange(t *testing.T) {
 			expectedResponse: len("New String Value"),
 			expectedError:    nil,
 		},
-		{ // Test SETRANGE with an offset that leads to a longer resulting string
+		{
+			name:             "Test SETRANGE with an offset that leads to a longer resulting string",
 			preset:           true,
 			key:              "SetRangeKey2",
 			presetValue:      "Original String Value",
@@ -67,7 +70,8 @@ func Test_HandleSetRange(t *testing.T) {
 			expectedResponse: len("Original String Portion Replaced With This New String"),
 			expectedError:    nil,
 		},
-		{ // SETRANGE with negative offset prepends the string
+		{
+			name:             "SETRANGE with negative offset prepends the string",
 			preset:           true,
 			key:              "SetRangeKey3",
 			presetValue:      "This is a preset value",
@@ -76,7 +80,8 @@ func Test_HandleSetRange(t *testing.T) {
 			expectedResponse: len("Prepended This is a preset value"),
 			expectedError:    nil,
 		},
-		{ // SETRANGE with offset that embeds new string inside the old string
+		{
+			name:             "SETRANGE with offset that embeds new string inside the old string",
 			preset:           true,
 			key:              "SetRangeKey4",
 			presetValue:      "This is a preset value",
@@ -85,7 +90,8 @@ func Test_HandleSetRange(t *testing.T) {
 			expectedResponse: len("That is a preset value"),
 			expectedError:    nil,
 		},
-		{ // SETRANGE with offset longer than original lengths appends the string
+		{
+			name:             "SETRANGE with offset longer than original lengths appends the string",
 			preset:           true,
 			key:              "SetRangeKey5",
 			presetValue:      "This is a preset value",
@@ -94,7 +100,8 @@ func Test_HandleSetRange(t *testing.T) {
 			expectedResponse: len("This is a preset value Appended"),
 			expectedError:    nil,
 		},
-		{ // SETRANGE with offset on the last character replaces last character with new string
+		{
+			name:             "SETRANGE with offset on the last character replaces last character with new string",
 			preset:           true,
 			key:              "SetRangeKey6",
 			presetValue:      "This is a preset value",
@@ -103,13 +110,15 @@ func Test_HandleSetRange(t *testing.T) {
 			expectedResponse: len("This is a preset valu replaced"),
 			expectedError:    nil,
 		},
-		{ // Offset not integer
+		{
+			name:             " Offset not integer",
 			preset:           false,
 			command:          []string{"SETRANGE", "key", "offset", "value"},
 			expectedResponse: 0,
 			expectedError:    errors.New("offset must be an integer"),
 		},
-		{ // SETRANGE target is not a string
+		{
+			name:             "SETRANGE target is not a string",
 			preset:           true,
 			key:              "test-int",
 			presetValue:      "10",
@@ -117,13 +126,15 @@ func Test_HandleSetRange(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New("value at key test-int is not a string"),
 		},
-		{ // Command too short
+		{
+			name:             "Command too short",
 			preset:           false,
 			command:          []string{"SETRANGE", "key"},
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // Command too long
+		{
+			name:             "Command too long",
 			preset:           false,
 			command:          []string{"SETRANGE", "key", "offset", "value", "value1"},
 			expectedResponse: 0,
@@ -132,55 +143,58 @@ func Test_HandleSetRange(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SETRANGE, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SETRANGE, %d", i))
 
-		// If there's a preset step, carry it out here
-		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+			// If there's a preset step, carry it out here
+			if test.preset {
+				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, test.key, internal.AdaptType(test.presetValue)); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, test.key)
+			}
+
+			res, err := handleSetRange(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			if err != nil {
 				t.Error(err)
 			}
-			if err := mockServer.SetValue(ctx, test.key, internal.AdaptType(test.presetValue)); err != nil {
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
 				t.Error(err)
 			}
-			mockServer.KeyUnlock(ctx, test.key)
-		}
-
-		res, err := handleSetRange(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, rv.Integer())
 			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, rv.Integer())
-		}
 
-		// Get the value from the echovault and check against the expected value
-		if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
-			t.Error(err)
-		}
-		value, ok := mockServer.GetValue(ctx, test.key).(string)
-		if !ok {
-			t.Error("expected string data type, got another type")
-		}
-		if value != test.expectedValue {
-			t.Errorf("expected value \"%s\", got \"%s\"", test.expectedValue, value)
-		}
-		mockServer.KeyRUnlock(ctx, test.key)
+			// Get the value from the echovault and check against the expected value
+			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
+				t.Error(err)
+			}
+			value, ok := mockServer.GetValue(ctx, test.key).(string)
+			if !ok {
+				t.Error("expected string data type, got another type")
+			}
+			if value != test.expectedValue {
+				t.Errorf("expected value \"%s\", got \"%s\"", test.expectedValue, value)
+			}
+			mockServer.KeyRUnlock(ctx, test.key)
+		})
 	}
 }
 
 func Test_HandleStrLen(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		key              string
 		presetValue      string
@@ -188,7 +202,8 @@ func Test_HandleStrLen(t *testing.T) {
 		expectedResponse int
 		expectedError    error
 	}{
-		{ // Return the correct string length for an existing string
+		{
+			name:             "Return the correct string length for an existing string",
 			preset:           true,
 			key:              "StrLenKey1",
 			presetValue:      "Test String",
@@ -196,7 +211,8 @@ func Test_HandleStrLen(t *testing.T) {
 			expectedResponse: len("Test String"),
 			expectedError:    nil,
 		},
-		{ // If the string does not exist, return 0
+		{
+			name:             "If the string does not exist, return 0",
 			preset:           false,
 			key:              "StrLenKey2",
 			presetValue:      "",
@@ -204,7 +220,8 @@ func Test_HandleStrLen(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    nil,
 		},
-		{ // Too few args
+		{
+			name:             "Too few args",
 			preset:           false,
 			key:              "StrLenKey3",
 			presetValue:      "",
@@ -212,7 +229,8 @@ func Test_HandleStrLen(t *testing.T) {
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
-		{ // Too many args
+		{
+			name:             "Too many args",
 			preset:           false,
 			key:              "StrLenKey4",
 			presetValue:      "",
@@ -223,38 +241,41 @@ func Test_HandleStrLen(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("STRLEN, %d", i))
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("STRLEN, %d", i))
 
-		if test.preset {
-			_, err := mockServer.CreateKeyAndLock(ctx, test.key)
+			if test.preset {
+				_, err := mockServer.CreateKeyAndLock(ctx, test.key)
+				if err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, test.key)
+			}
+			res, err := handleStrLen(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
 			if err != nil {
 				t.Error(err)
 			}
-			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
-				t.Error(err)
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected respons \"%d\", got \"%d\"", test.expectedResponse, rv.Integer())
 			}
-			mockServer.KeyUnlock(ctx, test.key)
-		}
-		res, err := handleStrLen(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.Integer() != test.expectedResponse {
-			t.Errorf("expected respons \"%d\", got \"%d\"", test.expectedResponse, rv.Integer())
-		}
+		})
 	}
 }
 
 func Test_HandleSubStr(t *testing.T) {
 	tests := []struct {
+		name             string
 		preset           bool
 		key              string
 		presetValue      string
@@ -262,7 +283,8 @@ func Test_HandleSubStr(t *testing.T) {
 		expectedResponse string
 		expectedError    error
 	}{
-		{ // Return substring within the range of the string
+		{
+			name:             "Return substring within the range of the string",
 			preset:           true,
 			key:              "SubStrKey1",
 			presetValue:      "Test String One",
@@ -270,7 +292,8 @@ func Test_HandleSubStr(t *testing.T) {
 			expectedResponse: "String",
 			expectedError:    nil,
 		},
-		{ // Return substring at the end of the string with exact end index
+		{
+			name:             "Return substring at the end of the string with exact end index",
 			preset:           true,
 			key:              "SubStrKey2",
 			presetValue:      "Test String Two",
@@ -278,7 +301,8 @@ func Test_HandleSubStr(t *testing.T) {
 			expectedResponse: "Two",
 			expectedError:    nil,
 		},
-		{ // Return substring at the end of the string with end index greater than length
+		{
+			name:             "Return substring at the end of the string with end index greater than length",
 			preset:           true,
 			key:              "SubStrKey3",
 			presetValue:      "Test String Three",
@@ -286,7 +310,8 @@ func Test_HandleSubStr(t *testing.T) {
 			expectedResponse: "Three",
 			expectedError:    nil,
 		},
-		{ // Return the substring at the start of the string with 0 start index
+		{
+			name:             "Return the substring at the start of the string with 0 start index",
 			preset:           true,
 			key:              "SubStrKey4",
 			presetValue:      "Test String Four",
@@ -297,6 +322,7 @@ func Test_HandleSubStr(t *testing.T) {
 		{
 			// Return the substring with negative start index.
 			// Substring should begin abs(start) from the end of the string when start is negative.
+			name:             "Return the substring with negative start index",
 			preset:           true,
 			key:              "SubStrKey5",
 			presetValue:      "Test String Five",
@@ -307,6 +333,7 @@ func Test_HandleSubStr(t *testing.T) {
 		{
 			// Return reverse substring with end index smaller than start index.
 			// When end index is smaller than start index, the 2 indices are reversed.
+			name:             "Return reverse substring with end index smaller than start index",
 			preset:           true,
 			key:              "SubStrKey6",
 			presetValue:      "Test String Six",
@@ -314,55 +341,62 @@ func Test_HandleSubStr(t *testing.T) {
 			expectedResponse: "tseT",
 			expectedError:    nil,
 		},
-		{ // Command too short
+		{
+			name:          "Command too short",
 			command:       []string{"SUBSTR", "key", "10"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{
-			// Command too long
+			name:          "Command too long",
 			command:       []string{"SUBSTR", "key", "10", "15", "20"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
-		{ // Start index is not an integer
+		{
+			name:          "Start index is not an integer",
 			command:       []string{"SUBSTR", "key", "start", "10"},
 			expectedError: errors.New("start and end indices must be integers"),
 		},
-		{ // End index is not an integer
+		{
+			name:          "End index is not an integer",
 			command:       []string{"SUBSTR", "key", "0", "end"},
 			expectedError: errors.New("start and end indices must be integers"),
 		},
-		{ // Non-existent key
+		{
+			name:          "Non-existent key",
 			command:       []string{"SUBSTR", "non-existent-key", "0", "10"},
 			expectedError: errors.New("key non-existent-key does not exist"),
 		},
 	}
 
 	for i, test := range tests {
-		ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SUBSTR, %d", i))
+		t.Run(test.name, func(t *testing.T) {
 
-		if test.preset {
-			if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SUBSTR, %d", i))
+
+			if test.preset {
+				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+					t.Error(err)
+				}
+				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+					t.Error(err)
+				}
+				mockServer.KeyUnlock(ctx, test.key)
+			}
+			res, err := handleSubStr(ctx, test.command, mockServer, nil)
+			if test.expectedError != nil {
+				if err.Error() != test.expectedError.Error() {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+				}
+				return
+			}
+			rd := resp.NewReader(bytes.NewBuffer(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
 				t.Error(err)
 			}
-			if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
-				t.Error(err)
+			if rv.String() != test.expectedResponse {
+				t.Errorf("expected response \"%s\", got \"%s\"", test.expectedResponse, rv.String())
 			}
-			mockServer.KeyUnlock(ctx, test.key)
-		}
-		res, err := handleSubStr(ctx, test.command, mockServer, nil)
-		if test.expectedError != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
-			}
-			continue
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		rv, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if rv.String() != test.expectedResponse {
-			t.Errorf("expected response \"%s\", got \"%s\"", test.expectedResponse, rv.String())
-		}
+		})
 	}
 }

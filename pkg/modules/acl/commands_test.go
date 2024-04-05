@@ -35,7 +35,7 @@ var mockServer *echovault.EchoVault
 
 func init() {
 	bindAddr = "localhost"
-	port = 7490
+	port = 7496
 
 	mockServer = setUpServer(bindAddr, port, true, "")
 
@@ -1019,7 +1019,7 @@ func Test_HandleSetUser(t *testing.T) {
 
 	for i, test := range tests {
 		if test.presetUser != nil {
-			acl.Users = append(acl.Users, test.presetUser)
+			acl.AddUsers([]*internal_acl.User{test.presetUser})
 		}
 		if err = r.WriteArray(test.cmd); err != nil {
 			t.Error(err)
@@ -1164,7 +1164,7 @@ func Test_HandleGetUser(t *testing.T) {
 
 	for _, test := range tests {
 		if test.presetUser != nil {
-			acl.Users = append(acl.Users, test.presetUser)
+			acl.AddUsers([]*internal_acl.User{test.presetUser})
 		}
 		if err = r.WriteArray(test.cmd); err != nil {
 			t.Error(err)
@@ -1261,7 +1261,7 @@ func Test_HandleDelUser(t *testing.T) {
 
 	for _, test := range tests {
 		if test.presetUser != nil {
-			acl.Users = append(acl.Users, test.presetUser)
+			acl.AddUsers([]*internal_acl.User{test.presetUser})
 		}
 		if err = r.WriteArray(test.cmd); err != nil {
 			t.Error(err)
@@ -1456,9 +1456,8 @@ func Test_HandleList(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		for _, user := range test.presetUsers {
-			acl.Users = append(acl.Users, user)
-		}
+		acl.AddUsers(test.presetUsers)
+
 		if err = r.WriteArray(test.cmd); err != nil {
 			t.Error(err)
 		}

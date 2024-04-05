@@ -25,6 +25,7 @@ import (
 	"github.com/tidwall/resp"
 	"net"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 )
@@ -38,9 +39,14 @@ var port uint16 = 7490
 func init() {
 	mockServer = setUpServer(bindAddr, port)
 	pubsub = mockServer.GetPubSub().(*internal_pubsub.PubSub)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
+		wg.Done()
 		mockServer.Start()
 	}()
+	wg.Wait()
 }
 
 func setUpServer(bindAddr string, port uint16) *echovault.EchoVault {
