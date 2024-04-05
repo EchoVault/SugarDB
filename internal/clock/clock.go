@@ -32,7 +32,7 @@ func (RealClock) After(d time.Duration) <-chan time.Time {
 type MockClock struct{}
 
 func (MockClock) Now() time.Time {
-	t, _ := time.Parse(time.RFC3339, "2036-01-02T15:04:05+07:00")
+	t, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:05+07:00")
 	return t
 }
 
