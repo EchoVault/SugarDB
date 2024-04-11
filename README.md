@@ -7,9 +7,6 @@
 <br/>
 [![Go Reference](https://pkg.go.dev/badge/github.com/echovault/echovault.svg)](https://pkg.go.dev/github.com/echovault/echovault)
 <br/>
-[![Discord](https://img.shields.io/discord/1211815152291414037?style=flat&label=Discord&color=%235865F2)
-](https://discord.gg/aasBFwDm)
-<br/>
 <hr/>
 
 <img alt="echovault_logo" src="./images/EchoVault GitHub Cover.png" width="5062" />
