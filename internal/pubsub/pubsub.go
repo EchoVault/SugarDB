@@ -91,7 +91,7 @@ func (ps *PubSub) Subscribe(_ context.Context, conn *net.Conn, channels []string
 	}
 }
 
-func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channels []string, withPattern bool) []byte {
+func (ps *PubSub) Unsubscribe(_ context.Context, conn *net.Conn, channels []string, withPattern bool) []byte {
 	ps.channelsRWMut.RLock()
 	defer ps.channelsRWMut.RUnlock()
 
@@ -176,7 +176,7 @@ func (ps *PubSub) Unsubscribe(ctx context.Context, conn *net.Conn, channels []st
 	return []byte(res)
 }
 
-func (ps *PubSub) Publish(ctx context.Context, message string, channelName string) {
+func (ps *PubSub) Publish(_ context.Context, message string, channelName string) {
 	ps.channelsRWMut.RLock()
 	defer ps.channelsRWMut.RUnlock()
 
