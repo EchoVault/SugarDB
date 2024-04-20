@@ -24,13 +24,13 @@ import (
 	"net"
 )
 
-func handleSetRange(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSetRange(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := setRangeKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	offset, ok := internal.AdaptType(cmd[2]).(int)
 	if !ok {
@@ -105,7 +105,7 @@ func handleStrLen(ctx context.Context, cmd []string, server types.EchoVault, con
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
@@ -125,13 +125,13 @@ func handleStrLen(ctx context.Context, cmd []string, server types.EchoVault, con
 	return []byte(fmt.Sprintf(":%d\r\n", len(value))), nil
 }
 
-func handleSubStr(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSubStr(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := subStrKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	start, startOk := internal.AdaptType(cmd[2]).(int)
 	end, endOk := internal.AdaptType(cmd[3]).(int)

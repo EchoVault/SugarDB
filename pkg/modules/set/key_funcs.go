@@ -17,48 +17,69 @@ package set
 import (
 	"errors"
 	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"slices"
 	"strings"
 )
 
-func saddKeyFunc(cmd []string) ([]string, error) {
+func saddKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func scardKeyFunc(cmd []string) ([]string, error) {
+func scardKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func sdiffKeyFunc(cmd []string) ([]string, error) {
+func sdiffKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func sdiffstoreKeyFunc(cmd []string) ([]string, error) {
+func sdiffstoreKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[2:],
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func sinterKeyFunc(cmd []string) ([]string, error) {
+func sinterKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func sintercardKeyFunc(cmd []string) ([]string, error) {
+func sintercardKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
 
 	limitIdx := slices.IndexFunc(cmd, func(s string) bool {
@@ -66,78 +87,126 @@ func sintercardKeyFunc(cmd []string) ([]string, error) {
 	})
 
 	if limitIdx == -1 {
-		return cmd[1:], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  cmd[1:],
+			WriteKeys: make([]string, 0),
+		}, nil
 	}
 
-	return cmd[1:limitIdx], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:limitIdx],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func sinterstoreKeyFunc(cmd []string) ([]string, error) {
+func sinterstoreKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[2:],
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func sismemberKeyFunc(cmd []string) ([]string, error) {
+func sismemberKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func smembersKeyFunc(cmd []string) ([]string, error) {
+func smembersKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func smismemberKeyFunc(cmd []string) ([]string, error) {
+func smismemberKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func smoveKeyFunc(cmd []string) ([]string, error) {
+func smoveKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:3], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:3],
+	}, nil
 }
 
-func spopKeyFunc(cmd []string) ([]string, error) {
+func spopKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func srandmemberKeyFunc(cmd []string) ([]string, error) {
+func srandmemberKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func sremKeyFunc(cmd []string) ([]string, error) {
+func sremKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func sunionKeyFunc(cmd []string) ([]string, error) {
+func sunionKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func sunionstoreKeyFunc(cmd []string) ([]string, error) {
+func sunionstoreKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[2:],
+		WriteKeys: cmd[1:2],
+	}, nil
 }

@@ -17,74 +17,115 @@ package list
 import (
 	"errors"
 	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 )
 
-func lpushKeyFunc(cmd []string) ([]string, error) {
+func lpushKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func popKeyFunc(cmd []string) ([]string, error) {
+func popKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:],
+	}, nil
 }
 
-func llenKeyFunc(cmd []string) ([]string, error) {
+func llenKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func lrangeKeyFunc(cmd []string) ([]string, error) {
+func lrangeKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func lindexKeyFunc(cmd []string) ([]string, error) {
+func lindexKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func lsetKeyFunc(cmd []string) ([]string, error) {
+func lsetKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func ltrimKeyFunc(cmd []string) ([]string, error) {
+func ltrimKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func lremKeyFunc(cmd []string) ([]string, error) {
+func lremKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func rpushKeyFunc(cmd []string) ([]string, error) {
+func rpushKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func lmoveKeyFunc(cmd []string) ([]string, error) {
+func lmoveKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 5 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1], cmd[2]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:3],
+	}, nil
 }

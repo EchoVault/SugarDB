@@ -34,7 +34,7 @@ func handleHSET(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	entries := make(map[string]interface{})
 
 	if len(cmd[2:])%2 != 0 {
@@ -92,7 +92,7 @@ func handleHGET(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 	fields := cmd[2:]
 
 	if !server.KeyExists(ctx, key) {
@@ -143,7 +143,7 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server types.EchoVault, _ 
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 	fields := cmd[2:]
 
 	if !server.KeyExists(ctx, key) {
@@ -194,7 +194,7 @@ func handleHVALS(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte("*0\r\n"), nil
@@ -235,7 +235,7 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server types.EchoVault,
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	count := 1
 	if len(cmd) >= 3 {
@@ -351,7 +351,7 @@ func handleHLEN(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
@@ -376,7 +376,7 @@ func handleHKEYS(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte("*0\r\n"), nil
@@ -406,7 +406,7 @@ func handleHINCRBY(ctx context.Context, cmd []string, server types.EchoVault, _ 
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	field := cmd[2]
 
 	var intIncrement int
@@ -498,7 +498,7 @@ func handleHGETALL(ctx context.Context, cmd []string, server types.EchoVault, _ 
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte("*0\r\n"), nil
@@ -538,7 +538,7 @@ func handleHEXISTS(ctx context.Context, cmd []string, server types.EchoVault, _ 
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 	field := cmd[2]
 
 	if !server.KeyExists(ctx, key) {
@@ -568,7 +568,7 @@ func handleHDEL(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	fields := cmd[2:]
 
 	if !server.KeyExists(ctx, key) {

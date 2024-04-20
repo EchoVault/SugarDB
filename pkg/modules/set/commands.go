@@ -27,13 +27,13 @@ import (
 	"strings"
 )
 
-func handleSADD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSADD(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := saddKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	var set *internal_set.Set
 
@@ -64,13 +64,13 @@ func handleSADD(ctx context.Context, cmd []string, server types.EchoVault, conn 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleSCARD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSCARD(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := scardKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte(fmt.Sprintf(":0\r\n")), nil
@@ -91,23 +91,23 @@ func handleSCARD(ctx context.Context, cmd []string, server types.EchoVault, conn
 	return []byte(fmt.Sprintf(":%d\r\n", cardinality)), nil
 }
 
-func handleSDIFF(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSDIFF(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := sdiffKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
 	// Extract base set first
-	if !server.KeyExists(ctx, keys[0]) {
-		return nil, fmt.Errorf("key for base set \"%s\" does not exist", keys[0])
+	if !server.KeyExists(ctx, keys.ReadKeys[0]) {
+		return nil, fmt.Errorf("key for base set \"%s\" does not exist", keys.ReadKeys[0])
 	}
-	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
+	if _, err = server.KeyRLock(ctx, keys.ReadKeys[0]); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, keys[0])
-	baseSet, ok := server.GetValue(ctx, keys[0]).(*internal_set.Set)
+	defer server.KeyRUnlock(ctx, keys.ReadKeys[0])
+	baseSet, ok := server.GetValue(ctx, keys.ReadKeys[0]).(*internal_set.Set)
 	if !ok {
-		return nil, fmt.Errorf("value at key %s is not a set", keys[0])
+		return nil, fmt.Errorf("value at key %s is not a set", keys.ReadKeys[0])
 	}
 
 	locks := make(map[string]bool)
@@ -119,7 +119,7 @@ func handleSDIFF(ctx context.Context, cmd []string, server types.EchoVault, conn
 		}
 	}()
 
-	for _, key := range keys[1:] {
+	for _, key := range keys.ReadKeys[1:] {
 		if !server.KeyExists(ctx, key) {
 			continue
 		}
@@ -152,25 +152,25 @@ func handleSDIFF(ctx context.Context, cmd []string, server types.EchoVault, conn
 	return []byte(res), nil
 }
 
-func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := sdiffstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	destination := keys[0]
+	destination := keys.WriteKeys[0]
 
 	// Extract base set first
-	if !server.KeyExists(ctx, keys[1]) {
-		return nil, fmt.Errorf("key for base set \"%s\" does not exist", keys[1])
+	if !server.KeyExists(ctx, keys.ReadKeys[0]) {
+		return nil, fmt.Errorf("key for base set \"%s\" does not exist", keys.ReadKeys[0])
 	}
-	if _, err := server.KeyRLock(ctx, keys[1]); err != nil {
+	if _, err := server.KeyRLock(ctx, keys.ReadKeys[0]); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, keys[1])
-	baseSet, ok := server.GetValue(ctx, keys[1]).(*internal_set.Set)
+	defer server.KeyRUnlock(ctx, keys.ReadKeys[0])
+	baseSet, ok := server.GetValue(ctx, keys.ReadKeys[0]).(*internal_set.Set)
 	if !ok {
-		return nil, fmt.Errorf("value at key %s is not a set", keys[1])
+		return nil, fmt.Errorf("value at key %s is not a set", keys.ReadKeys[0])
 	}
 
 	locks := make(map[string]bool)
@@ -182,7 +182,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault,
 		}
 	}()
 
-	for _, key := range keys[2:] {
+	for _, key := range keys.ReadKeys[1:] {
 		if !server.KeyExists(ctx, key) {
 			continue
 		}
@@ -193,7 +193,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault,
 	}
 
 	var sets []*internal_set.Set
-	for _, key := range keys[2:] {
+	for _, key := range keys.ReadKeys[1:] {
 		set, ok := server.GetValue(ctx, key).(*internal_set.Set)
 		if !ok {
 			continue
@@ -228,7 +228,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault,
 	return []byte(res), nil
 }
 
-func handleSINTER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSINTER(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := sinterKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -243,7 +243,7 @@ func handleSINTER(ctx context.Context, cmd []string, server types.EchoVault, con
 		}
 	}()
 
-	for _, key := range keys[0:] {
+	for _, key := range keys.ReadKeys {
 		if !server.KeyExists(ctx, key) {
 			// If key does not exist, then there is no intersection
 			return []byte("*0\r\n"), nil
@@ -319,7 +319,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server types.EchoVault,
 		}
 	}()
 
-	for _, key := range keys {
+	for _, key := range keys.ReadKeys {
 		if !server.KeyExists(ctx, key) {
 			// If key does not exist, then there is no intersection
 			return []byte(":0\r\n"), nil
@@ -350,7 +350,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server types.EchoVault,
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleSINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := sinterstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -365,7 +365,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault
 		}
 	}()
 
-	for _, key := range keys[1:] {
+	for _, key := range keys.ReadKeys {
 		if !server.KeyExists(ctx, key) {
 			// If key does not exist, then there is no intersection
 			return []byte(":0\r\n"), nil
@@ -388,7 +388,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault
 	}
 
 	intersect, _ := internal_set.Intersection(0, sets...)
-	destination := keys[0]
+	destination := keys.WriteKeys[0]
 
 	if server.KeyExists(ctx, destination) {
 		if _, err = server.KeyLock(ctx, destination); err != nil {
@@ -408,13 +408,13 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleSISMEMBER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSISMEMBER(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := sismemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
@@ -437,13 +437,13 @@ func handleSISMEMBER(ctx context.Context, cmd []string, server types.EchoVault, 
 	return []byte(":1\r\n"), nil
 }
 
-func handleSMEMBERS(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSMEMBERS(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := smembersKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte("*0\r\n"), nil
@@ -472,13 +472,13 @@ func handleSMEMBERS(ctx context.Context, cmd []string, server types.EchoVault, c
 	return []byte(res), nil
 }
 
-func handleSMISMEMBER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSMISMEMBER(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := smismemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 	members := cmd[2:]
 
 	if !server.KeyExists(ctx, key) {
@@ -515,14 +515,13 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server types.EchoVault,
 	return []byte(res), nil
 }
 
-func handleSMOVE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSMOVE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := smoveKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	source := keys[0]
-	destination := keys[1]
+	source, destination := keys.WriteKeys[0], keys.WriteKeys[1]
 	member := cmd[3]
 
 	if !server.KeyExists(ctx, source) {
@@ -569,13 +568,13 @@ func handleSMOVE(ctx context.Context, cmd []string, server types.EchoVault, conn
 	return []byte(fmt.Sprintf(":%d\r\n", res)), nil
 }
 
-func handleSPOP(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSPOP(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := spopKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	count := 1
 
 	if len(cmd) == 3 {
@@ -613,13 +612,13 @@ func handleSPOP(ctx context.Context, cmd []string, server types.EchoVault, conn 
 	return []byte(res), nil
 }
 
-func handleSRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := srandmemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 	count := 1
 
 	if len(cmd) == 3 {
@@ -657,13 +656,13 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault
 	return []byte(res), nil
 }
 
-func handleSREM(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSREM(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := sremKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	members := cmd[2:]
 
 	if !server.KeyExists(ctx, key) {
@@ -685,7 +684,7 @@ func handleSREM(ctx context.Context, cmd []string, server types.EchoVault, conn 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleSUNION(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSUNION(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := sunionKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -700,7 +699,7 @@ func handleSUNION(ctx context.Context, cmd []string, server types.EchoVault, con
 		}
 	}()
 
-	for _, key := range keys {
+	for _, key := range keys.ReadKeys {
 		if !server.KeyExists(ctx, key) {
 			continue
 		}
@@ -736,7 +735,7 @@ func handleSUNION(ctx context.Context, cmd []string, server types.EchoVault, con
 	return []byte(res), nil
 }
 
-func handleSUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleSUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := sunionstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -751,7 +750,7 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault
 		}
 	}()
 
-	for _, key := range keys[1:] {
+	for _, key := range keys.ReadKeys {
 		if !server.KeyExists(ctx, key) {
 			continue
 		}
@@ -776,7 +775,7 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault
 
 	union := internal_set.Union(sets...)
 
-	destination := cmd[1]
+	destination := keys.WriteKeys[0]
 
 	if server.KeyExists(ctx, destination) {
 		if _, err = server.KeyLock(ctx, destination); err != nil {

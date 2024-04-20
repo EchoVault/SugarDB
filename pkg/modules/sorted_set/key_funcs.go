@@ -17,34 +17,47 @@ package sorted_set
 import (
 	"errors"
 	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 	"slices"
 	"strings"
 )
 
-func zaddKeyFunc(cmd []string) ([]string, error) {
+func zaddKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func zcardKeyFunc(cmd []string) ([]string, error) {
+func zcardKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func zcountKeyFunc(cmd []string) ([]string, error) {
+func zcountKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func zdiffKeyFunc(cmd []string) ([]string, error) {
+func zdiffKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
 
 	withscoresIndex := slices.IndexFunc(cmd, func(s string) bool {
@@ -52,29 +65,45 @@ func zdiffKeyFunc(cmd []string) ([]string, error) {
 	})
 
 	if withscoresIndex == -1 {
-		return cmd[1:], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  cmd[1:],
+			WriteKeys: make([]string, 0),
+		}, nil
 	}
 
-	return cmd[1:withscoresIndex], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:withscoresIndex],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func zdiffstoreKeyFunc(cmd []string) ([]string, error) {
+func zdiffstoreKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[2:], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[2:],
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func zincrbyKeyFunc(cmd []string) ([]string, error) {
+func zincrbyKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func zinterKeyFunc(cmd []string) ([]string, error) {
+func zinterKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
 	endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 		if strings.EqualFold(s, "WEIGHTS") ||
@@ -85,17 +114,25 @@ func zinterKeyFunc(cmd []string) ([]string, error) {
 		return false
 	})
 	if endIdx == -1 {
-		return cmd[1:], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  cmd[1:],
+			WriteKeys: make([]string, 0),
+		}, nil
 	}
 	if endIdx >= 1 {
-		return cmd[1:endIdx], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  cmd[1:endIdx],
+			WriteKeys: make([]string, 0),
+		}, nil
 	}
-	return nil, errors.New(constants.WrongArgsResponse)
+	return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 }
 
-func zinterstoreKeyFunc(cmd []string) ([]string, error) {
-	if len(cmd) < 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+func zinterstoreKeyFunc(cmd []string) (types.AccessKeys, error) {
+	if len(cmd) < 3 {
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
 	endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 		if strings.EqualFold(s, "WEIGHTS") ||
@@ -106,124 +143,192 @@ func zinterstoreKeyFunc(cmd []string) ([]string, error) {
 		return false
 	})
 	if endIdx == -1 {
-		return cmd[1:], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  cmd[2:],
+			WriteKeys: cmd[1:2],
+		}, nil
 	}
-	if endIdx >= 2 {
-		return cmd[1:endIdx], nil
+	if endIdx >= 3 {
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  cmd[2:endIdx],
+			WriteKeys: cmd[1:2],
+		}, nil
 	}
-	return nil, errors.New(constants.WrongArgsResponse)
+	return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 }
 
-func zmpopKeyFunc(cmd []string) ([]string, error) {
+func zmpopKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
 	endIdx := slices.IndexFunc(cmd, func(s string) bool {
 		return slices.Contains([]string{"MIN", "MAX", "COUNT"}, strings.ToUpper(s))
 	})
 	if endIdx == -1 {
-		return cmd[1:], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  make([]string, 0),
+			WriteKeys: cmd[1:],
+		}, nil
 	}
 	if endIdx >= 2 {
-		return cmd[1:endIdx], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  make([]string, 0),
+			WriteKeys: cmd[1:endIdx],
+		}, nil
 	}
-	return nil, errors.New(constants.WrongArgsResponse)
+	return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 }
 
-func zmscoreKeyFunc(cmd []string) ([]string, error) {
+func zmscoreKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func zpopKeyFunc(cmd []string) ([]string, error) {
+func zpopKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func zrandmemberKeyFunc(cmd []string) ([]string, error) {
+func zrandmemberKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 || len(cmd) > 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func zrankKeyFunc(cmd []string) ([]string, error) {
+func zrankKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 || len(cmd) > 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func zremKeyFunc(cmd []string) ([]string, error) {
+func zremKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func zrevrankKeyFunc(cmd []string) ([]string, error) {
+func zrevrankKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func zscoreKeyFunc(cmd []string) ([]string, error) {
+func zscoreKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func zremrangebylexKeyFunc(cmd []string) ([]string, error) {
+func zremrangebylexKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func zremrangebyrankKeyFunc(cmd []string) ([]string, error) {
+func zremrangebyrankKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func zremrangebyscoreKeyFunc(cmd []string) ([]string, error) {
+func zremrangebyscoreKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func zlexcountKeyFunc(cmd []string) ([]string, error) {
+func zlexcountKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func zrangeKeyCount(cmd []string) ([]string, error) {
+func zrangeKeyCount(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 4 || len(cmd) > 10 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:2], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func zrangeStoreKeyFunc(cmd []string) ([]string, error) {
+func zrangeStoreKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 5 || len(cmd) > 11 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return cmd[1:3], nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[2:3],
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func zunionKeyFunc(cmd []string) ([]string, error) {
+func zunionKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) < 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
 	endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 		if strings.EqualFold(s, "WEIGHTS") ||
@@ -234,17 +339,25 @@ func zunionKeyFunc(cmd []string) ([]string, error) {
 		return false
 	})
 	if endIdx == -1 {
-		return cmd[1:], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  cmd[1:],
+			WriteKeys: make([]string, 0),
+		}, nil
 	}
 	if endIdx >= 1 {
-		return cmd[1:endIdx], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  cmd[1:endIdx],
+			WriteKeys: cmd[1:endIdx],
+		}, nil
 	}
-	return nil, errors.New(constants.WrongArgsResponse)
+	return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 }
 
-func zunionstoreKeyFunc(cmd []string) ([]string, error) {
-	if len(cmd) < 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+func zunionstoreKeyFunc(cmd []string) (types.AccessKeys, error) {
+	if len(cmd) < 3 {
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
 	endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
 		if strings.EqualFold(s, "WEIGHTS") ||
@@ -255,10 +368,18 @@ func zunionstoreKeyFunc(cmd []string) ([]string, error) {
 		return false
 	})
 	if endIdx == -1 {
-		return cmd[1:], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  cmd[2:],
+			WriteKeys: cmd[1:2],
+		}, nil
 	}
 	if endIdx >= 1 {
-		return cmd[1:endIdx], nil
+		return types.AccessKeys{
+			Channels:  make([]string, 0),
+			ReadKeys:  cmd[2:endIdx],
+			WriteKeys: cmd[1:2],
+		}, nil
 	}
-	return nil, errors.New(constants.WrongArgsResponse)
+	return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 }

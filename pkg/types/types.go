@@ -43,7 +43,13 @@ type EchoVault interface {
 	GetLatestSnapshotTime() int64
 }
 
-type KeyExtractionFunc func(cmd []string) ([]string, error)
+type AccessKeys struct {
+	Channels  []string
+	ReadKeys  []string
+	WriteKeys []string
+}
+type KeyExtractionFunc func(cmd []string) (AccessKeys, error)
+
 type HandlerFunc func(ctx context.Context, cmd []string, echovault EchoVault, conn *net.Conn) ([]byte, error)
 
 type SubCommand struct {

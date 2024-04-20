@@ -39,7 +39,7 @@ func handleSet(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	value := cmd[2]
 	res := []byte(constants.OkResponse)
 	clock := server.GetClock()
@@ -99,7 +99,8 @@ func handleSet(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 }
 
 func handleMSet(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	if _, err := msetKeyFunc(cmd); err != nil {
+	_, err := msetKeyFunc(cmd)
+	if err != nil {
 		return nil, err
 	}
 
@@ -159,7 +160,7 @@ func handleGet(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 	if err != nil {
 		return nil, err
 	}
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte("$-1\r\n"), nil
@@ -185,7 +186,7 @@ func handleMGet(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	values := make(map[string]string)
 
 	locks := make(map[string]bool)
-	for _, key := range keys {
+	for _, key := range keys.ReadKeys {
 		if _, ok := values[key]; ok {
 			// Skip if we have already locked this key
 			continue
@@ -232,7 +233,7 @@ func handleDel(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 		return nil, err
 	}
 	count := 0
-	for _, key := range keys {
+	for _, key := range keys.WriteKeys {
 		err = server.DeleteKey(ctx, key)
 		if err != nil {
 			log.Printf("could not delete key %s due to error: %+v\n", key, err)
@@ -249,7 +250,7 @@ func handlePersist(ctx context.Context, cmd []string, server types.EchoVault, _ 
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
@@ -276,7 +277,7 @@ func handleExpireTime(ctx context.Context, cmd []string, server types.EchoVault,
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte(":-2\r\n"), nil
@@ -307,7 +308,7 @@ func handleTTL(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	clock := server.GetClock()
 
@@ -344,7 +345,7 @@ func handleExpire(ctx context.Context, cmd []string, server types.EchoVault, _ *
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	// Extract time
 	n, err := strconv.ParseInt(cmd[2], 10, 64)
@@ -412,7 +413,7 @@ func handleExpireAt(ctx context.Context, cmd []string, server types.EchoVault, _
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	// Extract time
 	n, err := strconv.ParseInt(cmd[2], 10, 64)
