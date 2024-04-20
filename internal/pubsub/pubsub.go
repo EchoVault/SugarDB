@@ -25,7 +25,6 @@ import (
 	"sync"
 )
 
-// PubSub container
 type PubSub struct {
 	channels      []*Channel
 	channelsRWMut sync.RWMutex
@@ -101,31 +100,31 @@ func (ps *PubSub) Unsubscribe(_ context.Context, conn *net.Conn, channels []stri
 	}
 
 	unsubscribed := make(map[int]string)
-	count := 1
+	idx := 1
 
 	if len(channels) <= 0 {
 		if !withPattern {
 			// If the channels slice is empty, and no pattern is provided
-			// only unsubscribe from all channels.
+			// unsubscribe from all channels.
 			for _, channel := range ps.channels {
 				if channel.pattern != nil { // Skip pattern channels
 					continue
 				}
 				if channel.Unsubscribe(conn) {
-					unsubscribed[count] = channel.name
-					count += 1
+					unsubscribed[idx] = channel.name
+					idx += 1
 				}
 			}
 		} else {
 			// If the channels slice is empty, and pattern is provided
-			// only unsubscribe from all patterns.
+			// unsubscribe from all patterns.
 			for _, channel := range ps.channels {
 				if channel.pattern == nil { // Skip non-pattern channels
 					continue
 				}
 				if channel.Unsubscribe(conn) {
-					unsubscribed[count] = channel.name
-					count += 1
+					unsubscribed[idx] = channel.name
+					idx += 1
 				}
 			}
 		}
@@ -137,8 +136,8 @@ func (ps *PubSub) Unsubscribe(_ context.Context, conn *net.Conn, channels []stri
 	for _, channel := range ps.channels { // For each channel in PubSub
 		for _, c := range channels { // For each channel name provided
 			if channel.name == c && channel.Unsubscribe(conn) {
-				unsubscribed[count] = channel.name
-				count += 1
+				unsubscribed[idx] = channel.name
+				idx += 1
 			}
 		}
 	}
@@ -152,16 +151,16 @@ func (ps *PubSub) Unsubscribe(_ context.Context, conn *net.Conn, channels []stri
 				// If it's a pattern channel, directly compare the patterns
 				if channel.pattern != nil && channel.name == pattern {
 					if channel.Unsubscribe(conn) {
-						unsubscribed[count] = channel.name
-						count += 1
+						unsubscribed[idx] = channel.name
+						idx += 1
 					}
 					continue
 				}
 				// If this is a regular channel, check if the channel name matches the pattern given
 				if g.Match(channel.name) {
 					if channel.Unsubscribe(conn) {
-						unsubscribed[count] = channel.name
-						count += 1
+						unsubscribed[idx] = channel.name
+						idx += 1
 					}
 				}
 			}

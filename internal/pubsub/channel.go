@@ -22,23 +22,22 @@ import (
 	"sync"
 )
 
-// Channel - A channel can be subscribed to directly, or via a consumer group.
-// All direct subscribers to the channel will receive any message published to the channel.
-// Only one subscriber of a channel's consumer group will receive a message posted to the channel.
 type Channel struct {
-	name             string
-	pattern          glob.Glob
-	subscribersRWMut sync.RWMutex
-	subscribers      map[*net.Conn]*resp.Conn
-	messageChan      *chan string
+	name             string                   // Channel name. This can be a glob pattern string.
+	pattern          glob.Glob                // Compiled glob pattern. This is nil if the channel is not a pattern channel.
+	subscribersRWMut sync.RWMutex             // RWMutex to concurrency control when accessing channel subscribers.
+	subscribers      map[*net.Conn]*resp.Conn // Map containing the channel subscribers.
+	messageChan      *chan string             // Messages published to this channel will be sent to this channel.
 }
 
+// WithName option sets the channels name.
 func WithName(name string) func(channel *Channel) {
 	return func(channel *Channel) {
 		channel.name = name
 	}
 }
 
+// WithPattern option sets the compiled glob pattern for the channel if it's a pattern channel.
 func WithPattern(pattern string) func(channel *Channel) {
 	return func(channel *Channel) {
 		channel.name = pattern

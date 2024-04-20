@@ -21,12 +21,12 @@ import (
 	"net"
 )
 
-type connMap struct {
+type conn struct {
 	readConn  *net.Conn
 	writeConn *net.Conn
 }
 
-var conns map[string]connMap
+var connections map[string]conn
 
 // ReadPubSubMessage is returned by the SUBSCRIBE and PSUBSCRIBE functions.
 //
@@ -48,16 +48,16 @@ type ReadPubSubMessage func() []string
 // This function is blocking.
 func (server *EchoVault) SUBSCRIBE(tag string, channels ...string) ReadPubSubMessage {
 	// Initialize connection tracker if calling subscribe for the first time
-	if conns == nil {
-		conns = make(map[string]connMap)
+	if connections == nil {
+		connections = make(map[string]conn)
 	}
 
 	// If connection with this name does not exist, create new connection it
 	var readConn net.Conn
 	var writeConn net.Conn
-	if _, ok := conns[tag]; !ok {
+	if _, ok := connections[tag]; !ok {
 		readConn, writeConn = net.Pipe()
-		conns[tag] = connMap{
+		connections[tag] = conn{
 			readConn:  &readConn,
 			writeConn: &writeConn,
 		}
@@ -66,7 +66,7 @@ func (server *EchoVault) SUBSCRIBE(tag string, channels ...string) ReadPubSubMes
 	// Subscribe connection to the provided channels
 	cmd := append([]string{"SUBSCRIBE"}, channels...)
 	go func() {
-		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), conns[tag].writeConn, false)
+		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false)
 	}()
 
 	return func() []string {
@@ -90,16 +90,16 @@ func (server *EchoVault) SUBSCRIBE(tag string, channels ...string) ReadPubSubMes
 //
 // `channels` - ...string - The list of channels to unsubscribe from.
 func (server *EchoVault) UNSUBSCRIBE(tag string, channels ...string) {
-	if conns == nil {
+	if connections == nil {
 		return
 	}
 
-	if _, ok := conns[tag]; !ok {
+	if _, ok := connections[tag]; !ok {
 		return
 	}
 
 	cmd := append([]string{"UNSUBSCRIBE"}, channels...)
-	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), conns[tag].writeConn, false)
+	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false)
 }
 
 // PSUBSCRIBE subscribes the caller to the list of provided glob patterns.
@@ -114,16 +114,16 @@ func (server *EchoVault) UNSUBSCRIBE(tag string, channels ...string) {
 // This function is blocking.
 func (server *EchoVault) PSUBSCRIBE(tag string, patterns ...string) ReadPubSubMessage {
 	// Initialize connection tracker if calling subscribe for the first time
-	if conns == nil {
-		conns = make(map[string]connMap)
+	if connections == nil {
+		connections = make(map[string]conn)
 	}
 
 	// If connection with this name does not exist, create new connection it
 	var readConn net.Conn
 	var writeConn net.Conn
-	if _, ok := conns[tag]; !ok {
+	if _, ok := connections[tag]; !ok {
 		readConn, writeConn = net.Pipe()
-		conns[tag] = connMap{
+		connections[tag] = conn{
 			readConn:  &readConn,
 			writeConn: &writeConn,
 		}
@@ -132,7 +132,7 @@ func (server *EchoVault) PSUBSCRIBE(tag string, patterns ...string) ReadPubSubMe
 	// Subscribe connection to the provided channels
 	cmd := append([]string{"PSUBSCRIBE"}, patterns...)
 	go func() {
-		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), conns[tag].writeConn, false)
+		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false)
 	}()
 
 	return func() []string {
@@ -156,16 +156,16 @@ func (server *EchoVault) PSUBSCRIBE(tag string, patterns ...string) ReadPubSubMe
 //
 // `patterns` - ...string - The list of glob patterns to unsubscribe from.
 func (server *EchoVault) PUNSUBSCRIBE(tag string, patterns ...string) {
-	if conns == nil {
+	if connections == nil {
 		return
 	}
 
-	if _, ok := conns[tag]; !ok {
+	if _, ok := connections[tag]; !ok {
 		return
 	}
 
 	cmd := append([]string{"PUNSUBSCRIBE"}, patterns...)
-	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), conns[tag].writeConn, false)
+	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false)
 }
 
 // PUBLISH publishes a message to the given channel.
