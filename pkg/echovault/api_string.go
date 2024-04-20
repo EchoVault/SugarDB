@@ -28,12 +28,7 @@ import (
 //
 // - "value at key <key> is not a string" when the key provided does not hold a string.
 func (server *EchoVault) SETRANGE(key string, offset int, new string) (int, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"SETRANGE", key, strconv.Itoa(offset), new}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SETRANGE", key, strconv.Itoa(offset), new}), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -48,7 +43,7 @@ func (server *EchoVault) SETRANGE(key string, offset int, new string) (int, erro
 //
 // - "value at key <key> is not a string" - when the value at the keys is not a string.
 func (server *EchoVault) STRLEN(key string) (int, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"STRLEN", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"STRLEN", key}), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -66,12 +61,7 @@ func (server *EchoVault) STRLEN(key string) (int, error) {
 //
 // - "value at key <key> is not a string" - when the value at the keys is not a string.
 func (server *EchoVault) SUBSTR(key string, start, end int) (string, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"SUBSTR", key, strconv.Itoa(start), strconv.Itoa(end)}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SUBSTR", key, strconv.Itoa(start), strconv.Itoa(end)}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -80,12 +70,7 @@ func (server *EchoVault) SUBSTR(key string, start, end int) (string, error) {
 
 // GETRANGE works the same as SUBSTR.
 func (server *EchoVault) GETRANGE(key string, start, end int) (string, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"GETRANGE", key, strconv.Itoa(start), strconv.Itoa(end)}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"GETRANGE", key, strconv.Itoa(start), strconv.Itoa(end)}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
