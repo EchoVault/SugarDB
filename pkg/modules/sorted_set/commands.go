@@ -36,7 +36,7 @@ func handleZADD(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	var updatePolicy interface{} = nil
 	var comparison interface{} = nil
@@ -181,12 +181,12 @@ func handleZADD(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
 
-func handleZCARD(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZCARD(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zcardKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
@@ -205,13 +205,13 @@ func handleZCARD(ctx context.Context, cmd []string, server types.EchoVault, conn
 	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
 
-func handleZCOUNT(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZCOUNT(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zcountKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	minimum := sorted_set.Score(math.Inf(-1))
 	switch internal.AdaptType(cmd[2]).(type) {
@@ -279,7 +279,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server types.EchoVault, 
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 	minimum := cmd[2]
 	maximum := cmd[3]
 
@@ -318,7 +318,7 @@ func handleZLEXCOUNT(ctx context.Context, cmd []string, server types.EchoVault, 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleZDIFF(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZDIFF(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zdiffKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -341,34 +341,34 @@ func handleZDIFF(ctx context.Context, cmd []string, server types.EchoVault, conn
 	}()
 
 	// Extract base set
-	if !server.KeyExists(ctx, keys[0]) {
+	if !server.KeyExists(ctx, keys.ReadKeys[0]) {
 		// If base set does not exist, return an empty array
 		return []byte("*0\r\n"), nil
 	}
-	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
+	if _, err = server.KeyRLock(ctx, keys.ReadKeys[0]); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, keys[0])
-	baseSortedSet, ok := server.GetValue(ctx, keys[0]).(*sorted_set.SortedSet)
+	defer server.KeyRUnlock(ctx, keys.ReadKeys[0])
+	baseSortedSet, ok := server.GetValue(ctx, keys.ReadKeys[0]).(*sorted_set.SortedSet)
 	if !ok {
-		return nil, fmt.Errorf("value at %s is not a sorted set", keys[0])
+		return nil, fmt.Errorf("value at %s is not a sorted set", keys.ReadKeys[0])
 	}
 
 	// Extract the remaining sets
 	var sets []*sorted_set.SortedSet
 
-	for i := 1; i < len(keys); i++ {
-		if !server.KeyExists(ctx, keys[i]) {
+	for i := 1; i < len(keys.ReadKeys); i++ {
+		if !server.KeyExists(ctx, keys.ReadKeys[i]) {
 			continue
 		}
-		locked, err := server.KeyRLock(ctx, keys[i])
+		locked, err := server.KeyRLock(ctx, keys.ReadKeys[i])
 		if err != nil {
 			return nil, err
 		}
-		locks[keys[i]] = locked
-		set, ok := server.GetValue(ctx, keys[i]).(*sorted_set.SortedSet)
+		locks[keys.ReadKeys[i]] = locked
+		set, ok := server.GetValue(ctx, keys.ReadKeys[i]).(*sorted_set.SortedSet)
 		if !ok {
-			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
+			return nil, fmt.Errorf("value at %s is not a sorted set", keys.ReadKeys[i])
 		}
 		sets = append(sets, set)
 	}
@@ -391,13 +391,13 @@ func handleZDIFF(ctx context.Context, cmd []string, server types.EchoVault, conn
 	return []byte(res), nil
 }
 
-func handleZDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zdiffstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	destination := cmd[1]
+	destination := keys.WriteKeys[0]
 
 	locks := make(map[string]bool)
 	defer func() {
@@ -409,29 +409,29 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault,
 	}()
 
 	// Extract base set
-	if !server.KeyExists(ctx, keys[0]) {
+	if !server.KeyExists(ctx, keys.ReadKeys[0]) {
 		// If base set does not exist, return 0
 		return []byte(":0\r\n"), nil
 	}
-	if _, err = server.KeyRLock(ctx, keys[0]); err != nil {
+	if _, err = server.KeyRLock(ctx, keys.ReadKeys[0]); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, keys[0])
-	baseSortedSet, ok := server.GetValue(ctx, keys[0]).(*sorted_set.SortedSet)
+	defer server.KeyRUnlock(ctx, keys.ReadKeys[0])
+	baseSortedSet, ok := server.GetValue(ctx, keys.ReadKeys[0]).(*sorted_set.SortedSet)
 	if !ok {
-		return nil, fmt.Errorf("value at %s is not a sorted set", keys[0])
+		return nil, fmt.Errorf("value at %s is not a sorted set", keys.ReadKeys[0])
 	}
 
 	var sets []*sorted_set.SortedSet
 
-	for i := 1; i < len(keys); i++ {
-		if server.KeyExists(ctx, keys[i]) {
-			if _, err = server.KeyRLock(ctx, keys[i]); err != nil {
+	for i := 1; i < len(keys.ReadKeys); i++ {
+		if server.KeyExists(ctx, keys.ReadKeys[i]) {
+			if _, err = server.KeyRLock(ctx, keys.ReadKeys[i]); err != nil {
 				return nil, err
 			}
-			set, ok := server.GetValue(ctx, keys[i]).(*sorted_set.SortedSet)
+			set, ok := server.GetValue(ctx, keys.ReadKeys[i]).(*sorted_set.SortedSet)
 			if !ok {
-				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
+				return nil, fmt.Errorf("value at %s is not a sorted set", keys.ReadKeys[i])
 			}
 			sets = append(sets, set)
 		}
@@ -457,13 +457,13 @@ func handleZDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault,
 	return []byte(fmt.Sprintf(":%d\r\n", diff.Cardinality())), nil
 }
 
-func handleZINCRBY(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZINCRBY(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zincrbyKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	member := sorted_set.Value(cmd[3])
 	var increment sorted_set.Score
 
@@ -524,8 +524,8 @@ func handleZINCRBY(ctx context.Context, cmd []string, server types.EchoVault, co
 		strconv.FormatFloat(float64(set.Get(member).Score), 'f', -1, 64))), nil
 }
 
-func handleZINTER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-	keys, err := zinterKeyFunc(cmd)
+func handleZINTER(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
+	_, err := zinterKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -584,13 +584,13 @@ func handleZINTER(ctx context.Context, cmd []string, server types.EchoVault, con
 	return []byte(res), nil
 }
 
-func handleZINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-	keys, err := zinterstoreKeyFunc(cmd)
+func handleZINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
+	k, err := zinterstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	destination := keys[0]
+	destination := k.WriteKeys[0]
 
 	// Remove the destination keys from the command before parsing it
 	cmd = slices.DeleteFunc(cmd, func(s string) bool {
@@ -651,7 +651,7 @@ func handleZINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleZMPOP(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZMPOP(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zmpopKeyFunc(cmd)
 	if err != nil {
 		return nil, err
@@ -697,22 +697,22 @@ func handleZMPOP(ctx context.Context, cmd []string, server types.EchoVault, conn
 		}
 	}
 
-	for i := 0; i < len(keys); i++ {
-		if server.KeyExists(ctx, keys[i]) {
-			if _, err = server.KeyLock(ctx, keys[i]); err != nil {
+	for i := 0; i < len(keys.WriteKeys); i++ {
+		if server.KeyExists(ctx, keys.WriteKeys[i]) {
+			if _, err = server.KeyLock(ctx, keys.WriteKeys[i]); err != nil {
 				continue
 			}
-			v, ok := server.GetValue(ctx, keys[i]).(*sorted_set.SortedSet)
+			v, ok := server.GetValue(ctx, keys.WriteKeys[i]).(*sorted_set.SortedSet)
 			if !ok || v.Cardinality() == 0 {
-				server.KeyUnlock(ctx, keys[i])
+				server.KeyUnlock(ctx, keys.WriteKeys[i])
 				continue
 			}
 			popped, err := v.Pop(count, policy)
 			if err != nil {
-				server.KeyUnlock(ctx, keys[i])
+				server.KeyUnlock(ctx, keys.WriteKeys[i])
 				return nil, err
 			}
-			server.KeyUnlock(ctx, keys[i])
+			server.KeyUnlock(ctx, keys.WriteKeys[i])
 
 			res := fmt.Sprintf("*%d", popped.Cardinality())
 
@@ -729,13 +729,13 @@ func handleZMPOP(ctx context.Context, cmd []string, server types.EchoVault, conn
 	return []byte("*0\r\n"), nil
 }
 
-func handleZPOP(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZPOP(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zpopKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	count := 1
 	policy := "min"
 
@@ -782,13 +782,13 @@ func handleZPOP(ctx context.Context, cmd []string, server types.EchoVault, conn 
 	return []byte(res), nil
 }
 
-func handleZMSCORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZMSCORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zmscoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte("*0\r\n"), nil
@@ -824,13 +824,13 @@ func handleZMSCORE(ctx context.Context, cmd []string, server types.EchoVault, co
 	return []byte(res), nil
 }
 
-func handleZRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zrandmemberKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	count := 1
 	if len(cmd) >= 3 {
@@ -888,7 +888,7 @@ func handleZRANK(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 	member := cmd[2]
 	withscores := false
 
@@ -938,7 +938,7 @@ func handleZREM(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte(":0\r\n"), nil
@@ -964,13 +964,13 @@ func handleZREM(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZSCORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZSCORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zscoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return []byte("$-1\r\n"), nil
@@ -993,13 +993,13 @@ func handleZSCORE(ctx context.Context, cmd []string, server types.EchoVault, con
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(score), score)), nil
 }
 
-func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zremrangebyscoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	deletedCount := 0
 
@@ -1037,13 +1037,13 @@ func handleZREMRANGEBYSCORE(ctx context.Context, cmd []string, server types.Echo
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zremrangebyrankKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	start, err := strconv.Atoi(cmd[2])
 	if err != nil {
@@ -1102,13 +1102,13 @@ func handleZREMRANGEBYRANK(ctx context.Context, cmd []string, server types.EchoV
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zremrangebylexKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	minimum := cmd[2]
 	maximum := cmd[3]
 
@@ -1149,13 +1149,13 @@ func handleZREMRANGEBYLEX(ctx context.Context, cmd []string, server types.EchoVa
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZRANGE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZRANGE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zrangeKeyCount(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 	policy := "byscore"
 	scoreStart := math.Inf(-1) // Lower bound if policy is "byscore"
 	scoreStop := math.Inf(1)   // Upper bound if policy is "byscore"
@@ -1289,14 +1289,14 @@ func handleZRANGE(ctx context.Context, cmd []string, server types.EchoVault, con
 	return []byte(res), nil
 }
 
-func handleZRANGESTORE(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZRANGESTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := zrangeStoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	destination := keys[0]
-	source := keys[1]
+	destination := keys.WriteKeys[0]
+	source := keys.ReadKeys[0]
 	policy := "byscore"
 	scoreStart := math.Inf(-1) // Lower bound if policy is "byscore"
 	scoreStop := math.Inf(1)   // Upper bound if policy is "byfloat"
@@ -1431,7 +1431,7 @@ func handleZRANGESTORE(ctx context.Context, cmd []string, server types.EchoVault
 	return []byte(fmt.Sprintf(":%d\r\n", newSortedSet.Cardinality())), nil
 }
 
-func handleZUNION(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleZUNION(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	if _, err := zunionKeyFunc(cmd); err != nil {
 		return nil, err
 	}
@@ -1486,12 +1486,12 @@ func handleZUNION(ctx context.Context, cmd []string, server types.EchoVault, con
 }
 
 func handleZUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := zunionstoreKeyFunc(cmd)
+	k, err := zunionstoreKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	destination := keys[0]
+	destination := k.WriteKeys[0]
 
 	// Remove destination key from list of keys
 	cmd = slices.DeleteFunc(cmd, func(s string) bool {

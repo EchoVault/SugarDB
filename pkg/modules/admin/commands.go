@@ -26,7 +26,7 @@ import (
 	"strings"
 )
 
-func handleGetAllCommands(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleGetAllCommands(_ context.Context, _ []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	commands := server.GetAllCommands()
 
 	res := ""
@@ -194,13 +194,19 @@ func handleCommandDocs(_ context.Context, _ []string, _ types.EchoVault, _ *net.
 func Commands() []types.Command {
 	return []types.Command{
 		{
-			Command:           "commands",
-			Module:            constants.AdminModule,
-			Categories:        []string{constants.AdminCategory, constants.SlowCategory},
-			Description:       "Get a list of all the commands in available on the echovault with categories and descriptions",
-			Sync:              false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
-			HandlerFunc:       handleGetAllCommands,
+			Command:     "commands",
+			Module:      constants.AdminModule,
+			Categories:  []string{constants.AdminCategory, constants.SlowCategory},
+			Description: "Get a list of all the commands in available on the echovault with categories and descriptions",
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+				return types.AccessKeys{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
+			},
+			HandlerFunc: handleGetAllCommands,
 		},
 		{
 			Command:     "command",
@@ -208,27 +214,43 @@ func Commands() []types.Command {
 			Categories:  []string{},
 			Description: "Commands pertaining to echovault commands",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				return []string{}, nil
+			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+				return types.AccessKeys{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
 			},
 			SubCommands: []types.SubCommand{
 				{
-					Command:           "docs",
-					Module:            constants.AdminModule,
-					Categories:        []string{constants.SlowCategory, constants.ConnectionCategory},
-					Description:       "Get command documentation",
-					Sync:              false,
-					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
-					HandlerFunc:       handleCommandDocs,
+					Command:     "docs",
+					Module:      constants.AdminModule,
+					Categories:  []string{constants.SlowCategory, constants.ConnectionCategory},
+					Description: "Get command documentation",
+					Sync:        false,
+					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+						return types.AccessKeys{
+							Channels:  make([]string, 0),
+							ReadKeys:  make([]string, 0),
+							WriteKeys: make([]string, 0),
+						}, nil
+					},
+					HandlerFunc: handleCommandDocs,
 				},
 				{
-					Command:           "count",
-					Module:            constants.AdminModule,
-					Categories:        []string{constants.SlowCategory},
-					Description:       "Get the dumber of commands in the echovault",
-					Sync:              false,
-					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
-					HandlerFunc:       handleCommandCount,
+					Command:     "count",
+					Module:      constants.AdminModule,
+					Categories:  []string{constants.SlowCategory},
+					Description: "Get the dumber of commands in the echovault",
+					Sync:        false,
+					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+						return types.AccessKeys{
+							Channels:  make([]string, 0),
+							ReadKeys:  make([]string, 0),
+							WriteKeys: make([]string, 0),
+						}, nil
+					},
+					HandlerFunc: handleCommandCount,
 				},
 				{
 					Command:    "list",
@@ -236,9 +258,15 @@ func Commands() []types.Command {
 					Categories: []string{constants.SlowCategory},
 					Description: `(COMMAND LIST [FILTERBY <ACLCAT category | PATTERN pattern | MODULE module>]) Get the list of command names.
 Allows for filtering by ACL category or glob pattern.`,
-					Sync:              false,
-					KeyExtractionFunc: func(cmd []string) ([]string, error) { return []string{}, nil },
-					HandlerFunc:       handleCommandList,
+					Sync: false,
+					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+						return types.AccessKeys{
+							Channels:  make([]string, 0),
+							ReadKeys:  make([]string, 0),
+							WriteKeys: make([]string, 0),
+						}, nil
+					},
+					HandlerFunc: handleCommandList,
 				},
 			},
 		},
@@ -248,8 +276,12 @@ Allows for filtering by ACL category or glob pattern.`,
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(SAVE) Trigger a snapshot save",
 			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				return []string{}, nil
+			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+				return types.AccessKeys{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
 			},
 			HandlerFunc: func(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 				if err := server.TakeSnapshot(); err != nil {
@@ -264,8 +296,12 @@ Allows for filtering by ACL category or glob pattern.`,
 			Categories:  []string{constants.AdminCategory, constants.FastCategory, constants.DangerousCategory},
 			Description: "(LASTSAVE) Get unix timestamp for the latest snapshot in milliseconds.",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				return []string{}, nil
+			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+				return types.AccessKeys{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
 			},
 			HandlerFunc: func(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 				msec := server.GetLatestSnapshotTime()
@@ -281,8 +317,12 @@ Allows for filtering by ACL category or glob pattern.`,
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(REWRITEAOF) Trigger re-writing of append process",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				return []string{}, nil
+			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+				return types.AccessKeys{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
 			},
 			HandlerFunc: func(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
 				if err := server.RewriteAOF(); err != nil {

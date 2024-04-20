@@ -17,25 +17,38 @@ package str
 import (
 	"errors"
 	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/types"
 )
 
-func setRangeKeyFunc(cmd []string) ([]string, error) {
+func setRangeKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
 }
 
-func strLenKeyFunc(cmd []string) ([]string, error) {
+func strLenKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }
 
-func subStrKeyFunc(cmd []string) ([]string, error) {
+func subStrKeyFunc(cmd []string) (types.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return nil, errors.New(constants.WrongArgsResponse)
+		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return []string{cmd[1]}, nil
+	return types.AccessKeys{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: make([]string, 0),
+	}, nil
 }

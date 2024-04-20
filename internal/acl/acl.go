@@ -410,34 +410,30 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command types.
 			return errors.New("not authorised to access any keys")
 		}
 
-		// 8. If @read is in the list of categories, check if keys are in IncludedReadKeys
-		if slices.Contains(categories, constants.ReadCategory) {
-			if !slices.ContainsFunc(readKeys, func(key string) bool {
-				return slices.ContainsFunc(connection.User.IncludedReadKeys, func(readKeyGlob string) bool {
-					if acl.GlobPatterns[readKeyGlob].Match(key) {
-						return true
-					}
-					notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%R", key))
-					return false
-				})
-			}) {
-				return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
-			}
+		// 8. Check if readKeys are in IncludedReadKeys
+		if !slices.ContainsFunc(readKeys, func(key string) bool {
+			return slices.ContainsFunc(connection.User.IncludedReadKeys, func(readKeyGlob string) bool {
+				if acl.GlobPatterns[readKeyGlob].Match(key) {
+					return true
+				}
+				notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%R", key))
+				return false
+			})
+		}) {
+			return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
 		}
 
-		// 9. If @write is in the list of categories, check if keys are in IncludedWriteKeys
-		if slices.Contains(categories, constants.WriteCategory) {
-			if !slices.ContainsFunc(writeKeys, func(key string) bool {
-				return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKeyGlob string) bool {
-					if acl.GlobPatterns[writeKeyGlob].Match(key) {
-						return true
-					}
-					notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%W", key))
-					return false
-				})
-			}) {
-				return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
-			}
+		// 9. Check if keys are in IncludedWriteKeys
+		if !slices.ContainsFunc(writeKeys, func(key string) bool {
+			return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKeyGlob string) bool {
+				if acl.GlobPatterns[writeKeyGlob].Match(key) {
+					return true
+				}
+				notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%W", key))
+				return false
+			})
+		}) {
+			return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
 		}
 	}
 

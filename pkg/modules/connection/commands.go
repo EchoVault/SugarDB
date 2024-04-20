@@ -42,8 +42,12 @@ func Commands() []types.Command {
 			Categories:  []string{constants.FastCategory, constants.ConnectionCategory},
 			Description: "(PING [value]) Ping the echovault. If a value is provided, the value will be echoed.",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) ([]string, error) {
-				return []string{}, nil
+			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+				return types.AccessKeys{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
 			},
 			HandlerFunc: handlePing,
 		},

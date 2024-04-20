@@ -33,7 +33,7 @@ func handleLLen(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		// If key does not exist, return 0
@@ -52,13 +52,13 @@ func handleLLen(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	return nil, errors.New("LLEN command on non-list item")
 }
 
-func handleLIndex(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLIndex(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := lindexKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 	index, ok := internal.AdaptType(cmd[2]).(int)
 
 	if !ok {
@@ -86,13 +86,13 @@ func handleLIndex(ctx context.Context, cmd []string, server types.EchoVault, con
 	return []byte(fmt.Sprintf("+%s\r\n", list[index])), nil
 }
 
-func handleLRange(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLRange(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := lrangeKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.ReadKeys[0]
 	start, startOk := internal.AdaptType(cmd[2]).(int)
 	end, endOk := internal.AdaptType(cmd[3]).(int)
 
@@ -165,13 +165,13 @@ func handleLRange(ctx context.Context, cmd []string, server types.EchoVault, con
 	return bytes, nil
 }
 
-func handleLSet(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLSet(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := lsetKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	index, ok := internal.AdaptType(cmd[2]).(int)
 	if !ok {
@@ -204,13 +204,13 @@ func handleLSet(ctx context.Context, cmd []string, server types.EchoVault, conn 
 	return []byte(constants.OkResponse), nil
 }
 
-func handleLTrim(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLTrim(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := ltrimKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	start, startOk := internal.AdaptType(cmd[2]).(int)
 	end, endOk := internal.AdaptType(cmd[3]).(int)
 
@@ -253,13 +253,13 @@ func handleLTrim(ctx context.Context, cmd []string, server types.EchoVault, conn
 	return []byte(constants.OkResponse), nil
 }
 
-func handleLRem(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLRem(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := lremKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 	value := cmd[3]
 
 	count, ok := internal.AdaptType(cmd[2]).(int)
@@ -321,14 +321,13 @@ func handleLRem(ctx context.Context, cmd []string, server types.EchoVault, conn 
 	return []byte(constants.OkResponse), nil
 }
 
-func handleLMove(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleLMove(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := lmoveKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	source := keys[0]
-	destination := keys[1]
+	source, destination := keys.WriteKeys[0], keys.WriteKeys[1]
 	whereFrom := strings.ToLower(cmd[3])
 	whereTo := strings.ToLower(cmd[4])
 
@@ -394,7 +393,7 @@ func handleLPush(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 		newElems = append(newElems, internal.AdaptType(elem))
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		switch strings.ToLower(cmd[0]) {
@@ -428,13 +427,13 @@ func handleLPush(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 	return []byte(constants.OkResponse), nil
 }
 
-func handleRPush(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
+func handleRPush(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
 	keys, err := rpushKeyFunc(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	var newElems []interface{}
 
@@ -482,7 +481,7 @@ func handlePop(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 		return nil, err
 	}
 
-	key := keys[0]
+	key := keys.WriteKeys[0]
 
 	if !server.KeyExists(ctx, key) {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(cmd[0]))
