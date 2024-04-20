@@ -46,7 +46,7 @@ func (server *EchoVault) getCommand(cmd string) (types.Command, error) {
 	return types.Command{}, fmt.Errorf("command %s not supported", cmd)
 }
 
-func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool) ([]byte, error) {
+func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool, embedded bool) ([]byte, error) {
 	cmd, err := internal.Decode(message)
 	if err != nil {
 		return nil, err
@@ -66,8 +66,9 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 		handler = subCommand.HandlerFunc
 	}
 
-	if conn != nil && server.acl != nil {
+	if conn != nil && server.acl != nil && !embedded {
 		// Authorize connection if it's provided and if ACL module is present
+		// and the embedded parameter is false.
 		if err = server.acl.AuthorizeConnection(conn, cmd, command, subCommand); err != nil {
 			return nil, err
 		}

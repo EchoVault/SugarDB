@@ -35,7 +35,7 @@ import (
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 func (server *EchoVault) SADD(key string, members ...string) (int, error) {
 	cmd := append([]string{"SADD", key}, members...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -54,7 +54,7 @@ func (server *EchoVault) SADD(key string, members ...string) (int, error) {
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 func (server *EchoVault) SCARD(key string) (int, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SCARD", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SCARD", key}), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -77,7 +77,7 @@ func (server *EchoVault) SCARD(key string) (int, error) {
 // "key for base set <key> does not exist" - if the first key is not a set.
 func (server *EchoVault) SDIFF(keys ...string) ([]string, error) {
 	cmd := append([]string{"SDIFF"}, keys...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (server *EchoVault) SDIFF(keys ...string) ([]string, error) {
 // at the 'destination' key.
 func (server *EchoVault) SDIFFSTORE(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SDIFFSTORE", destination}, keys...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -111,7 +111,7 @@ func (server *EchoVault) SDIFFSTORE(destination string, keys ...string) (int, er
 // "not enough sets in the keys provided" - when only one of the provided keys is a valid set.
 func (server *EchoVault) SINTER(keys ...string) ([]string, error) {
 	cmd := append([]string{"SINTER"}, keys...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (server *EchoVault) SINTERCARD(keys []string, limit uint) (int, error) {
 	if limit > 0 {
 		cmd = append(cmd, []string{"LIMIT", strconv.Itoa(int(limit))}...)
 	}
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -149,7 +149,7 @@ func (server *EchoVault) SINTERCARD(keys []string, limit uint) (int, error) {
 // at the 'destination' key and the cardinality of the resulting set is returned.
 func (server *EchoVault) SINTERSTORE(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SINTERSTORE", destination}, keys...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -170,7 +170,7 @@ func (server *EchoVault) SINTERSTORE(destination string, keys ...string) (int, e
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 func (server *EchoVault) SISMEMBER(key, member string) (bool, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SISMEMBER", key, member}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SISMEMBER", key, member}), nil, false, true)
 	if err != nil {
 		return false, err
 	}
@@ -189,7 +189,7 @@ func (server *EchoVault) SISMEMBER(key, member string) (bool, error) {
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 func (server *EchoVault) SMEMBERS(key string) ([]string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SMEMBERS", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SMEMBERS", key}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +212,7 @@ func (server *EchoVault) SMEMBERS(key string) ([]string, error) {
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 func (server *EchoVault) SMISMEMBER(key string, members ...string) ([]bool, error) {
 	cmd := append([]string{"SMISMEMBER", key}, members...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -239,12 +239,7 @@ func (server *EchoVault) SMISMEMBER(key string, members ...string) ([]bool, erro
 //
 // "destination is not a set" - when the destination key does not hold a set.
 func (server *EchoVault) SMOVE(source, destination, member string) (bool, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"SMOVE", source, destination, member}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SMOVE", source, destination, member}), nil, false, true)
 	if err != nil {
 		return false, err
 	}
@@ -265,12 +260,7 @@ func (server *EchoVault) SMOVE(source, destination, member string) (bool, error)
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 func (server *EchoVault) SPOP(key string, count uint) ([]string, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"SPOP", key, strconv.Itoa(int(count))}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SPOP", key, strconv.Itoa(int(count))}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -292,12 +282,7 @@ func (server *EchoVault) SPOP(key string, count uint) ([]string, error) {
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 func (server *EchoVault) SRANDMEMBER(key string, count int) ([]string, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"SRANDMEMBER", key, strconv.Itoa(count)}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SRANDMEMBER", key, strconv.Itoa(count)}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +304,7 @@ func (server *EchoVault) SRANDMEMBER(key string, count int) ([]string, error) {
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 func (server *EchoVault) SREM(key string, members ...string) (int, error) {
 	cmd := append([]string{"SREM", key}, members...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -340,7 +325,7 @@ func (server *EchoVault) SREM(key string, members ...string) (int, error) {
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 func (server *EchoVault) SUNION(keys ...string) ([]string, error) {
 	cmd := append([]string{"SUNION"}, keys...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +336,7 @@ func (server *EchoVault) SUNION(keys ...string) ([]string, error) {
 // set at the 'destination' key. The return value is an integer representing the cardinality of the new set.
 func (server *EchoVault) SUNIONSTORE(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SUNIONSTORE", destination}, keys...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}

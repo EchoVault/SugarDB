@@ -236,7 +236,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 				echovault.KeyUnlock(ctx, key)
 			}),
 			aof.WithHandleCommandFunc(func(command []byte) {
-				_, err := echovault.handleCommand(context.Background(), command, nil, true)
+				_, err := echovault.handleCommand(context.Background(), command, nil, true, false)
 				if err != nil {
 					log.Println(err)
 				}
@@ -391,7 +391,7 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 			break
 		}
 
-		res, err := server.handleCommand(ctx, message, &conn, false)
+		res, err := server.handleCommand(ctx, message, &conn, false, false)
 
 		if err != nil && errors.Is(err, io.EOF) {
 			break

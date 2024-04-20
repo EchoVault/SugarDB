@@ -32,7 +32,7 @@ import (
 //
 // "LLEN command on non-list item" - when the provided key exists but is not a list.
 func (server *EchoVault) LLEN(key string) (int, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LLEN", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LLEN", key}), nil, false, true)
 	fmt.Println(key, string(b), err)
 	if err != nil {
 		return 0, err
@@ -61,12 +61,7 @@ func (server *EchoVault) LLEN(key string) (int, error) {
 //
 // "end index must be within list range or -1" - when end index is not within the list boundaries.
 func (server *EchoVault) LRANGE(key string, start, end int) ([]string, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"LRANGE", key, strconv.Itoa(start), strconv.Itoa(end)}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LRANGE", key, strconv.Itoa(start), strconv.Itoa(end)}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +84,7 @@ func (server *EchoVault) LRANGE(key string, start, end int) ([]string, error) {
 //
 // "index must be within list range" - when the index is not within the list boundary.
 func (server *EchoVault) LINDEX(key string, index uint) (string, error) {
-	b, err := server.handleCommand(
-		server.context, internal.EncodeCommand([]string{"LINDEX", key, strconv.Itoa(int(index))}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LINDEX", key, strconv.Itoa(int(index))}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -115,8 +109,7 @@ func (server *EchoVault) LINDEX(key string, index uint) (string, error) {
 //
 // "index must be within list range" - when the index is not within the list boundary.
 func (server *EchoVault) LSET(key string, index int, value string) (string, error) {
-	b, err := server.handleCommand(
-		server.context, internal.EncodeCommand([]string{"LSET", key, strconv.Itoa(index), value}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LSET", key, strconv.Itoa(index), value}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -126,11 +119,7 @@ func (server *EchoVault) LSET(key string, index int, value string) (string, erro
 // LTRIM work similarly to LRANGE but instead of returning the new list, it replaces the original list with the
 // trimmed list.
 func (server *EchoVault) LTRIM(key string, start int, end int) (string, error) {
-	b, err := server.handleCommand(
-		server.context, internal.EncodeCommand([]string{"LTRIM", key, strconv.Itoa(start), strconv.Itoa(end)}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LTRIM", key, strconv.Itoa(start), strconv.Itoa(end)}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -153,11 +142,7 @@ func (server *EchoVault) LTRIM(key string, start int, end int) (string, error) {
 //
 // "LREM command on non-list item" - when the provided key exists but is not a list.
 func (server *EchoVault) LREM(key string, count int, value string) (string, error) {
-	b, err := server.handleCommand(
-		server.context, internal.EncodeCommand([]string{"LREM", key, strconv.Itoa(count), value}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LREM", key, strconv.Itoa(count), value}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -186,11 +171,7 @@ func (server *EchoVault) LREM(key string, count int, value string) (string, erro
 //
 // "wherefrom and whereto arguments must be either LEFT or RIGHT" - if whereFrom or whereTo are not either "LEFT" or "RIGHT".
 func (server *EchoVault) LMOVE(source, destination, whereFrom, whereTo string) (string, error) {
-	b, err := server.handleCommand(
-		server.context, internal.EncodeCommand([]string{"LMOVE", source, destination, whereFrom, whereTo}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LMOVE", source, destination, whereFrom, whereTo}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -209,7 +190,7 @@ func (server *EchoVault) LMOVE(source, destination, whereFrom, whereTo string) (
 //
 // "LPOP command on non-list item" - when the provided key is not a list.
 func (server *EchoVault) LPOP(key string) (string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LPOP", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LPOP", key}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -228,7 +209,7 @@ func (server *EchoVault) LPOP(key string) (string, error) {
 //
 // "RPOP command on non-list item" - when the provided key is not a list.
 func (server *EchoVault) RPOP(key string) (string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"RPOP", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"RPOP", key}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -251,7 +232,7 @@ func (server *EchoVault) RPOP(key string) (string, error) {
 // "LPUSH command on non-list item" - when the provided key is not a list.
 func (server *EchoVault) LPUSH(key string, values ...string) (string, error) {
 	cmd := append([]string{"LPUSH", key}, values...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -273,7 +254,7 @@ func (server *EchoVault) LPUSH(key string, values ...string) (string, error) {
 // "LPUSHX command on non-list item" - when the provided key is not a list or doesn't exist.
 func (server *EchoVault) LPUSHX(key string, values ...string) (string, error) {
 	cmd := append([]string{"LPUSHX", key}, values...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -296,7 +277,7 @@ func (server *EchoVault) LPUSHX(key string, values ...string) (string, error) {
 // "RPUSH command on non-list item" - when the provided key is not a list.
 func (server *EchoVault) RPUSH(key string, values ...string) (string, error) {
 	cmd := append([]string{"RPUSH", key}, values...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -318,7 +299,7 @@ func (server *EchoVault) RPUSH(key string, values ...string) (string, error) {
 // "RPUSHX command on non-list item" - when the provided key is not a list or doesn't exist.
 func (server *EchoVault) RPUSHX(key string, values ...string) (string, error) {
 	cmd := append([]string{"RPUSHX", key}, values...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return "", err
 	}

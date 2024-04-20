@@ -184,7 +184,7 @@ func (server *EchoVault) ZADD(key string, members map[string]float64, options ZA
 		cmd = append(cmd, []string{strconv.FormatFloat(score, 'f', -1, 64), member}...)
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -204,7 +204,7 @@ func (server *EchoVault) ZADD(key string, members map[string]float64, options ZA
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set
 func (server *EchoVault) ZCARD(key string) (int, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ZCARD", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ZCARD", key}), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -233,7 +233,7 @@ func (server *EchoVault) ZCOUNT(key string, min, max float64) (int, error) {
 		strconv.FormatFloat(min, 'f', -1, 64),
 		strconv.FormatFloat(max, 'f', -1, 64),
 	}
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -260,7 +260,7 @@ func (server *EchoVault) ZDIFF(withscores bool, keys ...string) (map[string]floa
 	if withscores {
 		cmd = append(cmd, "WITHSCORES")
 	}
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (server *EchoVault) ZDIFF(withscores bool, keys ...string) (map[string]floa
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
 func (server *EchoVault) ZDIFFSTORE(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"ZDIFFSTORE", destination}, keys...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -328,7 +328,7 @@ func (server *EchoVault) ZINTER(keys []string, options ZINTEROptions) (map[strin
 		cmd = append(cmd, "WITHSCORES")
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +375,7 @@ func (server *EchoVault) ZINTERSTORE(destination string, keys []string, options 
 		cmd = append(cmd, "WITHSCORES")
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -415,7 +415,7 @@ func (server *EchoVault) ZUNION(keys []string, options ZUNIONOptions) (map[strin
 		cmd = append(cmd, "WITHSCORES")
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +462,7 @@ func (server *EchoVault) ZUNIONSTORE(destination string, keys []string, options 
 		cmd = append(cmd, "WITHSCORES")
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -488,7 +488,7 @@ func (server *EchoVault) ZUNIONSTORE(destination string, keys []string, options 
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
 func (server *EchoVault) ZINCRBY(key string, increment float64, member string) (float64, error) {
 	cmd := []string{"ZINCRBY", key, strconv.FormatFloat(increment, 'f', -1, 64), member}
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -532,7 +532,7 @@ func (server *EchoVault) ZMPOP(keys []string, options ZMPOPOptions) ([][]string,
 		cmd = append(cmd, []string{"COUNT", strconv.Itoa(1)}...)
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -561,7 +561,7 @@ func (server *EchoVault) ZMSCORE(key string, members ...string) ([]interface{}, 
 		cmd = append(cmd, member)
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -606,7 +606,7 @@ func (server *EchoVault) ZMSCORE(key string, members ...string) ([]interface{}, 
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set
 func (server *EchoVault) ZLEXCOUNT(key, min, max string) (int, error) {
 	cmd := []string{"ZLEXCOUNT", key, min, max}
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -630,12 +630,7 @@ func (server *EchoVault) ZLEXCOUNT(key, min, max string) (int, error) {
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
 func (server *EchoVault) ZPOPMAX(key string, count uint) ([][]string, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"ZPOPMAX", key, strconv.Itoa(int(count))}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ZPOPMAX", key, strconv.Itoa(int(count))}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -659,12 +654,7 @@ func (server *EchoVault) ZPOPMAX(key string, count uint) ([][]string, error) {
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
 func (server *EchoVault) ZPOPMIN(key string, count uint) ([][]string, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"ZPOPMIN", key, strconv.Itoa(int(count))}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ZPOPMIN", key, strconv.Itoa(int(count))}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -701,7 +691,7 @@ func (server *EchoVault) ZRANDMEMBER(key string, count int, withscores bool) ([]
 		cmd = append(cmd, "WITHSCORES")
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -733,7 +723,7 @@ func (server *EchoVault) ZRANK(key string, member string, withscores bool) (map[
 		cmd = append(cmd, "WITHSCORES")
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -770,7 +760,7 @@ func (server *EchoVault) ZREVRANK(key string, member string, withscores bool) (m
 		cmd = append(cmd, "WITHSCORES")
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -796,7 +786,7 @@ func (server *EchoVault) ZREVRANK(key string, member string, withscores bool) (m
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
 func (server *EchoVault) ZSCORE(key string, member string) (interface{}, error) {
 	cmd := []string{"ZSCORE", key, member}
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -836,7 +826,7 @@ func (server *EchoVault) ZREM(key string, members ...string) (int, error) {
 	for _, member := range members {
 		cmd = append(cmd, member)
 	}
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -866,7 +856,7 @@ func (server *EchoVault) ZREMRANGEBYSCORE(key string, min float64, max float64) 
 		strconv.FormatFloat(max, 'f', -1, 64),
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -911,7 +901,7 @@ func (server *EchoVault) ZRANGE(key, start, stop string, options ZRANGEOptions) 
 		cmd = append(cmd, []string{"LIMIT", strconv.Itoa(int(options.Offset)), strconv.Itoa(int(options.Count))}...)
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -959,7 +949,7 @@ func (server *EchoVault) ZRANGESTORE(destination, source, start, stop string, op
 		cmd = append(cmd, []string{"LIMIT", strconv.Itoa(int(options.Offset)), strconv.Itoa(int(options.Count))}...)
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}

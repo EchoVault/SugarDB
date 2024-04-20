@@ -48,7 +48,7 @@ func (server *EchoVault) COMMAND_LIST(options CommandListOptions) ([]string, err
 		cmd = append(cmd, []string{"FILTERBY", "MODULE", options.MODULE}...)
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (server *EchoVault) COMMAND_LIST(options CommandListOptions) ([]string, err
 //
 // Returns: integer representing the count of all available commands.
 func (server *EchoVault) COMMAND_COUNT() (int, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"COMMAND", "COUNT"}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"COMMAND", "COUNT"}), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -69,7 +69,7 @@ func (server *EchoVault) COMMAND_COUNT() (int, error) {
 
 // SAVE triggers a new snapshot.
 func (server *EchoVault) SAVE() (string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SAVE"}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SAVE"}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -78,7 +78,7 @@ func (server *EchoVault) SAVE() (string, error) {
 
 // LASTSAVE returns the unix epoch milliseconds timestamp of the last save.
 func (server *EchoVault) LASTSAVE() (int, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LASTSAVE"}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LASTSAVE"}), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -87,7 +87,7 @@ func (server *EchoVault) LASTSAVE() (int, error) {
 
 // REWRITEAOF triggers a compaction of the AOF file.
 func (server *EchoVault) REWRITEAOF() (string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"REWRITEAOF"}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"REWRITEAOF"}), nil, false, true)
 	if err != nil {
 		return "", err
 	}

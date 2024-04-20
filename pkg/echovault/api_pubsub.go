@@ -66,7 +66,7 @@ func (server *EchoVault) SUBSCRIBE(tag string, channels ...string) ReadPubSubMes
 	// Subscribe connection to the provided channels
 	cmd := append([]string{"SUBSCRIBE"}, channels...)
 	go func() {
-		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false)
+		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false, true)
 	}()
 
 	return func() []string {
@@ -99,7 +99,7 @@ func (server *EchoVault) UNSUBSCRIBE(tag string, channels ...string) {
 	}
 
 	cmd := append([]string{"UNSUBSCRIBE"}, channels...)
-	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false)
+	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false, true)
 }
 
 // PSUBSCRIBE subscribes the caller to the list of provided glob patterns.
@@ -132,7 +132,7 @@ func (server *EchoVault) PSUBSCRIBE(tag string, patterns ...string) ReadPubSubMe
 	// Subscribe connection to the provided channels
 	cmd := append([]string{"PSUBSCRIBE"}, patterns...)
 	go func() {
-		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false)
+		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false, true)
 	}()
 
 	return func() []string {
@@ -165,7 +165,7 @@ func (server *EchoVault) PUNSUBSCRIBE(tag string, patterns ...string) {
 	}
 
 	cmd := append([]string{"PUNSUBSCRIBE"}, patterns...)
-	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false)
+	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false, true)
 }
 
 // PUBLISH publishes a message to the given channel.
@@ -179,7 +179,7 @@ func (server *EchoVault) PUNSUBSCRIBE(tag string, patterns ...string) {
 // Returns: "OK" when the publish is successful. This does not indicate whether each subscriber has received the message,
 // only that the message has been published.
 func (server *EchoVault) PUBLISH(channel, message string) (string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PUBLISH", channel, message}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PUBLISH", channel, message}), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -198,7 +198,7 @@ func (server *EchoVault) PUBSUB_CHANNELS(pattern string) ([]string, error) {
 	if pattern != "" {
 		cmd = append(cmd, pattern)
 	}
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func (server *EchoVault) PUBSUB_CHANNELS(pattern string) ([]string, error) {
 //
 // Returns: An integer representing the number of all the active patterns (i.e. patterns that have 1 or more subscribers).
 func (server *EchoVault) PUBSUB_NUMPAT() (int, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PUBSUB", "NUMPAT"}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PUBSUB", "NUMPAT"}), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -226,7 +226,7 @@ func (server *EchoVault) PUBSUB_NUMPAT() (int, error) {
 func (server *EchoVault) PUBSUB_NUMSUB(channels ...string) (map[string]int, error) {
 	cmd := append([]string{"PUBSUB", "NUMSUB"}, channels...)
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}

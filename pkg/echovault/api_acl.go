@@ -127,7 +127,7 @@ func (server *EchoVault) ACL_CAT(category ...string) ([]string, error) {
 	if len(category) > 0 {
 		cmd = append(cmd, category[0])
 	}
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (server *EchoVault) ACL_CAT(category ...string) ([]string, error) {
 
 // ACL_USERS returns a string slice containing the usernames of all the loaded users in the ACL module.
 func (server *EchoVault) ACL_USERS() ([]string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "USERS"}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "USERS"}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +236,7 @@ func (server *EchoVault) ACL_SETUSER(user User) (string, error) {
 		cmd = append(cmd, fmt.Sprintf("-&%s", channel))
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -289,7 +289,7 @@ func (server *EchoVault) ACL_SETUSER(user User) (string, error) {
 //
 // "user not found" - if the user requested does not exist in the ACL rules.
 func (server *EchoVault) ACL_GETUSER(username string) (map[string][]string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "GETUSER", username}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "GETUSER", username}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +326,7 @@ func (server *EchoVault) ACL_GETUSER(username string) (map[string][]string, erro
 // Returns: "OK" if the deletion is successful.
 func (server *EchoVault) ACL_DELUSER(usernames ...string) (string, error) {
 	cmd := append([]string{"ACL", "DELUSER"}, usernames...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -335,7 +335,7 @@ func (server *EchoVault) ACL_DELUSER(usernames ...string) (string, error) {
 
 // ACL_LIST lists all the currently loaded ACL users and their rules.
 func (server *EchoVault) ACL_LIST() ([]string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "LIST"}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "LIST"}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +361,7 @@ func (server *EchoVault) ACL_LOAD(options ACLLOADOptions) (string, error) {
 		cmd = append(cmd, "REPLACE")
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return "", err
 	}
@@ -373,7 +373,7 @@ func (server *EchoVault) ACL_LOAD(options ACLLOADOptions) (string, error) {
 //
 // Returns: "OK" if the save is successful.
 func (server *EchoVault) ACL_SAVE() (string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "SAVE"}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "SAVE"}), nil, false, true)
 	if err != nil {
 		return "", err
 	}

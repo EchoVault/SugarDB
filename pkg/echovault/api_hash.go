@@ -50,7 +50,7 @@ func (server *EchoVault) HSET(key string, fieldValuePairs map[string]string) (in
 		cmd = append(cmd, []string{k, v}...)
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -80,7 +80,7 @@ func (server *EchoVault) HSETNX(key string, fieldValuePairs map[string]string) (
 		cmd = append(cmd, []string{k, v}...)
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -105,7 +105,7 @@ func (server *EchoVault) HSETNX(key string, fieldValuePairs map[string]string) (
 func (server *EchoVault) HSTRLEN(key string, fields ...string) ([]int, error) {
 	cmd := append([]string{"HSTRLEN", key}, fields...)
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (server *EchoVault) HSTRLEN(key string, fields ...string) ([]int, error) {
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
 func (server *EchoVault) HVALS(key string) ([]string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HVALS", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HVALS", key}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (server *EchoVault) HRANDFIELD(key string, options HRANDFIELDOptions) ([]st
 		cmd = append(cmd, "WITHVALUES")
 	}
 
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (server *EchoVault) HRANDFIELD(key string, options HRANDFIELDOptions) ([]st
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
 func (server *EchoVault) HLEN(key string) (int, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HLEN", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HLEN", key}), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -197,7 +197,7 @@ func (server *EchoVault) HLEN(key string) (int, error) {
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
 func (server *EchoVault) HKEYS(key string) ([]string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HKEYS", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HKEYS", key}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -221,12 +221,7 @@ func (server *EchoVault) HKEYS(key string) ([]string, error) {
 //
 // "value at field <field> is not a number" - when the field holds a value that is not a number.
 func (server *EchoVault) HINCRBY(key, field string, increment int) (float64, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"HINCRBY", key, field, strconv.Itoa(increment)}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HINCRBY", key, field, strconv.Itoa(increment)}), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -235,12 +230,7 @@ func (server *EchoVault) HINCRBY(key, field string, increment int) (float64, err
 
 // HINCRBYFLOAT behaves like HINCRBY but with a float increment instead of an integer increment.
 func (server *EchoVault) HINCRBYFLOAT(key, field string, increment float64) (float64, error) {
-	b, err := server.handleCommand(
-		server.context,
-		internal.EncodeCommand([]string{"HINCRBYFLOAT", key, field, strconv.FormatFloat(increment, 'f', -1, 64)}),
-		nil,
-		false,
-	)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HINCRBYFLOAT", key, field, strconv.FormatFloat(increment, 'f', -1, 64)}), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
@@ -260,7 +250,7 @@ func (server *EchoVault) HINCRBYFLOAT(key, field string, increment float64) (flo
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
 func (server *EchoVault) HGETALL(key string) ([]string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HGETALL", key}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HGETALL", key}), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +271,7 @@ func (server *EchoVault) HGETALL(key string) ([]string, error) {
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
 func (server *EchoVault) HEXISTS(key, field string) (bool, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HEXISTS", key, field}), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HEXISTS", key, field}), nil, false, true)
 	if err != nil {
 		return false, err
 	}
@@ -303,7 +293,7 @@ func (server *EchoVault) HEXISTS(key, field string) (bool, error) {
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
 func (server *EchoVault) HDEL(key string, fields ...string) (int, error) {
 	cmd := append([]string{"HDEL", key}, fields...)
-	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
