@@ -36,25 +36,27 @@ capability is always being worked on and improved.
 
 Some key features offered by EchoVault include:
 
-1) TLS and mTLS support with support for multiple server and client RootCAs
-2) Replication cluster support using RAFT algorithm
-3) ACL Layer for user Authentication and Authorization
-4) Distributed Pub/Sub functionality with consumer groups
-5) Sets, Sorted Sets, Hashes
-6) Persistence layer with Snapshots and Append-Only files
-7) Key Eviction Policies
+1) TLS and mTLS support for multiple server and client RootCAs.
+2) Replication cluster support using the RAFT algorithm.
+3) ACL Layer for user Authentication and Authorization.
+4) Distributed Pub/Sub functionality with consumer groups.
+5) Sets, Sorted Sets, Hashes.
+6) Persistence layer with Snapshots and Append-Only files.
+7) Key Eviction Policies.
 
 We are working hard to add more features to EchoVault to make it
 much more powerful. Features in the roadmap include:
 
 1) Sharding
-2) Streams
-3) Transactions
-4) Bitmap
-5) HyperLogLog
-6) Lua Modules
-7) JSON
-8) Improved Observability
+2) Shared Object File Plugins
+3) Streams
+4) Transactions
+5) Bitmap
+6) HyperLogLog
+7) Lua Modules
+8) JSON
+9) Improved Observability
+   
 
 # Usage (Embedded)
 
