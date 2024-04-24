@@ -46,6 +46,23 @@ func (server *EchoVault) getCommand(cmd string) (types.Command, error) {
 	return types.Command{}, fmt.Errorf("command %s not supported", cmd)
 }
 
+func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams {
+	return types.HandlerFuncParams{
+		// TODO: Add all the required methods here
+		Context:          ctx,
+		Command:          cmd,
+		Connection:       conn,
+		KeyExists:        server.KeyExists,
+		CreateKeyAndLock: server.CreateKeyAndLock,
+		KeyLock:          server.KeyLock,
+		KeyRLock:         server.KeyRLock,
+		KeyUnlock:        server.KeyUnlock,
+		KeyRUnlock:       server.KeyRUnlock,
+		GetValue:         server.GetValue,
+		SetValue:         server.SetValue,
+	}
+}
+
 func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool, embedded bool) ([]byte, error) {
 	cmd, err := internal.Decode(message)
 	if err != nil {
@@ -85,7 +102,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	}
 
 	if !server.isInCluster() || !synchronize {
-		res, err := handler(ctx, cmd, server, conn)
+		res, err := handler(server.getHandlerFuncParams(ctx, cmd, conn))
 		if err != nil {
 			return nil, err
 		}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package str
+package str_test
 
 import (
 	"bytes"
@@ -23,8 +23,11 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
+	str "github.com/echovault/echovault/pkg/modules/string"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -32,11 +35,21 @@ var mockServer *echovault.EchoVault
 
 func init() {
 	mockServer, _ = echovault.NewEchoVault(
+		echovault.WithCommands(str.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
 	)
+}
+
+func getHandler(command string) types.HandlerFunc {
+	for _, c := range mockServer.GetAllCommands() {
+		if strings.EqualFold(command, c.Command) {
+			return c.HandlerFunc
+		}
+	}
+	return nil
 }
 
 func Test_HandleSetRange(t *testing.T) {
@@ -157,7 +170,24 @@ func Test_HandleSetRange(t *testing.T) {
 				mockServer.KeyUnlock(ctx, test.key)
 			}
 
-			res, err := handleSetRange(ctx, test.command, mockServer, nil)
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(types.HandlerFuncParams{
+				Context:          ctx,
+				Command:          test.command,
+				Connection:       nil,
+				KeyExists:        mockServer.KeyExists,
+				CreateKeyAndLock: mockServer.CreateKeyAndLock,
+				KeyLock:          mockServer.KeyLock,
+				KeyUnlock:        mockServer.KeyUnlock,
+				GetValue:         mockServer.GetValue,
+				SetValue:         mockServer.SetValue,
+			})
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -254,7 +284,24 @@ func Test_HandleStrLen(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleStrLen(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(types.HandlerFuncParams{
+				Context:    ctx,
+				Command:    test.command,
+				Connection: nil,
+				KeyExists:  mockServer.KeyExists,
+				KeyRLock:   mockServer.KeyRLock,
+				KeyRUnlock: mockServer.KeyRUnlock,
+				GetValue:   mockServer.GetValue,
+				SetValue:   mockServer.SetValue,
+			})
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -382,7 +429,24 @@ func Test_HandleSubStr(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleSubStr(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(types.HandlerFuncParams{
+				Context:    ctx,
+				Command:    test.command,
+				Connection: nil,
+				KeyExists:  mockServer.KeyExists,
+				KeyRLock:   mockServer.KeyRLock,
+				KeyRUnlock: mockServer.KeyRUnlock,
+				GetValue:   mockServer.GetValue,
+				SetValue:   mockServer.SetValue,
+			})
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())

@@ -12,19 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package str
 
 import (
+	"context"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/commands"
 	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/echovault"
+	str "github.com/echovault/echovault/pkg/modules/string"
 	"testing"
 )
 
+func presetValue(server *echovault.EchoVault, ctx context.Context, key string, value interface{}) error {
+	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+		return err
+	}
+	if err := server.SetValue(ctx, key, value); err != nil {
+		return err
+	}
+	server.KeyUnlock(ctx, key)
+	return nil
+}
+
 func TestEchoVault_SUBSTR(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
+	server, _ := echovault.NewEchoVault(
+		echovault.WithCommands(str.Commands()),
+		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
@@ -168,7 +181,11 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := tt.substrFunc(tt.key, tt.start, tt.end)
 			if (err != nil) != tt.wantErr {
@@ -183,9 +200,9 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 }
 
 func TestEchoVault_SETRANGE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
+	server, _ := echovault.NewEchoVault(
+		echovault.WithCommands(str.Commands()),
+		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
@@ -258,7 +275,11 @@ func TestEchoVault_SETRANGE(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.SETRANGE(tt.key, tt.offset, tt.new)
 			if (err != nil) != tt.wantErr {
@@ -273,9 +294,9 @@ func TestEchoVault_SETRANGE(t *testing.T) {
 }
 
 func TestEchoVault_STRLEN(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
+	server, _ := echovault.NewEchoVault(
+		echovault.WithCommands(str.Commands()),
+		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
@@ -306,7 +327,11 @@ func TestEchoVault_STRLEN(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.STRLEN(tt.key)
 			if (err != nil) != tt.wantErr {

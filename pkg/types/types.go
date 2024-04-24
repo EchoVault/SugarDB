@@ -50,7 +50,31 @@ type AccessKeys struct {
 }
 type KeyExtractionFunc func(cmd []string) (AccessKeys, error)
 
-type HandlerFunc func(ctx context.Context, cmd []string, echovault EchoVault, conn *net.Conn) ([]byte, error)
+type HandlerFuncParams struct {
+	Context               context.Context
+	Command               []string
+	Connection            *net.Conn
+	KeyLock               func(ctx context.Context, key string) (bool, error)
+	KeyUnlock             func(ctx context.Context, key string)
+	KeyRLock              func(ctx context.Context, key string) (bool, error)
+	KeyRUnlock            func(ctx context.Context, key string)
+	KeyExists             func(ctx context.Context, key string) bool
+	CreateKeyAndLock      func(ctx context.Context, key string) (bool, error)
+	GetValue              func(ctx context.Context, key string) interface{}
+	SetValue              func(ctx context.Context, key string, value interface{}) error
+	GetExpiry             func(ctx context.Context, key string) time.Time
+	SetExpiry             func(ctx context.Context, key string, expire time.Time, touch bool)
+	RemoveExpiry          func(key string)
+	DeleteKey             func(ctx context.Context, key string) error
+	GetClock              func() clock.Clock
+	GetAllCommands        func() []Command
+	GetACL                func() interface{}
+	GetPubSub             func() interface{}
+	TakeSnapshot          func() error
+	RewriteAOF            func() error
+	GetLatestSnapshotTime func() int64
+}
+type HandlerFunc func(params HandlerFuncParams) ([]byte, error)
 
 type SubCommand struct {
 	Command     string

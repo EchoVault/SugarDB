@@ -15,47 +15,45 @@
 package str
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/types"
-	"net"
 )
 
-func handleSetRange(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := setRangeKeyFunc(cmd)
+func handleSetRange(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := setRangeKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.WriteKeys[0]
 
-	offset, ok := internal.AdaptType(cmd[2]).(int)
+	offset, ok := internal.AdaptType(params.Command[2]).(int)
 	if !ok {
 		return nil, errors.New("offset must be an integer")
 	}
 
-	newStr := cmd[3]
+	newStr := params.Command[3]
 
-	if !server.KeyExists(ctx, key) {
-		if _, err = server.CreateKeyAndLock(ctx, key); err != nil {
+	if !params.KeyExists(params.Context, key) {
+		if _, err = params.CreateKeyAndLock(params.Context, key); err != nil {
 			return nil, err
 		}
-		if err = server.SetValue(ctx, key, newStr); err != nil {
+		if err = params.SetValue(params.Context, key, newStr); err != nil {
 			return nil, err
 		}
-		server.KeyUnlock(ctx, key)
+		params.KeyUnlock(params.Context, key)
 		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
 	}
 
-	if _, err := server.KeyLock(ctx, key); err != nil {
+	if _, err := params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	str, ok := server.GetValue(ctx, key).(string)
+	str, ok := params.GetValue(params.Context, key).(string)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a string", key)
 	}
@@ -63,7 +61,7 @@ func handleSetRange(ctx context.Context, cmd []string, server types.EchoVault, _
 	// If the offset  >= length of the string, append the new string to the old one.
 	if offset >= len(str) {
 		newStr = str + newStr
-		if err = server.SetValue(ctx, key, newStr); err != nil {
+		if err = params.SetValue(params.Context, key, newStr); err != nil {
 			return nil, err
 		}
 		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
@@ -72,7 +70,7 @@ func handleSetRange(ctx context.Context, cmd []string, server types.EchoVault, _
 	// If the offset is < 0, prepend the new string to the old one.
 	if offset < 0 {
 		newStr = newStr + str
-		if err = server.SetValue(ctx, key, newStr); err != nil {
+		if err = params.SetValue(params.Context, key, newStr); err != nil {
 			return nil, err
 		}
 		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
@@ -92,31 +90,31 @@ func handleSetRange(ctx context.Context, cmd []string, server types.EchoVault, _
 		break
 	}
 
-	if err = server.SetValue(ctx, key, string(strRunes)); err != nil {
+	if err = params.SetValue(params.Context, key, string(strRunes)); err != nil {
 		return nil, err
 	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", len(strRunes))), nil
 }
 
-func handleStrLen(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-	keys, err := strLenKeyFunc(cmd)
+func handleStrLen(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := strLenKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err := server.KeyRLock(ctx, key); err != nil {
+	if _, err := params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	value, ok := server.GetValue(ctx, key).(string)
+	value, ok := params.GetValue(params.Context, key).(string)
 
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a string", key)
@@ -125,32 +123,32 @@ func handleStrLen(ctx context.Context, cmd []string, server types.EchoVault, con
 	return []byte(fmt.Sprintf(":%d\r\n", len(value))), nil
 }
 
-func handleSubStr(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := subStrKeyFunc(cmd)
+func handleSubStr(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := subStrKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	start, startOk := internal.AdaptType(cmd[2]).(int)
-	end, endOk := internal.AdaptType(cmd[3]).(int)
+	start, startOk := internal.AdaptType(params.Command[2]).(int)
+	end, endOk := internal.AdaptType(params.Command[3]).(int)
 	reversed := false
 
 	if !startOk || !endOk {
 		return nil, errors.New("start and end indices must be integers")
 	}
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return nil, fmt.Errorf("key %s does not exist", key)
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	value, ok := server.GetValue(ctx, key).(string)
+	value, ok := params.GetValue(params.Context, key).(string)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a string", key)
 	}

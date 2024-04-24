@@ -86,33 +86,34 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 			}
 
 		case "command":
+			// TODO: Re-Implement Command handling with dependency injection
 			// Handle command
-			command, err := fsm.options.GetCommand(request.CMD[0])
-			if err != nil {
-				return internal.ApplyResponse{
-					Error:    err,
-					Response: nil,
-				}
-			}
-
-			handler := command.HandlerFunc
-
-			subCommand, ok := internal.GetSubCommand(command, request.CMD).(types.SubCommand)
-			if ok {
-				handler = subCommand.HandlerFunc
-			}
-
-			if res, err := handler(ctx, request.CMD, fsm.options.EchoVault, nil); err != nil {
-				return internal.ApplyResponse{
-					Error:    err,
-					Response: nil,
-				}
-			} else {
-				return internal.ApplyResponse{
-					Error:    nil,
-					Response: res,
-				}
-			}
+			// command, err := fsm.options.GetCommand(request.CMD[0])
+			// if err != nil {
+			// 	return internal.ApplyResponse{
+			// 		Error:    err,
+			// 		Response: nil,
+			// 	}
+			// }
+			//
+			// handler := command.HandlerFunc
+			//
+			// subCommand, ok := internal.GetSubCommand(command, request.CMD).(types.SubCommand)
+			// if ok {
+			// 	handler = subCommand.HandlerFunc
+			// }
+			//
+			// if res, err := handler(ctx, request.CMD, fsm.options.EchoVault, nil); err != nil {
+			// 	return internal.ApplyResponse{
+			// 		Error:    err,
+			// 		Response: nil,
+			// 	}
+			// } else {
+			// 	return internal.ApplyResponse{
+			// 		Error:    nil,
+			// 		Response: res,
+			// 	}
+			// }
 		}
 	}
 
