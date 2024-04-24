@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package str_test
+package str
 
 import (
 	"bytes"
@@ -26,6 +26,7 @@ import (
 	str "github.com/echovault/echovault/pkg/modules/string"
 	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
+	"net"
 	"strconv"
 	"strings"
 	"testing"
@@ -43,13 +44,41 @@ func init() {
 	)
 }
 
-func getHandler(command string) types.HandlerFunc {
+func getHandler(commands ...string) types.HandlerFunc {
+	if len(commands) == 0 {
+		return nil
+	}
 	for _, c := range mockServer.GetAllCommands() {
-		if strings.EqualFold(command, c.Command) {
+		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
+			// Get command handler
 			return c.HandlerFunc
+		}
+		if strings.EqualFold(commands[0], c.Command) {
+			// Get sub-command handler
+			for _, sc := range c.SubCommands {
+				if strings.EqualFold(commands[1], sc.Command) {
+					return sc.HandlerFunc
+				}
+			}
 		}
 	}
 	return nil
+}
+
+func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams {
+	return types.HandlerFuncParams{
+		Context:          ctx,
+		Command:          cmd,
+		Connection:       conn,
+		KeyExists:        mockServer.KeyExists,
+		CreateKeyAndLock: mockServer.CreateKeyAndLock,
+		KeyLock:          mockServer.KeyLock,
+		KeyRLock:         mockServer.KeyRLock,
+		KeyUnlock:        mockServer.KeyUnlock,
+		KeyRUnlock:       mockServer.KeyRUnlock,
+		GetValue:         mockServer.GetValue,
+		SetValue:         mockServer.SetValue,
+	}
 }
 
 func Test_HandleSetRange(t *testing.T) {
@@ -176,17 +205,7 @@ func Test_HandleSetRange(t *testing.T) {
 				return
 			}
 
-			res, err := handler(types.HandlerFuncParams{
-				Context:          ctx,
-				Command:          test.command,
-				Connection:       nil,
-				KeyExists:        mockServer.KeyExists,
-				CreateKeyAndLock: mockServer.CreateKeyAndLock,
-				KeyLock:          mockServer.KeyLock,
-				KeyUnlock:        mockServer.KeyUnlock,
-				GetValue:         mockServer.GetValue,
-				SetValue:         mockServer.SetValue,
-			})
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
@@ -291,16 +310,7 @@ func Test_HandleStrLen(t *testing.T) {
 				return
 			}
 
-			res, err := handler(types.HandlerFuncParams{
-				Context:    ctx,
-				Command:    test.command,
-				Connection: nil,
-				KeyExists:  mockServer.KeyExists,
-				KeyRLock:   mockServer.KeyRLock,
-				KeyRUnlock: mockServer.KeyRUnlock,
-				GetValue:   mockServer.GetValue,
-				SetValue:   mockServer.SetValue,
-			})
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
@@ -436,16 +446,7 @@ func Test_HandleSubStr(t *testing.T) {
 				return
 			}
 
-			res, err := handler(types.HandlerFuncParams{
-				Context:    ctx,
-				Command:    test.command,
-				Connection: nil,
-				KeyExists:  mockServer.KeyExists,
-				KeyRLock:   mockServer.KeyRLock,
-				KeyRUnlock: mockServer.KeyRUnlock,
-				GetValue:   mockServer.GetValue,
-				SetValue:   mockServer.SetValue,
-			})
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {

@@ -21,7 +21,11 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
+	"github.com/echovault/echovault/pkg/modules/connection"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
+	"net"
+	"strings"
 	"testing"
 )
 
@@ -29,11 +33,41 @@ var mockServer *echovault.EchoVault
 
 func init() {
 	mockServer, _ = echovault.NewEchoVault(
+		echovault.WithCommands(connection.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
 	)
+}
+
+func getHandler(commands ...string) types.HandlerFunc {
+	if len(commands) == 0 {
+		return nil
+	}
+	for _, c := range mockServer.GetAllCommands() {
+		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
+			// Get command handler
+			return c.HandlerFunc
+		}
+		if strings.EqualFold(commands[0], c.Command) {
+			// Get sub-command handler
+			for _, sc := range c.SubCommands {
+				if strings.EqualFold(commands[1], sc.Command) {
+					return sc.HandlerFunc
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams {
+	return types.HandlerFuncParams{
+		Context:    ctx,
+		Command:    cmd,
+		Connection: conn,
+	}
 }
 
 func Test_HandlePing(t *testing.T) {
@@ -62,7 +96,7 @@ func Test_HandlePing(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		res, err := handlePing(ctx, test.command, mockServer, nil)
+		res, err := getHandler("PING")(getHandlerFuncParams(ctx, test.command, nil))
 		if test.expectedErr != nil && err != nil {
 			if err.Error() != test.expectedErr.Error() {
 				t.Errorf("expected error %s, got: %s", test.expectedErr.Error(), err.Error())

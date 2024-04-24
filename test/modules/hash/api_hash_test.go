@@ -12,25 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package hash
 
 import (
+	"context"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/commands"
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/echovault"
+	"github.com/echovault/echovault/pkg/modules/hash"
 	"reflect"
 	"slices"
 	"testing"
 )
 
-func TestEchoVault_HDEL(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
+func createEchoVault() *echovault.EchoVault {
+	ev, _ := echovault.NewEchoVault(
+		echovault.WithCommands(hash.Commands()),
+		echovault.WithConfig(config.Config{
+			DataDir: "",
 		}),
 	)
+	return ev
+}
+
+func presetValue(server *echovault.EchoVault, ctx context.Context, key string, value interface{}) error {
+	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+		return err
+	}
+	if err := server.SetValue(ctx, key, value); err != nil {
+		return err
+	}
+	server.KeyUnlock(ctx, key)
+	return nil
+}
+
+func TestEchoVault_HDEL(t *testing.T) {
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -76,7 +92,11 @@ func TestEchoVault_HDEL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.HDEL(tt.key, tt.fields...)
 			if (err != nil) != tt.wantErr {
@@ -91,13 +111,7 @@ func TestEchoVault_HDEL(t *testing.T) {
 }
 
 func TestEchoVault_HEXISTS(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -135,7 +149,11 @@ func TestEchoVault_HEXISTS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.HEXISTS(tt.key, tt.field)
 			if (err != nil) != tt.wantErr {
@@ -150,13 +168,7 @@ func TestEchoVault_HEXISTS(t *testing.T) {
 }
 
 func TestEchoVault_HGETALL(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -190,7 +202,11 @@ func TestEchoVault_HGETALL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.HGETALL(tt.key)
 			if (err != nil) != tt.wantErr {
@@ -212,13 +228,7 @@ func TestEchoVault_HGETALL(t *testing.T) {
 }
 
 func TestEchoVault_HINCRBY(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	const (
 		HINCRBY      = "HINCRBY"
@@ -300,7 +310,11 @@ func TestEchoVault_HINCRBY(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			var got float64
 			var err error
@@ -326,13 +340,7 @@ func TestEchoVault_HINCRBY(t *testing.T) {
 }
 
 func TestEchoVault_HKEYS(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -366,7 +374,11 @@ func TestEchoVault_HKEYS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.HKEYS(tt.key)
 			if (err != nil) != tt.wantErr {
@@ -386,13 +398,7 @@ func TestEchoVault_HKEYS(t *testing.T) {
 }
 
 func TestEchoVault_HLEN(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -426,7 +432,11 @@ func TestEchoVault_HLEN(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.HLEN(tt.key)
 			if (err != nil) != tt.wantErr {
@@ -441,19 +451,13 @@ func TestEchoVault_HLEN(t *testing.T) {
 }
 
 func TestEchoVault_HRANDFIELD(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
 		presetValue interface{}
 		key         string
-		options     HRANDFIELDOptions
+		options     echovault.HRANDFIELDOptions
 		wantCount   int
 		want        []string
 		wantErr     bool
@@ -462,7 +466,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 			name:        "Get a random field",
 			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
 			key:         "key1",
-			options:     HRANDFIELDOptions{Count: 1},
+			options:     echovault.HRANDFIELDOptions{Count: 1},
 			wantCount:   1,
 			want:        []string{"field1", "field2", "field3"},
 			wantErr:     false,
@@ -471,7 +475,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 			name:        "Get a random field with a value",
 			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
 			key:         "key2",
-			options:     HRANDFIELDOptions{WithValues: true, Count: 1},
+			options:     echovault.HRANDFIELDOptions{WithValues: true, Count: 1},
 			wantCount:   2,
 			want:        []string{"field1", "value1", "field2", "123456789", "field3", "3.142"},
 			wantErr:     false,
@@ -486,7 +490,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key3",
-			options:   HRANDFIELDOptions{Count: 3},
+			options:   echovault.HRANDFIELDOptions{Count: 3},
 			wantCount: 3,
 			want:      []string{"field1", "field2", "field3", "field4", "field5"},
 			wantErr:   false,
@@ -501,7 +505,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key4",
-			options:   HRANDFIELDOptions{WithValues: true, Count: 3},
+			options:   echovault.HRANDFIELDOptions{WithValues: true, Count: 3},
 			wantCount: 6,
 			want: []string{
 				"field1", "value1", "field2", "123456789", "field3",
@@ -519,7 +523,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key5",
-			options:   HRANDFIELDOptions{Count: 5},
+			options:   echovault.HRANDFIELDOptions{Count: 5},
 			wantCount: 5,
 			want:      []string{"field1", "field2", "field3", "field4", "field5"},
 			wantErr:   false,
@@ -534,7 +538,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key5",
-			options:   HRANDFIELDOptions{WithValues: true, Count: 5},
+			options:   echovault.HRANDFIELDOptions{WithValues: true, Count: 5},
 			wantCount: 10,
 			want: []string{
 				"field1", "value1", "field2", "123456789", "field3",
@@ -546,7 +550,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 			name:        "Trying to get random field on a non hash map returns error",
 			presetValue: "Default value",
 			key:         "key12",
-			options:     HRANDFIELDOptions{},
+			options:     echovault.HRANDFIELDOptions{},
 			wantCount:   0,
 			want:        nil,
 			wantErr:     true,
@@ -555,7 +559,11 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.HRANDFIELD(tt.key, tt.options)
 			if (err != nil) != tt.wantErr {
@@ -575,13 +583,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 }
 
 func TestEchoVault_HSET(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name            string
@@ -650,7 +652,11 @@ func TestEchoVault_HSET(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := tt.hsetFunc(tt.key, tt.fieldValuePairs)
 			if (err != nil) != tt.wantErr {
@@ -665,13 +671,7 @@ func TestEchoVault_HSET(t *testing.T) {
 }
 
 func TestEchoVault_HSTRLEN(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -719,7 +719,11 @@ func TestEchoVault_HSTRLEN(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.HSTRLEN(tt.key, tt.fields...)
 			if (err != nil) != tt.wantErr {
@@ -734,13 +738,7 @@ func TestEchoVault_HSTRLEN(t *testing.T) {
 }
 
 func TestEchoVault_HVALS(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -774,7 +772,11 @@ func TestEchoVault_HVALS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.HVALS(tt.key)
 			if (err != nil) != tt.wantErr {

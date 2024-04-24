@@ -23,8 +23,12 @@ import (
 	"github.com/echovault/echovault/internal/set"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
+	s "github.com/echovault/echovault/pkg/modules/set"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
+	"net"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -32,11 +36,49 @@ var mockServer *echovault.EchoVault
 
 func init() {
 	mockServer, _ = echovault.NewEchoVault(
+		echovault.WithCommands(s.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
 	)
+}
+
+func getHandler(commands ...string) types.HandlerFunc {
+	if len(commands) == 0 {
+		return nil
+	}
+	for _, c := range mockServer.GetAllCommands() {
+		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
+			// Get command handler
+			return c.HandlerFunc
+		}
+		if strings.EqualFold(commands[0], c.Command) {
+			// Get sub-command handler
+			for _, sc := range c.SubCommands {
+				if strings.EqualFold(commands[1], sc.Command) {
+					return sc.HandlerFunc
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams {
+	return types.HandlerFuncParams{
+		Context:          ctx,
+		Command:          cmd,
+		Connection:       conn,
+		KeyExists:        mockServer.KeyExists,
+		CreateKeyAndLock: mockServer.CreateKeyAndLock,
+		KeyLock:          mockServer.KeyLock,
+		KeyRLock:         mockServer.KeyRLock,
+		KeyUnlock:        mockServer.KeyUnlock,
+		KeyRUnlock:       mockServer.KeyRUnlock,
+		GetValue:         mockServer.GetValue,
+		SetValue:         mockServer.SetValue,
+	}
 }
 
 func Test_HandleSADD(t *testing.T) {
@@ -103,7 +145,15 @@ func Test_HandleSADD(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleSADD(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -214,7 +264,15 @@ func Test_HandleSCARD(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleSCARD(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -327,7 +385,15 @@ func Test_HandleSDIFF(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleSDIFF(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -454,7 +520,15 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleSDIFFSTORE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -582,7 +656,15 @@ func Test_HandleSINTER(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleSINTER(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -709,7 +791,15 @@ func Test_HandleSINTERCARD(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleSINTERCARD(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -834,7 +924,13 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleSINTERSTORE(ctx, test.command, mockServer, nil)
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -939,7 +1035,14 @@ func Test_HandleSISMEMBER(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleSISMEMBER(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1027,7 +1130,14 @@ func Test_HandleSMEMBERS(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleSMEMBERS(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1118,7 +1228,14 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleSMISMEMBER(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1160,7 +1277,7 @@ func Test_HandleSMOVE(t *testing.T) {
 				"SmoveSource1":      set.NewSet([]string{"one", "two", "three", "four"}),
 				"SmoveDestination1": set.NewSet([]string{"five", "six", "seven", "eight"}),
 			},
-			command: []string{"MOVE", "SmoveSource1", "SmoveDestination1", "four"},
+			command: []string{"SMOVE", "SmoveSource1", "SmoveDestination1", "four"},
 			expectedValues: map[string]interface{}{
 				"SmoveSource1":      set.NewSet([]string{"one", "two", "three"}),
 				"SmoveDestination1": set.NewSet([]string{"four", "five", "six", "seven", "eight"}),
@@ -1242,7 +1359,14 @@ func Test_HandleSMOVE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleSMOVE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1350,7 +1474,14 @@ func Test_HandleSPOP(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleSPOP(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1473,7 +1604,14 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleSRANDMEMBER(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1588,7 +1726,14 @@ func Test_HandleSREM(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleSREM(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1708,7 +1853,14 @@ func Test_HandleSUNION(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleSUNION(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1811,7 +1963,14 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleSUNIONSTORE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())

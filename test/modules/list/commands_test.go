@@ -22,7 +22,11 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
+	"github.com/echovault/echovault/pkg/modules/list"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
+	"net"
+	"strings"
 	"testing"
 )
 
@@ -30,11 +34,49 @@ var mockServer *echovault.EchoVault
 
 func init() {
 	mockServer, _ = echovault.NewEchoVault(
+		echovault.WithCommands(list.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
 	)
+}
+
+func getHandler(commands ...string) types.HandlerFunc {
+	if len(commands) == 0 {
+		return nil
+	}
+	for _, c := range mockServer.GetAllCommands() {
+		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
+			// Get command handler
+			return c.HandlerFunc
+		}
+		if strings.EqualFold(commands[0], c.Command) {
+			// Get sub-command handler
+			for _, sc := range c.SubCommands {
+				if strings.EqualFold(commands[1], sc.Command) {
+					return sc.HandlerFunc
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams {
+	return types.HandlerFuncParams{
+		Context:          ctx,
+		Command:          cmd,
+		Connection:       conn,
+		KeyExists:        mockServer.KeyExists,
+		CreateKeyAndLock: mockServer.CreateKeyAndLock,
+		KeyLock:          mockServer.KeyLock,
+		KeyRLock:         mockServer.KeyRLock,
+		KeyUnlock:        mockServer.KeyUnlock,
+		KeyRUnlock:       mockServer.KeyRUnlock,
+		GetValue:         mockServer.GetValue,
+		SetValue:         mockServer.SetValue,
+	}
 }
 
 func Test_HandleLLEN(t *testing.T) {
@@ -113,7 +155,14 @@ func Test_HandleLLEN(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleLLen(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -258,7 +307,14 @@ func Test_HandleLINDEX(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleLIndex(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -426,7 +482,14 @@ func Test_HandleLRANGE(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleLRange(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -577,7 +640,14 @@ func Test_HandleLSET(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleLSet(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -595,16 +665,16 @@ func Test_HandleLSET(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
+			l, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 			if !ok {
 				t.Error("expected value to be list, got another type")
 			}
-			if len(list) != len(test.expectedValue) {
-				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(list))
+			if len(l) != len(test.expectedValue) {
+				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(l))
 			}
-			for i := 0; i < len(list); i++ {
-				if list[i] != test.expectedValue[i] {
-					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
+			for i := 0; i < len(l); i++ {
+				if l[i] != test.expectedValue[i] {
+					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], l[i])
 				}
 			}
 			mockServer.KeyRUnlock(ctx, test.key)
@@ -751,7 +821,14 @@ func Test_HandleLTRIM(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleLTrim(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -769,16 +846,16 @@ func Test_HandleLTRIM(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
+			l, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 			if !ok {
 				t.Error("expected value to be list, got another type")
 			}
-			if len(list) != len(test.expectedValue) {
-				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(list))
+			if len(l) != len(test.expectedValue) {
+				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(l))
 			}
-			for i := 0; i < len(list); i++ {
-				if list[i] != test.expectedValue[i] {
-					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
+			for i := 0; i < len(l); i++ {
+				if l[i] != test.expectedValue[i] {
+					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], l[i])
 				}
 			}
 			mockServer.KeyRUnlock(ctx, test.key)
@@ -882,7 +959,14 @@ func Test_HandleLREM(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleLRem(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -900,16 +984,16 @@ func Test_HandleLREM(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
+			l, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 			if !ok {
 				t.Error("expected value to be list, got another type")
 			}
-			if len(list) != len(test.expectedValue) {
-				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(list))
+			if len(l) != len(test.expectedValue) {
+				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(l))
 			}
-			for i := 0; i < len(list); i++ {
-				if list[i] != test.expectedValue[i] {
-					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
+			for i := 0; i < len(l); i++ {
+				if l[i] != test.expectedValue[i] {
+					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], l[i])
 				}
 			}
 			mockServer.KeyRUnlock(ctx, test.key)
@@ -1096,7 +1180,14 @@ func Test_HandleLMOVE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleLMove(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1115,7 +1206,7 @@ func Test_HandleLMOVE(t *testing.T) {
 				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
 					t.Error(err)
 				}
-				list, ok := mockServer.GetValue(ctx, key).([]interface{})
+				l, ok := mockServer.GetValue(ctx, key).([]interface{})
 				if !ok {
 					t.Error("expected value to be list, got another type")
 				}
@@ -1123,12 +1214,12 @@ func Test_HandleLMOVE(t *testing.T) {
 				if !ok {
 					t.Error("expected test value to be list, got another type")
 				}
-				if len(list) != len(expectedList) {
-					t.Errorf("expected list length to be %d, got %d", len(expectedList), len(list))
+				if len(l) != len(expectedList) {
+					t.Errorf("expected list length to be %d, got %d", len(expectedList), len(l))
 				}
-				for i := 0; i < len(list); i++ {
-					if list[i] != expectedList[i] {
-						t.Errorf("expected element at index %d to be %+v, got %+v", i, expectedList[i], list[i])
+				for i := 0; i < len(l); i++ {
+					if l[i] != expectedList[i] {
+						t.Errorf("expected element at index %d to be %+v, got %+v", i, expectedList[i], l[i])
 					}
 				}
 				mockServer.KeyRUnlock(ctx, key)
@@ -1213,7 +1304,14 @@ func Test_HandleLPUSH(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleLPush(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1231,16 +1329,16 @@ func Test_HandleLPUSH(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
+			l, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 			if !ok {
 				t.Error("expected value to be list, got another type")
 			}
-			if len(list) != len(test.expectedValue) {
-				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(list))
+			if len(l) != len(test.expectedValue) {
+				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(l))
 			}
-			for i := 0; i < len(list); i++ {
-				if list[i] != test.expectedValue[i] {
-					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
+			for i := 0; i < len(l); i++ {
+				if l[i] != test.expectedValue[i] {
+					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], l[i])
 				}
 			}
 			mockServer.KeyRUnlock(ctx, test.key)
@@ -1324,7 +1422,14 @@ func Test_HandleRPUSH(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleRPush(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1342,16 +1447,16 @@ func Test_HandleRPUSH(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
+			l, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 			if !ok {
 				t.Error("expected value to be list, got another type")
 			}
-			if len(list) != len(test.expectedValue) {
-				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(list))
+			if len(l) != len(test.expectedValue) {
+				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(l))
 			}
-			for i := 0; i < len(list); i++ {
-				if list[i] != test.expectedValue[i] {
-					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
+			for i := 0; i < len(l); i++ {
+				if l[i] != test.expectedValue[i] {
+					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], l[i])
 				}
 			}
 			mockServer.KeyRUnlock(ctx, test.key)
@@ -1445,7 +1550,14 @@ func Test_HandlePOP(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handlePop(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1463,16 +1575,16 @@ func Test_HandlePOP(t *testing.T) {
 			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 				t.Error(err)
 			}
-			list, ok := mockServer.GetValue(ctx, test.key).([]interface{})
+			l, ok := mockServer.GetValue(ctx, test.key).([]interface{})
 			if !ok {
 				t.Error("expected value to be list, got another type")
 			}
-			if len(list) != len(test.expectedValue) {
-				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(list))
+			if len(l) != len(test.expectedValue) {
+				t.Errorf("expected list length to be %d, got %d", len(test.expectedValue), len(l))
 			}
-			for i := 0; i < len(list); i++ {
-				if list[i] != test.expectedValue[i] {
-					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], list[i])
+			for i := 0; i < len(l); i++ {
+				if l[i] != test.expectedValue[i] {
+					t.Errorf("expected element at index %d to be %+v, got %+v", i, test.expectedValue[i], l[i])
 				}
 			}
 			mockServer.KeyRUnlock(ctx, test.key)

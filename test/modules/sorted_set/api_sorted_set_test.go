@@ -12,28 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sorted_set
 
 import (
+	"context"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/sorted_set"
-	"github.com/echovault/echovault/pkg/commands"
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/echovault"
+	ss "github.com/echovault/echovault/pkg/modules/sorted_set"
 	"math"
 	"reflect"
 	"strconv"
 	"testing"
 )
 
-func TestEchoVault_ZADD(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
+func createEchoVault() *echovault.EchoVault {
+	ev, _ := echovault.NewEchoVault(
+		echovault.WithCommands(ss.Commands()),
+		echovault.WithConfig(config.Config{
+			DataDir: "",
 		}),
 	)
+	return ev
+}
+
+func presetValue(server *echovault.EchoVault, ctx context.Context, key string, value interface{}) error {
+	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+		return err
+	}
+	if err := server.SetValue(ctx, key, value); err != nil {
+		return err
+	}
+	server.KeyUnlock(ctx, key)
+	return nil
+}
+
+func TestEchoVault_ZADD(t *testing.T) {
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -41,7 +57,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 		presetValue *sorted_set.SortedSet
 		key         string
 		entries     map[string]float64
-		options     ZADDOptions
+		options     echovault.ZADDOptions
 		want        int
 		wantErr     bool
 	}{
@@ -57,7 +73,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 				"member4": math.Inf(-1),
 				"member5": math.Inf(1),
 			},
-			options: ZADDOptions{},
+			options: echovault.ZADDOptions{},
 			want:    5,
 			wantErr: false,
 		},
@@ -75,7 +91,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 				"member4": 67.77,
 				"member5": 10,
 			},
-			options: ZADDOptions{NX: true},
+			options: echovault.ZADDOptions{NX: true},
 			want:    2,
 			wantErr: false,
 		},
@@ -93,7 +109,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 				"member2": 67.77,
 				"member3": 10,
 			},
-			options: ZADDOptions{NX: true},
+			options: echovault.ZADDOptions{NX: true},
 			want:    0,
 			wantErr: false,
 		},
@@ -112,7 +128,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 				"member3": 15,
 				"member4": 99.75,
 			},
-			options: ZADDOptions{XX: true, CH: true},
+			options: echovault.ZADDOptions{XX: true, CH: true},
 			want:    3,
 			wantErr: false,
 		},
@@ -130,7 +146,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 				"member5": 100.5,
 				"member6": 15,
 			},
-			options: ZADDOptions{XX: true},
+			options: echovault.ZADDOptions{XX: true},
 			want:    0,
 			wantErr: false,
 		},
@@ -150,7 +166,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 				"member4": 100.5,
 				"member5": 15,
 			},
-			options: ZADDOptions{XX: true, CH: true, GT: true},
+			options: echovault.ZADDOptions{XX: true, CH: true, GT: true},
 			want:    1,
 			wantErr: false,
 		},
@@ -170,7 +186,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 				"member4": 100.5,
 				"member5": 15,
 			},
-			options: ZADDOptions{XX: true, LT: true},
+			options: echovault.ZADDOptions{XX: true, LT: true},
 			want:    0,
 			wantErr: false,
 		},
@@ -188,7 +204,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 				"member4": 100.5,
 				"member5": 15,
 			},
-			options: ZADDOptions{XX: true, LT: true, CH: true},
+			options: echovault.ZADDOptions{XX: true, LT: true, CH: true},
 			want:    1,
 			wantErr: false,
 		},
@@ -204,7 +220,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 			entries: map[string]float64{
 				"member3": 5.5,
 			},
-			options: ZADDOptions{INCR: true},
+			options: echovault.ZADDOptions{INCR: true},
 			want:    0,
 			wantErr: false,
 		},
@@ -217,7 +233,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 				"member1": 3.5,
 				"member5": 15,
 			},
-			options: ZADDOptions{NX: true, LT: true, CH: true},
+			options: echovault.ZADDOptions{NX: true, LT: true, CH: true},
 			want:    0,
 			wantErr: true,
 		},
@@ -230,7 +246,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 				"member1": 10.5,
 				"member2": 12.5,
 			},
-			options: ZADDOptions{INCR: true},
+			options: echovault.ZADDOptions{INCR: true},
 			want:    0,
 			wantErr: true,
 		},
@@ -238,7 +254,11 @@ func TestEchoVault_ZADD(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZADD(tt.key, tt.entries, tt.options)
 			if (err != nil) != tt.wantErr {
@@ -253,13 +273,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 }
 
 func TestEchoVault_ZCARD(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -301,7 +315,11 @@ func TestEchoVault_ZCARD(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZCARD(tt.key)
 			if (err != nil) != tt.wantErr {
@@ -316,13 +334,7 @@ func TestEchoVault_ZCARD(t *testing.T) {
 }
 
 func TestEchoVault_ZCOUNT(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -402,7 +414,11 @@ func TestEchoVault_ZCOUNT(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZCOUNT(tt.key, tt.min, tt.max)
 			if (err != nil) != tt.wantErr {
@@ -417,13 +433,7 @@ func TestEchoVault_ZCOUNT(t *testing.T) {
 }
 
 func TestEchoVault_ZDIFF(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -553,7 +563,11 @@ func TestEchoVault_ZDIFF(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.ZDIFF(tt.withscores, tt.keys...)
@@ -569,13 +583,7 @@ func TestEchoVault_ZDIFF(t *testing.T) {
 }
 
 func TestEchoVault_ZDIFFSTORE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -674,7 +682,11 @@ func TestEchoVault_ZDIFFSTORE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.ZDIFFSTORE(tt.destination, tt.keys...)
@@ -690,13 +702,7 @@ func TestEchoVault_ZDIFFSTORE(t *testing.T) {
 }
 
 func TestEchoVault_ZINCRBY(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -825,7 +831,11 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZINCRBY(tt.key, tt.increment, tt.member)
 			if (err != nil) != tt.wantErr {
@@ -840,20 +850,14 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 }
 
 func TestEchoVault_ZINTER(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
 		preset       bool
 		presetValues map[string]interface{}
 		keys         []string
-		options      ZINTEROptions
+		options      echovault.ZINTEROptions
 		want         map[string]float64
 		wantErr      bool
 	}{
@@ -873,7 +877,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key1", "key2"},
-			options: ZINTEROptions{},
+			options: echovault.ZINTEROptions{},
 			want:    map[string]float64{"three": 0, "four": 0, "five": 0},
 			wantErr: false,
 		},
@@ -901,7 +905,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key3", "key4", "key5"},
-			options: ZINTEROptions{WithScores: true},
+			options: echovault.ZINTEROptions{WithScores: true},
 			want:    map[string]float64{"one": 3, "eight": 24},
 			wantErr: false,
 		},
@@ -929,7 +933,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key6", "key7", "key8"},
-			options: ZINTEROptions{Aggregate: "MIN", WithScores: true},
+			options: echovault.ZINTEROptions{Aggregate: "MIN", WithScores: true},
 			want:    map[string]float64{"one": 1, "eight": 8},
 			wantErr: false,
 		},
@@ -956,7 +960,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key9", "key10", "key11"},
-			options: ZINTEROptions{WithScores: true, Aggregate: "MAX"},
+			options: echovault.ZINTEROptions{WithScores: true, Aggregate: "MAX"},
 			want:    map[string]float64{"one": 1000, "eight": 800},
 			wantErr: false,
 		},
@@ -984,7 +988,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key12", "key13", "key14"},
-			options: ZINTEROptions{WithScores: true, Aggregate: "SUM", Weights: []float64{1, 5, 3}},
+			options: echovault.ZINTEROptions{WithScores: true, Aggregate: "SUM", Weights: []float64{1, 5, 3}},
 			want:    map[string]float64{"one": 3105, "eight": 2808},
 			wantErr: false,
 		},
@@ -1012,7 +1016,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key15", "key16", "key17"},
-			options: ZINTEROptions{WithScores: true, Aggregate: "MAX", Weights: []float64{1, 5, 3}},
+			options: echovault.ZINTEROptions{WithScores: true, Aggregate: "MAX", Weights: []float64{1, 5, 3}},
 			want:    map[string]float64{"one": 3000, "eight": 2400},
 			wantErr: false,
 		},
@@ -1040,7 +1044,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key18", "key19", "key20"},
-			options: ZINTEROptions{WithScores: true, Aggregate: "MIN", Weights: []float64{1, 5, 3}},
+			options: echovault.ZINTEROptions{WithScores: true, Aggregate: "MIN", Weights: []float64{1, 5, 3}},
 			want:    map[string]float64{"one": 5, "eight": 8},
 			wantErr: false,
 		},
@@ -1057,7 +1061,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				"key22": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key21", "key22"},
-			options: ZINTEROptions{Weights: []float64{1, 2, 3}},
+			options: echovault.ZINTEROptions{Weights: []float64{1, 2, 3}},
 			want:    nil,
 			wantErr: true,
 		},
@@ -1077,7 +1081,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				"key25": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key23", "key24", "key25"},
-			options: ZINTEROptions{Weights: []float64{5, 4}},
+			options: echovault.ZINTEROptions{Weights: []float64{5, 4}},
 			want:    nil,
 			wantErr: true,
 		},
@@ -1090,7 +1094,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				"key28": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{},
-			options: ZINTEROptions{},
+			options: echovault.ZINTEROptions{},
 			want:    nil,
 			wantErr: true,
 		},
@@ -1108,7 +1112,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				"key31": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key29", "key30", "key31"},
-			options: ZINTEROptions{},
+			options: echovault.ZINTEROptions{},
 			want:    nil,
 			wantErr: true,
 		},
@@ -1128,7 +1132,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 				}),
 			},
 			keys:    []string{"non-existent", "key32", "key33"},
-			options: ZINTEROptions{},
+			options: echovault.ZINTEROptions{},
 			want:    map[string]float64{},
 			wantErr: false,
 		},
@@ -1137,7 +1141,11 @@ func TestEchoVault_ZINTER(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.ZINTER(tt.keys, tt.options)
@@ -1153,13 +1161,7 @@ func TestEchoVault_ZINTER(t *testing.T) {
 }
 
 func TestEchoVault_ZINTERSTORE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -1167,7 +1169,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 		presetValues map[string]interface{}
 		destination  string
 		keys         []string
-		options      ZINTERSTOREOptions
+		options      echovault.ZINTERSTOREOptions
 		want         int
 		wantErr      bool
 	}{
@@ -1188,7 +1190,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination1",
 			keys:        []string{"key1", "key2"},
-			options:     ZINTERSTOREOptions{},
+			options:     echovault.ZINTERSTOREOptions{},
 			want:        3,
 			wantErr:     false,
 		},
@@ -1217,7 +1219,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination2",
 			keys:        []string{"key3", "key4", "key5"},
-			options:     ZINTERSTOREOptions{WithScores: true},
+			options:     echovault.ZINTERSTOREOptions{WithScores: true},
 			want:        2,
 			wantErr:     false,
 		},
@@ -1246,7 +1248,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination3",
 			keys:        []string{"key6", "key7", "key8"},
-			options:     ZINTERSTOREOptions{WithScores: true, Aggregate: "MIN"},
+			options:     echovault.ZINTERSTOREOptions{WithScores: true, Aggregate: "MIN"},
 			want:        2,
 			wantErr:     false,
 		},
@@ -1275,7 +1277,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination4",
 			keys:        []string{"key9", "key10", "key11"},
-			options:     ZINTERSTOREOptions{WithScores: true, Aggregate: "MAX"},
+			options:     echovault.ZINTERSTOREOptions{WithScores: true, Aggregate: "MAX"},
 			want:        2,
 			wantErr:     false,
 		},
@@ -1304,7 +1306,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination5",
 			keys:        []string{"key12", "key13", "key14"},
-			options:     ZINTERSTOREOptions{WithScores: true, Aggregate: "SUM", Weights: []float64{1, 5, 3}},
+			options:     echovault.ZINTERSTOREOptions{WithScores: true, Aggregate: "SUM", Weights: []float64{1, 5, 3}},
 			want:        2,
 			wantErr:     false,
 		},
@@ -1333,7 +1335,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination6",
 			keys:        []string{"key15", "key16", "key17"},
-			options:     ZINTERSTOREOptions{WithScores: true, Aggregate: "MAX", Weights: []float64{1, 5, 3}},
+			options:     echovault.ZINTERSTOREOptions{WithScores: true, Aggregate: "MAX", Weights: []float64{1, 5, 3}},
 			want:        2,
 			wantErr:     false,
 		},
@@ -1362,7 +1364,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination7",
 			keys:        []string{"key18", "key19", "key20"},
-			options:     ZINTERSTOREOptions{WithScores: true, Aggregate: "MIN", Weights: []float64{1, 5, 3}},
+			options:     echovault.ZINTERSTOREOptions{WithScores: true, Aggregate: "MIN", Weights: []float64{1, 5, 3}},
 			want:        2,
 			wantErr:     false,
 		},
@@ -1380,7 +1382,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination8",
 			keys:        []string{"key21", "key22"},
-			options:     ZINTERSTOREOptions{Weights: []float64{1, 2, 3}},
+			options:     echovault.ZINTERSTOREOptions{Weights: []float64{1, 2, 3}},
 			want:        0,
 			wantErr:     true,
 		},
@@ -1401,7 +1403,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination9",
 			keys:        []string{"key23", "key24"},
-			options:     ZINTERSTOREOptions{Weights: []float64{5}},
+			options:     echovault.ZINTERSTOREOptions{Weights: []float64{5}},
 			want:        0,
 			wantErr:     true,
 		},
@@ -1415,7 +1417,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination10",
 			keys:        []string{},
-			options:     ZINTERSTOREOptions{Weights: []float64{5, 4}},
+			options:     echovault.ZINTERSTOREOptions{Weights: []float64{5, 4}},
 			want:        0,
 			wantErr:     true,
 		},
@@ -1434,7 +1436,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination11",
 			keys:        []string{"key29", "key30", "key31"},
-			options:     ZINTERSTOREOptions{},
+			options:     echovault.ZINTERSTOREOptions{},
 			want:        0,
 			wantErr:     true,
 		},
@@ -1455,7 +1457,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			},
 			destination: "destination12",
 			keys:        []string{"non-existent", "key32", "key33"},
-			options:     ZINTERSTOREOptions{},
+			options:     echovault.ZINTERSTOREOptions{},
 			want:        0,
 			wantErr:     false,
 		},
@@ -1464,7 +1466,11 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.ZINTERSTORE(tt.destination, tt.keys, tt.options)
@@ -1480,13 +1486,7 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 }
 
 func TestEchoVault_ZLEXCOUNT(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -1558,7 +1558,11 @@ func TestEchoVault_ZLEXCOUNT(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZLEXCOUNT(tt.key, tt.min, tt.max)
 			if (err != nil) != tt.wantErr {
@@ -1573,20 +1577,14 @@ func TestEchoVault_ZLEXCOUNT(t *testing.T) {
 }
 
 func TestEchoVault_ZMPOP(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
 		preset       bool
 		presetValues map[string]interface{}
 		keys         []string
-		options      ZMPOPOptions
+		options      echovault.ZMPOPOptions
 		want         [][]string
 		wantErr      bool
 	}{
@@ -1601,7 +1599,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key1"},
-			options: ZMPOPOptions{},
+			options: echovault.ZMPOPOptions{},
 			want: [][]string{
 				{"one", "1"},
 			},
@@ -1618,7 +1616,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key2"},
-			options: ZMPOPOptions{Min: true},
+			options: echovault.ZMPOPOptions{Min: true},
 			want: [][]string{
 				{"one", "1"},
 			},
@@ -1635,7 +1633,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key3"},
-			options: ZMPOPOptions{Max: true},
+			options: echovault.ZMPOPOptions{Max: true},
 			want: [][]string{
 				{"five", "5"},
 			},
@@ -1652,7 +1650,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key4"},
-			options: ZMPOPOptions{Min: true, Count: 5},
+			options: echovault.ZMPOPOptions{Min: true, Count: 5},
 			want: [][]string{
 				{"one", "1"}, {"two", "2"}, {"three", "3"},
 				{"four", "4"}, {"five", "5"},
@@ -1670,7 +1668,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key5"},
-			options: ZMPOPOptions{Max: true, Count: 5},
+			options: echovault.ZMPOPOptions{Max: true, Count: 5},
 			want:    [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
 			wantErr: false,
 		},
@@ -1686,7 +1684,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key6", "key7"},
-			options: ZMPOPOptions{Max: true, Count: 5},
+			options: echovault.ZMPOPOptions{Max: true, Count: 5},
 			want:    [][]string{{"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}, {"six", "6"}},
 			wantErr: false,
 		},
@@ -1704,7 +1702,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key8", "key9", "key10", "key11"},
-			options: ZMPOPOptions{Min: true, Count: 5},
+			options: echovault.ZMPOPOptions{Min: true, Count: 5},
 			want:    [][]string{{"one", "1"}, {"two", "2"}, {"three", "3"}, {"four", "4"}, {"five", "5"}},
 			wantErr: false,
 		},
@@ -1713,7 +1711,11 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.ZMPOP(tt.keys, tt.options)
@@ -1729,13 +1731,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 }
 
 func TestEchoVault_ZMSCORE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -1782,7 +1778,11 @@ func TestEchoVault_ZMSCORE(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZMSCORE(tt.key, tt.members...)
 			if (err != nil) != tt.wantErr {
@@ -1810,13 +1810,7 @@ func TestEchoVault_ZMSCORE(t *testing.T) {
 }
 
 func TestEchoVault_ZPOP(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -1903,7 +1897,11 @@ func TestEchoVault_ZPOP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := tt.popFunc(tt.key, tt.count)
 			if (err != nil) != tt.wantErr {
@@ -1918,13 +1916,7 @@ func TestEchoVault_ZPOP(t *testing.T) {
 }
 
 func TestEchoVault_ZRANDMEMBER(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -1979,7 +1971,11 @@ func TestEchoVault_ZRANDMEMBER(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZRANDMEMBER(tt.key, tt.count, tt.withscores)
 			if (err != nil) != tt.wantErr {
@@ -1994,13 +1990,7 @@ func TestEchoVault_ZRANDMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_ZRANGE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -2009,7 +1999,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 		key         string
 		start       string
 		stop        string
-		options     ZRANGEOptions
+		options     echovault.ZRANGEOptions
 		want        map[string]float64
 		wantErr     bool
 	}{
@@ -2025,7 +2015,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 			key:     "key1",
 			start:   "3",
 			stop:    "7",
-			options: ZRANGEOptions{ByScore: true},
+			options: echovault.ZRANGEOptions{ByScore: true},
 			want:    map[string]float64{"three": 0, "four": 0, "five": 0, "six": 0, "seven": 0},
 			wantErr: false,
 		},
@@ -2041,7 +2031,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 			key:     "key2",
 			start:   "3",
 			stop:    "7",
-			options: ZRANGEOptions{ByScore: true, WithScores: true},
+			options: echovault.ZRANGEOptions{ByScore: true, WithScores: true},
 			want:    map[string]float64{"three": 3, "four": 4, "five": 5, "six": 6, "seven": 7},
 			wantErr: false,
 		},
@@ -2059,7 +2049,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 			key:     "key3",
 			start:   "3",
 			stop:    "7",
-			options: ZRANGEOptions{WithScores: true, ByScore: true, Offset: 2, Count: 4},
+			options: echovault.ZRANGEOptions{WithScores: true, ByScore: true, Offset: 2, Count: 4},
 			want:    map[string]float64{"three": 3, "four": 4, "five": 5},
 			wantErr: false,
 		},
@@ -2075,7 +2065,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 			key:     "key4",
 			start:   "c",
 			stop:    "g",
-			options: ZRANGEOptions{ByLex: true},
+			options: echovault.ZRANGEOptions{ByLex: true},
 			want:    map[string]float64{"c": 0, "d": 0, "e": 0, "f": 0, "g": 0},
 			wantErr: false,
 		},
@@ -2091,7 +2081,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 			key:     "key5",
 			start:   "a",
 			stop:    "f",
-			options: ZRANGEOptions{ByLex: true, WithScores: true},
+			options: echovault.ZRANGEOptions{ByLex: true, WithScores: true},
 			want:    map[string]float64{"a": 1, "b": 1, "c": 1, "d": 1, "e": 1, "f": 1},
 			wantErr: false,
 		},
@@ -2109,7 +2099,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 			key:     "key6",
 			start:   "a",
 			stop:    "h",
-			options: ZRANGEOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
+			options: echovault.ZRANGEOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
 			want:    map[string]float64{"c": 1, "d": 1, "e": 1},
 			wantErr: false,
 		},
@@ -2125,7 +2115,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 			key:     "key7",
 			start:   "a",
 			stop:    "h",
-			options: ZRANGEOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
+			options: echovault.ZRANGEOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
 			want:    map[string]float64{},
 			wantErr: false,
 		},
@@ -2136,7 +2126,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 			key:         "key10",
 			start:       "a",
 			stop:        "h",
-			options:     ZRANGEOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
+			options:     echovault.ZRANGEOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
 			want:        nil,
 			wantErr:     true,
 		},
@@ -2144,7 +2134,11 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZRANGE(tt.key, tt.start, tt.stop, tt.options)
 			if (err != nil) != tt.wantErr {
@@ -2159,13 +2153,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 }
 
 func TestEchoVault_ZRANGESTORE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -2175,7 +2163,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 		source       string
 		start        string
 		stop         string
-		options      ZRANGESTOREOptions
+		options      echovault.ZRANGESTOREOptions
 		want         int
 		wantErr      bool
 	}{
@@ -2194,7 +2182,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			source:      "key1",
 			start:       "3",
 			stop:        "7",
-			options:     ZRANGESTOREOptions{ByScore: true},
+			options:     echovault.ZRANGESTOREOptions{ByScore: true},
 			want:        5,
 			wantErr:     false,
 		},
@@ -2213,7 +2201,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			source:      "key2",
 			start:       "3",
 			stop:        "7",
-			options:     ZRANGESTOREOptions{WithScores: true, ByScore: true},
+			options:     echovault.ZRANGESTOREOptions{WithScores: true, ByScore: true},
 			want:        5,
 			wantErr:     false,
 		},
@@ -2234,7 +2222,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			source:      "key3",
 			start:       "3",
 			stop:        "7",
-			options:     ZRANGESTOREOptions{ByScore: true, WithScores: true, Offset: 2, Count: 4},
+			options:     echovault.ZRANGESTOREOptions{ByScore: true, WithScores: true, Offset: 2, Count: 4},
 			want:        3,
 			wantErr:     false,
 		},
@@ -2253,7 +2241,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			source:      "key4",
 			start:       "c",
 			stop:        "g",
-			options:     ZRANGESTOREOptions{ByLex: true},
+			options:     echovault.ZRANGESTOREOptions{ByLex: true},
 			want:        5,
 			wantErr:     false,
 		},
@@ -2272,7 +2260,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			source:      "key5",
 			start:       "a",
 			stop:        "f",
-			options:     ZRANGESTOREOptions{ByLex: true, WithScores: true},
+			options:     echovault.ZRANGESTOREOptions{ByLex: true, WithScores: true},
 			want:        6,
 			wantErr:     false,
 		},
@@ -2293,7 +2281,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			source:      "key6",
 			start:       "a",
 			stop:        "h",
-			options:     ZRANGESTOREOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
+			options:     echovault.ZRANGESTOREOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
 			want:        3,
 			wantErr:     false,
 		},
@@ -2315,7 +2303,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			source:      "key7",
 			start:       "a",
 			stop:        "h",
-			options:     ZRANGESTOREOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
+			options:     echovault.ZRANGESTOREOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
 			want:        3,
 			wantErr:     false,
 		},
@@ -2334,7 +2322,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			source:      "key8",
 			start:       "a",
 			stop:        "h",
-			options:     ZRANGESTOREOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
+			options:     echovault.ZRANGESTOREOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
 			want:        0,
 			wantErr:     false,
 		},
@@ -2348,7 +2336,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			source:      "key9",
 			start:       "a",
 			stop:        "h",
-			options:     ZRANGESTOREOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
+			options:     echovault.ZRANGESTOREOptions{WithScores: true, ByLex: true, Offset: 2, Count: 4},
 			want:        0,
 			wantErr:     true,
 		},
@@ -2357,7 +2345,11 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.ZRANGESTORE(tt.destination, tt.source, tt.start, tt.stop, tt.options)
@@ -2373,13 +2365,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 }
 
 func TestEchoVault_ZRANK(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -2457,7 +2443,11 @@ func TestEchoVault_ZRANK(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZRANK(tt.key, tt.member, tt.withscores)
 			if (err != nil) != tt.wantErr {
@@ -2472,13 +2462,7 @@ func TestEchoVault_ZRANK(t *testing.T) {
 }
 
 func TestEchoVault_ZREM(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -2528,7 +2512,11 @@ func TestEchoVault_ZREM(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZREM(tt.key, tt.members...)
 			if (err != nil) != tt.wantErr {
@@ -2543,13 +2531,7 @@ func TestEchoVault_ZREM(t *testing.T) {
 }
 
 func TestEchoVault_ZREMRANGEBYSCORE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -2600,7 +2582,11 @@ func TestEchoVault_ZREMRANGEBYSCORE(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZREMRANGEBYSCORE(tt.key, tt.min, tt.max)
 			if (err != nil) != tt.wantErr {
@@ -2615,13 +2601,7 @@ func TestEchoVault_ZREMRANGEBYSCORE(t *testing.T) {
 }
 
 func TestEchoVault_ZSCORE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -2680,7 +2660,11 @@ func TestEchoVault_ZSCORE(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.ZSCORE(tt.key, tt.member)
 			if (err != nil) != tt.wantErr {
@@ -2695,20 +2679,14 @@ func TestEchoVault_ZSCORE(t *testing.T) {
 }
 
 func TestEchoVault_ZUNION(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
 		preset       bool
 		presetValues map[string]interface{}
 		keys         []string
-		options      ZUNIONOptions
+		options      echovault.ZUNIONOptions
 		want         map[string]float64
 		wantErr      bool
 	}{
@@ -2728,7 +2706,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key1", "key2"},
-			options: ZUNIONOptions{},
+			options: echovault.ZUNIONOptions{},
 			want: map[string]float64{
 				"one": 0, "two": 0, "three": 0, "four": 0,
 				"five": 0, "six": 0, "seven": 0, "eight": 0,
@@ -2759,7 +2737,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key3", "key4", "key5"},
-			options: ZUNIONOptions{WithScores: true},
+			options: echovault.ZUNIONOptions{WithScores: true},
 			want: map[string]float64{
 				"one": 3, "two": 4, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 24, "nine": 9,
 				"ten": 10, "eleven": 11, "twelve": 24, "thirty-six": 72,
@@ -2790,7 +2768,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key6", "key7", "key8"},
-			options: ZUNIONOptions{WithScores: true, Aggregate: "MIN"},
+			options: echovault.ZUNIONOptions{WithScores: true, Aggregate: "MIN"},
 			want: map[string]float64{
 				"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
 				"ten": 10, "eleven": 11, "twelve": 12, "thirty-six": 36,
@@ -2821,7 +2799,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key9", "key10", "key11"},
-			options: ZUNIONOptions{WithScores: true, Aggregate: "MAX"},
+			options: echovault.ZUNIONOptions{WithScores: true, Aggregate: "MAX"},
 			want: map[string]float64{
 				"one": 1000, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 800, "nine": 9,
 				"ten": 10, "eleven": 11, "twelve": 12, "thirty-six": 72,
@@ -2852,7 +2830,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key12", "key13", "key14"},
-			options: ZUNIONOptions{WithScores: true, Aggregate: "SUM", Weights: []float64{1, 2, 3}},
+			options: echovault.ZUNIONOptions{WithScores: true, Aggregate: "SUM", Weights: []float64{1, 2, 3}},
 			want: map[string]float64{
 				"one": 3102, "two": 6, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 2568,
 				"nine": 27, "ten": 30, "eleven": 22, "twelve": 60, "thirty-six": 72,
@@ -2883,7 +2861,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key15", "key16", "key17"},
-			options: ZUNIONOptions{WithScores: true, Aggregate: "MAX", Weights: []float64{1, 2, 3}},
+			options: echovault.ZUNIONOptions{WithScores: true, Aggregate: "MAX", Weights: []float64{1, 2, 3}},
 			want: map[string]float64{
 				"one": 3000, "two": 4, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 2400,
 				"nine": 27, "ten": 30, "eleven": 22, "twelve": 36, "thirty-six": 72,
@@ -2914,7 +2892,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				}),
 			},
 			keys:    []string{"key18", "key19", "key20"},
-			options: ZUNIONOptions{WithScores: true, Aggregate: "MIN", Weights: []float64{1, 2, 3}},
+			options: echovault.ZUNIONOptions{WithScores: true, Aggregate: "MIN", Weights: []float64{1, 2, 3}},
 			want: map[string]float64{
 				"one": 2, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 27,
 				"ten": 30, "eleven": 22, "twelve": 24, "thirty-six": 72,
@@ -2934,7 +2912,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				"key22": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key21", "key22"},
-			options: ZUNIONOptions{Weights: []float64{1, 2, 3}},
+			options: echovault.ZUNIONOptions{Weights: []float64{1, 2, 3}},
 			want:    nil,
 			wantErr: true,
 		},
@@ -2954,7 +2932,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				"key25": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key23", "key24", "key25"},
-			options: ZUNIONOptions{Weights: []float64{5, 4}},
+			options: echovault.ZUNIONOptions{Weights: []float64{5, 4}},
 			want:    nil,
 			wantErr: true,
 		},
@@ -2967,7 +2945,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				"key28": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{},
-			options: ZUNIONOptions{Weights: []float64{5, 4}},
+			options: echovault.ZUNIONOptions{Weights: []float64{5, 4}},
 			want:    nil,
 			wantErr: true,
 		},
@@ -2985,7 +2963,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				"key31": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key29", "key30", "key31"},
-			options: ZUNIONOptions{},
+			options: echovault.ZUNIONOptions{},
 			want:    nil,
 			wantErr: true,
 		},
@@ -3005,7 +2983,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 				}),
 			},
 			keys:    []string{"non-existent", "key32", "key33"},
-			options: ZUNIONOptions{},
+			options: echovault.ZUNIONOptions{},
 			want: map[string]float64{
 				"one": 0, "two": 0, "thirty-six": 0, "twelve": 0, "eleven": 0,
 				"seven": 0, "eight": 0, "nine": 0, "ten": 0,
@@ -3017,7 +2995,11 @@ func TestEchoVault_ZUNION(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.ZUNION(tt.keys, tt.options)
@@ -3033,13 +3015,7 @@ func TestEchoVault_ZUNION(t *testing.T) {
 }
 
 func TestEchoVault_ZUNIONSTORE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -3047,7 +3023,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 		presetValues map[string]interface{}
 		destination  string
 		keys         []string
-		options      ZUNIONSTOREOptions
+		options      echovault.ZUNIONSTOREOptions
 		want         int
 		wantErr      bool
 	}{
@@ -3068,7 +3044,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			},
 			destination: "destination1",
 			keys:        []string{"key1", "key2"},
-			options:     ZUNIONSTOREOptions{},
+			options:     echovault.ZUNIONSTOREOptions{},
 			want:        8,
 			wantErr:     false,
 		},
@@ -3097,7 +3073,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			},
 			destination: "destination2",
 			keys:        []string{"key3", "key4", "key5"},
-			options:     ZUNIONSTOREOptions{WithScores: true},
+			options:     echovault.ZUNIONSTOREOptions{WithScores: true},
 			want:        13,
 			wantErr:     false,
 		},
@@ -3126,7 +3102,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			},
 			destination: "destination3",
 			keys:        []string{"key6", "key7", "key8"},
-			options:     ZUNIONSTOREOptions{WithScores: true, Aggregate: "MIN"},
+			options:     echovault.ZUNIONSTOREOptions{WithScores: true, Aggregate: "MIN"},
 			want:        13,
 			wantErr:     false,
 		},
@@ -3155,7 +3131,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			},
 			destination: "destination4",
 			keys:        []string{"key9", "key10", "key11"},
-			options:     ZUNIONSTOREOptions{WithScores: true, Aggregate: "MAX"},
+			options:     echovault.ZUNIONSTOREOptions{WithScores: true, Aggregate: "MAX"},
 			want:        13,
 			wantErr:     false,
 		},
@@ -3184,7 +3160,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			},
 			destination: "destination5",
 			keys:        []string{"key12", "key13", "key14"},
-			options:     ZUNIONSTOREOptions{WithScores: true, Aggregate: "SUM", Weights: []float64{1, 2, 3}},
+			options:     echovault.ZUNIONSTOREOptions{WithScores: true, Aggregate: "SUM", Weights: []float64{1, 2, 3}},
 			want:        13,
 			wantErr:     false,
 		},
@@ -3213,7 +3189,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			},
 			destination: "destination6",
 			keys:        []string{"key15", "key16", "key17"},
-			options:     ZUNIONSTOREOptions{WithScores: true, Aggregate: "MAX", Weights: []float64{1, 2, 3}},
+			options:     echovault.ZUNIONSTOREOptions{WithScores: true, Aggregate: "MAX", Weights: []float64{1, 2, 3}},
 			want:        13,
 			wantErr:     false,
 		},
@@ -3242,7 +3218,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			},
 			destination: "destination7",
 			keys:        []string{"destination7", "key18", "key19", "key20"},
-			options:     ZUNIONSTOREOptions{WithScores: true, Aggregate: "MIN", Weights: []float64{1, 2, 3}},
+			options:     echovault.ZUNIONSTOREOptions{WithScores: true, Aggregate: "MIN", Weights: []float64{1, 2, 3}},
 			want:        13,
 			wantErr:     false,
 		},
@@ -3260,7 +3236,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			},
 			destination: "destination8",
 			keys:        []string{"key21", "key22"},
-			options:     ZUNIONSTOREOptions{Weights: []float64{1, 2, 3}},
+			options:     echovault.ZUNIONSTOREOptions{Weights: []float64{1, 2, 3}},
 			want:        0,
 			wantErr:     true,
 		},
@@ -3281,7 +3257,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			},
 			destination: "destination9",
 			keys:        []string{"key23", "key24", "key25"},
-			options:     ZUNIONSTOREOptions{Weights: []float64{5, 4}},
+			options:     echovault.ZUNIONSTOREOptions{Weights: []float64{5, 4}},
 			want:        0,
 			wantErr:     true,
 		},
@@ -3300,7 +3276,7 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			},
 			destination: "destination11",
 			keys:        []string{"key29", "key30", "key31"},
-			options:     ZUNIONSTOREOptions{},
+			options:     echovault.ZUNIONSTOREOptions{},
 			want:        0,
 			wantErr:     true,
 		},
@@ -3329,7 +3305,11 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.ZUNIONSTORE(tt.destination, tt.keys, tt.options)

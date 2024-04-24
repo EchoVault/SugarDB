@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/raft"
 	"io"
 	"log"
+	"net"
 	"strings"
 )
 
@@ -36,6 +37,7 @@ type FSMOpts struct {
 	StartSnapshot         func()
 	FinishSnapshot        func()
 	SetLatestSnapshotTime func(msec int64)
+	GetHandlerFuncParams  func(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams
 }
 
 type FSM struct {
@@ -86,34 +88,33 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 			}
 
 		case "command":
-			// TODO: Re-Implement Command handling with dependency injection
 			// Handle command
-			// command, err := fsm.options.GetCommand(request.CMD[0])
-			// if err != nil {
-			// 	return internal.ApplyResponse{
-			// 		Error:    err,
-			// 		Response: nil,
-			// 	}
-			// }
-			//
-			// handler := command.HandlerFunc
-			//
-			// subCommand, ok := internal.GetSubCommand(command, request.CMD).(types.SubCommand)
-			// if ok {
-			// 	handler = subCommand.HandlerFunc
-			// }
-			//
-			// if res, err := handler(ctx, request.CMD, fsm.options.EchoVault, nil); err != nil {
-			// 	return internal.ApplyResponse{
-			// 		Error:    err,
-			// 		Response: nil,
-			// 	}
-			// } else {
-			// 	return internal.ApplyResponse{
-			// 		Error:    nil,
-			// 		Response: res,
-			// 	}
-			// }
+			command, err := fsm.options.GetCommand(request.CMD[0])
+			if err != nil {
+				return internal.ApplyResponse{
+					Error:    err,
+					Response: nil,
+				}
+			}
+
+			handler := command.HandlerFunc
+
+			subCommand, ok := internal.GetSubCommand(command, request.CMD).(types.SubCommand)
+			if ok {
+				handler = subCommand.HandlerFunc
+			}
+
+			if res, err := handler(fsm.options.GetHandlerFuncParams(ctx, request.CMD, nil)); err != nil {
+				return internal.ApplyResponse{
+					Error:    err,
+					Response: nil,
+				}
+			} else {
+				return internal.ApplyResponse{
+					Error:    nil,
+					Response: res,
+				}
+			}
 		}
 	}
 

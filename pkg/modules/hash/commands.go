@@ -15,21 +15,19 @@
 package hash
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/types"
 	"math/rand"
-	"net"
 	"slices"
 	"strconv"
 	"strings"
 )
 
-func handleHSET(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hsetKeyFunc(cmd)
+func handleHSET(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hsetKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -37,39 +35,39 @@ func handleHSET(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	key := keys.WriteKeys[0]
 	entries := make(map[string]interface{})
 
-	if len(cmd[2:])%2 != 0 {
+	if len(params.Command[2:])%2 != 0 {
 		return nil, errors.New("each field must have a corresponding value")
 	}
 
-	for i := 2; i <= len(cmd)-2; i += 2 {
-		entries[cmd[i]] = internal.AdaptType(cmd[i+1])
+	for i := 2; i <= len(params.Command)-2; i += 2 {
+		entries[params.Command[i]] = internal.AdaptType(params.Command[i+1])
 	}
 
-	if !server.KeyExists(ctx, key) {
-		_, err = server.CreateKeyAndLock(ctx, key)
+	if !params.KeyExists(params.Context, key) {
+		_, err = params.CreateKeyAndLock(params.Context, key)
 		if err != nil {
 			return nil, err
 		}
-		defer server.KeyUnlock(ctx, key)
-		if err = server.SetValue(ctx, key, entries); err != nil {
+		defer params.KeyUnlock(params.Context, key)
+		if err = params.SetValue(params.Context, key, entries); err != nil {
 			return nil, err
 		}
 		return []byte(fmt.Sprintf(":%d\r\n", len(entries))), nil
 	}
 
-	if _, err = server.KeyLock(ctx, key); err != nil {
+	if _, err = params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
 
 	count := 0
 	for field, value := range entries {
-		if strings.EqualFold(cmd[0], "hsetnx") {
+		if strings.EqualFold(params.Command[0], "hsetnx") {
 			if hash[field] == nil {
 				hash[field] = value
 				count += 1
@@ -79,32 +77,32 @@ func handleHSET(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 		hash[field] = value
 		count += 1
 	}
-	if err = server.SetValue(ctx, key, hash); err != nil {
+	if err = params.SetValue(params.Context, key, hash); err != nil {
 		return nil, err
 	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleHGET(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hgetKeyFunc(cmd)
+func handleHGET(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hgetKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
-	fields := cmd[2:]
+	fields := params.Command[2:]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte("$-1\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -137,25 +135,25 @@ func handleHGET(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	return []byte(res), nil
 }
 
-func handleHSTRLEN(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hstrlenKeyFunc(cmd)
+func handleHSTRLEN(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hstrlenKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
-	fields := cmd[2:]
+	fields := params.Command[2:]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte("$-1\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -188,24 +186,24 @@ func handleHSTRLEN(ctx context.Context, cmd []string, server types.EchoVault, _ 
 	return []byte(res), nil
 }
 
-func handleHVALS(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hvalsKeyFunc(cmd)
+func handleHVALS(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hvalsKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte("*0\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -229,8 +227,8 @@ func handleHVALS(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 	return []byte(res), nil
 }
 
-func handleHRANDFIELD(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hrandfieldKeyFunc(cmd)
+func handleHRANDFIELD(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hrandfieldKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -238,8 +236,8 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server types.EchoVault,
 	key := keys.ReadKeys[0]
 
 	count := 1
-	if len(cmd) >= 3 {
-		c, err := strconv.Atoi(cmd[2])
+	if len(params.Command) >= 3 {
+		c, err := strconv.Atoi(params.Command[2])
 		if err != nil {
 			return nil, errors.New("count must be an integer")
 		}
@@ -250,24 +248,24 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server types.EchoVault,
 	}
 
 	withvalues := false
-	if len(cmd) == 4 {
-		if strings.EqualFold(cmd[3], "withvalues") {
+	if len(params.Command) == 4 {
+		if strings.EqualFold(params.Command[3], "withvalues") {
 			withvalues = true
 		} else {
 			return nil, errors.New("result modifier must be withvalues")
 		}
 	}
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte("*0\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -345,24 +343,24 @@ func handleHRANDFIELD(ctx context.Context, cmd []string, server types.EchoVault,
 	return []byte(res), nil
 }
 
-func handleHLEN(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hlenKeyFunc(cmd)
+func handleHLEN(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hlenKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -370,24 +368,24 @@ func handleHLEN(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	return []byte(fmt.Sprintf(":%d\r\n", len(hash))), nil
 }
 
-func handleHKEYS(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hkeysKeyFunc(cmd)
+func handleHKEYS(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hkeysKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte("*0\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -400,59 +398,59 @@ func handleHKEYS(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 	return []byte(res), nil
 }
 
-func handleHINCRBY(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hincrbyKeyFunc(cmd)
+func handleHINCRBY(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hincrbyKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.WriteKeys[0]
-	field := cmd[2]
+	field := params.Command[2]
 
 	var intIncrement int
 	var floatIncrement float64
 
-	if strings.EqualFold(cmd[0], "hincrbyfloat") {
-		f, err := strconv.ParseFloat(cmd[3], 64)
+	if strings.EqualFold(params.Command[0], "hincrbyfloat") {
+		f, err := strconv.ParseFloat(params.Command[3], 64)
 		if err != nil {
 			return nil, errors.New("increment must be a float")
 		}
 		floatIncrement = f
 	} else {
-		i, err := strconv.Atoi(cmd[3])
+		i, err := strconv.Atoi(params.Command[3])
 		if err != nil {
 			return nil, errors.New("increment must be an integer")
 		}
 		intIncrement = i
 	}
 
-	if !server.KeyExists(ctx, key) {
-		if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+	if !params.KeyExists(params.Context, key) {
+		if _, err := params.CreateKeyAndLock(params.Context, key); err != nil {
 			return nil, err
 		}
-		defer server.KeyUnlock(ctx, key)
+		defer params.KeyUnlock(params.Context, key)
 		hash := make(map[string]interface{})
-		if strings.EqualFold(cmd[0], "hincrbyfloat") {
+		if strings.EqualFold(params.Command[0], "hincrbyfloat") {
 			hash[field] = floatIncrement
-			if err = server.SetValue(ctx, key, hash); err != nil {
+			if err = params.SetValue(params.Context, key, hash); err != nil {
 				return nil, err
 			}
 			return []byte(fmt.Sprintf("+%s\r\n", strconv.FormatFloat(floatIncrement, 'f', -1, 64))), nil
 		} else {
 			hash[field] = intIncrement
-			if err = server.SetValue(ctx, key, hash); err != nil {
+			if err = params.SetValue(params.Context, key, hash); err != nil {
 				return nil, err
 			}
 			return []byte(fmt.Sprintf(":%d\r\n", intIncrement)), nil
 		}
 	}
 
-	if _, err := server.KeyLock(ctx, key); err != nil {
+	if _, err := params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -466,21 +464,21 @@ func handleHINCRBY(ctx context.Context, cmd []string, server types.EchoVault, _ 
 		return nil, fmt.Errorf("value at field %s is not a number", field)
 	case int:
 		i, _ := hash[field].(int)
-		if strings.EqualFold(cmd[0], "hincrbyfloat") {
+		if strings.EqualFold(params.Command[0], "hincrbyfloat") {
 			hash[field] = float64(i) + floatIncrement
 		} else {
 			hash[field] = i + intIncrement
 		}
 	case float64:
 		f, _ := hash[field].(float64)
-		if strings.EqualFold(cmd[0], "hincrbyfloat") {
+		if strings.EqualFold(params.Command[0], "hincrbyfloat") {
 			hash[field] = f + floatIncrement
 		} else {
 			hash[field] = f + float64(intIncrement)
 		}
 	}
 
-	if err = server.SetValue(ctx, key, hash); err != nil {
+	if err = params.SetValue(params.Context, key, hash); err != nil {
 		return nil, err
 	}
 
@@ -492,24 +490,24 @@ func handleHINCRBY(ctx context.Context, cmd []string, server types.EchoVault, _ 
 	return []byte(fmt.Sprintf(":%d\r\n", i)), nil
 }
 
-func handleHGETALL(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hgetallKeyFunc(cmd)
+func handleHGETALL(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hgetallKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte("*0\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -532,25 +530,25 @@ func handleHGETALL(ctx context.Context, cmd []string, server types.EchoVault, _ 
 	return []byte(res), nil
 }
 
-func handleHEXISTS(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hexistsKeyFunc(cmd)
+func handleHEXISTS(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hexistsKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
-	field := cmd[2]
+	field := params.Command[2]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -562,25 +560,25 @@ func handleHEXISTS(ctx context.Context, cmd []string, server types.EchoVault, _ 
 	return []byte(":0\r\n"), nil
 }
 
-func handleHDEL(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := hdelKeyFunc(cmd)
+func handleHDEL(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := hdelKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.WriteKeys[0]
-	fields := cmd[2:]
+	fields := params.Command[2:]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = server.KeyLock(ctx, key); err != nil {
+	if _, err = params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	hash, ok := server.GetValue(ctx, key).(map[string]interface{})
+	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -594,7 +592,7 @@ func handleHDEL(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 		}
 	}
 
-	if err = server.SetValue(ctx, key, hash); err != nil {
+	if err = params.SetValue(params.Context, key, hash); err != nil {
 		return nil, err
 	}
 

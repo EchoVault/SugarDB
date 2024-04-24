@@ -15,19 +15,17 @@
 package admin
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/types"
 	"github.com/gobwas/glob"
-	"net"
 	"slices"
 	"strings"
 )
 
-func handleGetAllCommands(_ context.Context, _ []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	commands := server.GetAllCommands()
+func handleGetAllCommands(params types.HandlerFuncParams) ([]byte, error) {
+	commands := params.GetAllCommands()
 
 	res := ""
 	commandCount := 0
@@ -71,10 +69,10 @@ func handleGetAllCommands(_ context.Context, _ []string, server types.EchoVault,
 	return []byte(res), nil
 }
 
-func handleCommandCount(_ context.Context, _ []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleCommandCount(params types.HandlerFuncParams) ([]byte, error) {
 	var count int
 
-	commands := server.GetAllCommands()
+	commands := params.GetAllCommands()
 	for _, command := range commands {
 		if command.SubCommands != nil && len(command.SubCommands) > 0 {
 			for _, _ = range command.SubCommands {
@@ -88,13 +86,13 @@ func handleCommandCount(_ context.Context, _ []string, server types.EchoVault, _
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleCommandList(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	switch len(cmd) {
+func handleCommandList(params types.HandlerFuncParams) ([]byte, error) {
+	switch len(params.Command) {
 	case 2:
 		// Command is COMMAND LIST
 		var count int
 		var res string
-		commands := server.GetAllCommands()
+		commands := params.GetAllCommands()
 		for _, command := range commands {
 			if command.SubCommands != nil && len(command.SubCommands) > 0 {
 				for _, subcommand := range command.SubCommands {
@@ -114,13 +112,13 @@ func handleCommandList(_ context.Context, cmd []string, server types.EchoVault, 
 		var count int
 		var res string
 		// Command has filter
-		if !strings.EqualFold("FILTERBY", cmd[2]) {
-			return nil, fmt.Errorf("expected FILTERBY, got %s", strings.ToUpper(cmd[2]))
+		if !strings.EqualFold("FILTERBY", params.Command[2]) {
+			return nil, fmt.Errorf("expected FILTERBY, got %s", strings.ToUpper(params.Command[2]))
 		}
-		if strings.EqualFold("ACLCAT", cmd[3]) {
+		if strings.EqualFold("ACLCAT", params.Command[3]) {
 			// ACL Category filter
-			commands := server.GetAllCommands()
-			category := strings.ToLower(cmd[4])
+			commands := params.GetAllCommands()
+			category := strings.ToLower(params.Command[4])
 			for _, command := range commands {
 				if command.SubCommands != nil && len(command.SubCommands) > 0 {
 					for _, subcommand := range command.SubCommands {
@@ -137,10 +135,10 @@ func handleCommandList(_ context.Context, cmd []string, server types.EchoVault, 
 					count += 1
 				}
 			}
-		} else if strings.EqualFold("PATTERN", cmd[3]) {
+		} else if strings.EqualFold("PATTERN", params.Command[3]) {
 			// Pattern filter
-			commands := server.GetAllCommands()
-			g := glob.MustCompile(cmd[4])
+			commands := params.GetAllCommands()
+			g := glob.MustCompile(params.Command[4])
 			for _, command := range commands {
 				if command.SubCommands != nil && len(command.SubCommands) > 0 {
 					for _, subcommand := range command.SubCommands {
@@ -157,10 +155,10 @@ func handleCommandList(_ context.Context, cmd []string, server types.EchoVault, 
 					count += 1
 				}
 			}
-		} else if strings.EqualFold("MODULE", cmd[3]) {
+		} else if strings.EqualFold("MODULE", params.Command[3]) {
 			// Module filter
-			commands := server.GetAllCommands()
-			module := strings.ToLower(cmd[4])
+			commands := params.GetAllCommands()
+			module := strings.ToLower(params.Command[4])
 			for _, command := range commands {
 				if command.SubCommands != nil && len(command.SubCommands) > 0 {
 					for _, subcommand := range command.SubCommands {
@@ -178,7 +176,7 @@ func handleCommandList(_ context.Context, cmd []string, server types.EchoVault, 
 				}
 			}
 		} else {
-			return nil, fmt.Errorf("expected filter to be ACLCAT or PATTERN, got %s", strings.ToUpper(cmd[3]))
+			return nil, fmt.Errorf("expected filter to be ACLCAT or PATTERN, got %s", strings.ToUpper(params.Command[3]))
 		}
 		res = fmt.Sprintf("*%d\r\n%s", count, res)
 		return []byte(res), nil
@@ -187,7 +185,7 @@ func handleCommandList(_ context.Context, cmd []string, server types.EchoVault, 
 	}
 }
 
-func handleCommandDocs(_ context.Context, _ []string, _ types.EchoVault, _ *net.Conn) ([]byte, error) {
+func handleCommandDocs(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte("*0\r\n"), nil
 }
 
@@ -283,8 +281,8 @@ Allows for filtering by ACL category or glob pattern.`,
 					WriteKeys: make([]string, 0),
 				}, nil
 			},
-			HandlerFunc: func(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-				if err := server.TakeSnapshot(); err != nil {
+			HandlerFunc: func(params types.HandlerFuncParams) ([]byte, error) {
+				if err := params.TakeSnapshot(); err != nil {
 					return nil, err
 				}
 				return []byte(constants.OkResponse), nil
@@ -303,8 +301,8 @@ Allows for filtering by ACL category or glob pattern.`,
 					WriteKeys: make([]string, 0),
 				}, nil
 			},
-			HandlerFunc: func(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-				msec := server.GetLatestSnapshotTime()
+			HandlerFunc: func(params types.HandlerFuncParams) ([]byte, error) {
+				msec := params.GetLatestSnapshotTime()
 				if msec == 0 {
 					return nil, errors.New("no snapshot")
 				}
@@ -324,8 +322,8 @@ Allows for filtering by ACL category or glob pattern.`,
 					WriteKeys: make([]string, 0),
 				}, nil
 			},
-			HandlerFunc: func(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-				if err := server.RewriteAOF(); err != nil {
+			HandlerFunc: func(params types.HandlerFuncParams) ([]byte, error) {
+				if err := params.RewriteAOF(); err != nil {
 					return nil, err
 				}
 				return []byte(constants.OkResponse), nil

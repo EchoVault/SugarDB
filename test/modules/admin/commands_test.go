@@ -21,20 +21,58 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
+	"github.com/echovault/echovault/pkg/modules/admin"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
+	"net"
+	"strings"
 	"testing"
 )
 
-func Test_CommandsHandler(t *testing.T) {
-	mockServer, _ := echovault.NewEchoVault(
+var mockServer *echovault.EchoVault
+
+func init() {
+	mockServer, _ = echovault.NewEchoVault(
+		echovault.WithCommands(admin.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
-		echovault.WithCommands(Commands()),
 	)
+}
 
-	res, err := handleGetAllCommands(context.Background(), []string{"commands"}, mockServer, nil)
+func getHandler(commands ...string) types.HandlerFunc {
+	if len(commands) == 0 {
+		return nil
+	}
+	for _, c := range mockServer.GetAllCommands() {
+		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
+			// Get command handler
+			return c.HandlerFunc
+		}
+		if strings.EqualFold(commands[0], c.Command) {
+			// Get sub-command handler
+			for _, sc := range c.SubCommands {
+				if strings.EqualFold(commands[1], sc.Command) {
+					return sc.HandlerFunc
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams {
+	return types.HandlerFuncParams{
+		Context:        ctx,
+		Command:        cmd,
+		Connection:     conn,
+		GetAllCommands: mockServer.GetAllCommands,
+	}
+}
+
+func Test_CommandsHandler(t *testing.T) {
+	res, err := getHandler("COMMANDS")(getHandlerFuncParams(context.Background(), []string{"commands"}, nil))
 	if err != nil {
 		t.Error(err)
 	}

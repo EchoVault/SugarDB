@@ -7,7 +7,7 @@ build:
 run:
 	make build && docker-compose up --build
 
-test:
+test-normal:
 	go clean -testcache && go test ./... -coverprofile coverage/coverage.out
 
 test-race:

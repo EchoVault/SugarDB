@@ -15,20 +15,18 @@
 package set
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	internal_set "github.com/echovault/echovault/internal/set"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/types"
-	"net"
 	"slices"
 	"strings"
 )
 
-func handleSADD(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := saddKeyFunc(cmd)
+func handleSADD(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := saddKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -37,51 +35,51 @@ func handleSADD(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 
 	var set *internal_set.Set
 
-	if !server.KeyExists(ctx, key) {
-		set = internal_set.NewSet(cmd[2:])
-		if ok, err := server.CreateKeyAndLock(ctx, key); !ok && err != nil {
+	if !params.KeyExists(params.Context, key) {
+		set = internal_set.NewSet(params.Command[2:])
+		if ok, err := params.CreateKeyAndLock(params.Context, key); !ok && err != nil {
 			return nil, err
 		}
-		if err = server.SetValue(ctx, key, set); err != nil {
+		if err = params.SetValue(params.Context, key, set); err != nil {
 			return nil, err
 		}
-		server.KeyUnlock(ctx, key)
-		return []byte(fmt.Sprintf(":%d\r\n", len(cmd[2:]))), nil
+		params.KeyUnlock(params.Context, key)
+		return []byte(fmt.Sprintf(":%d\r\n", len(params.Command[2:]))), nil
 	}
 
-	if _, err = server.KeyLock(ctx, key); err != nil {
+	if _, err = params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
 
-	count := set.Add(cmd[2:])
+	count := set.Add(params.Command[2:])
 
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleSCARD(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := scardKeyFunc(cmd)
+func handleSCARD(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := scardKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(fmt.Sprintf(":0\r\n")), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -91,21 +89,21 @@ func handleSCARD(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 	return []byte(fmt.Sprintf(":%d\r\n", cardinality)), nil
 }
 
-func handleSDIFF(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := sdiffKeyFunc(cmd)
+func handleSDIFF(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := sdiffKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	// Extract base set first
-	if !server.KeyExists(ctx, keys.ReadKeys[0]) {
+	if !params.KeyExists(params.Context, keys.ReadKeys[0]) {
 		return nil, fmt.Errorf("key for base set \"%s\" does not exist", keys.ReadKeys[0])
 	}
-	if _, err = server.KeyRLock(ctx, keys.ReadKeys[0]); err != nil {
+	if _, err = params.KeyRLock(params.Context, keys.ReadKeys[0]); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, keys.ReadKeys[0])
-	baseSet, ok := server.GetValue(ctx, keys.ReadKeys[0]).(*internal_set.Set)
+	defer params.KeyRUnlock(params.Context, keys.ReadKeys[0])
+	baseSet, ok := params.GetValue(params.Context, keys.ReadKeys[0]).(*internal_set.Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", keys.ReadKeys[0])
 	}
@@ -114,24 +112,24 @@ func handleSDIFF(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(ctx, key)
+				params.KeyRUnlock(params.Context, key)
 			}
 		}
 	}()
 
 	for _, key := range keys.ReadKeys[1:] {
-		if !server.KeyExists(ctx, key) {
+		if !params.KeyExists(params.Context, key) {
 			continue
 		}
-		if _, err = server.KeyRLock(ctx, key); err != nil {
+		if _, err = params.KeyRLock(params.Context, key); err != nil {
 			continue
 		}
 		locks[key] = true
 	}
 
 	var sets []*internal_set.Set
-	for _, key := range cmd[2:] {
-		set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+	for _, key := range params.Command[2:] {
+		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 		if !ok {
 			continue
 		}
@@ -152,8 +150,8 @@ func handleSDIFF(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 	return []byte(res), nil
 }
 
-func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := sdiffstoreKeyFunc(cmd)
+func handleSDIFFSTORE(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := sdiffstoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -161,14 +159,14 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault,
 	destination := keys.WriteKeys[0]
 
 	// Extract base set first
-	if !server.KeyExists(ctx, keys.ReadKeys[0]) {
+	if !params.KeyExists(params.Context, keys.ReadKeys[0]) {
 		return nil, fmt.Errorf("key for base set \"%s\" does not exist", keys.ReadKeys[0])
 	}
-	if _, err := server.KeyRLock(ctx, keys.ReadKeys[0]); err != nil {
+	if _, err := params.KeyRLock(params.Context, keys.ReadKeys[0]); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, keys.ReadKeys[0])
-	baseSet, ok := server.GetValue(ctx, keys.ReadKeys[0]).(*internal_set.Set)
+	defer params.KeyRUnlock(params.Context, keys.ReadKeys[0])
+	baseSet, ok := params.GetValue(params.Context, keys.ReadKeys[0]).(*internal_set.Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", keys.ReadKeys[0])
 	}
@@ -177,16 +175,16 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault,
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(ctx, key)
+				params.KeyRUnlock(params.Context, key)
 			}
 		}
 	}()
 
 	for _, key := range keys.ReadKeys[1:] {
-		if !server.KeyExists(ctx, key) {
+		if !params.KeyExists(params.Context, key) {
 			continue
 		}
-		if _, err = server.KeyRLock(ctx, key); err != nil {
+		if _, err = params.KeyRLock(params.Context, key); err != nil {
 			continue
 		}
 		locks[key] = true
@@ -194,7 +192,7 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault,
 
 	var sets []*internal_set.Set
 	for _, key := range keys.ReadKeys[1:] {
-		set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 		if !ok {
 			continue
 		}
@@ -206,30 +204,30 @@ func handleSDIFFSTORE(ctx context.Context, cmd []string, server types.EchoVault,
 
 	res := fmt.Sprintf(":%d\r\n", len(elems))
 
-	if server.KeyExists(ctx, destination) {
-		if _, err = server.KeyLock(ctx, destination); err != nil {
+	if params.KeyExists(params.Context, destination) {
+		if _, err = params.KeyLock(params.Context, destination); err != nil {
 			return nil, err
 		}
-		if err = server.SetValue(ctx, destination, diff); err != nil {
+		if err = params.SetValue(params.Context, destination, diff); err != nil {
 			return nil, err
 		}
-		server.KeyUnlock(ctx, destination)
+		params.KeyUnlock(params.Context, destination)
 		return []byte(res), nil
 	}
 
-	if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
+	if _, err = params.CreateKeyAndLock(params.Context, destination); err != nil {
 		return nil, err
 	}
-	if err = server.SetValue(ctx, destination, diff); err != nil {
+	if err = params.SetValue(params.Context, destination, diff); err != nil {
 		return nil, err
 	}
-	server.KeyUnlock(ctx, destination)
+	params.KeyUnlock(params.Context, destination)
 
 	return []byte(res), nil
 }
 
-func handleSINTER(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := sinterKeyFunc(cmd)
+func handleSINTER(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := sinterKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -238,17 +236,17 @@ func handleSINTER(ctx context.Context, cmd []string, server types.EchoVault, _ *
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(ctx, key)
+				params.KeyRUnlock(params.Context, key)
 			}
 		}
 	}()
 
 	for _, key := range keys.ReadKeys {
-		if !server.KeyExists(ctx, key) {
+		if !params.KeyExists(params.Context, key) {
 			// If key does not exist, then there is no intersection
 			return []byte("*0\r\n"), nil
 		}
-		if _, err = server.KeyRLock(ctx, key); err != nil {
+		if _, err = params.KeyRLock(params.Context, key); err != nil {
 			return nil, err
 		}
 		locks[key] = true
@@ -257,7 +255,7 @@ func handleSINTER(ctx context.Context, cmd []string, server types.EchoVault, _ *
 	var sets []*internal_set.Set
 
 	for key, _ := range locks {
-		set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 		if !ok {
 			// If the value at the key is not a set, return error
 			return nil, fmt.Errorf("value at key %s is not a set", key)
@@ -283,15 +281,15 @@ func handleSINTER(ctx context.Context, cmd []string, server types.EchoVault, _ *
 	return []byte(res), nil
 }
 
-func handleSINTERCARD(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := sintercardKeyFunc(cmd)
+func handleSINTERCARD(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := sintercardKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	// Extract the limit from the command
 	var limit int
-	limitIdx := slices.IndexFunc(cmd, func(s string) bool {
+	limitIdx := slices.IndexFunc(params.Command, func(s string) bool {
 		return strings.EqualFold(s, "limit")
 	})
 	if limitIdx >= 0 && limitIdx < 2 {
@@ -299,11 +297,11 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server types.EchoVault,
 	}
 	if limitIdx != -1 {
 		limitIdx += 1
-		if limitIdx >= len(cmd) {
+		if limitIdx >= len(params.Command) {
 			return nil, errors.New("provide limit after LIMIT keyword")
 		}
 
-		if l, ok := internal.AdaptType(cmd[limitIdx]).(int); !ok {
+		if l, ok := internal.AdaptType(params.Command[limitIdx]).(int); !ok {
 			return nil, errors.New("limit must be an integer")
 		} else {
 			limit = l
@@ -314,17 +312,17 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server types.EchoVault,
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(ctx, key)
+				params.KeyRUnlock(params.Context, key)
 			}
 		}
 	}()
 
 	for _, key := range keys.ReadKeys {
-		if !server.KeyExists(ctx, key) {
+		if !params.KeyExists(params.Context, key) {
 			// If key does not exist, then there is no intersection
 			return []byte(":0\r\n"), nil
 		}
-		if _, err = server.KeyRLock(ctx, key); err != nil {
+		if _, err = params.KeyRLock(params.Context, key); err != nil {
 			return nil, err
 		}
 		locks[key] = true
@@ -333,7 +331,7 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server types.EchoVault,
 	var sets []*internal_set.Set
 
 	for key, _ := range locks {
-		set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 		if !ok {
 			// If the value at the key is not a set, return error
 			return nil, fmt.Errorf("value at key %s is not a set", key)
@@ -350,8 +348,8 @@ func handleSINTERCARD(ctx context.Context, cmd []string, server types.EchoVault,
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleSINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := sinterstoreKeyFunc(cmd)
+func handleSINTERSTORE(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := sinterstoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -360,17 +358,17 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(ctx, key)
+				params.KeyRUnlock(params.Context, key)
 			}
 		}
 	}()
 
 	for _, key := range keys.ReadKeys {
-		if !server.KeyExists(ctx, key) {
+		if !params.KeyExists(params.Context, key) {
 			// If key does not exist, then there is no intersection
 			return []byte(":0\r\n"), nil
 		}
-		if _, err = server.KeyRLock(ctx, key); err != nil {
+		if _, err = params.KeyRLock(params.Context, key); err != nil {
 			return nil, err
 		}
 		locks[key] = true
@@ -379,7 +377,7 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault
 	var sets []*internal_set.Set
 
 	for key, _ := range locks {
-		set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 		if !ok {
 			// If the value at the key is not a set, return error
 			return nil, fmt.Errorf("value at key %s is not a set", key)
@@ -390,71 +388,71 @@ func handleSINTERSTORE(ctx context.Context, cmd []string, server types.EchoVault
 	intersect, _ := internal_set.Intersection(0, sets...)
 	destination := keys.WriteKeys[0]
 
-	if server.KeyExists(ctx, destination) {
-		if _, err = server.KeyLock(ctx, destination); err != nil {
+	if params.KeyExists(params.Context, destination) {
+		if _, err = params.KeyLock(params.Context, destination); err != nil {
 			return nil, err
 		}
 	} else {
-		if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
+		if _, err = params.CreateKeyAndLock(params.Context, destination); err != nil {
 			return nil, err
 		}
 	}
 
-	if err = server.SetValue(ctx, destination, intersect); err != nil {
+	if err = params.SetValue(params.Context, destination, intersect); err != nil {
 		return nil, err
 	}
-	server.KeyUnlock(ctx, destination)
+	params.KeyUnlock(params.Context, destination)
 
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleSISMEMBER(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := sismemberKeyFunc(cmd)
+func handleSISMEMBER(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := sismemberKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
 
-	if !set.Contains(cmd[2]) {
+	if !set.Contains(params.Command[2]) {
 		return []byte(":0\r\n"), nil
 	}
 
 	return []byte(":1\r\n"), nil
 }
 
-func handleSMEMBERS(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := smembersKeyFunc(cmd)
+func handleSMEMBERS(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := smembersKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte("*0\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -472,16 +470,16 @@ func handleSMEMBERS(ctx context.Context, cmd []string, server types.EchoVault, _
 	return []byte(res), nil
 }
 
-func handleSMISMEMBER(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := smismemberKeyFunc(cmd)
+func handleSMISMEMBER(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := smismemberKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
-	members := cmd[2:]
+	members := params.Command[2:]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		res := fmt.Sprintf("*%d", len(members))
 		for i, _ := range members {
 			res = fmt.Sprintf("%s\r\n:0", res)
@@ -492,12 +490,12 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server types.EchoVault,
 		return []byte(res), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -515,48 +513,48 @@ func handleSMISMEMBER(ctx context.Context, cmd []string, server types.EchoVault,
 	return []byte(res), nil
 }
 
-func handleSMOVE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := smoveKeyFunc(cmd)
+func handleSMOVE(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := smoveKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	source, destination := keys.WriteKeys[0], keys.WriteKeys[1]
-	member := cmd[3]
+	member := params.Command[3]
 
-	if !server.KeyExists(ctx, source) {
+	if !params.KeyExists(params.Context, source) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = server.KeyLock(ctx, source); err != nil {
+	if _, err = params.KeyLock(params.Context, source); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, source)
+	defer params.KeyUnlock(params.Context, source)
 
-	sourceSet, ok := server.GetValue(ctx, source).(*internal_set.Set)
+	sourceSet, ok := params.GetValue(params.Context, source).(*internal_set.Set)
 	if !ok {
 		return nil, errors.New("source is not a set")
 	}
 
 	var destinationSet *internal_set.Set
 
-	if !server.KeyExists(ctx, destination) {
+	if !params.KeyExists(params.Context, destination) {
 		// Destination key does not exist
-		if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
+		if _, err = params.CreateKeyAndLock(params.Context, destination); err != nil {
 			return nil, err
 		}
-		defer server.KeyUnlock(ctx, destination)
+		defer params.KeyUnlock(params.Context, destination)
 		destinationSet = internal_set.NewSet([]string{})
-		if err = server.SetValue(ctx, destination, destinationSet); err != nil {
+		if err = params.SetValue(params.Context, destination, destinationSet); err != nil {
 			return nil, err
 		}
 	} else {
 		// Destination key exists
-		if _, err := server.KeyLock(ctx, destination); err != nil {
+		if _, err := params.KeyLock(params.Context, destination); err != nil {
 			return nil, err
 		}
-		defer server.KeyUnlock(ctx, destination)
-		ds, ok := server.GetValue(ctx, destination).(*internal_set.Set)
+		defer params.KeyUnlock(params.Context, destination)
+		ds, ok := params.GetValue(params.Context, destination).(*internal_set.Set)
 		if !ok {
 			return nil, errors.New("destination is not a set")
 		}
@@ -568,8 +566,8 @@ func handleSMOVE(ctx context.Context, cmd []string, server types.EchoVault, _ *n
 	return []byte(fmt.Sprintf(":%d\r\n", res)), nil
 }
 
-func handleSPOP(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := spopKeyFunc(cmd)
+func handleSPOP(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := spopKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -577,24 +575,24 @@ func handleSPOP(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	key := keys.WriteKeys[0]
 	count := 1
 
-	if len(cmd) == 3 {
-		c, ok := internal.AdaptType(cmd[2]).(int)
+	if len(params.Command) == 3 {
+		c, ok := internal.AdaptType(params.Command[2]).(int)
 		if !ok {
 			return nil, errors.New("count must be an integer")
 		}
 		count = c
 	}
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte("*-1\r\n"), nil
 	}
 
-	if _, err = server.KeyLock(ctx, key); err != nil {
+	if _, err = params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a set", key)
 	}
@@ -612,8 +610,8 @@ func handleSPOP(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	return []byte(res), nil
 }
 
-func handleSRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := srandmemberKeyFunc(cmd)
+func handleSRANDMEMBER(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := srandmemberKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -621,24 +619,24 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault
 	key := keys.ReadKeys[0]
 	count := 1
 
-	if len(cmd) == 3 {
-		c, ok := internal.AdaptType(cmd[2]).(int)
+	if len(params.Command) == 3 {
+		c, ok := internal.AdaptType(params.Command[2]).(int)
 		if !ok {
 			return nil, errors.New("count must be an integer")
 		}
 		count = c
 	}
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte("*-1\r\n"), nil
 	}
 
-	if _, err = server.KeyLock(ctx, key); err != nil {
+	if _, err = params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a set", key)
 	}
@@ -656,25 +654,25 @@ func handleSRANDMEMBER(ctx context.Context, cmd []string, server types.EchoVault
 	return []byte(res), nil
 }
 
-func handleSREM(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := sremKeyFunc(cmd)
+func handleSREM(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := sremKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.WriteKeys[0]
-	members := cmd[2:]
+	members := params.Command[2:]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = server.KeyLock(ctx, key); err != nil {
+	if _, err = params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -684,8 +682,8 @@ func handleSREM(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleSUNION(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := sunionKeyFunc(cmd)
+func handleSUNION(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := sunionKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -694,16 +692,16 @@ func handleSUNION(ctx context.Context, cmd []string, server types.EchoVault, _ *
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(ctx, key)
+				params.KeyRUnlock(params.Context, key)
 			}
 		}
 	}()
 
 	for _, key := range keys.ReadKeys {
-		if !server.KeyExists(ctx, key) {
+		if !params.KeyExists(params.Context, key) {
 			continue
 		}
-		if _, err = server.KeyRLock(ctx, key); err != nil {
+		if _, err = params.KeyRLock(params.Context, key); err != nil {
 			return nil, err
 		}
 		locks[key] = true
@@ -715,7 +713,7 @@ func handleSUNION(ctx context.Context, cmd []string, server types.EchoVault, _ *
 		if !locked {
 			continue
 		}
-		set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 		if !ok {
 			return nil, fmt.Errorf("value at key %s is not a set", key)
 		}
@@ -735,8 +733,8 @@ func handleSUNION(ctx context.Context, cmd []string, server types.EchoVault, _ *
 	return []byte(res), nil
 }
 
-func handleSUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := sunionstoreKeyFunc(cmd)
+func handleSUNIONSTORE(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := sunionstoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -745,16 +743,16 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(ctx, key)
+				params.KeyRUnlock(params.Context, key)
 			}
 		}
 	}()
 
 	for _, key := range keys.ReadKeys {
-		if !server.KeyExists(ctx, key) {
+		if !params.KeyExists(params.Context, key) {
 			continue
 		}
-		if _, err = server.KeyRLock(ctx, key); err != nil {
+		if _, err = params.KeyRLock(params.Context, key); err != nil {
 			return nil, err
 		}
 		locks[key] = true
@@ -766,7 +764,7 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault
 		if !locked {
 			continue
 		}
-		set, ok := server.GetValue(ctx, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
 		if !ok {
 			return nil, fmt.Errorf("value at key %s is not a set", key)
 		}
@@ -777,18 +775,18 @@ func handleSUNIONSTORE(ctx context.Context, cmd []string, server types.EchoVault
 
 	destination := keys.WriteKeys[0]
 
-	if server.KeyExists(ctx, destination) {
-		if _, err = server.KeyLock(ctx, destination); err != nil {
+	if params.KeyExists(params.Context, destination) {
+		if _, err = params.KeyLock(params.Context, destination); err != nil {
 			return nil, err
 		}
 	} else {
-		if _, err = server.CreateKeyAndLock(ctx, destination); err != nil {
+		if _, err = params.CreateKeyAndLock(params.Context, destination); err != nil {
 			return nil, err
 		}
 	}
-	defer server.KeyUnlock(ctx, destination)
+	defer params.KeyUnlock(params.Context, destination)
 
-	if err = server.SetValue(ctx, destination, union); err != nil {
+	if err = params.SetValue(params.Context, destination, union); err != nil {
 		return nil, err
 	}
 	return []byte(fmt.Sprintf(":%d\r\n", union.Cardinality())), nil

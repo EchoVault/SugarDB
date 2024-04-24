@@ -15,7 +15,6 @@
 package acl
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,33 +23,32 @@ import (
 	"github.com/echovault/echovault/pkg/types"
 	"gopkg.in/yaml.v3"
 	"log"
-	"net"
 	"os"
 	"path"
 	"slices"
 	"strings"
 )
 
-func handleAuth(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-	if len(cmd) < 2 || len(cmd) > 3 {
+func handleAuth(params types.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) < 2 || len(params.Command) > 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
-	acl, ok := server.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
-	if err := acl.AuthenticateConnection(ctx, conn, cmd); err != nil {
+	if err := acl.AuthenticateConnection(params.Context, params.Connection, params.Command); err != nil {
 		return nil, err
 	}
 	return []byte(constants.OkResponse), nil
 }
 
-func handleGetUser(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	if len(cmd) != 3 {
+func handleGetUser(params types.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) != 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
-	acl, ok := server.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -58,7 +56,7 @@ func handleGetUser(_ context.Context, cmd []string, server types.EchoVault, _ *n
 	var user *internal_acl.User
 	userFound := false
 	for _, u := range acl.Users {
-		if u.Username == cmd[2] {
+		if u.Username == params.Command[2] {
 			user = u
 			userFound = true
 			break
@@ -162,14 +160,14 @@ func handleGetUser(_ context.Context, cmd []string, server types.EchoVault, _ *n
 	return []byte(res), nil
 }
 
-func handleCat(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	if len(cmd) > 3 {
+func handleCat(params types.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) > 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
 	categories := make(map[string][]string)
 
-	commands := server.GetAllCommands()
+	commands := params.GetAllCommands()
 
 	for _, command := range commands {
 		if len(command.SubCommands) == 0 {
@@ -186,7 +184,7 @@ func handleCat(_ context.Context, cmd []string, server types.EchoVault, _ *net.C
 		}
 	}
 
-	if len(cmd) == 2 {
+	if len(params.Command) == 2 {
 		var cats []string
 		length := 0
 		for key, _ := range categories {
@@ -203,10 +201,10 @@ func handleCat(_ context.Context, cmd []string, server types.EchoVault, _ *net.C
 		return []byte(res), nil
 	}
 
-	if len(cmd) == 3 {
+	if len(params.Command) == 3 {
 		var res string
 		for category, commands := range categories {
-			if strings.EqualFold(category, cmd[2]) {
+			if strings.EqualFold(category, params.Command[2]) {
 				res = fmt.Sprintf("*%d", len(commands))
 				for i, command := range commands {
 					res = fmt.Sprintf("%s\r\n+%s", res, command)
@@ -219,11 +217,11 @@ func handleCat(_ context.Context, cmd []string, server types.EchoVault, _ *net.C
 		}
 	}
 
-	return nil, fmt.Errorf("category %s not found", strings.ToUpper(cmd[2]))
+	return nil, fmt.Errorf("category %s not found", strings.ToUpper(params.Command[2]))
 }
 
-func handleUsers(_ context.Context, _ []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	acl, ok := server.GetACL().(*internal_acl.ACL)
+func handleUsers(params types.HandlerFuncParams) ([]byte, error) {
+	acl, ok := params.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -235,45 +233,45 @@ func handleUsers(_ context.Context, _ []string, server types.EchoVault, _ *net.C
 	return []byte(res), nil
 }
 
-func handleSetUser(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	acl, ok := server.GetACL().(*internal_acl.ACL)
+func handleSetUser(params types.HandlerFuncParams) ([]byte, error) {
+	acl, ok := params.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
-	if err := acl.SetUser(cmd[2:]); err != nil {
+	if err := acl.SetUser(params.Command[2:]); err != nil {
 		return nil, err
 	}
 	return []byte(constants.OkResponse), nil
 }
 
-func handleDelUser(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	if len(cmd) < 3 {
+func handleDelUser(params types.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) < 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
-	acl, ok := server.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
-	if err := acl.DeleteUser(ctx, cmd[2:]); err != nil {
+	if err := acl.DeleteUser(params.Context, params.Command[2:]); err != nil {
 		return nil, err
 	}
 	return []byte(constants.OkResponse), nil
 }
 
-func handleWhoAmI(_ context.Context, _ []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-	acl, ok := server.GetACL().(*internal_acl.ACL)
+func handleWhoAmI(params types.HandlerFuncParams) ([]byte, error) {
+	acl, ok := params.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
-	connectionInfo := acl.Connections[conn]
+	connectionInfo := acl.Connections[params.Connection]
 	return []byte(fmt.Sprintf("+%s\r\n", connectionInfo.User.Username)), nil
 }
 
-func handleList(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	if len(cmd) > 2 {
+func handleList(params types.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) > 2 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
-	acl, ok := server.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -365,12 +363,12 @@ func handleList(_ context.Context, cmd []string, server types.EchoVault, _ *net.
 	return []byte(res), nil
 }
 
-func handleLoad(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	if len(cmd) != 3 {
+func handleLoad(params types.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) != 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
-	acl, ok := server.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -414,7 +412,7 @@ func handleLoad(_ context.Context, cmd []string, server types.EchoVault, _ *net.
 			if u.Username == user.Username {
 				userFound = true
 				// If we have a user with the current username and are in merge mode, merge the two users.
-				if strings.EqualFold(cmd[2], "merge") {
+				if strings.EqualFold(params.Command[2], "merge") {
 					u.Merge(user)
 				} else {
 					// If we have a user with the current username and are in replace mode, merge the two users.
@@ -432,12 +430,12 @@ func handleLoad(_ context.Context, cmd []string, server types.EchoVault, _ *net.
 	return []byte(constants.OkResponse), nil
 }
 
-func handleSave(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	if len(cmd) > 2 {
+func handleSave(params types.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) > 2 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
-	acl, ok := server.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*internal_acl.ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}

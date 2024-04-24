@@ -15,14 +15,12 @@
 package generic
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/types"
 	"log"
-	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -33,73 +31,73 @@ type KeyObject struct {
 	locked bool
 }
 
-func handleSet(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := setKeyFunc(cmd)
+func handleSet(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := setKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.WriteKeys[0]
-	value := cmd[2]
+	value := params.Command[2]
 	res := []byte(constants.OkResponse)
-	clock := server.GetClock()
+	clock := params.GetClock()
 
-	params, err := getSetCommandParams(clock, cmd[3:], SetParams{})
+	options, err := getSetCommandOptions(clock, params.Command[3:], SetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	// If GET is provided, the response should be the current stored value.
 	// If there's no current value, then the response should be nil.
-	if params.get {
-		if !server.KeyExists(ctx, key) {
+	if options.get {
+		if !params.KeyExists(params.Context, key) {
 			res = []byte("$-1\r\n")
 		} else {
-			res = []byte(fmt.Sprintf("+%v\r\n", server.GetValue(ctx, key)))
+			res = []byte(fmt.Sprintf("+%v\r\n", params.GetValue(params.Context, key)))
 		}
 	}
 
-	if "xx" == strings.ToLower(params.exists) {
+	if "xx" == strings.ToLower(options.exists) {
 		// If XX is specified, make sure the key exists.
-		if !server.KeyExists(ctx, key) {
+		if !params.KeyExists(params.Context, key) {
 			return nil, fmt.Errorf("key %s does not exist", key)
 		}
-		_, err = server.KeyLock(ctx, key)
-	} else if "nx" == strings.ToLower(params.exists) {
+		_, err = params.KeyLock(params.Context, key)
+	} else if "nx" == strings.ToLower(options.exists) {
 		// If NX is specified, make sure that the key does not currently exist.
-		if server.KeyExists(ctx, key) {
+		if params.KeyExists(params.Context, key) {
 			return nil, fmt.Errorf("key %s already exists", key)
 		}
-		_, err = server.CreateKeyAndLock(ctx, key)
+		_, err = params.CreateKeyAndLock(params.Context, key)
 	} else {
 		// Neither XX not NX are specified, lock or create the lock
-		if !server.KeyExists(ctx, key) {
+		if !params.KeyExists(params.Context, key) {
 			// Key does not exist, create it
-			_, err = server.CreateKeyAndLock(ctx, key)
+			_, err = params.CreateKeyAndLock(params.Context, key)
 		} else {
 			// Key exists, acquire the lock
-			_, err = server.KeyLock(ctx, key)
+			_, err = params.KeyLock(params.Context, key)
 		}
 	}
 	if err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	if err = server.SetValue(ctx, key, internal.AdaptType(value)); err != nil {
+	if err = params.SetValue(params.Context, key, internal.AdaptType(value)); err != nil {
 		return nil, err
 	}
 
 	// If expiresAt is set, set the key's expiry time as well
-	if params.expireAt != nil {
-		server.SetExpiry(ctx, key, params.expireAt.(time.Time), false)
+	if options.expireAt != nil {
+		params.SetExpiry(params.Context, key, options.expireAt.(time.Time), false)
 	}
 
 	return res, nil
 }
 
-func handleMSet(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	_, err := msetKeyFunc(cmd)
+func handleMSet(params types.HandlerFuncParams) ([]byte, error) {
+	_, err := msetKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +108,7 @@ func handleMSet(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	defer func() {
 		for k, v := range entries {
 			if v.locked {
-				server.KeyUnlock(ctx, k)
+				params.KeyUnlock(params.Context, k)
 				entries[k] = KeyObject{
 					value:  v.value,
 					locked: false,
@@ -120,10 +118,10 @@ func handleMSet(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	}()
 
 	// Extract all the key/value pairs
-	for i, key := range cmd[1:] {
+	for i, key := range params.Command[1:] {
 		if i%2 == 0 {
 			entries[key] = KeyObject{
-				value:  internal.AdaptType(cmd[1:][i+1]),
+				value:  internal.AdaptType(params.Command[1:][i+1]),
 				locked: false,
 			}
 		}
@@ -132,14 +130,14 @@ func handleMSet(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	// Acquire all the locks for each key first
 	// If any key cannot be acquired, abandon transaction and release all currently held keys
 	for k, v := range entries {
-		if server.KeyExists(ctx, k) {
-			if _, err := server.KeyLock(ctx, k); err != nil {
+		if params.KeyExists(params.Context, k) {
+			if _, err := params.KeyLock(params.Context, k); err != nil {
 				return nil, err
 			}
 			entries[k] = KeyObject{value: v.value, locked: true}
 			continue
 		}
-		if _, err := server.CreateKeyAndLock(ctx, k); err != nil {
+		if _, err := params.CreateKeyAndLock(params.Context, k); err != nil {
 			return nil, err
 		}
 		entries[k] = KeyObject{value: v.value, locked: true}
@@ -147,7 +145,7 @@ func handleMSet(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 
 	// Set all the values
 	for k, v := range entries {
-		if err := server.SetValue(ctx, k, v.value); err != nil {
+		if err := params.SetValue(params.Context, k, v.value); err != nil {
 			return nil, err
 		}
 	}
@@ -155,30 +153,30 @@ func handleMSet(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	return []byte(constants.OkResponse), nil
 }
 
-func handleGet(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := getKeyFunc(cmd)
+func handleGet(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := getKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 	key := keys.ReadKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte("$-1\r\n"), nil
 	}
 
-	_, err = server.KeyRLock(ctx, key)
+	_, err = params.KeyRLock(params.Context, key)
 	if err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	value := server.GetValue(ctx, key)
+	value := params.GetValue(params.Context, key)
 
 	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
 }
 
-func handleMGet(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := mgetKeyFunc(cmd)
+func handleMGet(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := mgetKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -191,8 +189,8 @@ func handleMGet(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 			// Skip if we have already locked this key
 			continue
 		}
-		if server.KeyExists(ctx, key) {
-			_, err = server.KeyRLock(ctx, key)
+		if params.KeyExists(params.Context, key) {
+			_, err = params.KeyRLock(params.Context, key)
 			if err != nil {
 				return nil, fmt.Errorf("could not obtain lock for %s key", key)
 			}
@@ -204,19 +202,19 @@ func handleMGet(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	defer func() {
 		for key, locked := range locks {
 			if locked {
-				server.KeyRUnlock(ctx, key)
+				params.KeyRUnlock(params.Context, key)
 				locks[key] = false
 			}
 		}
 	}()
 
 	for key, _ := range locks {
-		values[key] = fmt.Sprintf("%v", server.GetValue(ctx, key))
+		values[key] = fmt.Sprintf("%v", params.GetValue(params.Context, key))
 	}
 
-	bytes := []byte(fmt.Sprintf("*%d\r\n", len(cmd[1:])))
+	bytes := []byte(fmt.Sprintf("*%d\r\n", len(params.Command[1:])))
 
-	for _, key := range cmd[1:] {
+	for _, key := range params.Command[1:] {
 		if values[key] == "" {
 			bytes = append(bytes, []byte("$-1\r\n")...)
 			continue
@@ -227,14 +225,14 @@ func handleMGet(ctx context.Context, cmd []string, server types.EchoVault, _ *ne
 	return bytes, nil
 }
 
-func handleDel(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := delKeyFunc(cmd)
+func handleDel(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := delKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 	count := 0
 	for _, key := range keys.WriteKeys {
-		err = server.DeleteKey(ctx, key)
+		err = params.DeleteKey(params.Context, key)
 		if err != nil {
 			log.Printf("could not delete key %s due to error: %+v\n", key, err)
 			continue
@@ -244,91 +242,91 @@ func handleDel(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handlePersist(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := persistKeyFunc(cmd)
+func handlePersist(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := persistKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.WriteKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = server.KeyLock(ctx, key); err != nil {
+	if _, err = params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	expireAt := server.GetExpiry(ctx, key)
+	expireAt := params.GetExpiry(params.Context, key)
 	if expireAt == (time.Time{}) {
 		return []byte(":0\r\n"), nil
 	}
 
-	server.SetExpiry(ctx, key, time.Time{}, false)
+	params.SetExpiry(params.Context, key, time.Time{}, false)
 
 	return []byte(":1\r\n"), nil
 }
 
-func handleExpireTime(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := expireTimeKeyFunc(cmd)
+func handleExpireTime(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := expireTimeKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":-2\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	expireAt := server.GetExpiry(ctx, key)
+	expireAt := params.GetExpiry(params.Context, key)
 
 	if expireAt == (time.Time{}) {
 		return []byte(":-1\r\n"), nil
 	}
 
 	t := expireAt.Unix()
-	if strings.ToLower(cmd[0]) == "pexpiretime" {
+	if strings.ToLower(params.Command[0]) == "pexpiretime" {
 		t = expireAt.UnixMilli()
 	}
 
 	return []byte(fmt.Sprintf(":%d\r\n", t)), nil
 }
 
-func handleTTL(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := ttlKeyFunc(cmd)
+func handleTTL(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := ttlKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
 
 	key := keys.ReadKeys[0]
 
-	clock := server.GetClock()
+	clock := params.GetClock()
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":-2\r\n"), nil
 	}
 
-	if _, err = server.KeyRLock(ctx, key); err != nil {
+	if _, err = params.KeyRLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyRUnlock(ctx, key)
+	defer params.KeyRUnlock(params.Context, key)
 
-	expireAt := server.GetExpiry(ctx, key)
+	expireAt := params.GetExpiry(params.Context, key)
 
 	if expireAt == (time.Time{}) {
 		return []byte(":-1\r\n"), nil
 	}
 
 	t := expireAt.Unix() - clock.Now().Unix()
-	if strings.ToLower(cmd[0]) == "pttl" {
+	if strings.ToLower(params.Command[0]) == "pttl" {
 		t = expireAt.UnixMilli() - clock.Now().UnixMilli()
 	}
 
@@ -339,8 +337,8 @@ func handleTTL(ctx context.Context, cmd []string, server types.EchoVault, _ *net
 	return []byte(fmt.Sprintf(":%d\r\n", t)), nil
 }
 
-func handleExpire(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := expireKeyFunc(cmd)
+func handleExpire(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := expireKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -348,42 +346,42 @@ func handleExpire(ctx context.Context, cmd []string, server types.EchoVault, _ *
 	key := keys.WriteKeys[0]
 
 	// Extract time
-	n, err := strconv.ParseInt(cmd[2], 10, 64)
+	n, err := strconv.ParseInt(params.Command[2], 10, 64)
 	if err != nil {
 		return nil, errors.New("expire time must be integer")
 	}
-	expireAt := server.GetClock().Now().Add(time.Duration(n) * time.Second)
-	if strings.ToLower(cmd[0]) == "pexpire" {
-		expireAt = server.GetClock().Now().Add(time.Duration(n) * time.Millisecond)
+	expireAt := params.GetClock().Now().Add(time.Duration(n) * time.Second)
+	if strings.ToLower(params.Command[0]) == "pexpire" {
+		expireAt = params.GetClock().Now().Add(time.Duration(n) * time.Millisecond)
 	}
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = server.KeyLock(ctx, key); err != nil {
+	if _, err = params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	if len(cmd) == 3 {
-		server.SetExpiry(ctx, key, expireAt, true)
+	if len(params.Command) == 3 {
+		params.SetExpiry(params.Context, key, expireAt, true)
 		return []byte(":1\r\n"), nil
 	}
 
-	currentExpireAt := server.GetExpiry(ctx, key)
+	currentExpireAt := params.GetExpiry(params.Context, key)
 
-	switch strings.ToLower(cmd[3]) {
+	switch strings.ToLower(params.Command[3]) {
 	case "nx":
 		if currentExpireAt != (time.Time{}) {
 			return []byte(":0\r\n"), nil
 		}
-		server.SetExpiry(ctx, key, expireAt, false)
+		params.SetExpiry(params.Context, key, expireAt, false)
 	case "xx":
 		if currentExpireAt == (time.Time{}) {
 			return []byte(":0\r\n"), nil
 		}
-		server.SetExpiry(ctx, key, expireAt, false)
+		params.SetExpiry(params.Context, key, expireAt, false)
 	case "gt":
 		if currentExpireAt == (time.Time{}) {
 			return []byte(":0\r\n"), nil
@@ -391,24 +389,24 @@ func handleExpire(ctx context.Context, cmd []string, server types.EchoVault, _ *
 		if expireAt.Before(currentExpireAt) {
 			return []byte(":0\r\n"), nil
 		}
-		server.SetExpiry(ctx, key, expireAt, false)
+		params.SetExpiry(params.Context, key, expireAt, false)
 	case "lt":
 		if currentExpireAt != (time.Time{}) {
 			if currentExpireAt.Before(expireAt) {
 				return []byte(":0\r\n"), nil
 			}
-			server.SetExpiry(ctx, key, expireAt, false)
+			params.SetExpiry(params.Context, key, expireAt, false)
 		}
-		server.SetExpiry(ctx, key, expireAt, false)
+		params.SetExpiry(params.Context, key, expireAt, false)
 	default:
-		return nil, fmt.Errorf("unknown option %s", strings.ToUpper(cmd[3]))
+		return nil, fmt.Errorf("unknown option %s", strings.ToUpper(params.Command[3]))
 	}
 
 	return []byte(":1\r\n"), nil
 }
 
-func handleExpireAt(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	keys, err := expireKeyFunc(cmd)
+func handleExpireAt(params types.HandlerFuncParams) ([]byte, error) {
+	keys, err := expireKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -416,42 +414,42 @@ func handleExpireAt(ctx context.Context, cmd []string, server types.EchoVault, _
 	key := keys.WriteKeys[0]
 
 	// Extract time
-	n, err := strconv.ParseInt(cmd[2], 10, 64)
+	n, err := strconv.ParseInt(params.Command[2], 10, 64)
 	if err != nil {
 		return nil, errors.New("expire time must be integer")
 	}
 	expireAt := time.Unix(n, 0)
-	if strings.ToLower(cmd[0]) == "pexpireat" {
+	if strings.ToLower(params.Command[0]) == "pexpireat" {
 		expireAt = time.UnixMilli(n)
 	}
 
-	if !server.KeyExists(ctx, key) {
+	if !params.KeyExists(params.Context, key) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = server.KeyLock(ctx, key); err != nil {
+	if _, err = params.KeyLock(params.Context, key); err != nil {
 		return nil, err
 	}
-	defer server.KeyUnlock(ctx, key)
+	defer params.KeyUnlock(params.Context, key)
 
-	if len(cmd) == 3 {
-		server.SetExpiry(ctx, key, expireAt, true)
+	if len(params.Command) == 3 {
+		params.SetExpiry(params.Context, key, expireAt, true)
 		return []byte(":1\r\n"), nil
 	}
 
-	currentExpireAt := server.GetExpiry(ctx, key)
+	currentExpireAt := params.GetExpiry(params.Context, key)
 
-	switch strings.ToLower(cmd[3]) {
+	switch strings.ToLower(params.Command[3]) {
 	case "nx":
 		if currentExpireAt != (time.Time{}) {
 			return []byte(":0\r\n"), nil
 		}
-		server.SetExpiry(ctx, key, expireAt, false)
+		params.SetExpiry(params.Context, key, expireAt, false)
 	case "xx":
 		if currentExpireAt == (time.Time{}) {
 			return []byte(":0\r\n"), nil
 		}
-		server.SetExpiry(ctx, key, expireAt, false)
+		params.SetExpiry(params.Context, key, expireAt, false)
 	case "gt":
 		if currentExpireAt == (time.Time{}) {
 			return []byte(":0\r\n"), nil
@@ -459,17 +457,17 @@ func handleExpireAt(ctx context.Context, cmd []string, server types.EchoVault, _
 		if expireAt.Before(currentExpireAt) {
 			return []byte(":0\r\n"), nil
 		}
-		server.SetExpiry(ctx, key, expireAt, false)
+		params.SetExpiry(params.Context, key, expireAt, false)
 	case "lt":
 		if currentExpireAt != (time.Time{}) {
 			if currentExpireAt.Before(expireAt) {
 				return []byte(":0\r\n"), nil
 			}
-			server.SetExpiry(ctx, key, expireAt, false)
+			params.SetExpiry(params.Context, key, expireAt, false)
 		}
-		server.SetExpiry(ctx, key, expireAt, false)
+		params.SetExpiry(params.Context, key, expireAt, false)
 	default:
-		return nil, fmt.Errorf("unknown option %s", strings.ToUpper(cmd[3]))
+		return nil, fmt.Errorf("unknown option %s", strings.ToUpper(params.Command[3]))
 	}
 
 	return []byte(":1\r\n"), nil

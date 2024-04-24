@@ -17,11 +17,20 @@ package str
 import (
 	"context"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
 	str "github.com/echovault/echovault/pkg/modules/string"
 	"testing"
 )
+
+func createEchoVault() *echovault.EchoVault {
+	ev, _ := echovault.NewEchoVault(
+		echovault.WithCommands(str.Commands()),
+		echovault.WithConfig(config.Config{
+			DataDir: "",
+		}),
+	)
+	return ev
+}
 
 func presetValue(server *echovault.EchoVault, ctx context.Context, key string, value interface{}) error {
 	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
@@ -35,13 +44,7 @@ func presetValue(server *echovault.EchoVault, ctx context.Context, key string, v
 }
 
 func TestEchoVault_SUBSTR(t *testing.T) {
-	server, _ := echovault.NewEchoVault(
-		echovault.WithCommands(str.Commands()),
-		echovault.WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -200,13 +203,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 }
 
 func TestEchoVault_SETRANGE(t *testing.T) {
-	server, _ := echovault.NewEchoVault(
-		echovault.WithCommands(str.Commands()),
-		echovault.WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -294,13 +291,7 @@ func TestEchoVault_SETRANGE(t *testing.T) {
 }
 
 func TestEchoVault_STRLEN(t *testing.T) {
-	server, _ := echovault.NewEchoVault(
-		echovault.WithCommands(str.Commands()),
-		echovault.WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string

@@ -21,6 +21,7 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
+	acl2 "github.com/echovault/echovault/pkg/modules/acl"
 	"github.com/tidwall/resp"
 	"net"
 	"slices"
@@ -60,8 +61,8 @@ func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig strin
 	}
 
 	mockServer, _ := echovault.NewEchoVault(
+		echovault.WithCommands(acl2.Commands()),
 		echovault.WithConfig(conf),
-		echovault.WithCommands(Commands()),
 	)
 
 	// Add the initial test users to the ACL module

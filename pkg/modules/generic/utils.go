@@ -23,96 +23,96 @@ import (
 	"time"
 )
 
-type SetParams struct {
+type SetOptions struct {
 	exists   string
 	get      bool
 	expireAt interface{} // Exact expireAt time un unix milliseconds
 }
 
-func getSetCommandParams(clock clock.Clock, cmd []string, params SetParams) (SetParams, error) {
+func getSetCommandOptions(clock clock.Clock, cmd []string, options SetOptions) (SetOptions, error) {
 	if len(cmd) == 0 {
-		return params, nil
+		return options, nil
 	}
 	switch strings.ToLower(cmd[0]) {
 	case "get":
-		params.get = true
-		return getSetCommandParams(clock, cmd[1:], params)
+		options.get = true
+		return getSetCommandOptions(clock, cmd[1:], options)
 
 	case "nx":
-		if params.exists != "" {
-			return SetParams{}, fmt.Errorf("cannot specify NX when %s is already specified", strings.ToUpper(params.exists))
+		if options.exists != "" {
+			return SetOptions{}, fmt.Errorf("cannot specify NX when %s is already specified", strings.ToUpper(options.exists))
 		}
-		params.exists = "NX"
-		return getSetCommandParams(clock, cmd[1:], params)
+		options.exists = "NX"
+		return getSetCommandOptions(clock, cmd[1:], options)
 
 	case "xx":
-		if params.exists != "" {
-			return SetParams{}, fmt.Errorf("cannot specify XX when %s is already specified", strings.ToUpper(params.exists))
+		if options.exists != "" {
+			return SetOptions{}, fmt.Errorf("cannot specify XX when %s is already specified", strings.ToUpper(options.exists))
 		}
-		params.exists = "XX"
-		return getSetCommandParams(clock, cmd[1:], params)
+		options.exists = "XX"
+		return getSetCommandOptions(clock, cmd[1:], options)
 
 	case "ex":
 		if len(cmd) < 2 {
-			return SetParams{}, errors.New("seconds value required after EX")
+			return SetOptions{}, errors.New("seconds value required after EX")
 		}
-		if params.expireAt != nil {
-			return SetParams{}, errors.New("cannot specify EX when expiry time is already set")
+		if options.expireAt != nil {
+			return SetOptions{}, errors.New("cannot specify EX when expiry time is already set")
 		}
 		secondsStr := cmd[1]
 		seconds, err := strconv.ParseInt(secondsStr, 10, 64)
 		if err != nil {
-			return SetParams{}, errors.New("seconds value should be an integer")
+			return SetOptions{}, errors.New("seconds value should be an integer")
 		}
-		params.expireAt = clock.Now().Add(time.Duration(seconds) * time.Second)
-		return getSetCommandParams(clock, cmd[2:], params)
+		options.expireAt = clock.Now().Add(time.Duration(seconds) * time.Second)
+		return getSetCommandOptions(clock, cmd[2:], options)
 
 	case "px":
 		if len(cmd) < 2 {
-			return SetParams{}, errors.New("milliseconds value required after PX")
+			return SetOptions{}, errors.New("milliseconds value required after PX")
 		}
-		if params.expireAt != nil {
-			return SetParams{}, errors.New("cannot specify PX when expiry time is already set")
+		if options.expireAt != nil {
+			return SetOptions{}, errors.New("cannot specify PX when expiry time is already set")
 		}
 		millisecondsStr := cmd[1]
 		milliseconds, err := strconv.ParseInt(millisecondsStr, 10, 64)
 		if err != nil {
-			return SetParams{}, errors.New("milliseconds value should be an integer")
+			return SetOptions{}, errors.New("milliseconds value should be an integer")
 		}
-		params.expireAt = clock.Now().Add(time.Duration(milliseconds) * time.Millisecond)
-		return getSetCommandParams(clock, cmd[2:], params)
+		options.expireAt = clock.Now().Add(time.Duration(milliseconds) * time.Millisecond)
+		return getSetCommandOptions(clock, cmd[2:], options)
 
 	case "exat":
 		if len(cmd) < 2 {
-			return SetParams{}, errors.New("seconds value required after EXAT")
+			return SetOptions{}, errors.New("seconds value required after EXAT")
 		}
-		if params.expireAt != nil {
-			return SetParams{}, errors.New("cannot specify EXAT when expiry time is already set")
+		if options.expireAt != nil {
+			return SetOptions{}, errors.New("cannot specify EXAT when expiry time is already set")
 		}
 		secondsStr := cmd[1]
 		seconds, err := strconv.ParseInt(secondsStr, 10, 64)
 		if err != nil {
-			return SetParams{}, errors.New("seconds value should be an integer")
+			return SetOptions{}, errors.New("seconds value should be an integer")
 		}
-		params.expireAt = time.Unix(seconds, 0)
-		return getSetCommandParams(clock, cmd[2:], params)
+		options.expireAt = time.Unix(seconds, 0)
+		return getSetCommandOptions(clock, cmd[2:], options)
 
 	case "pxat":
 		if len(cmd) < 2 {
-			return SetParams{}, errors.New("milliseconds value required after PXAT")
+			return SetOptions{}, errors.New("milliseconds value required after PXAT")
 		}
-		if params.expireAt != nil {
-			return SetParams{}, errors.New("cannot specify PXAT when expiry time is already set")
+		if options.expireAt != nil {
+			return SetOptions{}, errors.New("cannot specify PXAT when expiry time is already set")
 		}
 		millisecondsStr := cmd[1]
 		milliseconds, err := strconv.ParseInt(millisecondsStr, 10, 64)
 		if err != nil {
-			return SetParams{}, errors.New("milliseconds value should be an integer")
+			return SetOptions{}, errors.New("milliseconds value should be an integer")
 		}
-		params.expireAt = time.UnixMilli(milliseconds)
-		return getSetCommandParams(clock, cmd[2:], params)
+		options.expireAt = time.UnixMilli(milliseconds)
+		return getSetCommandOptions(clock, cmd[2:], options)
 
 	default:
-		return SetParams{}, fmt.Errorf("unknown option %s for set command", strings.ToUpper(cmd[0]))
+		return SetOptions{}, fmt.Errorf("unknown option %s for set command", strings.ToUpper(cmd[0]))
 	}
 }

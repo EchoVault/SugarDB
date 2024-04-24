@@ -157,6 +157,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			StartSnapshot:         echovault.startSnapshot,
 			FinishSnapshot:        echovault.finishSnapshot,
 			SetLatestSnapshotTime: echovault.setLatestSnapshot,
+			GetHandlerFuncParams:  echovault.getHandlerFuncParams,
 			GetState: func() map[string]internal.KeyData {
 				state := make(map[string]internal.KeyData)
 				for k, v := range echovault.getState() {

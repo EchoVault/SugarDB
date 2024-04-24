@@ -23,10 +23,14 @@ import (
 	"github.com/echovault/echovault/internal/sorted_set"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
+	ss "github.com/echovault/echovault/pkg/modules/sorted_set"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
 	"math"
+	"net"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -34,11 +38,49 @@ var mockServer *echovault.EchoVault
 
 func init() {
 	mockServer, _ = echovault.NewEchoVault(
+		echovault.WithCommands(ss.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
 	)
+}
+
+func getHandler(commands ...string) types.HandlerFunc {
+	if len(commands) == 0 {
+		return nil
+	}
+	for _, c := range mockServer.GetAllCommands() {
+		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
+			// Get command handler
+			return c.HandlerFunc
+		}
+		if strings.EqualFold(commands[0], c.Command) {
+			// Get sub-command handler
+			for _, sc := range c.SubCommands {
+				if strings.EqualFold(commands[1], sc.Command) {
+					return sc.HandlerFunc
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams {
+	return types.HandlerFuncParams{
+		Context:          ctx,
+		Command:          cmd,
+		Connection:       conn,
+		KeyExists:        mockServer.KeyExists,
+		CreateKeyAndLock: mockServer.CreateKeyAndLock,
+		KeyLock:          mockServer.KeyLock,
+		KeyRLock:         mockServer.KeyRLock,
+		KeyUnlock:        mockServer.KeyUnlock,
+		KeyRUnlock:       mockServer.KeyRUnlock,
+		GetValue:         mockServer.GetValue,
+		SetValue:         mockServer.SetValue,
+	}
 }
 
 func Test_HandleZADD(t *testing.T) {
@@ -273,7 +315,15 @@ func Test_HandleZADD(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleZADD(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -390,7 +440,15 @@ func Test_HandleZCARD(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleZCARD(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -542,7 +600,15 @@ func Test_HandleZCOUNT(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleZCOUNT(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -666,7 +732,15 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleZLEXCOUNT(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -830,7 +904,15 @@ func Test_HandleZDIFF(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZDIFF(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1016,7 +1098,15 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZDIFFSTORE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1246,7 +1336,15 @@ func Test_HandleZINCRBY(t *testing.T) {
 			}
 			mockServer.KeyUnlock(ctx, test.key)
 		}
-		res, err := handleZINCRBY(ctx, test.command, mockServer, nil)
+
+		handler := getHandler(test.command[0])
+		if handler == nil {
+			t.Errorf("no handler found for command %s", test.command[0])
+			return
+		}
+
+		res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 		if test.expectedError != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1482,7 +1580,15 @@ func Test_HandleZMPOP(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZMPOP(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1665,7 +1771,15 @@ func Test_HandleZPOP(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZPOP(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1775,7 +1889,15 @@ func Test_HandleZMSCORE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZMSCORE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -1886,7 +2008,15 @@ func Test_HandleZSCORE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZSCORE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2012,7 +2142,15 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 				}
 				mockServer.KeyUnlock(ctx, test.key)
 			}
-			res, err := handleZRANDMEMBER(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2181,7 +2319,15 @@ func Test_HandleZRANK(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZRANK(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2289,7 +2435,15 @@ func Test_HandleZREM(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZREM(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2405,7 +2559,15 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZREMRANGEBYSCORE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2578,7 +2740,15 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZREMRANGEBYRANK(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2720,7 +2890,15 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZREMRANGEBYLEX(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -2990,7 +3168,15 @@ func Test_HandleZRANGE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZRANGE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -3297,7 +3483,15 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZRANGESTORE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -3629,7 +3823,15 @@ func Test_HandleZINTER(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZINTER(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -3992,7 +4194,15 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZINTERSTORE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -4351,7 +4561,15 @@ func Test_HandleZUNION(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZUNION(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
@@ -4753,7 +4971,15 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 					mockServer.KeyUnlock(ctx, key)
 				}
 			}
-			res, err := handleZUNIONSTORE(ctx, test.command, mockServer, nil)
+
+			handler := getHandler(test.command[0])
+			if handler == nil {
+				t.Errorf("no handler found for command %s", test.command[0])
+				return
+			}
+
+			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+
 			if test.expectedError != nil {
 				if err.Error() != test.expectedError.Error() {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())

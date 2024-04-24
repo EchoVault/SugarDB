@@ -48,7 +48,6 @@ func (server *EchoVault) getCommand(cmd string) (types.Command, error) {
 
 func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams {
 	return types.HandlerFuncParams{
-		// TODO: Add all the required methods here
 		Context:          ctx,
 		Command:          cmd,
 		Connection:       conn,
@@ -60,6 +59,13 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 		KeyRUnlock:       server.KeyRUnlock,
 		GetValue:         server.GetValue,
 		SetValue:         server.SetValue,
+		GetClock:         server.GetClock,
+		GetExpiry:        server.GetExpiry,
+		SetExpiry:        server.SetExpiry,
+		DeleteKey:        server.DeleteKey,
+		GetPubSub:        server.GetPubSub,
+		GetACL:           server.GetACL,
+		GetAllCommands:   server.GetAllCommands,
 	}
 }
 

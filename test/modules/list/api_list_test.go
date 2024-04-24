@@ -12,24 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package list
 
 import (
+	"context"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/commands"
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/echovault"
+	"github.com/echovault/echovault/pkg/modules/list"
 	"reflect"
 	"testing"
 )
 
-func TestEchoVault_LLEN(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
+func createEchoVault() *echovault.EchoVault {
+	ev, _ := echovault.NewEchoVault(
+		echovault.WithCommands(list.Commands()),
+		echovault.WithConfig(config.Config{
+			DataDir: "",
 		}),
 	)
+	return ev
+}
+
+func presetValue(server *echovault.EchoVault, ctx context.Context, key string, value interface{}) error {
+	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+		return err
+	}
+	if err := server.SetValue(ctx, key, value); err != nil {
+		return err
+	}
+	server.KeyUnlock(ctx, key)
+	return nil
+}
+
+func TestEchoVault_LLEN(t *testing.T) {
+	server := createEchoVault()
 
 	tests := []struct {
 		preset      bool
@@ -67,7 +83,11 @@ func TestEchoVault_LLEN(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.LLEN(tt.key)
 			if (err != nil) != tt.wantErr {
@@ -82,13 +102,7 @@ func TestEchoVault_LLEN(t *testing.T) {
 }
 
 func TestEchoVault_LINDEX(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		preset      bool
@@ -156,7 +170,11 @@ func TestEchoVault_LINDEX(t *testing.T) {
 	}
 	for _, tt := range tests {
 		if tt.preset {
-			presetValue(server, tt.key, tt.presetValue)
+			err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+			if err != nil {
+				t.Error(err)
+				return
+			}
 		}
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := server.LINDEX(tt.key, tt.index)
@@ -172,13 +190,7 @@ func TestEchoVault_LINDEX(t *testing.T) {
 }
 
 func TestEchoVault_LMOVE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -328,7 +340,11 @@ func TestEchoVault_LMOVE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
 				for k, v := range tt.presetValue {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.LMOVE(tt.source, tt.destination, tt.whereFrom, tt.whereTo)
@@ -344,13 +360,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 }
 
 func TestEchoVault_POP(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -401,7 +411,11 @@ func TestEchoVault_POP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := tt.popFunc(tt.key)
 			if (err != nil) != tt.wantErr {
@@ -416,13 +430,7 @@ func TestEchoVault_POP(t *testing.T) {
 }
 
 func TestEchoVault_LPUSH(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -478,7 +486,11 @@ func TestEchoVault_LPUSH(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := tt.lpushFunc(tt.key, tt.values...)
 			if (err != nil) != tt.wantErr {
@@ -493,13 +505,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 }
 
 func TestEchoVault_RPUSH(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -535,7 +541,11 @@ func TestEchoVault_RPUSH(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := tt.rpushFunc(tt.key, tt.values...)
 			if (err != nil) != tt.wantErr {
@@ -550,13 +560,7 @@ func TestEchoVault_RPUSH(t *testing.T) {
 }
 
 func TestEchoVault_LRANGE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -656,7 +660,11 @@ func TestEchoVault_LRANGE(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.LRANGE(tt.key, tt.start, tt.end)
 			if (err != nil) != tt.wantErr {
@@ -671,13 +679,7 @@ func TestEchoVault_LRANGE(t *testing.T) {
 }
 
 func TestEchoVault_LREM(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -722,7 +724,11 @@ func TestEchoVault_LREM(t *testing.T) {
 	}
 	for _, tt := range tests {
 		if tt.preset {
-			presetValue(server, tt.key, tt.presetValue)
+			err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+			if err != nil {
+				t.Error(err)
+				return
+			}
 		}
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := server.LREM(tt.key, tt.count, tt.value)
@@ -738,13 +744,7 @@ func TestEchoVault_LREM(t *testing.T) {
 }
 
 func TestEchoVault_LSET(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -830,7 +830,11 @@ func TestEchoVault_LSET(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.LSET(tt.key, tt.index, tt.value)
 			if (err != nil) != tt.wantErr {
@@ -845,13 +849,7 @@ func TestEchoVault_LSET(t *testing.T) {
 }
 
 func TestEchoVault_LTRIM(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -940,7 +938,11 @@ func TestEchoVault_LTRIM(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.preset {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.LTRIM(tt.key, tt.start, tt.end)
 			if (err != nil) != tt.wantErr {

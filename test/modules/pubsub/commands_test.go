@@ -22,9 +22,12 @@ import (
 	internal_pubsub "github.com/echovault/echovault/internal/pubsub"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
+	ps "github.com/echovault/echovault/pkg/modules/pubsub"
+	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
 	"net"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -51,7 +54,7 @@ func init() {
 
 func setUpServer(bindAddr string, port uint16) *echovault.EchoVault {
 	server, _ := echovault.NewEchoVault(
-		echovault.WithCommands(Commands()),
+		echovault.WithCommands(ps.Commands()),
 		echovault.WithConfig(config.Config{
 			BindAddr:       bindAddr,
 			Port:           port,
@@ -60,6 +63,36 @@ func setUpServer(bindAddr string, port uint16) *echovault.EchoVault {
 		}),
 	)
 	return server
+}
+
+func getHandler(commands ...string) types.HandlerFunc {
+	if len(commands) == 0 {
+		return nil
+	}
+	for _, c := range mockServer.GetAllCommands() {
+		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
+			// Get command handler
+			return c.HandlerFunc
+		}
+		if strings.EqualFold(commands[0], c.Command) {
+			// Get sub-command handler
+			for _, sc := range c.SubCommands {
+				if strings.EqualFold(commands[1], sc.Command) {
+					return sc.HandlerFunc
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn, mockServer *echovault.EchoVault) types.HandlerFuncParams {
+	return types.HandlerFuncParams{
+		Context:    ctx,
+		Command:    cmd,
+		Connection: conn,
+		GetPubSub:  mockServer.GetPubSub,
+	}
 }
 
 func Test_HandleSubscribe(t *testing.T) {
@@ -86,7 +119,8 @@ func Test_HandleSubscribe(t *testing.T) {
 	// Test subscribe to channels
 	channels := []string{"sub_channel1", "sub_channel2", "sub_channel3"}
 	for _, conn := range connections {
-		if _, err := handleSubscribe(ctx, append([]string{"SUBSCRIBE"}, channels...), mockServer, conn); err != nil {
+		_, err := getHandler("SUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"SUBSCRIBE"}, channels...), conn, mockServer))
+		if err != nil {
 			t.Error(err)
 		}
 	}
@@ -116,7 +150,8 @@ func Test_HandleSubscribe(t *testing.T) {
 	// Test subscribe to patterns
 	patterns := []string{"psub_channel*"}
 	for _, conn := range connections {
-		if _, err := handleSubscribe(ctx, append([]string{"PSUBSCRIBE"}, patterns...), mockServer, conn); err != nil {
+		_, err := getHandler("PSUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"PSUBSCRIBE"}, patterns...), conn, mockServer))
+		if err != nil {
 			t.Error(err)
 		}
 	}
@@ -263,24 +298,24 @@ func Test_HandleUnsubscribe(t *testing.T) {
 
 		// Subscribe all the connections to the channels and patterns
 		for _, conn := range append(test.otherConnections, test.targetConn) {
-			_, err := handleSubscribe(ctx, append([]string{"SUBSCRIBE"}, test.subChannels...), mockServer, conn)
+			_, err := getHandler("SUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"SUBSCRIBE"}, test.subChannels...), conn, mockServer))
 			if err != nil {
 				t.Error(err)
 			}
-			_, err = handleSubscribe(ctx, append([]string{"PSUBSCRIBE"}, test.subPatterns...), mockServer, conn)
+			_, err = getHandler("PSUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"PSUBSCRIBE"}, test.subPatterns...), conn, mockServer))
 			if err != nil {
 				t.Error(err)
 			}
 		}
 
 		// Unsubscribe the target connection from the unsub channels and patterns
-		res, err := handleUnsubscribe(ctx, append([]string{"UNSUBSCRIBE"}, test.unSubChannels...), mockServer, test.targetConn)
+		res, err := getHandler("UNSUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"UNSUBSCRIBE"}, test.unSubChannels...), test.targetConn, mockServer))
 		if err != nil {
 			t.Error(err)
 		}
 		verifyResponse(res, test.expectedResponses["channel"])
 
-		res, err = handleUnsubscribe(ctx, append([]string{"PUNSUBSCRIBE"}, test.unSubPatterns...), mockServer, test.targetConn)
+		res, err = getHandler("PUNSUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"PUNSUBSCRIBE"}, test.unSubPatterns...), test.targetConn, mockServer))
 		if err != nil {
 			t.Error(err)
 		}
@@ -347,7 +382,7 @@ func Test_HandlePublish(t *testing.T) {
 	subscribe := func(ctx context.Context, channels []string, patterns []string, c *net.Conn, r *resp.Conn) {
 		// Subscribe to channels
 		go func() {
-			_, _ = handleSubscribe(ctx, append([]string{"SUBSCRIBE"}, channels...), mockServer, c)
+			_, _ = getHandler("SUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"SUBSCRIBE"}, channels...), c, mockServer))
 		}()
 		// Verify all the responses for each channel subscription
 		for i := 0; i < len(channels); i++ {
@@ -355,7 +390,7 @@ func Test_HandlePublish(t *testing.T) {
 		}
 		// Subscribe to all the patterns
 		go func() {
-			_, _ = handleSubscribe(ctx, append([]string{"PSUBSCRIBE"}, patterns...), mockServer, c)
+			_, _ = getHandler("PSUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"PSUBSCRIBE"}, patterns...), c, mockServer))
 		}()
 		// Verify all the responses for each pattern subscription
 		for i := 0; i < len(patterns); i++ {
@@ -518,7 +553,7 @@ func Test_HandlePubSubChannels(t *testing.T) {
 
 		// Subscribe connections to channels
 		go func() {
-			_, err := handleSubscribe(ctx, append([]string{"SUBSCRIBE"}, channels...), mockServer, &wConn1)
+			_, err := getHandler("SUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"SUBSCRIBE"}, channels...), &wConn1, mockServer))
 			if err != nil {
 				t.Error(err)
 			}
@@ -535,7 +570,7 @@ func Test_HandlePubSubChannels(t *testing.T) {
 			}
 		}
 		go func() {
-			_, err := handleSubscribe(ctx, append([]string{"PSUBSCRIBE"}, patterns...), mockServer, &wConn2)
+			_, err := getHandler("PSUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"PSUBSCRIBE"}, patterns...), &wConn2, mockServer))
 			if err != nil {
 				t.Error(err)
 			}
@@ -571,7 +606,7 @@ func Test_HandlePubSubChannels(t *testing.T) {
 		}
 
 		// Check if all subscriptions are returned
-		res, err := handlePubSubChannels(ctx, []string{"PUBSUB", "CHANNELS"}, mockServer, nil)
+		res, err := getHandler("PUBSUB", "CHANNELS")(getHandlerFuncParams(ctx, []string{"PUBSUB", "CHANNELS"}, nil, mockServer))
 		if err != nil {
 			t.Error(err)
 		}
@@ -579,45 +614,45 @@ func Test_HandlePubSubChannels(t *testing.T) {
 
 		// Unsubscribe from one pattern and one channel before checking against a new slice of
 		// expected channels/patterns in the response of the "PUBSUB CHANNELS" command
-		_, err = handleUnsubscribe(
+		_, err = getHandler("UNSUBSCRIBE")(getHandlerFuncParams(
 			ctx,
 			append([]string{"UNSUBSCRIBE"}, []string{"channel_2", "channel_3"}...),
-			mockServer,
 			&wConn1,
-		)
+			mockServer,
+		))
 		if err != nil {
 			t.Error(err)
 		}
-		_, err = handleUnsubscribe(
+		_, err = getHandler("UNSUBSCRIBE")(getHandlerFuncParams(
 			ctx,
 			append([]string{"UNSUBSCRIBE"}, "channel_[456]"),
-			mockServer,
 			&wConn2,
-		)
+			mockServer,
+		))
 		if err != nil {
 			t.Error(err)
 		}
 
 		// Return all the remaining channels
-		res, err = handlePubSubChannels(ctx, []string{"PUBSUB", "CHANNELS"}, mockServer, nil)
+		res, err = getHandler("PUBSUB", "CHANNELS")(getHandlerFuncParams(ctx, []string{"PUBSUB", "CHANNELS"}, nil, mockServer))
 		if err != nil {
 			t.Error(err)
 		}
 		verifyExpectedResponse(res, []string{"channel_1", "channel_[123]"})
 		// Return only one of the remaining channels when passed a pattern that matches it
-		res, err = handlePubSubChannels(ctx, []string{"PUBSUB", "CHANNELS", "channel_[189]"}, mockServer, nil)
+		res, err = getHandler("PUBSUB", "CHANNELS")(getHandlerFuncParams(ctx, []string{"PUBSUB", "CHANNELS", "channel_[189]"}, nil, mockServer))
 		if err != nil {
 			t.Error(err)
 		}
 		verifyExpectedResponse(res, []string{"channel_1"})
 		// Return both remaining channels when passed a pattern that matches them
-		res, err = handlePubSubChannels(ctx, []string{"PUBSUB", "CHANNELS", "channel_[123]"}, mockServer, nil)
+		res, err = getHandler("PUBSUB", "CHANNELS")(getHandlerFuncParams(ctx, []string{"PUBSUB", "CHANNELS", "channel_[123]"}, nil, mockServer))
 		if err != nil {
 			t.Error(err)
 		}
 		verifyExpectedResponse(res, []string{"channel_1", "channel_[123]"})
 		// Return none channels when passed a pattern that does not match either channel
-		res, err = handlePubSubChannels(ctx, []string{"PUBSUB", "CHANNELS", "channel_[456]"}, mockServer, nil)
+		res, err = getHandler("PUBSUB", "CHANNELS")(getHandlerFuncParams(ctx, []string{"PUBSUB", "CHANNELS", "channel_[456]"}, nil, mockServer))
 		if err != nil {
 			t.Error(err)
 		}
@@ -655,7 +690,8 @@ func Test_HandleNumPat(t *testing.T) {
 				r *resp.Conn
 			}{w: &w, r: resp.NewConn(r)}
 			go func() {
-				if _, err := handleSubscribe(ctx, append([]string{"PSUBSCRIBE"}, patterns...), mockServer, &w); err != nil {
+				_, err := getHandler("PSUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"PSUBSCRIBE"}, patterns...), &w, mockServer))
+				if err != nil {
 					t.Error(err)
 				}
 			}()
@@ -685,7 +721,7 @@ func Test_HandleNumPat(t *testing.T) {
 		}
 
 		// Check that we receive all the patterns with NUMPAT commands
-		res, err := handlePubSubNumPat(ctx, []string{"PUBSUB", "NUMPAT"}, mockServer, nil)
+		res, err := getHandler("PUBSUB", "NUMPAT")(getHandlerFuncParams(ctx, []string{"PUBSUB", "NUMPAT"}, nil, mockServer))
 		if err != nil {
 			t.Error(err)
 		}
@@ -693,12 +729,12 @@ func Test_HandleNumPat(t *testing.T) {
 
 		// Unsubscribe from a channel and check if the number of active channels is updated
 		for _, conn := range connections {
-			_, err = handleUnsubscribe(ctx, []string{"PUNSUBSCRIBE", patterns[0]}, mockServer, conn.w)
+			_, err = getHandler("PUNSUBSCRIBE")(getHandlerFuncParams(ctx, []string{"PUNSUBSCRIBE", patterns[0]}, conn.w, mockServer))
 			if err != nil {
 				t.Error(err)
 			}
 		}
-		res, err = handlePubSubNumPat(ctx, []string{"PUBSUB", "NUMPAT"}, mockServer, nil)
+		res, err = getHandler("PUBSUB", "NUMPAT")(getHandlerFuncParams(ctx, []string{"PUBSUB", "NUMPAT"}, nil, mockServer))
 		if err != nil {
 			t.Error(err)
 		}
@@ -706,12 +742,12 @@ func Test_HandleNumPat(t *testing.T) {
 
 		// Unsubscribe from all the channels and check if we get a 0 response
 		for _, conn := range connections {
-			_, err = handleUnsubscribe(ctx, []string{"PUNSUBSCRIBE"}, mockServer, conn.w)
+			_, err = getHandler("PUNSUBSCRIBE")(getHandlerFuncParams(ctx, []string{"PUNSUBSCRIBE"}, conn.w, mockServer))
 			if err != nil {
 				t.Error(err)
 			}
 		}
-		res, err = handlePubSubNumPat(ctx, []string{"PUBSUB", "NUMPAT"}, mockServer, nil)
+		res, err = getHandler("PUBSUB", "NUMPAT")(getHandlerFuncParams(ctx, []string{"PUBSUB", "NUMPAT"}, nil, mockServer))
 		if err != nil {
 			t.Error(err)
 		}
@@ -748,7 +784,8 @@ func Test_HandleNumSub(t *testing.T) {
 				r *resp.Conn
 			}{w: &w, r: resp.NewConn(r)}
 			go func() {
-				if _, err := handleSubscribe(ctx, append([]string{"SUBSCRIBE"}, channels...), mockServer, &w); err != nil {
+				_, err := getHandler("SUBSCRIBE")(getHandlerFuncParams(ctx, append([]string{"SUBSCRIBE"}, channels...), &w, mockServer))
+				if err != nil {
 					t.Error(err)
 				}
 			}()
@@ -793,7 +830,7 @@ func Test_HandleNumSub(t *testing.T) {
 		for i, test := range tests {
 			ctx = context.WithValue(ctx, "test_index", i)
 
-			res, err := handlePubSubNumSubs(ctx, test.cmd, mockServer, nil)
+			res, err := getHandler("PUBSUB", "NUMSUB")(getHandlerFuncParams(ctx, test.cmd, nil, mockServer))
 			if err != nil {
 				t.Error(err)
 			}

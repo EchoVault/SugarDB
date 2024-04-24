@@ -41,6 +41,7 @@ type Opts struct {
 	StartSnapshot         func()
 	FinishSnapshot        func()
 	SetLatestSnapshotTime func(msec int64)
+	GetHandlerFuncParams  func(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams
 }
 
 type Raft struct {
@@ -120,6 +121,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 			StartSnapshot:         r.options.StartSnapshot,
 			FinishSnapshot:        r.options.FinishSnapshot,
 			SetLatestSnapshotTime: r.options.SetLatestSnapshotTime,
+			GetHandlerFuncParams:  r.options.GetHandlerFuncParams,
 		}),
 		logStore,
 		stableStore,

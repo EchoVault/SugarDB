@@ -15,79 +15,77 @@
 package pubsub
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	internal_pubsub "github.com/echovault/echovault/internal/pubsub"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/types"
-	"net"
 	"strings"
 )
 
-func handleSubscribe(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
+func handleSubscribe(params types.HandlerFuncParams) ([]byte, error) {
+	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
 
-	channels := cmd[1:]
+	channels := params.Command[1:]
 
 	if len(channels) == 0 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
-	withPattern := strings.EqualFold(cmd[0], "psubscribe")
-	pubsub.Subscribe(ctx, conn, channels, withPattern)
+	withPattern := strings.EqualFold(params.Command[0], "psubscribe")
+	pubsub.Subscribe(params.Context, params.Connection, channels, withPattern)
 
 	return nil, nil
 }
 
-func handleUnsubscribe(ctx context.Context, cmd []string, server types.EchoVault, conn *net.Conn) ([]byte, error) {
-	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
+func handleUnsubscribe(params types.HandlerFuncParams) ([]byte, error) {
+	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
 
-	channels := cmd[1:]
+	channels := params.Command[1:]
 
-	withPattern := strings.EqualFold(cmd[0], "punsubscribe")
+	withPattern := strings.EqualFold(params.Command[0], "punsubscribe")
 
-	return pubsub.Unsubscribe(ctx, conn, channels, withPattern), nil
+	return pubsub.Unsubscribe(params.Context, params.Connection, channels, withPattern), nil
 }
 
-func handlePublish(ctx context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
+func handlePublish(params types.HandlerFuncParams) ([]byte, error) {
+	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
-	if len(cmd) != 3 {
+	if len(params.Command) != 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
-	pubsub.Publish(ctx, cmd[2], cmd[1])
+	pubsub.Publish(params.Context, params.Command[2], params.Command[1])
 	return []byte(constants.OkResponse), nil
 }
 
-func handlePubSubChannels(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	if len(cmd) > 3 {
+func handlePubSubChannels(params types.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) > 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
-	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
+	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
 
 	pattern := ""
-	if len(cmd) == 3 {
-		pattern = cmd[2]
+	if len(params.Command) == 3 {
+		pattern = params.Command[2]
 	}
 
 	return pubsub.Channels(pattern), nil
 }
 
-func handlePubSubNumPat(_ context.Context, _ []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
+func handlePubSubNumPat(params types.HandlerFuncParams) ([]byte, error) {
+	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -95,12 +93,12 @@ func handlePubSubNumPat(_ context.Context, _ []string, server types.EchoVault, _
 	return []byte(fmt.Sprintf(":%d\r\n", num)), nil
 }
 
-func handlePubSubNumSubs(_ context.Context, cmd []string, server types.EchoVault, _ *net.Conn) ([]byte, error) {
-	pubsub, ok := server.GetPubSub().(*internal_pubsub.PubSub)
+func handlePubSubNumSubs(params types.HandlerFuncParams) ([]byte, error) {
+	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
-	return pubsub.NumSub(cmd[2:]), nil
+	return pubsub.NumSub(params.Command[2:]), nil
 }
 
 func Commands() []types.Command {
@@ -210,7 +208,7 @@ it's currently subscribe to.`,
 					WriteKeys: make([]string, 0),
 				}, nil
 			},
-			HandlerFunc: func(_ context.Context, _ []string, _ types.EchoVault, _ *net.Conn) ([]byte, error) {
+			HandlerFunc: func(_ types.HandlerFuncParams) ([]byte, error) {
 				return nil, errors.New("provide CHANNELS, NUMPAT, or NUMSUB subcommand")
 			},
 			SubCommands: []types.SubCommand{

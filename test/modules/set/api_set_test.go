@@ -12,26 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package set
 
 import (
+	"context"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/set"
-	"github.com/echovault/echovault/pkg/commands"
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/pkg/echovault"
+	s "github.com/echovault/echovault/pkg/modules/set"
 	"reflect"
 	"slices"
 	"testing"
 )
 
-func TestEchoVault_SADD(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
+func createEchoVault() *echovault.EchoVault {
+	ev, _ := echovault.NewEchoVault(
+		echovault.WithCommands(s.Commands()),
+		echovault.WithConfig(config.Config{
+			DataDir: "",
 		}),
 	)
+	return ev
+}
+
+func presetValue(server *echovault.EchoVault, ctx context.Context, key string, value interface{}) error {
+	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+		return err
+	}
+	if err := server.SetValue(ctx, key, value); err != nil {
+		return err
+	}
+	server.KeyUnlock(ctx, key)
+	return nil
+}
+
+func TestEchoVault_SADD(t *testing.T) {
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -69,7 +85,11 @@ func TestEchoVault_SADD(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.SADD(tt.key, tt.members...)
 			if (err != nil) != tt.wantErr {
@@ -84,13 +104,7 @@ func TestEchoVault_SADD(t *testing.T) {
 }
 
 func TestEchoVault_SCARD(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -124,7 +138,11 @@ func TestEchoVault_SCARD(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.SCARD(tt.key)
 			if (err != nil) != tt.wantErr {
@@ -139,13 +157,7 @@ func TestEchoVault_SCARD(t *testing.T) {
 }
 
 func TestEchoVault_SDIFF(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -212,7 +224,11 @@ func TestEchoVault_SDIFF(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValues != nil {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.SDIFF(tt.keys...)
@@ -233,13 +249,7 @@ func TestEchoVault_SDIFF(t *testing.T) {
 }
 
 func TestEchoVault_SDIFFSTORE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -312,7 +322,11 @@ func TestEchoVault_SDIFFSTORE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValues != nil {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.SDIFFSTORE(tt.destination, tt.keys...)
@@ -328,13 +342,7 @@ func TestEchoVault_SDIFFSTORE(t *testing.T) {
 }
 
 func TestEchoVault_SINTER(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -401,7 +409,11 @@ func TestEchoVault_SINTER(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValues != nil {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.SINTER(tt.keys...)
@@ -422,13 +434,7 @@ func TestEchoVault_SINTER(t *testing.T) {
 }
 
 func TestEchoVault_SINTERCARD(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -512,7 +518,11 @@ func TestEchoVault_SINTERCARD(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValues != nil {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.SINTERCARD(tt.keys, tt.limit)
@@ -528,13 +538,7 @@ func TestEchoVault_SINTERCARD(t *testing.T) {
 }
 
 func TestEchoVault_SINTERSTORE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -607,7 +611,11 @@ func TestEchoVault_SINTERSTORE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValues != nil {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.SINTERSTORE(tt.destination, tt.keys...)
@@ -623,13 +631,7 @@ func TestEchoVault_SINTERSTORE(t *testing.T) {
 }
 
 func TestEchoVault_SISMEMBER(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -667,7 +669,11 @@ func TestEchoVault_SISMEMBER(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.SISMEMBER(tt.key, tt.member)
 			if (err != nil) != tt.wantErr {
@@ -682,13 +688,7 @@ func TestEchoVault_SISMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_SMEMBERS(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -722,7 +722,11 @@ func TestEchoVault_SMEMBERS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.SMEMBERS(tt.key)
 			if (err != nil) != tt.wantErr {
@@ -742,13 +746,7 @@ func TestEchoVault_SMEMBERS(t *testing.T) {
 }
 
 func TestEchoVault_SMISMEMBER(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -805,7 +803,11 @@ func TestEchoVault_SMISMEMBER(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.SMISMEMBER(tt.key, tt.members...)
 			if (err != nil) != tt.wantErr {
@@ -820,13 +822,7 @@ func TestEchoVault_SMISMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_SMOVE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -890,7 +886,11 @@ func TestEchoVault_SMOVE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValues != nil {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.SMOVE(tt.source, tt.destination, tt.member)
@@ -906,13 +906,7 @@ func TestEchoVault_SMOVE(t *testing.T) {
 }
 
 func TestEchoVault_SPOP(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -942,7 +936,11 @@ func TestEchoVault_SPOP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.SPOP(tt.key, tt.count)
 			if (err != nil) != tt.wantErr {
@@ -959,13 +957,7 @@ func TestEchoVault_SPOP(t *testing.T) {
 }
 
 func TestEchoVault_SRANDMEMBER(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -1007,7 +999,11 @@ func TestEchoVault_SRANDMEMBER(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.SRANDMEMBER(tt.key, tt.count)
 			if (err != nil) != tt.wantErr {
@@ -1028,13 +1024,7 @@ func TestEchoVault_SRANDMEMBER(t *testing.T) {
 }
 
 func TestEchoVault_SREM(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name        string
@@ -1072,7 +1062,11 @@ func TestEchoVault_SREM(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValue != nil {
-				presetValue(server, tt.key, tt.presetValue)
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 			got, err := server.SREM(tt.key, tt.members...)
 			if (err != nil) != tt.wantErr {
@@ -1087,13 +1081,7 @@ func TestEchoVault_SREM(t *testing.T) {
 }
 
 func TestEchoVault_SUNION(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -1153,7 +1141,11 @@ func TestEchoVault_SUNION(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValues != nil {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.SUNION(tt.keys...)
@@ -1174,13 +1166,7 @@ func TestEchoVault_SUNION(t *testing.T) {
 }
 
 func TestEchoVault_SUNIONSTORE(t *testing.T) {
-	server, _ := NewEchoVault(
-		WithCommands(commands.All()),
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
-	)
+	server := createEchoVault()
 
 	tests := []struct {
 		name         string
@@ -1230,7 +1216,11 @@ func TestEchoVault_SUNIONSTORE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.presetValues != nil {
 				for k, v := range tt.presetValues {
-					presetValue(server, k, v)
+					err := presetValue(server, context.Background(), k, v)
+					if err != nil {
+						t.Error(err)
+						return
+					}
 				}
 			}
 			got, err := server.SUNIONSTORE(tt.destination, tt.keys...)
