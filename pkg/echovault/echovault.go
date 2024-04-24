@@ -21,13 +21,21 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/acl"
 	"github.com/echovault/echovault/internal/aof"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/eviction"
 	"github.com/echovault/echovault/internal/memberlist"
-	"github.com/echovault/echovault/internal/pubsub"
+	"github.com/echovault/echovault/internal/modules/acl"
+	"github.com/echovault/echovault/internal/modules/admin"
+	"github.com/echovault/echovault/internal/modules/connection"
+	"github.com/echovault/echovault/internal/modules/generic"
+	"github.com/echovault/echovault/internal/modules/hash"
+	"github.com/echovault/echovault/internal/modules/list"
+	"github.com/echovault/echovault/internal/modules/pubsub"
+	"github.com/echovault/echovault/internal/modules/set"
+	"github.com/echovault/echovault/internal/modules/sorted_set"
+	str "github.com/echovault/echovault/internal/modules/string"
 	"github.com/echovault/echovault/internal/raft"
 	"github.com/echovault/echovault/internal/snapshot"
 	"github.com/echovault/echovault/pkg/constants"
@@ -126,11 +134,24 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	echovault := &EchoVault{
 		clock:           clock.NewClock(),
 		context:         context.Background(),
-		commands:        make([]types.Command, 0),
 		config:          config.DefaultConfig(),
 		store:           make(map[string]internal.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
+		commands: func() []types.Command {
+			var commands []types.Command
+			commands = append(commands, acl.Commands()...)
+			commands = append(commands, admin.Commands()...)
+			commands = append(commands, generic.Commands()...)
+			commands = append(commands, hash.Commands()...)
+			commands = append(commands, list.Commands()...)
+			commands = append(commands, connection.Commands()...)
+			commands = append(commands, pubsub.Commands()...)
+			commands = append(commands, set.Commands()...)
+			commands = append(commands, sorted_set.Commands()...)
+			commands = append(commands, str.Commands()...)
+			return commands
+		}(),
 	}
 
 	for _, option := range options {

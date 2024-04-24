@@ -20,7 +20,6 @@ import (
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/modules/generic"
 	"reflect"
 	"slices"
 	"strings"
@@ -30,7 +29,6 @@ import (
 
 func createEchoVault() *echovault.EchoVault {
 	ev, _ := echovault.NewEchoVault(
-		echovault.WithCommands(generic.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir: "",
 		}),

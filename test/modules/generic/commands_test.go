@@ -23,7 +23,6 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/modules/generic"
 	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
 	"net"
@@ -45,7 +44,6 @@ func init() {
 	mockClock = clock.NewClock()
 
 	mockServer, _ = echovault.NewEchoVault(
-		echovault.WithCommands(generic.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,

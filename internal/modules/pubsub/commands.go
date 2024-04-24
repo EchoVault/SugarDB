@@ -17,14 +17,13 @@ package pubsub
 import (
 	"errors"
 	"fmt"
-	internal_pubsub "github.com/echovault/echovault/internal/pubsub"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/types"
 	"strings"
 )
 
 func handleSubscribe(params types.HandlerFuncParams) ([]byte, error) {
-	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
+	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -42,7 +41,7 @@ func handleSubscribe(params types.HandlerFuncParams) ([]byte, error) {
 }
 
 func handleUnsubscribe(params types.HandlerFuncParams) ([]byte, error) {
-	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
+	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -55,7 +54,7 @@ func handleUnsubscribe(params types.HandlerFuncParams) ([]byte, error) {
 }
 
 func handlePublish(params types.HandlerFuncParams) ([]byte, error) {
-	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
+	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -71,7 +70,7 @@ func handlePubSubChannels(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
-	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
+	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -85,7 +84,7 @@ func handlePubSubChannels(params types.HandlerFuncParams) ([]byte, error) {
 }
 
 func handlePubSubNumPat(params types.HandlerFuncParams) ([]byte, error) {
-	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
+	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}
@@ -94,7 +93,7 @@ func handlePubSubNumPat(params types.HandlerFuncParams) ([]byte, error) {
 }
 
 func handlePubSubNumSubs(params types.HandlerFuncParams) ([]byte, error) {
-	pubsub, ok := params.GetPubSub().(*internal_pubsub.PubSub)
+	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
 	}

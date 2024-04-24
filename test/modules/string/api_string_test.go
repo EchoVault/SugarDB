@@ -18,13 +18,11 @@ import (
 	"context"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/echovault"
-	str "github.com/echovault/echovault/pkg/modules/string"
 	"testing"
 )
 
 func createEchoVault() *echovault.EchoVault {
 	ev, _ := echovault.NewEchoVault(
-		echovault.WithCommands(str.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir: "",
 		}),

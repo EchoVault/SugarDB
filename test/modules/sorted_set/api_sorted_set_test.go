@@ -18,9 +18,8 @@ import (
 	"context"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/sorted_set"
+	ss "github.com/echovault/echovault/internal/modules/sorted_set"
 	"github.com/echovault/echovault/pkg/echovault"
-	ss "github.com/echovault/echovault/pkg/modules/sorted_set"
 	"math"
 	"reflect"
 	"strconv"
@@ -29,7 +28,6 @@ import (
 
 func createEchoVault() *echovault.EchoVault {
 	ev, _ := echovault.NewEchoVault(
-		echovault.WithCommands(ss.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir: "",
 		}),
@@ -54,7 +52,7 @@ func TestEchoVault_ZADD(t *testing.T) {
 	tests := []struct {
 		name        string
 		preset      bool
-		presetValue *sorted_set.SortedSet
+		presetValue *ss.SortedSet
 		key         string
 		entries     map[string]float64
 		options     echovault.ZADDOptions
@@ -80,10 +78,10 @@ func TestEchoVault_ZADD(t *testing.T) {
 		{
 			name:   "Only add the elements that do not currently exist in the sorted set when NX flag is provided",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
 			}),
 			key: "key2",
 			entries: map[string]float64{
@@ -98,10 +96,10 @@ func TestEchoVault_ZADD(t *testing.T) {
 		{
 			name:   "Do not add any elements when providing existing members with NX flag",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
 			}),
 			key: "key3",
 			entries: map[string]float64{
@@ -116,10 +114,10 @@ func TestEchoVault_ZADD(t *testing.T) {
 		{
 			name:   "Successfully add elements to an existing set when XX flag is provided with existing elements",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
 			}),
 			key: "key4",
 			entries: map[string]float64{
@@ -135,10 +133,10 @@ func TestEchoVault_ZADD(t *testing.T) {
 		{
 			name:   "Fail to add element when providing XX flag with elements that do not exist in the sorted set",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
 			}),
 			key: "key5",
 			entries: map[string]float64{
@@ -155,10 +153,10 @@ func TestEchoVault_ZADD(t *testing.T) {
 			// Return only the new elements added by default
 			name:   "Only update the elements where provided score is greater than current score if GT flag",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
 			}),
 			key: "key6",
 			entries: map[string]float64{
@@ -175,10 +173,10 @@ func TestEchoVault_ZADD(t *testing.T) {
 			// Return only the new elements added by default.
 			name:   "Only update the elements where provided score is less than current score if LT flag is provided",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
 			}),
 			key: "key7",
 			entries: map[string]float64{
@@ -193,10 +191,10 @@ func TestEchoVault_ZADD(t *testing.T) {
 		{
 			name:   "Return all the elements that were updated AND added when CH flag is provided",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
 			}),
 			key: "key8",
 			entries: map[string]float64{
@@ -211,10 +209,10 @@ func TestEchoVault_ZADD(t *testing.T) {
 		{
 			name:   "Increment the member by score",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
 			}),
 			key: "key9",
 			entries: map[string]float64{
@@ -286,10 +284,10 @@ func TestEchoVault_ZCARD(t *testing.T) {
 		{
 			name:   "Get cardinality of valid sorted set",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
 			}),
 			key:     "key1",
 			want:    3,
@@ -349,14 +347,14 @@ func TestEchoVault_ZCOUNT(t *testing.T) {
 		{
 			name:   "Get entire count using infinity boundaries",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
-				{Value: "member4", Score: sorted_set.Score(1083.13)},
-				{Value: "member5", Score: sorted_set.Score(11)},
-				{Value: "member6", Score: sorted_set.Score(math.Inf(-1))},
-				{Value: "member7", Score: sorted_set.Score(math.Inf(1))},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
+				{Value: "member4", Score: ss.Score(1083.13)},
+				{Value: "member5", Score: ss.Score(11)},
+				{Value: "member6", Score: ss.Score(math.Inf(-1))},
+				{Value: "member7", Score: ss.Score(math.Inf(1))},
 			}),
 			key:     "key1",
 			min:     math.Inf(-1),
@@ -367,14 +365,14 @@ func TestEchoVault_ZCOUNT(t *testing.T) {
 		{
 			name:   "Get count of sub-set from -inf to limit",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
-				{Value: "member4", Score: sorted_set.Score(1083.13)},
-				{Value: "member5", Score: sorted_set.Score(11)},
-				{Value: "member6", Score: sorted_set.Score(math.Inf(-1))},
-				{Value: "member7", Score: sorted_set.Score(math.Inf(1))},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
+				{Value: "member4", Score: ss.Score(1083.13)},
+				{Value: "member5", Score: ss.Score(11)},
+				{Value: "member6", Score: ss.Score(math.Inf(-1))},
+				{Value: "member7", Score: ss.Score(math.Inf(1))},
 			}),
 			key:     "key2",
 			min:     math.Inf(-1),
@@ -385,14 +383,14 @@ func TestEchoVault_ZCOUNT(t *testing.T) {
 		{
 			name:   "Get count of sub-set from bottom boundary to +inf limit",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "member1", Score: sorted_set.Score(5.5)},
-				{Value: "member2", Score: sorted_set.Score(67.77)},
-				{Value: "member3", Score: sorted_set.Score(10)},
-				{Value: "member4", Score: sorted_set.Score(1083.13)},
-				{Value: "member5", Score: sorted_set.Score(11)},
-				{Value: "member6", Score: sorted_set.Score(math.Inf(-1))},
-				{Value: "member7", Score: sorted_set.Score(math.Inf(1))},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "member1", Score: ss.Score(5.5)},
+				{Value: "member2", Score: ss.Score(67.77)},
+				{Value: "member3", Score: ss.Score(10)},
+				{Value: "member4", Score: ss.Score(1083.13)},
+				{Value: "member5", Score: ss.Score(11)},
+				{Value: "member6", Score: ss.Score(math.Inf(-1))},
+				{Value: "member7", Score: ss.Score(math.Inf(1))},
 			}),
 			key:     "key3",
 			min:     1000,
@@ -448,13 +446,13 @@ func TestEchoVault_ZDIFF(t *testing.T) {
 			name:   "Get the difference between 2 sorted sets without scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key1": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1},
 					{Value: "two", Score: 2},
 					{Value: "three", Score: 3},
 					{Value: "four", Score: 4},
 				}),
-				"key2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key2": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "three", Score: 3},
 					{Value: "four", Score: 4},
 					{Value: "five", Score: 5},
@@ -472,13 +470,13 @@ func TestEchoVault_ZDIFF(t *testing.T) {
 			name:   "Get the difference between 2 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key3": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1},
 					{Value: "two", Score: 2},
 					{Value: "three", Score: 3},
 					{Value: "four", Score: 4},
 				}),
-				"key4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key4": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "three", Score: 3},
 					{Value: "four", Score: 4},
 					{Value: "five", Score: 5},
@@ -496,18 +494,18 @@ func TestEchoVault_ZDIFF(t *testing.T) {
 			name:   "Get the difference between 3 sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key5": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key6": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11},
 				}),
-				"key7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key7": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -522,7 +520,7 @@ func TestEchoVault_ZDIFF(t *testing.T) {
 			name:   "Return sorted set if only one key exists and is a sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key8": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -542,12 +540,12 @@ func TestEchoVault_ZDIFF(t *testing.T) {
 			preset: true,
 			presetValues: map[string]interface{}{
 				"key9": "Default value",
-				"key10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key10": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11},
 				}),
-				"key11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key11": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -598,12 +596,12 @@ func TestEchoVault_ZDIFFSTORE(t *testing.T) {
 			name:   "Get the difference between 2 sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key1": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5},
 				}),
-				"key2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key2": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
@@ -618,18 +616,18 @@ func TestEchoVault_ZDIFFSTORE(t *testing.T) {
 			name:   "Get the difference between 3 sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key3": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key4": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11},
 				}),
-				"key5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key5": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -644,7 +642,7 @@ func TestEchoVault_ZDIFFSTORE(t *testing.T) {
 			name:   "Return base sorted set element if base set is the only existing key provided and is a valid sorted set",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key6": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -661,12 +659,12 @@ func TestEchoVault_ZDIFFSTORE(t *testing.T) {
 			preset: true,
 			presetValues: map[string]interface{}{
 				"key7": "Default value",
-				"key8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key8": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11},
 				}),
-				"key9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key9": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -717,7 +715,7 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 		{
 			name:   "Successfully increment by int. Return the new score",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5},
@@ -731,7 +729,7 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 		{
 			name:   "Successfully increment by float. Return new score",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5},
@@ -754,7 +752,7 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 		{ // 4.
 			name:   "Increment score to +inf",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5},
@@ -768,7 +766,7 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 		{
 			name:   "Increment score to -inf",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5},
@@ -782,7 +780,7 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 		{
 			name:   "Incrementing score by negative increment should lower the score",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5},
@@ -806,8 +804,8 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 		{
 			name:   "Return error when trying to increment a member that already has score -inf",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "one", Score: sorted_set.Score(math.Inf(-1))},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "one", Score: ss.Score(math.Inf(-1))},
 			}),
 			key:       "key8",
 			increment: 2.5,
@@ -818,8 +816,8 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 		{
 			name:   "Return error when trying to increment a member that already has score +inf",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "one", Score: sorted_set.Score(math.Inf(1))},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "one", Score: ss.Score(math.Inf(1))},
 			}),
 			key:       "key9",
 			increment: 2.5,
@@ -865,12 +863,12 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "Get the intersection between 2 sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key1": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5},
 				}),
-				"key2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key2": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
@@ -887,18 +885,18 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key3": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key4": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 8},
 				}),
-				"key5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key5": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -915,18 +913,18 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key6": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key7": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key8": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -942,18 +940,18 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			// Use MAX aggregate.
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key9": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key10": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key11": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -970,18 +968,18 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key12": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key13": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key13": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key14": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key14": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -998,18 +996,18 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key15": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key16": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key16": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key17": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key17": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -1026,18 +1024,18 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key18": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key19": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key19": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key20": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key20": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -1052,13 +1050,13 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "Throw an error if there are more weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key21": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key22": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key22": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key21", "key22"},
 			options: echovault.ZINTEROptions{Weights: []float64{1, 2, 3}},
@@ -1069,16 +1067,16 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "Throw an error if there are fewer weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key23": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key24": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key24": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				}),
-				"key25": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key25": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key23", "key24", "key25"},
 			options: echovault.ZINTEROptions{Weights: []float64{5, 4}},
@@ -1089,9 +1087,9 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "Throw an error if there are no keys provided",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
-				"key27": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
-				"key28": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key26": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
+				"key27": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
+				"key28": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{},
 			options: echovault.ZINTEROptions{},
@@ -1102,14 +1100,14 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "Throw an error if any of the provided keys are not sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key29": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 				"key30": "Default value",
-				"key31": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key31": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key29", "key30", "key31"},
 			options: echovault.ZINTEROptions{},
@@ -1120,12 +1118,12 @@ func TestEchoVault_ZINTER(t *testing.T) {
 			name:   "If any of the keys does not exist, return an empty array",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key32": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11},
 				}),
-				"key33": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key33": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -1177,12 +1175,12 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Get the intersection between 2 sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key1": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5},
 				}),
-				"key2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key2": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
@@ -1200,18 +1198,18 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key3": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key4": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 8},
 				}),
-				"key5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key5": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -1229,18 +1227,18 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key6": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key7": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key8": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -1258,18 +1256,18 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key9": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key10": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key11": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -1287,18 +1285,18 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key12": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key13": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key13": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key14": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key14": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -1316,18 +1314,18 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key15": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key16": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key16": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key17": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key17": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -1345,18 +1343,18 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Get the intersection between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key18": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key19": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key19": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key20": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key20": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -1372,13 +1370,13 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Throw an error if there are more weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key21": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key22": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key22": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			destination: "destination8",
 			keys:        []string{"key21", "key22"},
@@ -1390,16 +1388,16 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Throw an error if there are fewer weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key23": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key24": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key24": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				}),
-				"key25": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key25": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			destination: "destination9",
 			keys:        []string{"key23", "key24"},
@@ -1411,9 +1409,9 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Throw an error if there are no keys provided",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
-				"key27": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
-				"key28": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key26": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
+				"key27": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
+				"key28": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			destination: "destination10",
 			keys:        []string{},
@@ -1425,14 +1423,14 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "Throw an error if any of the provided keys are not sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key29": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 				"key30": "Default value",
-				"key31": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key31": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			destination: "destination11",
 			keys:        []string{"key29", "key30", "key31"},
@@ -1444,12 +1442,12 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 			name:   "If any of the keys does not exist, return an empty array",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key32": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11},
 				}),
-				"key33": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key33": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -1501,14 +1499,14 @@ func TestEchoVault_ZLEXCOUNT(t *testing.T) {
 		{
 			name:   "Get entire count using infinity boundaries",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "e", Score: sorted_set.Score(1)},
-				{Value: "f", Score: sorted_set.Score(1)},
-				{Value: "g", Score: sorted_set.Score(1)},
-				{Value: "h", Score: sorted_set.Score(1)},
-				{Value: "i", Score: sorted_set.Score(1)},
-				{Value: "j", Score: sorted_set.Score(1)},
-				{Value: "k", Score: sorted_set.Score(1)},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "e", Score: ss.Score(1)},
+				{Value: "f", Score: ss.Score(1)},
+				{Value: "g", Score: ss.Score(1)},
+				{Value: "h", Score: ss.Score(1)},
+				{Value: "i", Score: ss.Score(1)},
+				{Value: "j", Score: ss.Score(1)},
+				{Value: "k", Score: ss.Score(1)},
 			}),
 			key:     "key1",
 			min:     "f",
@@ -1519,14 +1517,14 @@ func TestEchoVault_ZLEXCOUNT(t *testing.T) {
 		{
 			name:   "Return 0 when the members do not have the same score",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
-				{Value: "a", Score: sorted_set.Score(5.5)},
-				{Value: "b", Score: sorted_set.Score(67.77)},
-				{Value: "c", Score: sorted_set.Score(10)},
-				{Value: "d", Score: sorted_set.Score(1083.13)},
-				{Value: "e", Score: sorted_set.Score(11)},
-				{Value: "f", Score: sorted_set.Score(math.Inf(-1))},
-				{Value: "g", Score: sorted_set.Score(math.Inf(1))},
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "a", Score: ss.Score(5.5)},
+				{Value: "b", Score: ss.Score(67.77)},
+				{Value: "c", Score: ss.Score(10)},
+				{Value: "d", Score: ss.Score(1083.13)},
+				{Value: "e", Score: ss.Score(11)},
+				{Value: "f", Score: ss.Score(math.Inf(-1))},
+				{Value: "g", Score: ss.Score(math.Inf(1))},
 			}),
 			key:     "key2",
 			min:     "a",
@@ -1592,7 +1590,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 			name:   "Successfully pop one min element by default",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key1": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5},
@@ -1609,7 +1607,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 			name:   "Successfully pop one min element by specifying MIN",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key2": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5},
@@ -1626,7 +1624,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 			name:   "Successfully pop one max element by specifying MAX modifier",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key3": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5},
@@ -1643,7 +1641,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 			name:   "Successfully pop multiple min elements",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key4": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -1661,7 +1659,7 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 			name:   "Successfully pop multiple max elements",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key5": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -1676,8 +1674,8 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 			name:   "Successfully pop elements from the first set which is non-empty",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": sorted_set.NewSortedSet([]sorted_set.MemberParam{}),
-				"key7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key6": ss.NewSortedSet([]ss.MemberParam{}),
+				"key7": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -1694,8 +1692,8 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 			presetValues: map[string]interface{}{
 				"key8":  "Default value",
 				"key9":  56,
-				"key10": sorted_set.NewSortedSet([]sorted_set.MemberParam{}),
-				"key11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key10": ss.NewSortedSet([]ss.MemberParam{}),
+				"key11": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -1746,7 +1744,7 @@ func TestEchoVault_ZMSCORE(t *testing.T) {
 			// Return nil for elements that do not exist in the sorted set.
 			name:   "Return multiple scores from the sorted set",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1.1}, {Value: "two", Score: 245},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4.055},
 				{Value: "five", Score: 5},
@@ -1825,7 +1823,7 @@ func TestEchoVault_ZPOP(t *testing.T) {
 		{
 			name:   "Successfully pop one min element",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5},
@@ -1841,7 +1839,7 @@ func TestEchoVault_ZPOP(t *testing.T) {
 		{
 			name:   "Successfully pop one max element",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5},
@@ -1855,7 +1853,7 @@ func TestEchoVault_ZPOP(t *testing.T) {
 		{
 			name:   "Successfully pop multiple min elements",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -1872,7 +1870,7 @@ func TestEchoVault_ZPOP(t *testing.T) {
 		{
 			name:   "Successfully pop multiple max elements",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -1933,7 +1931,7 @@ func TestEchoVault_ZRANDMEMBER(t *testing.T) {
 			name:   "Return multiple random elements without removing them",
 			preset: true,
 			key:    "key1",
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2}, {Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5}, {Value: "six", Score: 6}, {Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 			}),
@@ -1948,7 +1946,7 @@ func TestEchoVault_ZRANDMEMBER(t *testing.T) {
 			name:   "Return multiple random elements and their scores without removing them",
 			preset: true,
 			key:    "key2",
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2}, {Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5}, {Value: "six", Score: 6}, {Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 			}),
@@ -2006,7 +2004,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 		{
 			name:   "Get elements withing score range without score",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -2022,7 +2020,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 		{
 			name:   "Get elements within score range with score",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -2040,7 +2038,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
 			name:   "Get elements within score range with offset and limit",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -2056,7 +2054,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 		{
 			name:   "Get elements within lex range without score",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "a", Score: 1}, {Value: "e", Score: 1},
 				{Value: "b", Score: 1}, {Value: "f", Score: 1},
 				{Value: "c", Score: 1}, {Value: "g", Score: 1},
@@ -2072,7 +2070,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 		{
 			name:   "Get elements within lex range with score",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "a", Score: 1}, {Value: "e", Score: 1},
 				{Value: "b", Score: 1}, {Value: "f", Score: 1},
 				{Value: "c", Score: 1}, {Value: "g", Score: 1},
@@ -2090,7 +2088,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 			// Offset and limit are in where we start and stop counting in the original sorted set (NOT THE RESULT).
 			name:   "Get elements within lex range with offset and limit",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "a", Score: 1}, {Value: "b", Score: 1},
 				{Value: "c", Score: 1}, {Value: "d", Score: 1},
 				{Value: "e", Score: 1}, {Value: "f", Score: 1},
@@ -2106,7 +2104,7 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 		{
 			name:   "Return an empty map when we use BYLEX while elements have different scores",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "a", Score: 1}, {Value: "b", Score: 5},
 				{Value: "c", Score: 2}, {Value: "d", Score: 6},
 				{Value: "e", Score: 3}, {Value: "f", Score: 7},
@@ -2171,7 +2169,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			name:   "Get elements within score range without score",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key1": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -2190,7 +2188,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			name:   "Get elements within score range with score",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key2": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -2211,7 +2209,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			name:   "Get elements within score range with offset and limit",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key3": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -2230,7 +2228,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			name:   "Get elements within lex range without score",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key4": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "a", Score: 1}, {Value: "e", Score: 1},
 					{Value: "b", Score: 1}, {Value: "f", Score: 1},
 					{Value: "c", Score: 1}, {Value: "g", Score: 1},
@@ -2249,7 +2247,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			name:   "Get elements within lex range with score",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key5": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "a", Score: 1}, {Value: "e", Score: 1},
 					{Value: "b", Score: 1}, {Value: "f", Score: 1},
 					{Value: "c", Score: 1}, {Value: "g", Score: 1},
@@ -2270,7 +2268,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			name:   "Get elements within lex range with offset and limit",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key6": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "a", Score: 1}, {Value: "b", Score: 1},
 					{Value: "c", Score: 1}, {Value: "d", Score: 1},
 					{Value: "e", Score: 1}, {Value: "f", Score: 1},
@@ -2292,7 +2290,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			name:   "Get elements within lex range with offset and limit + reverse the results",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key7": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "a", Score: 1}, {Value: "b", Score: 1},
 					{Value: "c", Score: 1}, {Value: "d", Score: 1},
 					{Value: "e", Score: 1}, {Value: "f", Score: 1},
@@ -2311,7 +2309,7 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 			name:   "Return an empty slice when we use BYLEX while elements have different scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key8": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "a", Score: 1}, {Value: "b", Score: 5},
 					{Value: "c", Score: 2}, {Value: "d", Score: 6},
 					{Value: "e", Score: 3}, {Value: "f", Score: 7},
@@ -2380,7 +2378,7 @@ func TestEchoVault_ZRANK(t *testing.T) {
 		{
 			name:   "Return element's rank from a sorted set",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5},
@@ -2394,7 +2392,7 @@ func TestEchoVault_ZRANK(t *testing.T) {
 		{
 			name:   "Return element's rank from a sorted set with its score",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 100.1}, {Value: "two", Score: 245},
 				{Value: "three", Score: 305.43}, {Value: "four", Score: 411.055},
 				{Value: "five", Score: 500},
@@ -2418,7 +2416,7 @@ func TestEchoVault_ZRANK(t *testing.T) {
 		{
 			name:   "If key exists and is a sorted set, but the member does not exist, return nil",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1.1}, {Value: "two", Score: 245},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4.055},
 				{Value: "five", Score: 5},
@@ -2478,7 +2476,7 @@ func TestEchoVault_ZREM(t *testing.T) {
 			// Return deleted count.
 			name:   "Successfully remove multiple elements from sorted set, skipping non-existent members",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -2546,7 +2544,7 @@ func TestEchoVault_ZREMRANGEBYSCORE(t *testing.T) {
 		{
 			name:   "Successfully remove multiple elements with scores inside the provided range",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4},
 				{Value: "five", Score: 5}, {Value: "six", Score: 6},
@@ -2615,7 +2613,7 @@ func TestEchoVault_ZSCORE(t *testing.T) {
 		{
 			name:   "Return score from a sorted set",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1.1}, {Value: "two", Score: 245},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4.055},
 				{Value: "five", Score: 5},
@@ -2637,7 +2635,7 @@ func TestEchoVault_ZSCORE(t *testing.T) {
 		{
 			name:   "If key exists and is a sorted set, but the member does not exist, return nil",
 			preset: true,
-			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1.1}, {Value: "two", Score: 245},
 				{Value: "three", Score: 3}, {Value: "four", Score: 4.055},
 				{Value: "five", Score: 5},
@@ -2694,12 +2692,12 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Get the union between 2 sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key1": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5},
 				}),
-				"key2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key2": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
@@ -2719,18 +2717,18 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key3": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key4": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 8},
 				}),
-				"key5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key5": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 36},
@@ -2750,18 +2748,18 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key6": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key7": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key8": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 72},
@@ -2781,18 +2779,18 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key9": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key10": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key11": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 72},
@@ -2812,18 +2810,18 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key12": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key13": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key13": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key14": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key14": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -2843,18 +2841,18 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key15": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key16": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key16": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key17": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key17": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -2874,18 +2872,18 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key18": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key19": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key19": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key20": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key20": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -2903,13 +2901,13 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Throw an error if there are more weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key21": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key22": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key22": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key21", "key22"},
 			options: echovault.ZUNIONOptions{Weights: []float64{1, 2, 3}},
@@ -2920,16 +2918,16 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Throw an error if there are fewer weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key23": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key24": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key24": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				}),
-				"key25": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key25": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key23", "key24", "key25"},
 			options: echovault.ZUNIONOptions{Weights: []float64{5, 4}},
@@ -2940,9 +2938,9 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Throw an error if there are no keys provided",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key26": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
-				"key27": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
-				"key28": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key26": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
+				"key27": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
+				"key28": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{},
 			options: echovault.ZUNIONOptions{Weights: []float64{5, 4}},
@@ -2953,14 +2951,14 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "Throw an error if any of the provided keys are not sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key29": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 				"key30": "Default value",
-				"key31": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key31": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			keys:    []string{"key29", "key30", "key31"},
 			options: echovault.ZUNIONOptions{},
@@ -2971,12 +2969,12 @@ func TestEchoVault_ZUNION(t *testing.T) {
 			name:   "If any of the keys does not exist, skip it",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key32": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11},
 				}),
-				"key33": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key33": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -3031,12 +3029,12 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "Get the union between 2 sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key1": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key1": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5},
 				}),
-				"key2": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key2": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
@@ -3054,18 +3052,18 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key3": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key3": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key4": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key4": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 8},
 				}),
-				"key5": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key5": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 36},
@@ -3083,18 +3081,18 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key6": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key6": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key7": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key7": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key8": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key8": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 72},
@@ -3112,18 +3110,18 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key9": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key9": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key10": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key10": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key11": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12}, {Value: "thirty-six", Score: 72},
@@ -3141,18 +3139,18 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key12": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key12": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key13": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key13": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key14": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key14": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -3170,18 +3168,18 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key15": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key15": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key16": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key16": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key17": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key17": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -3199,18 +3197,18 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "Get the union between 3 sorted sets with scores",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key18": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key18": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 100}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key19": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key19": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11}, {Value: "eight", Score: 80},
 				}),
-				"key20": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key20": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1000}, {Value: "eight", Score: 800},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},
@@ -3226,13 +3224,13 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "Throw an error if there are more weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key21": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key21": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key22": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key22": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			destination: "destination8",
 			keys:        []string{"key21", "key22"},
@@ -3244,16 +3242,16 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "Throw an error if there are fewer weights than keys",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key23": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key23": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
-				"key24": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key24": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 				}),
-				"key25": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key25": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			destination: "destination9",
 			keys:        []string{"key23", "key24", "key25"},
@@ -3265,14 +3263,14 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "Throw an error if any of the provided keys are not sorted sets",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key29": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key29": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},
 					{Value: "five", Score: 5}, {Value: "six", Score: 6},
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 				}),
 				"key30": "Default value",
-				"key31": sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: "one", Score: 1}}),
+				"key31": ss.NewSortedSet([]ss.MemberParam{{Value: "one", Score: 1}}),
 			},
 			destination: "destination11",
 			keys:        []string{"key29", "key30", "key31"},
@@ -3284,12 +3282,12 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			name:   "If any of the keys does not exist, skip it",
 			preset: true,
 			presetValues: map[string]interface{}{
-				"key32": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key32": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "thirty-six", Score: 36}, {Value: "twelve", Score: 12},
 					{Value: "eleven", Score: 11},
 				}),
-				"key33": sorted_set.NewSortedSet([]sorted_set.MemberParam{
+				"key33": ss.NewSortedSet([]ss.MemberParam{
 					{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
 					{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
 					{Value: "twelve", Score: 12},

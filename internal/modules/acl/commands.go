@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	internal_acl "github.com/echovault/echovault/internal/acl"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/types"
 	"gopkg.in/yaml.v3"
@@ -33,7 +32,7 @@ func handleAuth(params types.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) < 2 || len(params.Command) > 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
-	acl, ok := params.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -48,12 +47,12 @@ func handleGetUser(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
-	acl, ok := params.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
 
-	var user *internal_acl.User
+	var user *User
 	userFound := false
 	for _, u := range acl.Users {
 		if u.Username == params.Command[2] {
@@ -221,7 +220,7 @@ func handleCat(params types.HandlerFuncParams) ([]byte, error) {
 }
 
 func handleUsers(params types.HandlerFuncParams) ([]byte, error) {
-	acl, ok := params.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -234,7 +233,7 @@ func handleUsers(params types.HandlerFuncParams) ([]byte, error) {
 }
 
 func handleSetUser(params types.HandlerFuncParams) ([]byte, error) {
-	acl, ok := params.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -248,7 +247,7 @@ func handleDelUser(params types.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) < 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
-	acl, ok := params.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -259,7 +258,7 @@ func handleDelUser(params types.HandlerFuncParams) ([]byte, error) {
 }
 
 func handleWhoAmI(params types.HandlerFuncParams) ([]byte, error) {
-	acl, ok := params.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -271,7 +270,7 @@ func handleList(params types.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) > 2 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
-	acl, ok := params.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -368,7 +367,7 @@ func handleLoad(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
-	acl, ok := params.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
@@ -389,7 +388,7 @@ func handleLoad(params types.HandlerFuncParams) ([]byte, error) {
 
 	ext := path.Ext(f.Name())
 
-	var users []*internal_acl.User
+	var users []*User
 
 	if ext == ".json" {
 		if err := json.NewDecoder(f).Decode(&users); err != nil {
@@ -435,7 +434,7 @@ func handleSave(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
-	acl, ok := params.GetACL().(*internal_acl.ACL)
+	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}

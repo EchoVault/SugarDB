@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/sorted_set"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/types"
 	"math"
@@ -63,7 +62,7 @@ func handleZADD(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New("score/member pairs must be float/string")
 	}
 
-	var members []sorted_set.MemberParam
+	var members []MemberParam
 
 	for i := 0; i < len(params.Command[membersStartIndex:]); i++ {
 		if i%2 != 0 {
@@ -77,29 +76,29 @@ func handleZADD(params types.HandlerFuncParams) ([]byte, error) {
 			var s float64
 			if strings.ToLower(score.(string)) == "-inf" {
 				s = math.Inf(-1)
-				members = append(members, sorted_set.MemberParam{
-					Value: sorted_set.Value(params.Command[membersStartIndex:][i+1]),
-					Score: sorted_set.Score(s),
+				members = append(members, MemberParam{
+					Value: Value(params.Command[membersStartIndex:][i+1]),
+					Score: Score(s),
 				})
 			}
 			if strings.ToLower(score.(string)) == "+inf" {
 				s = math.Inf(1)
-				members = append(members, sorted_set.MemberParam{
-					Value: sorted_set.Value(params.Command[membersStartIndex:][i+1]),
-					Score: sorted_set.Score(s),
+				members = append(members, MemberParam{
+					Value: Value(params.Command[membersStartIndex:][i+1]),
+					Score: Score(s),
 				})
 			}
 		case float64:
 			s, _ := score.(float64)
-			members = append(members, sorted_set.MemberParam{
-				Value: sorted_set.Value(params.Command[membersStartIndex:][i+1]),
-				Score: sorted_set.Score(s),
+			members = append(members, MemberParam{
+				Value: Value(params.Command[membersStartIndex:][i+1]),
+				Score: Score(s),
 			})
 		case int:
 			s, _ := score.(int)
-			members = append(members, sorted_set.MemberParam{
-				Value: sorted_set.Value(params.Command[membersStartIndex:][i+1]),
-				Score: sorted_set.Score(s),
+			members = append(members, MemberParam{
+				Value: Value(params.Command[membersStartIndex:][i+1]),
+				Score: Score(s),
 			})
 		}
 	}
@@ -148,7 +147,7 @@ func handleZADD(params types.HandlerFuncParams) ([]byte, error) {
 			return nil, err
 		}
 		defer params.KeyUnlock(params.Context, key)
-		set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+		set, ok := params.GetValue(params.Context, key).(*SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", key)
 		}
@@ -171,7 +170,7 @@ func handleZADD(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, key)
 
-	set := sorted_set.NewSortedSet(members)
+	set := NewSortedSet(members)
 	if err = params.SetValue(params.Context, key, set); err != nil {
 		return nil, err
 	}
@@ -195,7 +194,7 @@ func handleZCARD(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -211,40 +210,40 @@ func handleZCOUNT(params types.HandlerFuncParams) ([]byte, error) {
 
 	key := keys.ReadKeys[0]
 
-	minimum := sorted_set.Score(math.Inf(-1))
+	minimum := Score(math.Inf(-1))
 	switch internal.AdaptType(params.Command[2]).(type) {
 	default:
 		return nil, errors.New("min constraint must be a double")
 	case string:
 		if strings.ToLower(params.Command[2]) == "+inf" {
-			minimum = sorted_set.Score(math.Inf(1))
+			minimum = Score(math.Inf(1))
 		} else {
 			return nil, errors.New("min constraint must be a double")
 		}
 	case float64:
 		s, _ := internal.AdaptType(params.Command[2]).(float64)
-		minimum = sorted_set.Score(s)
+		minimum = Score(s)
 	case int:
 		s, _ := internal.AdaptType(params.Command[2]).(int)
-		minimum = sorted_set.Score(s)
+		minimum = Score(s)
 	}
 
-	maximum := sorted_set.Score(math.Inf(1))
+	maximum := Score(math.Inf(1))
 	switch internal.AdaptType(params.Command[3]).(type) {
 	default:
 		return nil, errors.New("max constraint must be a double")
 	case string:
 		if strings.ToLower(params.Command[3]) == "-inf" {
-			maximum = sorted_set.Score(math.Inf(-1))
+			maximum = Score(math.Inf(-1))
 		} else {
 			return nil, errors.New("max constraint must be a double")
 		}
 	case float64:
 		s, _ := internal.AdaptType(params.Command[3]).(float64)
-		maximum = sorted_set.Score(s)
+		maximum = Score(s)
 	case int:
 		s, _ := internal.AdaptType(params.Command[3]).(int)
-		maximum = sorted_set.Score(s)
+		maximum = Score(s)
 	}
 
 	if !params.KeyExists(params.Context, key) {
@@ -256,12 +255,12 @@ func handleZCOUNT(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
-	var members []sorted_set.MemberParam
+	var members []MemberParam
 	for _, m := range set.GetAll() {
 		if m.Score >= minimum && m.Score <= maximum {
 			members = append(members, m)
@@ -290,7 +289,7 @@ func handleZLEXCOUNT(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -347,13 +346,13 @@ func handleZDIFF(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	defer params.KeyRUnlock(params.Context, keys.ReadKeys[0])
-	baseSortedSet, ok := params.GetValue(params.Context, keys.ReadKeys[0]).(*sorted_set.SortedSet)
+	baseSortedSet, ok := params.GetValue(params.Context, keys.ReadKeys[0]).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", keys.ReadKeys[0])
 	}
 
 	// Extract the remaining sets
-	var sets []*sorted_set.SortedSet
+	var sets []*SortedSet
 
 	for i := 1; i < len(keys.ReadKeys); i++ {
 		if !params.KeyExists(params.Context, keys.ReadKeys[i]) {
@@ -364,7 +363,7 @@ func handleZDIFF(params types.HandlerFuncParams) ([]byte, error) {
 			return nil, err
 		}
 		locks[keys.ReadKeys[i]] = locked
-		set, ok := params.GetValue(params.Context, keys.ReadKeys[i]).(*sorted_set.SortedSet)
+		set, ok := params.GetValue(params.Context, keys.ReadKeys[i]).(*SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", keys.ReadKeys[i])
 		}
@@ -415,19 +414,19 @@ func handleZDIFFSTORE(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	defer params.KeyRUnlock(params.Context, keys.ReadKeys[0])
-	baseSortedSet, ok := params.GetValue(params.Context, keys.ReadKeys[0]).(*sorted_set.SortedSet)
+	baseSortedSet, ok := params.GetValue(params.Context, keys.ReadKeys[0]).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", keys.ReadKeys[0])
 	}
 
-	var sets []*sorted_set.SortedSet
+	var sets []*SortedSet
 
 	for i := 1; i < len(keys.ReadKeys); i++ {
 		if params.KeyExists(params.Context, keys.ReadKeys[i]) {
 			if _, err = params.KeyRLock(params.Context, keys.ReadKeys[i]); err != nil {
 				return nil, err
 			}
-			set, ok := params.GetValue(params.Context, keys.ReadKeys[i]).(*sorted_set.SortedSet)
+			set, ok := params.GetValue(params.Context, keys.ReadKeys[i]).(*SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at %s is not a sorted set", keys.ReadKeys[i])
 			}
@@ -462,26 +461,26 @@ func handleZINCRBY(params types.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
-	member := sorted_set.Value(params.Command[3])
-	var increment sorted_set.Score
+	member := Value(params.Command[3])
+	var increment Score
 
 	switch internal.AdaptType(params.Command[2]).(type) {
 	default:
 		return nil, errors.New("increment must be a double")
 	case string:
 		if strings.EqualFold("-inf", strings.ToLower(params.Command[2])) {
-			increment = sorted_set.Score(math.Inf(-1))
+			increment = Score(math.Inf(-1))
 		} else if strings.EqualFold("+inf", strings.ToLower(params.Command[2])) {
-			increment = sorted_set.Score(math.Inf(1))
+			increment = Score(math.Inf(1))
 		} else {
 			return nil, errors.New("increment must be a double")
 		}
 	case float64:
 		s, _ := internal.AdaptType(params.Command[2]).(float64)
-		increment = sorted_set.Score(s)
+		increment = Score(s)
 	case int:
 		s, _ := internal.AdaptType(params.Command[2]).(int)
-		increment = sorted_set.Score(s)
+		increment = Score(s)
 	}
 
 	if !params.KeyExists(params.Context, key) {
@@ -493,7 +492,7 @@ func handleZINCRBY(params types.HandlerFuncParams) ([]byte, error) {
 		if err = params.SetValue(
 			params.Context,
 			key,
-			sorted_set.NewSortedSet([]sorted_set.MemberParam{{Value: member, Score: increment}}),
+			NewSortedSet([]MemberParam{{Value: member, Score: increment}}),
 		); err != nil {
 			return nil, err
 		}
@@ -505,12 +504,12 @@ func handleZINCRBY(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	defer params.KeyUnlock(params.Context, key)
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 	if _, err = set.AddOrUpdate(
-		[]sorted_set.MemberParam{
+		[]MemberParam{
 			{Value: member, Score: increment}},
 		"xx",
 		nil,
@@ -542,7 +541,7 @@ func handleZINTER(params types.HandlerFuncParams) ([]byte, error) {
 		}
 	}()
 
-	var setParams []sorted_set.SortedSetParam
+	var setParams []SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
 		if !params.KeyExists(params.Context, keys[i]) {
@@ -553,17 +552,17 @@ func handleZINTER(params types.HandlerFuncParams) ([]byte, error) {
 			return nil, err
 		}
 		locks[keys[i]] = true
-		set, ok := params.GetValue(params.Context, keys[i]).(*sorted_set.SortedSet)
+		set, ok := params.GetValue(params.Context, keys[i]).(*SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 		}
-		setParams = append(setParams, sorted_set.SortedSetParam{
+		setParams = append(setParams, SortedSetParam{
 			Set:    set,
 			Weight: weights[i],
 		})
 	}
 
-	intersect := sorted_set.Intersect(aggregate, setParams...)
+	intersect := Intersect(aggregate, setParams...)
 
 	res := fmt.Sprintf("*%d", intersect.Cardinality())
 
@@ -609,7 +608,7 @@ func handleZINTERSTORE(params types.HandlerFuncParams) ([]byte, error) {
 		}
 	}()
 
-	var setParams []sorted_set.SortedSetParam
+	var setParams []SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
 		if !params.KeyExists(params.Context, keys[i]) {
@@ -619,17 +618,17 @@ func handleZINTERSTORE(params types.HandlerFuncParams) ([]byte, error) {
 			return nil, err
 		}
 		locks[keys[i]] = true
-		set, ok := params.GetValue(params.Context, keys[i]).(*sorted_set.SortedSet)
+		set, ok := params.GetValue(params.Context, keys[i]).(*SortedSet)
 		if !ok {
 			return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 		}
-		setParams = append(setParams, sorted_set.SortedSetParam{
+		setParams = append(setParams, SortedSetParam{
 			Set:    set,
 			Weight: weights[i],
 		})
 	}
 
-	intersect := sorted_set.Intersect(aggregate, setParams...)
+	intersect := Intersect(aggregate, setParams...)
 
 	if params.KeyExists(params.Context, destination) && intersect.Cardinality() > 0 {
 		if _, err = params.KeyLock(params.Context, destination); err != nil {
@@ -700,7 +699,7 @@ func handleZMPOP(params types.HandlerFuncParams) ([]byte, error) {
 			if _, err = params.KeyLock(params.Context, keys.WriteKeys[i]); err != nil {
 				continue
 			}
-			v, ok := params.GetValue(params.Context, keys.WriteKeys[i]).(*sorted_set.SortedSet)
+			v, ok := params.GetValue(params.Context, keys.WriteKeys[i]).(*SortedSet)
 			if !ok || v.Cardinality() == 0 {
 				params.KeyUnlock(params.Context, keys.WriteKeys[i])
 				continue
@@ -760,7 +759,7 @@ func handleZPOP(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a sorted set", key)
 	}
@@ -797,7 +796,7 @@ func handleZMSCORE(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -806,10 +805,10 @@ func handleZMSCORE(params types.HandlerFuncParams) ([]byte, error) {
 
 	res := fmt.Sprintf("*%d", len(members))
 
-	var member sorted_set.MemberObject
+	var member MemberObject
 
 	for i := 0; i < len(members); i++ {
-		member = set.Get(sorted_set.Value(members[i]))
+		member = set.Get(Value(members[i]))
 		if !member.Exists {
 			res = fmt.Sprintf("%s\r\n$-1", res)
 		} else {
@@ -859,7 +858,7 @@ func handleZRANDMEMBER(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -903,13 +902,13 @@ func handleZRANK(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
 	members := set.GetAll()
-	slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
+	slices.SortFunc(members, func(a, b MemberParam) int {
 		if strings.EqualFold(params.Command[0], "zrevrank") {
 			return cmp.Compare(b.Score, a.Score)
 		}
@@ -917,7 +916,7 @@ func handleZRANK(params types.HandlerFuncParams) ([]byte, error) {
 	})
 
 	for i := 0; i < len(members); i++ {
-		if members[i].Value == sorted_set.Value(member) {
+		if members[i].Value == Value(member) {
 			if withscores {
 				score := strconv.FormatFloat(float64(members[i].Score), 'f', -1, 64)
 				return []byte(fmt.Sprintf("*2\r\n:%d\r\n$%d\r\n%s\r\n", i, len(score), score)), nil
@@ -947,14 +946,14 @@ func handleZREM(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
 	deletedCount := 0
 	for _, m := range params.Command[2:] {
-		if set.Remove(sorted_set.Value(m)) {
+		if set.Remove(Value(m)) {
 			deletedCount += 1
 		}
 	}
@@ -977,11 +976,11 @@ func handleZSCORE(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	defer params.KeyRUnlock(params.Context, key)
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
-	member := set.Get(sorted_set.Value(params.Command[2]))
+	member := set.Get(Value(params.Command[2]))
 	if !member.Exists {
 		return []byte("$-1\r\n"), nil
 	}
@@ -1020,13 +1019,13 @@ func handleZREMRANGEBYSCORE(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
 
 	for _, m := range set.GetAll() {
-		if m.Score >= sorted_set.Score(minimum) && m.Score <= sorted_set.Score(maximum) {
+		if m.Score >= Score(minimum) && m.Score <= Score(maximum) {
 			set.Remove(m.Value)
 			deletedCount += 1
 		}
@@ -1062,7 +1061,7 @@ func handleZREMRANGEBYRANK(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -1079,7 +1078,7 @@ func handleZREMRANGEBYRANK(params types.HandlerFuncParams) ([]byte, error) {
 	}
 
 	members := set.GetAll()
-	slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
+	slices.SortFunc(members, func(a, b MemberParam) int {
 		return cmp.Compare(a.Score, b.Score)
 	})
 
@@ -1119,7 +1118,7 @@ func handleZREMRANGEBYLEX(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -1217,7 +1216,7 @@ func handleZRANGE(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, key).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", key)
 	}
@@ -1231,7 +1230,7 @@ func handleZRANGE(params types.HandlerFuncParams) ([]byte, error) {
 
 	members := set.GetAll()
 	if strings.EqualFold(policy, "byscore") {
-		slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
+		slices.SortFunc(members, func(a, b MemberParam) int {
 			// Do a score sort
 			if reverse {
 				return cmp.Compare(b.Score, a.Score)
@@ -1246,7 +1245,7 @@ func handleZRANGE(params types.HandlerFuncParams) ([]byte, error) {
 				return []byte("*0\r\n"), nil
 			}
 		}
-		slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
+		slices.SortFunc(members, func(a, b MemberParam) int {
 			if reverse {
 				return internal.CompareLex(string(b.Value), string(a.Value))
 			}
@@ -1254,14 +1253,14 @@ func handleZRANGE(params types.HandlerFuncParams) ([]byte, error) {
 		})
 	}
 
-	var resultMembers []sorted_set.MemberParam
+	var resultMembers []MemberParam
 
 	for i := offset; i <= count; i++ {
 		if i >= len(members) {
 			break
 		}
 		if strings.EqualFold(policy, "byscore") {
-			if members[i].Score >= sorted_set.Score(scoreStart) && members[i].Score <= sorted_set.Score(scoreStop) {
+			if members[i].Score >= Score(scoreStart) && members[i].Score <= Score(scoreStop) {
 				resultMembers = append(resultMembers, members[i])
 			}
 			continue
@@ -1354,7 +1353,7 @@ func handleZRANGESTORE(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, source)
 
-	set, ok := params.GetValue(params.Context, source).(*sorted_set.SortedSet)
+	set, ok := params.GetValue(params.Context, source).(*SortedSet)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a sorted set", source)
 	}
@@ -1368,7 +1367,7 @@ func handleZRANGESTORE(params types.HandlerFuncParams) ([]byte, error) {
 
 	members := set.GetAll()
 	if strings.EqualFold(policy, "byscore") {
-		slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
+		slices.SortFunc(members, func(a, b MemberParam) int {
 			// Do a score sort
 			if reverse {
 				return cmp.Compare(b.Score, a.Score)
@@ -1383,7 +1382,7 @@ func handleZRANGESTORE(params types.HandlerFuncParams) ([]byte, error) {
 				return []byte(":0\r\n"), nil
 			}
 		}
-		slices.SortFunc(members, func(a, b sorted_set.MemberParam) int {
+		slices.SortFunc(members, func(a, b MemberParam) int {
 			if reverse {
 				return internal.CompareLex(string(b.Value), string(a.Value))
 			}
@@ -1391,14 +1390,14 @@ func handleZRANGESTORE(params types.HandlerFuncParams) ([]byte, error) {
 		})
 	}
 
-	var resultMembers []sorted_set.MemberParam
+	var resultMembers []MemberParam
 
 	for i := offset; i <= count; i++ {
 		if i >= len(members) {
 			break
 		}
 		if strings.EqualFold(policy, "byscore") {
-			if members[i].Score >= sorted_set.Score(scoreStart) && members[i].Score <= sorted_set.Score(scoreStop) {
+			if members[i].Score >= Score(scoreStart) && members[i].Score <= Score(scoreStop) {
 				resultMembers = append(resultMembers, members[i])
 			}
 			continue
@@ -1409,7 +1408,7 @@ func handleZRANGESTORE(params types.HandlerFuncParams) ([]byte, error) {
 		}
 	}
 
-	newSortedSet := sorted_set.NewSortedSet(resultMembers)
+	newSortedSet := NewSortedSet(resultMembers)
 
 	if params.KeyExists(params.Context, destination) {
 		if _, err = params.KeyLock(params.Context, destination); err != nil {
@@ -1448,7 +1447,7 @@ func handleZUNION(params types.HandlerFuncParams) ([]byte, error) {
 		}
 	}()
 
-	var setParams []sorted_set.SortedSetParam
+	var setParams []SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
 		if params.KeyExists(params.Context, keys[i]) {
@@ -1456,18 +1455,18 @@ func handleZUNION(params types.HandlerFuncParams) ([]byte, error) {
 				return nil, err
 			}
 			locks[keys[i]] = true
-			set, ok := params.GetValue(params.Context, keys[i]).(*sorted_set.SortedSet)
+			set, ok := params.GetValue(params.Context, keys[i]).(*SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}
-			setParams = append(setParams, sorted_set.SortedSetParam{
+			setParams = append(setParams, SortedSetParam{
 				Set:    set,
 				Weight: weights[i],
 			})
 		}
 	}
 
-	union := sorted_set.Union(aggregate, setParams...)
+	union := Union(aggregate, setParams...)
 
 	res := fmt.Sprintf("*%d", union.Cardinality())
 	for _, m := range union.GetAll() {
@@ -1510,7 +1509,7 @@ func handleZUNIONSTORE(params types.HandlerFuncParams) ([]byte, error) {
 		}
 	}()
 
-	var setParams []sorted_set.SortedSetParam
+	var setParams []SortedSetParam
 
 	for i := 0; i < len(keys); i++ {
 		if params.KeyExists(params.Context, keys[i]) {
@@ -1518,18 +1517,18 @@ func handleZUNIONSTORE(params types.HandlerFuncParams) ([]byte, error) {
 				return nil, err
 			}
 			locks[keys[i]] = true
-			set, ok := params.GetValue(params.Context, keys[i]).(*sorted_set.SortedSet)
+			set, ok := params.GetValue(params.Context, keys[i]).(*SortedSet)
 			if !ok {
 				return nil, fmt.Errorf("value at %s is not a sorted set", keys[i])
 			}
-			setParams = append(setParams, sorted_set.SortedSetParam{
+			setParams = append(setParams, SortedSetParam{
 				Set:    set,
 				Weight: weights[i],
 			})
 		}
 	}
 
-	union := sorted_set.Union(aggregate, setParams...)
+	union := Union(aggregate, setParams...)
 
 	if params.KeyExists(params.Context, destination) {
 		if _, err = params.KeyLock(params.Context, destination); err != nil {

@@ -589,16 +589,3 @@ func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
 
 	return nil
 }
-
-func presetValue(server *EchoVault, key string, value interface{}) {
-	_, _ = server.CreateKeyAndLock(server.context, key)
-	_ = server.SetValue(server.context, key, value)
-	server.KeyUnlock(server.context, key)
-}
-
-func presetKeyData(server *EchoVault, key string, data internal.KeyData) {
-	_, _ = server.CreateKeyAndLock(server.context, key)
-	defer server.KeyUnlock(server.context, key)
-	_ = server.SetValue(server.context, key, data.Value)
-	server.SetExpiry(server.context, key, data.ExpireAt, false)
-}

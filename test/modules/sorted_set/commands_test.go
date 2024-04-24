@@ -20,10 +20,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/sorted_set"
+	"github.com/echovault/echovault/internal/modules/sorted_set"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	ss "github.com/echovault/echovault/pkg/modules/sorted_set"
 	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
 	"math"
@@ -38,7 +37,6 @@ var mockServer *echovault.EchoVault
 
 func init() {
 	mockServer, _ = echovault.NewEchoVault(
-		echovault.WithCommands(ss.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,

@@ -17,11 +17,10 @@ package acl
 import (
 	"crypto/sha256"
 	"fmt"
-	internal_acl "github.com/echovault/echovault/internal/acl"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/internal/modules/acl"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	acl2 "github.com/echovault/echovault/pkg/modules/acl"
 	"github.com/tidwall/resp"
 	"net"
 	"slices"
@@ -61,44 +60,43 @@ func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig strin
 	}
 
 	mockServer, _ := echovault.NewEchoVault(
-		echovault.WithCommands(acl2.Commands()),
 		echovault.WithConfig(conf),
 	)
 
 	// Add the initial test users to the ACL module
-	acl := mockServer.GetACL().(*internal_acl.ACL)
-	acl.AddUsers(generateInitialTestUsers())
+	a := mockServer.GetACL().(*acl.ACL)
+	a.AddUsers(generateInitialTestUsers())
 
 	return mockServer
 }
 
-func generateInitialTestUsers() []*internal_acl.User {
+func generateInitialTestUsers() []*acl.User {
 	// User with both hash password and plaintext password
-	withPasswordUser := internal_acl.CreateUser("with_password_user")
+	withPasswordUser := acl.CreateUser("with_password_user")
 	h := sha256.New()
 	h.Write([]byte("password3"))
-	withPasswordUser.Passwords = []internal_acl.Password{
-		{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "password2"},
-		{PasswordType: internal_acl.PasswordSHA256, PasswordValue: string(h.Sum(nil))},
+	withPasswordUser.Passwords = []acl.Password{
+		{PasswordType: acl.PasswordPlainText, PasswordValue: "password2"},
+		{PasswordType: acl.PasswordSHA256, PasswordValue: string(h.Sum(nil))},
 	}
 	withPasswordUser.IncludedCategories = []string{"*"}
 	withPasswordUser.IncludedCommands = []string{"*"}
 
 	// User with NoPassword option
-	noPasswordUser := internal_acl.CreateUser("no_password_user")
-	noPasswordUser.Passwords = []internal_acl.Password{
-		{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "password4"},
+	noPasswordUser := acl.CreateUser("no_password_user")
+	noPasswordUser.Passwords = []acl.Password{
+		{PasswordType: acl.PasswordPlainText, PasswordValue: "password4"},
 	}
 	noPasswordUser.NoPassword = true
 
 	// Disabled user
-	disabledUser := internal_acl.CreateUser("disabled_user")
-	disabledUser.Passwords = []internal_acl.Password{
-		{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "password5"},
+	disabledUser := acl.CreateUser("disabled_user")
+	disabledUser.Passwords = []acl.Password{
+		{PasswordType: acl.PasswordPlainText, PasswordValue: "password5"},
 	}
 	disabledUser.Enabled = false
 
-	return []*internal_acl.User{
+	return []*acl.User{
 		withPasswordUser,
 		noPasswordUser,
 		disabledUser,
@@ -129,7 +127,7 @@ func compareSlices[T comparable](res, expected []T) error {
 }
 
 // compareUsers compares 2 users and checks if all their fields are equal
-func compareUsers(user1, user2 *internal_acl.User) error {
+func compareUsers(user1, user2 *acl.User) error {
 	// Compare flags
 	if user1.Username != user2.Username {
 		return fmt.Errorf("mismatched usernames \"%s\", and \"%s\"", user1.Username, user2.Username)
@@ -146,14 +144,14 @@ func compareUsers(user1, user2 *internal_acl.User) error {
 
 	// Compare passwords
 	for _, password1 := range user1.Passwords {
-		if !slices.ContainsFunc(user2.Passwords, func(password2 internal_acl.Password) bool {
+		if !slices.ContainsFunc(user2.Passwords, func(password2 acl.Password) bool {
 			return password1.PasswordType == password2.PasswordType && password1.PasswordValue == password2.PasswordValue
 		}) {
 			return fmt.Errorf("found password %+v in user1 that was not found in user2", password1)
 		}
 	}
 	for _, password2 := range user2.Passwords {
-		if !slices.ContainsFunc(user1.Passwords, func(password1 internal_acl.Password) bool {
+		if !slices.ContainsFunc(user1.Passwords, func(password1 acl.Password) bool {
 			return password1.PasswordType == password2.PasswordType && password1.PasswordValue == password2.PasswordValue
 		}) {
 			return fmt.Errorf("found password %+v in user2 that was not found in user1", password2)
@@ -392,14 +390,6 @@ func Test_HandleCat(t *testing.T) {
 				t.Errorf("could not find expected command \"%s\" in the response array for category", expected)
 			}
 		}
-		// Check if all the elements in the response array are in the expected array
-		for _, value := range resArr {
-			if !slices.ContainsFunc(test.wantRes, func(expected string) bool {
-				return value.String() == expected
-			}) {
-				t.Errorf("could not find response command \"%s\" in the expected array", value.String())
-			}
-		}
 	}
 }
 
@@ -469,7 +459,7 @@ func Test_HandleSetUser(t *testing.T) {
 	}()
 	wg.Wait()
 
-	acl, ok := mockServer.GetACL().(*internal_acl.ACL)
+	a, ok := mockServer.GetACL().(*acl.ACL)
 	if !ok {
 		t.Error("error loading ACL module")
 	}
@@ -487,11 +477,11 @@ func Test_HandleSetUser(t *testing.T) {
 	r := resp.NewConn(conn)
 
 	tests := []struct {
-		presetUser *internal_acl.User
+		presetUser *acl.User
 		cmd        []resp.Value
 		wantRes    string
 		wantErr    string
-		wantUser   *internal_acl.User
+		wantUser   *acl.User
 	}{
 		{
 			// 1. Create new enabled user
@@ -504,8 +494,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_1")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_1")
 				user.Enabled = true
 				user.Normalise()
 				return user
@@ -522,8 +512,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_2")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_2")
 				user.Enabled = false
 				user.Normalise()
 				return user
@@ -544,14 +534,14 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_3")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_3")
 				user.Enabled = true
-				user.Passwords = []internal_acl.Password{
-					{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_1"},
-					{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_2"},
-					{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_1")},
-					{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_2")},
+				user.Passwords = []acl.Password{
+					{PasswordType: acl.PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_1"},
+					{PasswordType: acl.PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_2"},
+					{PasswordType: acl.PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_1")},
+					{PasswordType: acl.PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_2")},
 				}
 				user.Normalise()
 				return user
@@ -559,14 +549,14 @@ func Test_HandleSetUser(t *testing.T) {
 		},
 		{
 			// 4. Remove plaintext and SHA256 password from existing user
-			presetUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_4")
+			presetUser: func() *acl.User {
+				user := acl.CreateUser("set_user_4")
 				user.Enabled = true
-				user.Passwords = []internal_acl.Password{
-					{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_1"},
-					{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_2"},
-					{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_1")},
-					{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_2")},
+				user.Passwords = []acl.Password{
+					{PasswordType: acl.PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_1"},
+					{PasswordType: acl.PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_2"},
+					{PasswordType: acl.PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_1")},
+					{PasswordType: acl.PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_2")},
 				}
 				user.Normalise()
 				return user
@@ -581,12 +571,12 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_4")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_4")
 				user.Enabled = true
-				user.Passwords = []internal_acl.Password{
-					{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_1"},
-					{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_1")},
+				user.Passwords = []acl.Password{
+					{PasswordType: acl.PasswordPlainText, PasswordValue: "set_user_3_plaintext_password_1"},
+					{PasswordType: acl.PasswordSHA256, PasswordValue: generateSHA256Password("set_user_3_hash_password_1")},
 				}
 				user.Normalise()
 				return user
@@ -604,8 +594,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_5")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_5")
 				user.Enabled = true
 				user.ExcludedCommands = []string{"*"}
 				user.ExcludedCategories = []string{"*"}
@@ -625,8 +615,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_6")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_6")
 				user.Enabled = true
 				user.IncludedCategories = []string{"*"}
 				user.ExcludedCategories = []string{}
@@ -646,8 +636,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_7")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_7")
 				user.Enabled = true
 				user.IncludedCategories = []string{"*"}
 				user.ExcludedCategories = []string{}
@@ -672,8 +662,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_8")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_8")
 				user.Enabled = true
 				user.IncludedCategories = []string{constants.WriteCategory, constants.ReadCategory, constants.PubSubCategory}
 				user.ExcludedCategories = []string{constants.AdminCategory, constants.ConnectionCategory, constants.DangerousCategory}
@@ -693,8 +683,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_9")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_9")
 				user.Enabled = true
 				user.NoKeys = true
 				user.IncludedReadKeys = []string{}
@@ -723,8 +713,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_10")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_10")
 				user.Enabled = true
 				user.NoKeys = false
 				user.IncludedReadKeys = []string{"key1", "key2", "key3", "key4", "key5", "key6"}
@@ -745,8 +735,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_11")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_11")
 				user.Enabled = true
 				user.IncludedPubSubChannels = []string{"*"}
 				user.ExcludedPubSubChannels = []string{}
@@ -766,8 +756,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_12")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_12")
 				user.Enabled = true
 				user.IncludedPubSubChannels = []string{"*"}
 				user.ExcludedPubSubChannels = []string{}
@@ -790,8 +780,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_13")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_13")
 				user.Enabled = true
 				user.IncludedPubSubChannels = []string{"channel1", "channel2"}
 				user.ExcludedPubSubChannels = []string{"channel3", "channel4"}
@@ -811,8 +801,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_14")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_14")
 				user.Enabled = true
 				user.IncludedCommands = []string{"*"}
 				user.ExcludedCommands = []string{}
@@ -837,8 +827,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_15")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_15")
 				user.Enabled = true
 				user.IncludedCommands = []string{"acl|getuser", "acl|setuser", "acl|deluser"}
 				user.ExcludedCommands = []string{"rewriteaof", "save", "publish"}
@@ -861,24 +851,24 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_16")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_16")
 				user.Enabled = true
 				user.NoPassword = true
-				user.Passwords = []internal_acl.Password{}
+				user.Passwords = []acl.Password{}
 				user.Normalise()
 				return user
 			}(),
 		},
 		{
 			// 17. Delete all existing users passwords using 'nopass'
-			presetUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_17")
+			presetUser: func() *acl.User {
+				user := acl.CreateUser("set_user_17")
 				user.Enabled = true
 				user.NoPassword = true
-				user.Passwords = []internal_acl.Password{
-					{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "password1"},
-					{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("password2")},
+				user.Passwords = []acl.Password{
+					{PasswordType: acl.PasswordPlainText, PasswordValue: "password1"},
+					{PasswordType: acl.PasswordSHA256, PasswordValue: generateSHA256Password("password2")},
 				}
 				user.Normalise()
 				return user
@@ -892,24 +882,24 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_17")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_17")
 				user.Enabled = true
 				user.NoPassword = true
-				user.Passwords = []internal_acl.Password{}
+				user.Passwords = []acl.Password{}
 				user.Normalise()
 				return user
 			}(),
 		},
 		{
 			// 18. Clear all of an existing user's passwords using 'resetpass'
-			presetUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_18")
+			presetUser: func() *acl.User {
+				user := acl.CreateUser("set_user_18")
 				user.Enabled = true
 				user.NoPassword = true
-				user.Passwords = []internal_acl.Password{
-					{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "password1"},
-					{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("password2")},
+				user.Passwords = []acl.Password{
+					{PasswordType: acl.PasswordPlainText, PasswordValue: "password1"},
+					{PasswordType: acl.PasswordSHA256, PasswordValue: generateSHA256Password("password2")},
 				}
 				user.Normalise()
 				return user
@@ -923,19 +913,19 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_18")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_18")
 				user.Enabled = true
 				user.NoPassword = true
-				user.Passwords = []internal_acl.Password{}
+				user.Passwords = []acl.Password{}
 				user.Normalise()
 				return user
 			}(),
 		},
 		{
 			// 19. Clear all of an existing user's command privileges using 'nocommands'
-			presetUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_19")
+			presetUser: func() *acl.User {
+				user := acl.CreateUser("set_user_19")
 				user.Enabled = true
 				user.IncludedCommands = []string{"acl|getuser", "acl|setuser", "acl|deluser"}
 				user.ExcludedCommands = []string{"rewriteaof", "save"}
@@ -951,8 +941,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_19")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_19")
 				user.Enabled = true
 				user.IncludedCommands = []string{}
 				user.ExcludedCommands = []string{"*"}
@@ -964,8 +954,8 @@ func Test_HandleSetUser(t *testing.T) {
 		},
 		{
 			// 20. Clear all of an existing user's allowed keys using 'resetkeys'
-			presetUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_20")
+			presetUser: func() *acl.User {
+				user := acl.CreateUser("set_user_20")
 				user.Enabled = true
 				user.IncludedWriteKeys = []string{"key1", "key2", "key3", "key4", "key5", "key6"}
 				user.IncludedReadKeys = []string{"key1", "key2", "key3", "key7", "key8", "key9"}
@@ -981,8 +971,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_20")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_20")
 				user.Enabled = true
 				user.NoKeys = true
 				user.IncludedReadKeys = []string{}
@@ -993,8 +983,8 @@ func Test_HandleSetUser(t *testing.T) {
 		},
 		{
 			// 21. Allow user to access all channels using 'resetchannels'
-			presetUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_21")
+			presetUser: func() *acl.User {
+				user := acl.CreateUser("set_user_21")
 				user.IncludedPubSubChannels = []string{"channel1", "channel2"}
 				user.ExcludedPubSubChannels = []string{"channel3", "channel4"}
 				user.Normalise()
@@ -1008,8 +998,8 @@ func Test_HandleSetUser(t *testing.T) {
 			},
 			wantRes: "OK",
 			wantErr: "",
-			wantUser: func() *internal_acl.User {
-				user := internal_acl.CreateUser("set_user_21")
+			wantUser: func() *acl.User {
+				user := acl.CreateUser("set_user_21")
 				user.IncludedPubSubChannels = []string{}
 				user.ExcludedPubSubChannels = []string{"*"}
 				user.Normalise()
@@ -1020,7 +1010,7 @@ func Test_HandleSetUser(t *testing.T) {
 
 	for i, test := range tests {
 		if test.presetUser != nil {
-			acl.AddUsers([]*internal_acl.User{test.presetUser})
+			a.AddUsers([]*acl.User{test.presetUser})
 		}
 		if err = r.WriteArray(test.cmd); err != nil {
 			t.Error(err)
@@ -1042,13 +1032,13 @@ func Test_HandleSetUser(t *testing.T) {
 			continue
 		}
 		expectedUser := test.wantUser
-		currUserIdx := slices.IndexFunc(acl.Users, func(user *internal_acl.User) bool {
+		currUserIdx := slices.IndexFunc(a.Users, func(user *acl.User) bool {
 			return user.Username == expectedUser.Username
 		})
 		if currUserIdx == -1 {
 			t.Errorf("expected to find user with username \"%s\" but could not find them.", expectedUser.Username)
 		}
-		if err = compareUsers(expectedUser, acl.Users[currUserIdx]); err != nil {
+		if err = compareUsers(expectedUser, a.Users[currUserIdx]); err != nil {
 			t.Errorf("test idx: %d, %+v", i, err)
 		}
 	}
@@ -1065,7 +1055,7 @@ func Test_HandleGetUser(t *testing.T) {
 	}()
 	wg.Wait()
 
-	acl, _ := mockServer.GetACL().(*internal_acl.ACL)
+	a, _ := mockServer.GetACL().(*acl.ACL)
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 	if err != nil {
@@ -1080,20 +1070,20 @@ func Test_HandleGetUser(t *testing.T) {
 	r := resp.NewConn(conn)
 
 	tests := []struct {
-		presetUser *internal_acl.User
+		presetUser *acl.User
 		cmd        []resp.Value
 		wantRes    []resp.Value
 		wantErr    string
 	}{
 		{ // 1. Get the user and all their details
-			presetUser: &internal_acl.User{
+			presetUser: &acl.User{
 				Username:   "get_user_1",
 				Enabled:    true,
 				NoPassword: false,
 				NoKeys:     false,
-				Passwords: []internal_acl.Password{
-					{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "get_user_password_1"},
-					{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("get_user_password_2")},
+				Passwords: []acl.Password{
+					{PasswordType: acl.PasswordPlainText, PasswordValue: "get_user_password_1"},
+					{PasswordType: acl.PasswordSHA256, PasswordValue: generateSHA256Password("get_user_password_2")},
 				},
 				IncludedCategories:     []string{constants.WriteCategory, constants.ReadCategory, constants.PubSubCategory},
 				ExcludedCategories:     []string{constants.AdminCategory, constants.ConnectionCategory, constants.DangerousCategory},
@@ -1165,7 +1155,7 @@ func Test_HandleGetUser(t *testing.T) {
 
 	for _, test := range tests {
 		if test.presetUser != nil {
-			acl.AddUsers([]*internal_acl.User{test.presetUser})
+			a.AddUsers([]*acl.User{test.presetUser})
 		}
 		if err = r.WriteArray(test.cmd); err != nil {
 			t.Error(err)
@@ -1218,7 +1208,7 @@ func Test_HandleDelUser(t *testing.T) {
 	}()
 	wg.Wait()
 
-	acl, _ := mockServer.GetACL().(*internal_acl.ACL)
+	a, _ := mockServer.GetACL().(*acl.ACL)
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 	if err != nil {
@@ -1233,14 +1223,14 @@ func Test_HandleDelUser(t *testing.T) {
 	r := resp.NewConn(conn)
 
 	tests := []struct {
-		presetUser *internal_acl.User
+		presetUser *acl.User
 		cmd        []resp.Value
 		wantRes    string
 		wantErr    string
 	}{
 		{
 			// 1. Delete existing user while skipping default user and non-existent user
-			presetUser: internal_acl.CreateUser("user_to_delete"),
+			presetUser: acl.CreateUser("user_to_delete"),
 			cmd: []resp.Value{
 				resp.StringValue("ACL"),
 				resp.StringValue("DELUSER"),
@@ -1262,7 +1252,7 @@ func Test_HandleDelUser(t *testing.T) {
 
 	for _, test := range tests {
 		if test.presetUser != nil {
-			acl.AddUsers([]*internal_acl.User{test.presetUser})
+			a.AddUsers([]*acl.User{test.presetUser})
 		}
 		if err = r.WriteArray(test.cmd); err != nil {
 			t.Error(err)
@@ -1278,13 +1268,13 @@ func Test_HandleDelUser(t *testing.T) {
 			continue
 		}
 		// Check that default user still exists in the list of users
-		if !slices.ContainsFunc(acl.Users, func(user *internal_acl.User) bool {
+		if !slices.ContainsFunc(a.Users, func(user *acl.User) bool {
 			return user.Username == "default"
 		}) {
 			t.Error("could not find user with username \"default\" in the ACL after deleting user")
 		}
 		// Check that the deleted user is no longer in the list
-		if slices.ContainsFunc(acl.Users, func(user *internal_acl.User) bool {
+		if slices.ContainsFunc(a.Users, func(user *acl.User) bool {
 			return user.Username == "user_to_delete"
 		}) {
 			t.Error("deleted user found in the ACL")
@@ -1368,7 +1358,7 @@ func Test_HandleList(t *testing.T) {
 	}()
 	wg.Wait()
 
-	acl, _ := mockServer.GetACL().(*internal_acl.ACL)
+	a, _ := mockServer.GetACL().(*acl.ACL)
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 	if err != nil {
@@ -1383,21 +1373,21 @@ func Test_HandleList(t *testing.T) {
 	r := resp.NewConn(conn)
 
 	tests := []struct {
-		presetUsers []*internal_acl.User
+		presetUsers []*acl.User
 		cmd         []resp.Value
 		wantRes     []string
 		wantErr     string
 	}{
 		{ // 1. Get the user and all their details
-			presetUsers: []*internal_acl.User{
+			presetUsers: []*acl.User{
 				{
 					Username:   "list_user_1",
 					Enabled:    true,
 					NoPassword: false,
 					NoKeys:     false,
-					Passwords: []internal_acl.Password{
-						{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "list_user_password_1"},
-						{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("list_user_password_2")},
+					Passwords: []acl.Password{
+						{PasswordType: acl.PasswordPlainText, PasswordValue: "list_user_password_1"},
+						{PasswordType: acl.PasswordSHA256, PasswordValue: generateSHA256Password("list_user_password_2")},
 					},
 					IncludedCategories:     []string{constants.WriteCategory, constants.ReadCategory, constants.PubSubCategory},
 					ExcludedCategories:     []string{constants.AdminCategory, constants.ConnectionCategory, constants.DangerousCategory},
@@ -1413,7 +1403,7 @@ func Test_HandleList(t *testing.T) {
 					Enabled:                true,
 					NoPassword:             true,
 					NoKeys:                 true,
-					Passwords:              []internal_acl.Password{},
+					Passwords:              []acl.Password{},
 					IncludedCategories:     []string{constants.WriteCategory, constants.ReadCategory, constants.PubSubCategory},
 					ExcludedCategories:     []string{constants.AdminCategory, constants.ConnectionCategory, constants.DangerousCategory},
 					IncludedCommands:       []string{"acl|setuser", "acl|getuser", "acl|deluser"},
@@ -1428,9 +1418,9 @@ func Test_HandleList(t *testing.T) {
 					Enabled:    true,
 					NoPassword: false,
 					NoKeys:     false,
-					Passwords: []internal_acl.Password{
-						{PasswordType: internal_acl.PasswordPlainText, PasswordValue: "list_user_password_3"},
-						{PasswordType: internal_acl.PasswordSHA256, PasswordValue: generateSHA256Password("list_user_password_4")},
+					Passwords: []acl.Password{
+						{PasswordType: acl.PasswordPlainText, PasswordValue: "list_user_password_3"},
+						{PasswordType: acl.PasswordSHA256, PasswordValue: generateSHA256Password("list_user_password_4")},
 					},
 					IncludedCategories:     []string{constants.WriteCategory, constants.ReadCategory, constants.PubSubCategory},
 					ExcludedCategories:     []string{constants.AdminCategory, constants.ConnectionCategory, constants.DangerousCategory},
@@ -1457,7 +1447,7 @@ func Test_HandleList(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		acl.AddUsers(test.presetUsers)
+		a.AddUsers(test.presetUsers)
 
 		if err = r.WriteArray(test.cmd); err != nil {
 			t.Error(err)

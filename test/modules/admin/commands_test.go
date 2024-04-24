@@ -21,7 +21,6 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/modules/admin"
 	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
 	"net"
@@ -33,7 +32,6 @@ var mockServer *echovault.EchoVault
 
 func init() {
 	mockServer, _ = echovault.NewEchoVault(
-		echovault.WithCommands(admin.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,

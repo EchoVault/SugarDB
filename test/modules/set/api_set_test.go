@@ -17,9 +17,8 @@ package set
 import (
 	"context"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/set"
+	"github.com/echovault/echovault/internal/modules/set"
 	"github.com/echovault/echovault/pkg/echovault"
-	s "github.com/echovault/echovault/pkg/modules/set"
 	"reflect"
 	"slices"
 	"testing"
@@ -27,7 +26,6 @@ import (
 
 func createEchoVault() *echovault.EchoVault {
 	ev, _ := echovault.NewEchoVault(
-		echovault.WithCommands(s.Commands()),
 		echovault.WithConfig(config.Config{
 			DataDir: "",
 		}),

@@ -19,10 +19,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/echovault/echovault/internal/config"
-	internal_pubsub "github.com/echovault/echovault/internal/pubsub"
+	"github.com/echovault/echovault/internal/modules/pubsub"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	ps "github.com/echovault/echovault/pkg/modules/pubsub"
 	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
 	"net"
@@ -33,7 +32,7 @@ import (
 	"time"
 )
 
-var pubsub *internal_pubsub.PubSub
+var ps *pubsub.PubSub
 var mockServer *echovault.EchoVault
 
 var bindAddr = "localhost"
@@ -41,7 +40,7 @@ var port uint16 = 7490
 
 func init() {
 	mockServer = setUpServer(bindAddr, port)
-	pubsub = mockServer.GetPubSub().(*internal_pubsub.PubSub)
+	ps = mockServer.GetPubSub().(*pubsub.PubSub)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -54,7 +53,6 @@ func init() {
 
 func setUpServer(bindAddr string, port uint16) *echovault.EchoVault {
 	server, _ := echovault.NewEchoVault(
-		echovault.WithCommands(ps.Commands()),
 		echovault.WithConfig(config.Config{
 			BindAddr:       bindAddr,
 			Port:           port,
@@ -126,12 +124,12 @@ func Test_HandleSubscribe(t *testing.T) {
 	}
 	for _, channel := range channels {
 		// Check if the channel exists in the pubsub module
-		if !slices.ContainsFunc(pubsub.GetAllChannels(), func(c *internal_pubsub.Channel) bool {
+		if !slices.ContainsFunc(ps.GetAllChannels(), func(c *pubsub.Channel) bool {
 			return c.Name() == channel
 		}) {
 			t.Errorf("expected pubsub to contain channel \"%s\" but it was not found", channel)
 		}
-		for _, c := range pubsub.GetAllChannels() {
+		for _, c := range ps.GetAllChannels() {
 			if c.Name() == channel {
 				// Check if channel has nil pattern
 				if c.Pattern() != nil {
@@ -157,12 +155,12 @@ func Test_HandleSubscribe(t *testing.T) {
 	}
 	for _, pattern := range patterns {
 		// Check if pattern channel exists in pubsub module
-		if !slices.ContainsFunc(pubsub.GetAllChannels(), func(c *internal_pubsub.Channel) bool {
+		if !slices.ContainsFunc(ps.GetAllChannels(), func(c *pubsub.Channel) bool {
 			return c.Name() == pattern
 		}) {
 			t.Errorf("expected pubsub to contain pattern channel \"%s\" but it was not found", pattern)
 		}
-		for _, c := range pubsub.GetAllChannels() {
+		for _, c := range ps.GetAllChannels() {
 			if c.Name() == pattern {
 				// Check if channel has non-nil pattern
 				if c.Pattern() == nil {
@@ -322,7 +320,7 @@ func Test_HandleUnsubscribe(t *testing.T) {
 		verifyResponse(res, test.expectedResponses["pattern"])
 
 		for _, channel := range append(test.unSubChannels, test.unSubPatterns...) {
-			for _, pubsubChannel := range pubsub.GetAllChannels() {
+			for _, pubsubChannel := range ps.GetAllChannels() {
 				if pubsubChannel.Name() == channel {
 					// Assert that target connection is no longer in the unsub channels and patterns
 					if _, ok := pubsubChannel.Subscribers()[test.targetConn]; ok {
@@ -339,7 +337,7 @@ func Test_HandleUnsubscribe(t *testing.T) {
 
 		// Assert that the target connection is still in the remain channels and patterns
 		for _, channel := range append(test.remainChannels, test.remainPatterns...) {
-			for _, pubsubChannel := range pubsub.GetAllChannels() {
+			for _, pubsubChannel := range ps.GetAllChannels() {
 				if pubsubChannel.Name() == channel {
 					if _, ok := pubsubChannel.Subscribers()[test.targetConn]; !ok {
 						t.Errorf("could not find expected target connection in channel \"%s\"", channel)

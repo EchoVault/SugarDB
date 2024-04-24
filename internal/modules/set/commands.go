@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	internal_set "github.com/echovault/echovault/internal/set"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/types"
 	"slices"
@@ -33,10 +32,10 @@ func handleSADD(params types.HandlerFuncParams) ([]byte, error) {
 
 	key := keys.WriteKeys[0]
 
-	var set *internal_set.Set
+	var set *Set
 
 	if !params.KeyExists(params.Context, key) {
-		set = internal_set.NewSet(params.Command[2:])
+		set = NewSet(params.Command[2:])
 		if ok, err := params.CreateKeyAndLock(params.Context, key); !ok && err != nil {
 			return nil, err
 		}
@@ -52,7 +51,7 @@ func handleSADD(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -79,7 +78,7 @@ func handleSCARD(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -103,7 +102,7 @@ func handleSDIFF(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	defer params.KeyRUnlock(params.Context, keys.ReadKeys[0])
-	baseSet, ok := params.GetValue(params.Context, keys.ReadKeys[0]).(*internal_set.Set)
+	baseSet, ok := params.GetValue(params.Context, keys.ReadKeys[0]).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", keys.ReadKeys[0])
 	}
@@ -127,9 +126,9 @@ func handleSDIFF(params types.HandlerFuncParams) ([]byte, error) {
 		locks[key] = true
 	}
 
-	var sets []*internal_set.Set
+	var sets []*Set
 	for _, key := range params.Command[2:] {
-		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*Set)
 		if !ok {
 			continue
 		}
@@ -166,7 +165,7 @@ func handleSDIFFSTORE(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	defer params.KeyRUnlock(params.Context, keys.ReadKeys[0])
-	baseSet, ok := params.GetValue(params.Context, keys.ReadKeys[0]).(*internal_set.Set)
+	baseSet, ok := params.GetValue(params.Context, keys.ReadKeys[0]).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", keys.ReadKeys[0])
 	}
@@ -190,9 +189,9 @@ func handleSDIFFSTORE(params types.HandlerFuncParams) ([]byte, error) {
 		locks[key] = true
 	}
 
-	var sets []*internal_set.Set
+	var sets []*Set
 	for _, key := range keys.ReadKeys[1:] {
-		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*Set)
 		if !ok {
 			continue
 		}
@@ -252,10 +251,10 @@ func handleSINTER(params types.HandlerFuncParams) ([]byte, error) {
 		locks[key] = true
 	}
 
-	var sets []*internal_set.Set
+	var sets []*Set
 
 	for key, _ := range locks {
-		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*Set)
 		if !ok {
 			// If the value at the key is not a set, return error
 			return nil, fmt.Errorf("value at key %s is not a set", key)
@@ -267,7 +266,7 @@ func handleSINTER(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, fmt.Errorf("not enough sets in the keys provided")
 	}
 
-	intersect, _ := internal_set.Intersection(0, sets...)
+	intersect, _ := Intersection(0, sets...)
 	elems := intersect.GetAll()
 
 	res := fmt.Sprintf("*%d", len(elems))
@@ -328,10 +327,10 @@ func handleSINTERCARD(params types.HandlerFuncParams) ([]byte, error) {
 		locks[key] = true
 	}
 
-	var sets []*internal_set.Set
+	var sets []*Set
 
 	for key, _ := range locks {
-		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*Set)
 		if !ok {
 			// If the value at the key is not a set, return error
 			return nil, fmt.Errorf("value at key %s is not a set", key)
@@ -343,7 +342,7 @@ func handleSINTERCARD(params types.HandlerFuncParams) ([]byte, error) {
 		return nil, fmt.Errorf("not enough sets in the keys provided")
 	}
 
-	intersect, _ := internal_set.Intersection(limit, sets...)
+	intersect, _ := Intersection(limit, sets...)
 
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
@@ -374,10 +373,10 @@ func handleSINTERSTORE(params types.HandlerFuncParams) ([]byte, error) {
 		locks[key] = true
 	}
 
-	var sets []*internal_set.Set
+	var sets []*Set
 
 	for key, _ := range locks {
-		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*Set)
 		if !ok {
 			// If the value at the key is not a set, return error
 			return nil, fmt.Errorf("value at key %s is not a set", key)
@@ -385,7 +384,7 @@ func handleSINTERSTORE(params types.HandlerFuncParams) ([]byte, error) {
 		sets = append(sets, set)
 	}
 
-	intersect, _ := internal_set.Intersection(0, sets...)
+	intersect, _ := Intersection(0, sets...)
 	destination := keys.WriteKeys[0]
 
 	if params.KeyExists(params.Context, destination) {
@@ -423,7 +422,7 @@ func handleSISMEMBER(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -452,7 +451,7 @@ func handleSMEMBERS(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -495,7 +494,7 @@ func handleSMISMEMBER(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyRUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -531,12 +530,12 @@ func handleSMOVE(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, source)
 
-	sourceSet, ok := params.GetValue(params.Context, source).(*internal_set.Set)
+	sourceSet, ok := params.GetValue(params.Context, source).(*Set)
 	if !ok {
 		return nil, errors.New("source is not a set")
 	}
 
-	var destinationSet *internal_set.Set
+	var destinationSet *Set
 
 	if !params.KeyExists(params.Context, destination) {
 		// Destination key does not exist
@@ -544,7 +543,7 @@ func handleSMOVE(params types.HandlerFuncParams) ([]byte, error) {
 			return nil, err
 		}
 		defer params.KeyUnlock(params.Context, destination)
-		destinationSet = internal_set.NewSet([]string{})
+		destinationSet = NewSet([]string{})
 		if err = params.SetValue(params.Context, destination, destinationSet); err != nil {
 			return nil, err
 		}
@@ -554,7 +553,7 @@ func handleSMOVE(params types.HandlerFuncParams) ([]byte, error) {
 			return nil, err
 		}
 		defer params.KeyUnlock(params.Context, destination)
-		ds, ok := params.GetValue(params.Context, destination).(*internal_set.Set)
+		ds, ok := params.GetValue(params.Context, destination).(*Set)
 		if !ok {
 			return nil, errors.New("destination is not a set")
 		}
@@ -592,7 +591,7 @@ func handleSPOP(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a set", key)
 	}
@@ -636,7 +635,7 @@ func handleSRANDMEMBER(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a set", key)
 	}
@@ -672,7 +671,7 @@ func handleSREM(params types.HandlerFuncParams) ([]byte, error) {
 	}
 	defer params.KeyUnlock(params.Context, key)
 
-	set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+	set, ok := params.GetValue(params.Context, key).(*Set)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a set", key)
 	}
@@ -707,20 +706,20 @@ func handleSUNION(params types.HandlerFuncParams) ([]byte, error) {
 		locks[key] = true
 	}
 
-	var sets []*internal_set.Set
+	var sets []*Set
 
 	for key, locked := range locks {
 		if !locked {
 			continue
 		}
-		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*Set)
 		if !ok {
 			return nil, fmt.Errorf("value at key %s is not a set", key)
 		}
 		sets = append(sets, set)
 	}
 
-	union := internal_set.Union(sets...)
+	union := Union(sets...)
 
 	res := fmt.Sprintf("*%d", union.Cardinality())
 	for i, e := range union.GetAll() {
@@ -758,20 +757,20 @@ func handleSUNIONSTORE(params types.HandlerFuncParams) ([]byte, error) {
 		locks[key] = true
 	}
 
-	var sets []*internal_set.Set
+	var sets []*Set
 
 	for key, locked := range locks {
 		if !locked {
 			continue
 		}
-		set, ok := params.GetValue(params.Context, key).(*internal_set.Set)
+		set, ok := params.GetValue(params.Context, key).(*Set)
 		if !ok {
 			return nil, fmt.Errorf("value at key %s is not a set", key)
 		}
 		sets = append(sets, set)
 	}
 
-	union := internal_set.Union(sets...)
+	union := Union(sets...)
 
 	destination := keys.WriteKeys[0]
 
