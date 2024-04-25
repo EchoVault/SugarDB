@@ -81,7 +81,7 @@ type SubCommand struct {
 	Module      string
 	Categories  []string
 	Description string
-	Sync        bool // Specifies if sub-command should be synced across cluster
+	Sync        bool // Specifies if sub-command should be synced across replication cluster
 	KeyExtractionFunc
 	HandlerFunc
 }
@@ -92,14 +92,7 @@ type Command struct {
 	Categories  []string
 	Description string
 	SubCommands []SubCommand
-	Sync        bool // Specifies if command should be synced across cluster
+	Sync        bool // Specifies if command should be synced across replication cluster
 	KeyExtractionFunc
 	HandlerFunc
 }
-
-type ACL interface {
-	RegisterConnection(conn *net.Conn)
-	AuthorizeConnection(conn *net.Conn, cmd []string, command Command, subCommand SubCommand) error
-}
-
-type PubSub interface{}
