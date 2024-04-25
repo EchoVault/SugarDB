@@ -16,114 +16,114 @@ package list
 
 import (
 	"errors"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 )
 
-func lpushKeyFunc(cmd []string) (types.AccessKeys, error) {
+func lpushKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func popKeyFunc(cmd []string) (types.AccessKeys, error) {
+func popKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:],
 	}, nil
 }
 
-func llenKeyFunc(cmd []string) (types.AccessKeys, error) {
+func llenKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func lrangeKeyFunc(cmd []string) (types.AccessKeys, error) {
+func lrangeKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func lindexKeyFunc(cmd []string) (types.AccessKeys, error) {
+func lindexKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 3 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func lsetKeyFunc(cmd []string) (types.AccessKeys, error) {
+func lsetKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func ltrimKeyFunc(cmd []string) (types.AccessKeys, error) {
+func ltrimKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func lremKeyFunc(cmd []string) (types.AccessKeys, error) {
+func lremKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func rpushKeyFunc(cmd []string) (types.AccessKeys, error) {
+func rpushKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func lmoveKeyFunc(cmd []string) (types.AccessKeys, error) {
+func lmoveKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 5 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:3],

@@ -17,12 +17,12 @@ package pubsub
 import (
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"strings"
 )
 
-func handleSubscribe(params types.HandlerFuncParams) ([]byte, error) {
+func handleSubscribe(params internal.HandlerFuncParams) ([]byte, error) {
 	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -40,7 +40,7 @@ func handleSubscribe(params types.HandlerFuncParams) ([]byte, error) {
 	return nil, nil
 }
 
-func handleUnsubscribe(params types.HandlerFuncParams) ([]byte, error) {
+func handleUnsubscribe(params internal.HandlerFuncParams) ([]byte, error) {
 	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -53,7 +53,7 @@ func handleUnsubscribe(params types.HandlerFuncParams) ([]byte, error) {
 	return pubsub.Unsubscribe(params.Context, params.Connection, channels, withPattern), nil
 }
 
-func handlePublish(params types.HandlerFuncParams) ([]byte, error) {
+func handlePublish(params internal.HandlerFuncParams) ([]byte, error) {
 	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -65,7 +65,7 @@ func handlePublish(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handlePubSubChannels(params types.HandlerFuncParams) ([]byte, error) {
+func handlePubSubChannels(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) > 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
@@ -83,7 +83,7 @@ func handlePubSubChannels(params types.HandlerFuncParams) ([]byte, error) {
 	return pubsub.Channels(pattern), nil
 }
 
-func handlePubSubNumPat(params types.HandlerFuncParams) ([]byte, error) {
+func handlePubSubNumPat(params internal.HandlerFuncParams) ([]byte, error) {
 	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -92,7 +92,7 @@ func handlePubSubNumPat(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", num)), nil
 }
 
-func handlePubSubNumSubs(params types.HandlerFuncParams) ([]byte, error) {
+func handlePubSubNumSubs(params internal.HandlerFuncParams) ([]byte, error) {
 	pubsub, ok := params.GetPubSub().(*PubSub)
 	if !ok {
 		return nil, errors.New("could not load pubsub module")
@@ -100,20 +100,20 @@ func handlePubSubNumSubs(params types.HandlerFuncParams) ([]byte, error) {
 	return pubsub.NumSub(params.Command[2:]), nil
 }
 
-func Commands() []types.Command {
-	return []types.Command{
+func Commands() []internal.Command {
+	return []internal.Command{
 		{
 			Command:     "subscribe",
 			Module:      constants.PubSubModule,
 			Categories:  []string{constants.PubSubCategory, constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(SUBSCRIBE channel [channel ...]) Subscribe to one or more channels.",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
 				// Treat the channels as keys
 				if len(cmd) < 2 {
-					return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+					return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 				}
-				return types.AccessKeys{
+				return internal.AccessKeys{
 					Channels:  cmd[1:],
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -127,12 +127,12 @@ func Commands() []types.Command {
 			Categories:  []string{constants.PubSubCategory, constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(PSUBSCRIBE pattern [pattern ...]) Subscribe to one or more glob patterns.",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
 				// Treat the patterns as keys
 				if len(cmd) < 2 {
-					return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+					return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 				}
-				return types.AccessKeys{
+				return internal.AccessKeys{
 					Channels:  cmd[1:],
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -146,12 +146,12 @@ func Commands() []types.Command {
 			Categories:  []string{constants.PubSubCategory, constants.FastCategory},
 			Description: "(PUBLISH channel message) Publish a message to the specified channel.",
 			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
 				// Treat the channel as a key
 				if len(cmd) != 3 {
-					return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+					return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 				}
-				return types.AccessKeys{
+				return internal.AccessKeys{
 					Channels:  cmd[1:2],
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -167,9 +167,9 @@ func Commands() []types.Command {
 If the channel list is not provided, then the connection will be unsubscribed from all the channels that
 it's currently subscribe to.`,
 			Sync: false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
 				// Treat the channels as keys
-				return types.AccessKeys{
+				return internal.AccessKeys{
 					Channels:  cmd[1:],
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -185,8 +185,8 @@ it's currently subscribe to.`,
 If the pattern list is not provided, then the connection will be unsubscribed from all the patterns that
 it's currently subscribe to.`,
 			Sync: false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-				return types.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+				return internal.AccessKeys{
 					Channels:  cmd[1:],
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -200,17 +200,17 @@ it's currently subscribe to.`,
 			Categories:  []string{},
 			Description: "",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-				return types.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+				return internal.AccessKeys{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
 				}, nil
 			},
-			HandlerFunc: func(_ types.HandlerFuncParams) ([]byte, error) {
+			HandlerFunc: func(_ internal.HandlerFuncParams) ([]byte, error) {
 				return nil, errors.New("provide CHANNELS, NUMPAT, or NUMSUB subcommand")
 			},
-			SubCommands: []types.SubCommand{
+			SubCommands: []internal.SubCommand{
 				{
 					Command:    "channels",
 					Module:     constants.PubSubModule,
@@ -219,8 +219,8 @@ it's currently subscribe to.`,
 match the given pattern. If no pattern is provided, all active channels are returned. Active channels are 
 channels with 1 or more subscribers.`,
 					Sync: false,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -234,8 +234,8 @@ channels with 1 or more subscribers.`,
 					Categories:  []string{constants.PubSubCategory, constants.SlowCategory},
 					Description: `(PUBSUB NUMPAT) Return the number of patterns that are currently subscribed to by clients.`,
 					Sync:        false,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -250,8 +250,8 @@ channels with 1 or more subscribers.`,
 					Description: `(PUBSUB NUMSUB [channel [channel ...]]) Return an array of arrays containing the provided
 channel name and how many clients are currently subscribed to the channel.`,
 					Sync: false,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  cmd[2:],
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),

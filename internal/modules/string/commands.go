@@ -19,10 +19,9 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 )
 
-func handleSetRange(params types.HandlerFuncParams) ([]byte, error) {
+func handleSetRange(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := setRangeKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -97,7 +96,7 @@ func handleSetRange(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", len(strRunes))), nil
 }
 
-func handleStrLen(params types.HandlerFuncParams) ([]byte, error) {
+func handleStrLen(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := strLenKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -123,7 +122,7 @@ func handleStrLen(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", len(value))), nil
 }
 
-func handleSubStr(params types.HandlerFuncParams) ([]byte, error) {
+func handleSubStr(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := subStrKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -186,8 +185,8 @@ func handleSubStr(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(str), str)), nil
 }
 
-func Commands() []types.Command {
-	return []types.Command{
+func Commands() []internal.Command {
+	return []internal.Command{
 		{
 			Command:    "setrange",
 			Module:     constants.StringModule,

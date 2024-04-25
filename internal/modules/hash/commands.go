@@ -19,14 +19,13 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"math/rand"
 	"slices"
 	"strconv"
 	"strings"
 )
 
-func handleHSET(params types.HandlerFuncParams) ([]byte, error) {
+func handleHSET(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hsetKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -84,7 +83,7 @@ func handleHSET(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleHGET(params types.HandlerFuncParams) ([]byte, error) {
+func handleHGET(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hgetKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -135,7 +134,7 @@ func handleHGET(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleHSTRLEN(params types.HandlerFuncParams) ([]byte, error) {
+func handleHSTRLEN(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hstrlenKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -186,7 +185,7 @@ func handleHSTRLEN(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleHVALS(params types.HandlerFuncParams) ([]byte, error) {
+func handleHVALS(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hvalsKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -227,7 +226,7 @@ func handleHVALS(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleHRANDFIELD(params types.HandlerFuncParams) ([]byte, error) {
+func handleHRANDFIELD(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hrandfieldKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -343,7 +342,7 @@ func handleHRANDFIELD(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleHLEN(params types.HandlerFuncParams) ([]byte, error) {
+func handleHLEN(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hlenKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -368,7 +367,7 @@ func handleHLEN(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", len(hash))), nil
 }
 
-func handleHKEYS(params types.HandlerFuncParams) ([]byte, error) {
+func handleHKEYS(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hkeysKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -398,7 +397,7 @@ func handleHKEYS(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleHINCRBY(params types.HandlerFuncParams) ([]byte, error) {
+func handleHINCRBY(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hincrbyKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -490,7 +489,7 @@ func handleHINCRBY(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", i)), nil
 }
 
-func handleHGETALL(params types.HandlerFuncParams) ([]byte, error) {
+func handleHGETALL(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hgetallKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -530,7 +529,7 @@ func handleHGETALL(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleHEXISTS(params types.HandlerFuncParams) ([]byte, error) {
+func handleHEXISTS(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hexistsKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -560,7 +559,7 @@ func handleHEXISTS(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(":0\r\n"), nil
 }
 
-func handleHDEL(params types.HandlerFuncParams) ([]byte, error) {
+func handleHDEL(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hdelKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -599,8 +598,8 @@ func handleHDEL(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func Commands() []types.Command {
-	return []types.Command{
+func Commands() []internal.Command {
+	return []internal.Command{
 		{
 			Command:           "hset",
 			Module:            constants.HashModule,

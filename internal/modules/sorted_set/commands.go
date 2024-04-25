@@ -20,14 +20,13 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"math"
 	"slices"
 	"strconv"
 	"strings"
 )
 
-func handleZADD(params types.HandlerFuncParams) ([]byte, error) {
+func handleZADD(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zaddKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -178,7 +177,7 @@ func handleZADD(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
 
-func handleZCARD(params types.HandlerFuncParams) ([]byte, error) {
+func handleZCARD(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zcardKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -202,7 +201,7 @@ func handleZCARD(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", set.Cardinality())), nil
 }
 
-func handleZCOUNT(params types.HandlerFuncParams) ([]byte, error) {
+func handleZCOUNT(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zcountKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -270,7 +269,7 @@ func handleZCOUNT(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", len(members))), nil
 }
 
-func handleZLEXCOUNT(params types.HandlerFuncParams) ([]byte, error) {
+func handleZLEXCOUNT(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zlexcountKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -315,7 +314,7 @@ func handleZLEXCOUNT(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleZDIFF(params types.HandlerFuncParams) ([]byte, error) {
+func handleZDIFF(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zdiffKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -388,7 +387,7 @@ func handleZDIFF(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleZDIFFSTORE(params types.HandlerFuncParams) ([]byte, error) {
+func handleZDIFFSTORE(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zdiffstoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -454,7 +453,7 @@ func handleZDIFFSTORE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", diff.Cardinality())), nil
 }
 
-func handleZINCRBY(params types.HandlerFuncParams) ([]byte, error) {
+func handleZINCRBY(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zincrbyKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -521,7 +520,7 @@ func handleZINCRBY(params types.HandlerFuncParams) ([]byte, error) {
 		strconv.FormatFloat(float64(set.Get(member).Score), 'f', -1, 64))), nil
 }
 
-func handleZINTER(params types.HandlerFuncParams) ([]byte, error) {
+func handleZINTER(params internal.HandlerFuncParams) ([]byte, error) {
 	_, err := zinterKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -581,7 +580,7 @@ func handleZINTER(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleZINTERSTORE(params types.HandlerFuncParams) ([]byte, error) {
+func handleZINTERSTORE(params internal.HandlerFuncParams) ([]byte, error) {
 	k, err := zinterstoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -648,7 +647,7 @@ func handleZINTERSTORE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleZMPOP(params types.HandlerFuncParams) ([]byte, error) {
+func handleZMPOP(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zmpopKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -726,7 +725,7 @@ func handleZMPOP(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte("*0\r\n"), nil
 }
 
-func handleZPOP(params types.HandlerFuncParams) ([]byte, error) {
+func handleZPOP(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zpopKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -779,7 +778,7 @@ func handleZPOP(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleZMSCORE(params types.HandlerFuncParams) ([]byte, error) {
+func handleZMSCORE(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zmscoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -821,7 +820,7 @@ func handleZMSCORE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleZRANDMEMBER(params types.HandlerFuncParams) ([]byte, error) {
+func handleZRANDMEMBER(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zrandmemberKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -879,7 +878,7 @@ func handleZRANDMEMBER(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleZRANK(params types.HandlerFuncParams) ([]byte, error) {
+func handleZRANK(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zrankKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -929,7 +928,7 @@ func handleZRANK(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte("$-1\r\n"), nil
 }
 
-func handleZREM(params types.HandlerFuncParams) ([]byte, error) {
+func handleZREM(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zremKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -961,7 +960,7 @@ func handleZREM(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZSCORE(params types.HandlerFuncParams) ([]byte, error) {
+func handleZSCORE(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zscoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -990,7 +989,7 @@ func handleZSCORE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(score), score)), nil
 }
 
-func handleZREMRANGEBYSCORE(params types.HandlerFuncParams) ([]byte, error) {
+func handleZREMRANGEBYSCORE(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zremrangebyscoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -1034,7 +1033,7 @@ func handleZREMRANGEBYSCORE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZREMRANGEBYRANK(params types.HandlerFuncParams) ([]byte, error) {
+func handleZREMRANGEBYRANK(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zremrangebyrankKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -1099,7 +1098,7 @@ func handleZREMRANGEBYRANK(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZREMRANGEBYLEX(params types.HandlerFuncParams) ([]byte, error) {
+func handleZREMRANGEBYLEX(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zremrangebylexKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -1146,7 +1145,7 @@ func handleZREMRANGEBYLEX(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", deletedCount)), nil
 }
 
-func handleZRANGE(params types.HandlerFuncParams) ([]byte, error) {
+func handleZRANGE(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zrangeKeyCount(params.Command)
 	if err != nil {
 		return nil, err
@@ -1286,7 +1285,7 @@ func handleZRANGE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleZRANGESTORE(params types.HandlerFuncParams) ([]byte, error) {
+func handleZRANGESTORE(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := zrangeStoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -1428,7 +1427,7 @@ func handleZRANGESTORE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", newSortedSet.Cardinality())), nil
 }
 
-func handleZUNION(params types.HandlerFuncParams) ([]byte, error) {
+func handleZUNION(params internal.HandlerFuncParams) ([]byte, error) {
 	if _, err := zunionKeyFunc(params.Command); err != nil {
 		return nil, err
 	}
@@ -1482,7 +1481,7 @@ func handleZUNION(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleZUNIONSTORE(params types.HandlerFuncParams) ([]byte, error) {
+func handleZUNIONSTORE(params internal.HandlerFuncParams) ([]byte, error) {
 	k, err := zunionstoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -1548,8 +1547,8 @@ func handleZUNIONSTORE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", union.Cardinality())), nil
 }
 
-func Commands() []types.Command {
-	return []types.Command{
+func Commands() []internal.Command {
+	return []internal.Command{
 		{
 			Command:    "zadd",
 			Module:     constants.SortedSetModule,

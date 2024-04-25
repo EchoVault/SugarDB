@@ -19,13 +19,12 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"math"
 	"slices"
 	"strings"
 )
 
-func handleLLen(params types.HandlerFuncParams) ([]byte, error) {
+func handleLLen(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := llenKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -50,7 +49,7 @@ func handleLLen(params types.HandlerFuncParams) ([]byte, error) {
 	return nil, errors.New("LLEN command on non-list item")
 }
 
-func handleLIndex(params types.HandlerFuncParams) ([]byte, error) {
+func handleLIndex(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := lindexKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -84,7 +83,7 @@ func handleLIndex(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("+%s\r\n", list[index])), nil
 }
 
-func handleLRange(params types.HandlerFuncParams) ([]byte, error) {
+func handleLRange(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := lrangeKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -163,7 +162,7 @@ func handleLRange(params types.HandlerFuncParams) ([]byte, error) {
 	return bytes, nil
 }
 
-func handleLSet(params types.HandlerFuncParams) ([]byte, error) {
+func handleLSet(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := lsetKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -202,7 +201,7 @@ func handleLSet(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleLTrim(params types.HandlerFuncParams) ([]byte, error) {
+func handleLTrim(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := ltrimKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -251,7 +250,7 @@ func handleLTrim(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleLRem(params types.HandlerFuncParams) ([]byte, error) {
+func handleLRem(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := lremKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -319,7 +318,7 @@ func handleLRem(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleLMove(params types.HandlerFuncParams) ([]byte, error) {
+func handleLMove(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := lmoveKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -379,7 +378,7 @@ func handleLMove(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleLPush(params types.HandlerFuncParams) ([]byte, error) {
+func handleLPush(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := lpushKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -425,7 +424,7 @@ func handleLPush(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleRPush(params types.HandlerFuncParams) ([]byte, error) {
+func handleRPush(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := rpushKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -473,7 +472,7 @@ func handleRPush(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handlePop(params types.HandlerFuncParams) ([]byte, error) {
+func handlePop(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := popKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -509,8 +508,8 @@ func handlePop(params types.HandlerFuncParams) ([]byte, error) {
 	}
 }
 
-func Commands() []types.Command {
-	return []types.Command{
+func Commands() []internal.Command {
+	return []internal.Command{
 		{
 			Command:           "lpush",
 			Module:            constants.ListModule,

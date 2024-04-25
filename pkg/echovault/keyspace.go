@@ -247,7 +247,7 @@ func (server *EchoVault) SetExpiry(ctx context.Context, key string, expireAt tim
 
 // RemoveExpiry is called by commands that remove key expiry (e.g. PERSIST).
 // The key must be locked prior ro calling this function.
-func (server *EchoVault) RemoveExpiry(key string) {
+func (server *EchoVault) RemoveExpiry(_ context.Context, key string) {
 	// Reset expiry time
 	server.store[key] = internal.KeyData{
 		Value:    server.store[key].Value,
@@ -292,7 +292,7 @@ func (server *EchoVault) DeleteKey(ctx context.Context, key string) error {
 	}
 
 	// Remove key expiry.
-	server.RemoveExpiry(key)
+	server.RemoveExpiry(ctx, key)
 
 	// Delete the key from keyLocks and store.
 	delete(server.keyLocks, key)

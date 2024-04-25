@@ -20,9 +20,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"github.com/gobwas/glob"
 	"gopkg.in/yaml.v3"
 	"log"
@@ -286,7 +286,7 @@ func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []
 	return errors.New("could not authenticate user")
 }
 
-func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command types.Command, subCommand types.SubCommand) error {
+func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command internal.Command, subCommand internal.SubCommand) error {
 	acl.RLockUsers()
 	defer acl.RUnlockUsers()
 
@@ -303,7 +303,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command types.
 	readKeys := keys.ReadKeys
 	writeKeys := keys.WriteKeys
 
-	if !reflect.DeepEqual(subCommand, types.SubCommand{}) {
+	if !reflect.DeepEqual(subCommand, internal.SubCommand{}) {
 		comm = fmt.Sprintf("%s|%s", comm, subCommand.Command)
 		categories = append(categories, subCommand.Categories...)
 		keys, err = subCommand.KeyExtractionFunc(cmd)

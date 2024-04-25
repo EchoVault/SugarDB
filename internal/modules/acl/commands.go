@@ -18,8 +18,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -28,7 +28,7 @@ import (
 	"strings"
 )
 
-func handleAuth(params types.HandlerFuncParams) ([]byte, error) {
+func handleAuth(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) < 2 || len(params.Command) > 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
@@ -42,7 +42,7 @@ func handleAuth(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleGetUser(params types.HandlerFuncParams) ([]byte, error) {
+func handleGetUser(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) != 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
@@ -159,7 +159,7 @@ func handleGetUser(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleCat(params types.HandlerFuncParams) ([]byte, error) {
+func handleCat(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) > 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
@@ -219,7 +219,7 @@ func handleCat(params types.HandlerFuncParams) ([]byte, error) {
 	return nil, fmt.Errorf("category %s not found", strings.ToUpper(params.Command[2]))
 }
 
-func handleUsers(params types.HandlerFuncParams) ([]byte, error) {
+func handleUsers(params internal.HandlerFuncParams) ([]byte, error) {
 	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -232,7 +232,7 @@ func handleUsers(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleSetUser(params types.HandlerFuncParams) ([]byte, error) {
+func handleSetUser(params internal.HandlerFuncParams) ([]byte, error) {
 	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -243,7 +243,7 @@ func handleSetUser(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleDelUser(params types.HandlerFuncParams) ([]byte, error) {
+func handleDelUser(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) < 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
@@ -257,7 +257,7 @@ func handleDelUser(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleWhoAmI(params types.HandlerFuncParams) ([]byte, error) {
+func handleWhoAmI(params internal.HandlerFuncParams) ([]byte, error) {
 	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
@@ -266,7 +266,7 @@ func handleWhoAmI(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("+%s\r\n", connectionInfo.User.Username)), nil
 }
 
-func handleList(params types.HandlerFuncParams) ([]byte, error) {
+func handleList(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) > 2 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
@@ -362,7 +362,7 @@ func handleList(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleLoad(params types.HandlerFuncParams) ([]byte, error) {
+func handleLoad(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) != 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
@@ -429,7 +429,7 @@ func handleLoad(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleSave(params types.HandlerFuncParams) ([]byte, error) {
+func handleSave(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) > 2 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
@@ -487,16 +487,16 @@ func handleSave(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func Commands() []types.Command {
-	return []types.Command{
+func Commands() []internal.Command {
+	return []internal.Command{
 		{
 			Command:     "auth",
 			Module:      constants.ACLModule,
 			Categories:  []string{constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(AUTH [username] password) Authenticates the connection",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-				return types.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+				return internal.AccessKeys{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -510,14 +510,14 @@ func Commands() []types.Command {
 			Categories:  []string{},
 			Description: "Access-Control-List commands",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-				return types.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+				return internal.AccessKeys{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
 				}, nil
 			},
-			SubCommands: []types.SubCommand{
+			SubCommands: []internal.SubCommand{
 				{
 					Command:    "cat",
 					Module:     constants.ACLModule,
@@ -525,8 +525,8 @@ func Commands() []types.Command {
 					Description: `(ACL CAT [category]) List all the categories. 
 If the optional category is provided, list all the commands in the category`,
 					Sync: false,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -540,8 +540,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL USERS) List all usernames of the configured ACL users",
 					Sync:        false,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -555,8 +555,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL SETUSER) Configure a new or existing user",
 					Sync:        true,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -570,8 +570,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL GETUSER username) List the ACL rules of a user",
 					Sync:        false,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -585,8 +585,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL DELUSER username [username ...]) Deletes users and terminates their connections. Cannot delete default user",
 					Sync:        true,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -600,8 +600,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.FastCategory},
 					Description: "(ACL WHOAMI) Returns the authenticated user of the current connection",
 					Sync:        true,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -615,8 +615,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL LIST) Dumps effective acl rules in acl config file format",
 					Sync:        true,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -633,8 +633,8 @@ If the optional category is provided, list all the commands in the category`,
 When 'MERGE' is passed, users from config file who share a username with users in memory will be merged.
 When 'REPLACE' is passed, users from config file who share a username with users in memory will replace the user in memory.`,
 					Sync: true,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -648,8 +648,8 @@ When 'REPLACE' is passed, users from config file who share a username with users
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL SAVE) Saves the effective ACL rules the configured ACL config file",
 					Sync:        true,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),

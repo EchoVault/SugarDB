@@ -20,52 +20,42 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"net"
 	"strings"
 )
 
-func (server *EchoVault) GetAllCommands() []types.Command {
-	return server.commands
-}
-
-func (server *EchoVault) GetACL() interface{} {
-	return server.acl
-}
-
-func (server *EchoVault) GetPubSub() interface{} {
-	return server.pubSub
-}
-
-func (server *EchoVault) getCommand(cmd string) (types.Command, error) {
+func (server *EchoVault) getCommand(cmd string) (internal.Command, error) {
 	for _, command := range server.commands {
 		if strings.EqualFold(command.Command, cmd) {
 			return command, nil
 		}
 	}
-	return types.Command{}, fmt.Errorf("command %s not supported", cmd)
+	return internal.Command{}, fmt.Errorf("command %s not supported", cmd)
 }
 
-func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams {
-	return types.HandlerFuncParams{
-		Context:          ctx,
-		Command:          cmd,
-		Connection:       conn,
-		KeyExists:        server.KeyExists,
-		CreateKeyAndLock: server.CreateKeyAndLock,
-		KeyLock:          server.KeyLock,
-		KeyRLock:         server.KeyRLock,
-		KeyUnlock:        server.KeyUnlock,
-		KeyRUnlock:       server.KeyRUnlock,
-		GetValue:         server.GetValue,
-		SetValue:         server.SetValue,
-		GetClock:         server.GetClock,
-		GetExpiry:        server.GetExpiry,
-		SetExpiry:        server.SetExpiry,
-		DeleteKey:        server.DeleteKey,
-		GetPubSub:        server.GetPubSub,
-		GetACL:           server.GetACL,
-		GetAllCommands:   server.GetAllCommands,
+func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) internal.HandlerFuncParams {
+	return internal.HandlerFuncParams{
+		Context:               ctx,
+		Command:               cmd,
+		Connection:            conn,
+		KeyExists:             server.KeyExists,
+		CreateKeyAndLock:      server.CreateKeyAndLock,
+		KeyLock:               server.KeyLock,
+		KeyRLock:              server.KeyRLock,
+		KeyUnlock:             server.KeyUnlock,
+		KeyRUnlock:            server.KeyRUnlock,
+		GetValue:              server.GetValue,
+		SetValue:              server.SetValue,
+		GetExpiry:             server.GetExpiry,
+		SetExpiry:             server.SetExpiry,
+		DeleteKey:             server.DeleteKey,
+		TakeSnapshot:          server.takeSnapshot,
+		GetLatestSnapshotTime: server.getLatestSnapshotTime,
+		RewriteAOF:            server.rewriteAOF,
+		GetClock:              server.getClock,
+		GetPubSub:             server.getPubSub,
+		GetACL:                server.getACL,
+		GetAllCommands:        server.getCommands,
 	}
 }
 
@@ -83,7 +73,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	synchronize := command.Sync
 	handler := command.HandlerFunc
 
-	subCommand, ok := internal.GetSubCommand(command, cmd).(types.SubCommand)
+	subCommand, ok := internal.GetSubCommand(command, cmd).(internal.SubCommand)
 	if ok {
 		synchronize = subCommand.Sync
 		handler = subCommand.HandlerFunc

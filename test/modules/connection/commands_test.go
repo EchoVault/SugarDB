@@ -18,14 +18,16 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
 	"net"
+	"reflect"
 	"strings"
 	"testing"
+	"unsafe"
 )
 
 var mockServer *echovault.EchoVault
@@ -39,11 +41,17 @@ func init() {
 	)
 }
 
-func getHandler(commands ...string) types.HandlerFunc {
+func getUnexportedField(field reflect.Value) interface{} {
+	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
+}
+
+func getHandler(commands ...string) internal.HandlerFunc {
 	if len(commands) == 0 {
 		return nil
 	}
-	for _, c := range mockServer.GetAllCommands() {
+	getCommands :=
+		getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getCommands")).(func() []internal.Command)
+	for _, c := range getCommands() {
 		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
 			// Get command handler
 			return c.HandlerFunc
@@ -60,8 +68,8 @@ func getHandler(commands ...string) types.HandlerFunc {
 	return nil
 }
 
-func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams {
-	return types.HandlerFuncParams{
+func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) internal.HandlerFuncParams {
+	return internal.HandlerFuncParams{
 		Context:    ctx,
 		Command:    cmd,
 		Connection: conn,

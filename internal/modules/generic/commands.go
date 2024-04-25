@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"log"
 	"strconv"
 	"strings"
@@ -31,7 +30,7 @@ type KeyObject struct {
 	locked bool
 }
 
-func handleSet(params types.HandlerFuncParams) ([]byte, error) {
+func handleSet(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := setKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -96,7 +95,7 @@ func handleSet(params types.HandlerFuncParams) ([]byte, error) {
 	return res, nil
 }
 
-func handleMSet(params types.HandlerFuncParams) ([]byte, error) {
+func handleMSet(params internal.HandlerFuncParams) ([]byte, error) {
 	_, err := msetKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -153,7 +152,7 @@ func handleMSet(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleGet(params types.HandlerFuncParams) ([]byte, error) {
+func handleGet(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := getKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -175,7 +174,7 @@ func handleGet(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
 }
 
-func handleMGet(params types.HandlerFuncParams) ([]byte, error) {
+func handleMGet(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := mgetKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -225,7 +224,7 @@ func handleMGet(params types.HandlerFuncParams) ([]byte, error) {
 	return bytes, nil
 }
 
-func handleDel(params types.HandlerFuncParams) ([]byte, error) {
+func handleDel(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := delKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -242,7 +241,7 @@ func handleDel(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handlePersist(params types.HandlerFuncParams) ([]byte, error) {
+func handlePersist(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := persistKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -269,7 +268,7 @@ func handlePersist(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(":1\r\n"), nil
 }
 
-func handleExpireTime(params types.HandlerFuncParams) ([]byte, error) {
+func handleExpireTime(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := expireTimeKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -300,7 +299,7 @@ func handleExpireTime(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", t)), nil
 }
 
-func handleTTL(params types.HandlerFuncParams) ([]byte, error) {
+func handleTTL(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := ttlKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -337,7 +336,7 @@ func handleTTL(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", t)), nil
 }
 
-func handleExpire(params types.HandlerFuncParams) ([]byte, error) {
+func handleExpire(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := expireKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -405,7 +404,7 @@ func handleExpire(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(":1\r\n"), nil
 }
 
-func handleExpireAt(params types.HandlerFuncParams) ([]byte, error) {
+func handleExpireAt(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := expireKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -473,8 +472,8 @@ func handleExpireAt(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(":1\r\n"), nil
 }
 
-func Commands() []types.Command {
-	return []types.Command{
+func Commands() []internal.Command {
+	return []internal.Command{
 		{
 			Command:    "set",
 			Module:     constants.GenericModule,

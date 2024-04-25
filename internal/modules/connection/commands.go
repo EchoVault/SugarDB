@@ -17,11 +17,11 @@ package connection
 import (
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 )
 
-func handlePing(params types.HandlerFuncParams) ([]byte, error) {
+func handlePing(params internal.HandlerFuncParams) ([]byte, error) {
 	switch len(params.Command) {
 	default:
 		return nil, errors.New(constants.WrongArgsResponse)
@@ -32,16 +32,16 @@ func handlePing(params types.HandlerFuncParams) ([]byte, error) {
 	}
 }
 
-func Commands() []types.Command {
-	return []types.Command{
+func Commands() []internal.Command {
+	return []internal.Command{
 		{
 			Command:     "ping",
 			Module:      constants.ConnectionModule,
 			Categories:  []string{constants.FastCategory, constants.ConnectionCategory},
 			Description: "(PING [value]) Ping the echovault. If a value is provided, the value will be echoed.",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-				return types.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+				return internal.AccessKeys{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),

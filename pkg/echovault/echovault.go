@@ -39,7 +39,6 @@ import (
 	"github.com/echovault/echovault/internal/raft"
 	"github.com/echovault/echovault/internal/snapshot"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"io"
 	"log"
 	"net"
@@ -51,7 +50,8 @@ import (
 
 type EchoVault struct {
 	// clock is an implementation of a time interface that allows mocking of time functions during testing.
-	clock clock.Clock
+	clock    clock.Clock
+	getClock func() clock.Clock
 
 	// config holds the echovault configuration variables.
 	config config.Config
@@ -82,7 +82,8 @@ type EchoVault struct {
 	}
 
 	// Holds the list of all commands supported by the echovault.
-	commands []types.Command
+	commands    []internal.Command
+	getCommands func() []internal.Command
 
 	raft       *raft.Raft             // The raft replication layer for the echovault.
 	memberList *memberlist.MemberList // The memberlist layer for the echovault.
@@ -90,7 +91,10 @@ type EchoVault struct {
 	context context.Context
 
 	acl    *acl.ACL
-	pubSub *pubsub.PubSub
+	getACL func() interface{}
+
+	pubSub    *pubsub.PubSub
+	getPubSub func() interface{}
 
 	snapshotInProgress         atomic.Bool      // Atomic boolean that's true when actively taking a snapshot.
 	rewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
@@ -119,15 +123,6 @@ func WithConfig(config config.Config) func(echovault *EchoVault) {
 	}
 }
 
-// WithCommands is an options for the NewEchoVault function that allows you to pass a
-// list of commands that should be supported by your EchoVault instance.
-// If you don't pass this option, EchoVault will start with no commands loaded.
-func WithCommands(commands []types.Command) func(echovault *EchoVault) {
-	return func(echovault *EchoVault) {
-		echovault.commands = commands
-	}
-}
-
 // NewEchoVault creates a new EchoVault instance.
 // This functions accepts the WithContext, WithConfig and WithCommands options.
 func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
@@ -138,8 +133,8 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		store:           make(map[string]internal.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
-		commands: func() []types.Command {
-			var commands []types.Command
+		commands: func() []internal.Command {
+			var commands []internal.Command
 			commands = append(commands, acl.Commands()...)
 			commands = append(commands, admin.Commands()...)
 			commands = append(commands, generic.Commands()...)
@@ -163,11 +158,27 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		internal.ContextServerID(echovault.config.ServerID),
 	)
 
+	// Function for server commands retrieval
+	echovault.getCommands = func() []internal.Command {
+		return echovault.commands
+	}
+
+	// Function for clock retrieval
+	echovault.getClock = func() clock.Clock {
+		return echovault.clock
+	}
+
 	// Set up ACL module
 	echovault.acl = acl.NewACL(echovault.config)
+	echovault.getACL = func() interface{} {
+		return echovault.acl
+	}
 
 	// Set up Pub/Sub module
 	echovault.pubSub = pubsub.NewPubSub()
+	echovault.getPubSub = func() interface{} {
+		return echovault.pubSub
+	}
 
 	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{
@@ -208,7 +219,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			snapshot.WithStartSnapshotFunc(echovault.startSnapshot),
 			snapshot.WithFinishSnapshotFunc(echovault.finishSnapshot),
 			snapshot.WithSetLatestSnapshotTimeFunc(echovault.setLatestSnapshot),
-			snapshot.WithGetLatestSnapshotTimeFunc(echovault.GetLatestSnapshotTime),
+			snapshot.WithGetLatestSnapshotTimeFunc(echovault.getLatestSnapshotTime),
 			snapshot.WithGetStateFunc(func() map[string]internal.KeyData {
 				state := make(map[string]internal.KeyData)
 				for k, v := range echovault.getState() {
@@ -471,8 +482,8 @@ func (server *EchoVault) Start() {
 	server.startTCP()
 }
 
-// TakeSnapshot triggers a snapshot when called.
-func (server *EchoVault) TakeSnapshot() error {
+// takeSnapshot triggers a snapshot when called.
+func (server *EchoVault) takeSnapshot() error {
 	if server.snapshotInProgress.Load() {
 		return errors.New("snapshot already in progress")
 	}
@@ -494,11 +505,6 @@ func (server *EchoVault) TakeSnapshot() error {
 	return nil
 }
 
-// GetClock returns the server's clock implementation
-func (server *EchoVault) GetClock() clock.Clock {
-	return server.clock
-}
-
 func (server *EchoVault) startSnapshot() {
 	server.snapshotInProgress.Store(true)
 }
@@ -511,8 +517,8 @@ func (server *EchoVault) setLatestSnapshot(msec int64) {
 	server.latestSnapshotMilliseconds.Store(msec)
 }
 
-// GetLatestSnapshotTime returns the latest snapshot time in unix epoch milliseconds.
-func (server *EchoVault) GetLatestSnapshotTime() int64 {
+// getLatestSnapshotTime returns the latest snapshot time in unix epoch milliseconds.
+func (server *EchoVault) getLatestSnapshotTime() int64 {
 	return server.latestSnapshotMilliseconds.Load()
 }
 
@@ -524,8 +530,8 @@ func (server *EchoVault) finishRewriteAOF() {
 	server.rewriteAOFInProgress.Store(false)
 }
 
-// RewriteAOF triggers an AOF compaction when running in standalone mode.
-func (server *EchoVault) RewriteAOF() error {
+// rewriteAOF triggers an AOF compaction when running in standalone mode.
+func (server *EchoVault) rewriteAOF() error {
 	if server.rewriteAOFInProgress.Load() {
 		return errors.New("aof rewrite in progress")
 	}

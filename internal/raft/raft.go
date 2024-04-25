@@ -36,12 +36,12 @@ type Opts struct {
 	Config                config.Config
 	EchoVault             types.EchoVault
 	GetState              func() map[string]internal.KeyData
-	GetCommand            func(command string) (types.Command, error)
+	GetCommand            func(command string) (internal.Command, error)
 	DeleteKey             func(ctx context.Context, key string) error
 	StartSnapshot         func()
 	FinishSnapshot        func()
 	SetLatestSnapshotTime func(msec int64)
-	GetHandlerFuncParams  func(ctx context.Context, cmd []string, conn *net.Conn) types.HandlerFuncParams
+	GetHandlerFuncParams  func(ctx context.Context, cmd []string, conn *net.Conn) internal.HandlerFuncParams
 }
 
 type Raft struct {

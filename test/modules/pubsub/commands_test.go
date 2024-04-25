@@ -18,18 +18,20 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/modules/pubsub"
 	"github.com/echovault/echovault/pkg/constants"
 	"github.com/echovault/echovault/pkg/echovault"
-	"github.com/echovault/echovault/pkg/types"
 	"github.com/tidwall/resp"
 	"net"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 var ps *pubsub.PubSub
@@ -40,7 +42,9 @@ var port uint16 = 7490
 
 func init() {
 	mockServer = setUpServer(bindAddr, port)
-	ps = mockServer.GetPubSub().(*pubsub.PubSub)
+
+	getPubSub := getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getPubSub")).(func() interface{})
+	ps = getPubSub().(*pubsub.PubSub)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -63,11 +67,17 @@ func setUpServer(bindAddr string, port uint16) *echovault.EchoVault {
 	return server
 }
 
-func getHandler(commands ...string) types.HandlerFunc {
+func getUnexportedField(field reflect.Value) interface{} {
+	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
+}
+
+func getHandler(commands ...string) internal.HandlerFunc {
 	if len(commands) == 0 {
 		return nil
 	}
-	for _, c := range mockServer.GetAllCommands() {
+	getCommands :=
+		getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getCommands")).(func() []internal.Command)
+	for _, c := range getCommands() {
 		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
 			// Get command handler
 			return c.HandlerFunc
@@ -84,12 +94,14 @@ func getHandler(commands ...string) types.HandlerFunc {
 	return nil
 }
 
-func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn, mockServer *echovault.EchoVault) types.HandlerFuncParams {
-	return types.HandlerFuncParams{
+func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn, mockServer *echovault.EchoVault) internal.HandlerFuncParams {
+	getPubSub :=
+		getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getPubSub")).(func() interface{})
+	return internal.HandlerFuncParams{
 		Context:    ctx,
 		Command:    cmd,
 		Connection: conn,
-		GetPubSub:  mockServer.GetPubSub,
+		GetPubSub:  getPubSub,
 	}
 }
 

@@ -16,143 +16,143 @@ package hash
 
 import (
 	"errors"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 )
 
-func hsetKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hsetKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 4 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func hsetnxKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hsetnxKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 4 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func hgetKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hgetKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hstrlenKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hstrlenKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hvalsKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hvalsKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hrandfieldKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hrandfieldKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 2 || len(cmd) > 4 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
 	if len(cmd) == 2 {
-		return types.AccessKeys{
+		return internal.AccessKeys{
 			Channels:  make([]string, 0),
 			ReadKeys:  cmd[1:],
 			WriteKeys: make([]string, 0),
 		}, nil
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hlenKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hlenKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hkeysKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hkeysKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hincrbyKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hincrbyKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 4 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func hgetallKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hgetallKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hexistsKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hexistsKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 3 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hdelKeyFunc(cmd []string) (types.AccessKeys, error) {
+func hdelKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 3 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],

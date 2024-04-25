@@ -17,14 +17,14 @@ package admin
 import (
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"github.com/gobwas/glob"
 	"slices"
 	"strings"
 )
 
-func handleGetAllCommands(params types.HandlerFuncParams) ([]byte, error) {
+func handleGetAllCommands(params internal.HandlerFuncParams) ([]byte, error) {
 	commands := params.GetAllCommands()
 
 	res := ""
@@ -69,7 +69,7 @@ func handleGetAllCommands(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleCommandCount(params types.HandlerFuncParams) ([]byte, error) {
+func handleCommandCount(params internal.HandlerFuncParams) ([]byte, error) {
 	var count int
 
 	commands := params.GetAllCommands()
@@ -86,7 +86,7 @@ func handleCommandCount(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleCommandList(params types.HandlerFuncParams) ([]byte, error) {
+func handleCommandList(params internal.HandlerFuncParams) ([]byte, error) {
 	switch len(params.Command) {
 	case 2:
 		// Command is COMMAND LIST
@@ -185,20 +185,20 @@ func handleCommandList(params types.HandlerFuncParams) ([]byte, error) {
 	}
 }
 
-func handleCommandDocs(params types.HandlerFuncParams) ([]byte, error) {
+func handleCommandDocs(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte("*0\r\n"), nil
 }
 
-func Commands() []types.Command {
-	return []types.Command{
+func Commands() []internal.Command {
+	return []internal.Command{
 		{
 			Command:     "commands",
 			Module:      constants.AdminModule,
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory},
 			Description: "Get a list of all the commands in available on the echovault with categories and descriptions",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-				return types.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+				return internal.AccessKeys{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -212,22 +212,22 @@ func Commands() []types.Command {
 			Categories:  []string{},
 			Description: "Commands pertaining to echovault commands",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-				return types.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+				return internal.AccessKeys{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
 				}, nil
 			},
-			SubCommands: []types.SubCommand{
+			SubCommands: []internal.SubCommand{
 				{
 					Command:     "docs",
 					Module:      constants.AdminModule,
 					Categories:  []string{constants.SlowCategory, constants.ConnectionCategory},
 					Description: "Get command documentation",
 					Sync:        false,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -241,8 +241,8 @@ func Commands() []types.Command {
 					Categories:  []string{constants.SlowCategory},
 					Description: "Get the dumber of commands in the echovault",
 					Sync:        false,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -257,8 +257,8 @@ func Commands() []types.Command {
 					Description: `(COMMAND LIST [FILTERBY <ACLCAT category | PATTERN pattern | MODULE module>]) Get the list of command names.
 Allows for filtering by ACL category or glob pattern.`,
 					Sync: false,
-					KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-						return types.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+						return internal.AccessKeys{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -274,14 +274,14 @@ Allows for filtering by ACL category or glob pattern.`,
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(SAVE) Trigger a snapshot save",
 			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-				return types.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+				return internal.AccessKeys{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
 				}, nil
 			},
-			HandlerFunc: func(params types.HandlerFuncParams) ([]byte, error) {
+			HandlerFunc: func(params internal.HandlerFuncParams) ([]byte, error) {
 				if err := params.TakeSnapshot(); err != nil {
 					return nil, err
 				}
@@ -294,14 +294,14 @@ Allows for filtering by ACL category or glob pattern.`,
 			Categories:  []string{constants.AdminCategory, constants.FastCategory, constants.DangerousCategory},
 			Description: "(LASTSAVE) Get unix timestamp for the latest snapshot in milliseconds.",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-				return types.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+				return internal.AccessKeys{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
 				}, nil
 			},
-			HandlerFunc: func(params types.HandlerFuncParams) ([]byte, error) {
+			HandlerFunc: func(params internal.HandlerFuncParams) ([]byte, error) {
 				msec := params.GetLatestSnapshotTime()
 				if msec == 0 {
 					return nil, errors.New("no snapshot")
@@ -315,14 +315,14 @@ Allows for filtering by ACL category or glob pattern.`,
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(REWRITEAOF) Trigger re-writing of append process",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (types.AccessKeys, error) {
-				return types.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+				return internal.AccessKeys{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
 				}, nil
 			},
-			HandlerFunc: func(params types.HandlerFuncParams) ([]byte, error) {
+			HandlerFunc: func(params internal.HandlerFuncParams) ([]byte, error) {
 				if err := params.RewriteAOF(); err != nil {
 					return nil, err
 				}

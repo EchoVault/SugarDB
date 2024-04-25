@@ -19,12 +19,11 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 	"slices"
 	"strings"
 )
 
-func handleSADD(params types.HandlerFuncParams) ([]byte, error) {
+func handleSADD(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := saddKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -61,7 +60,7 @@ func handleSADD(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleSCARD(params types.HandlerFuncParams) ([]byte, error) {
+func handleSCARD(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := scardKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -88,7 +87,7 @@ func handleSCARD(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", cardinality)), nil
 }
 
-func handleSDIFF(params types.HandlerFuncParams) ([]byte, error) {
+func handleSDIFF(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := sdiffKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -149,7 +148,7 @@ func handleSDIFF(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleSDIFFSTORE(params types.HandlerFuncParams) ([]byte, error) {
+func handleSDIFFSTORE(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := sdiffstoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -225,7 +224,7 @@ func handleSDIFFSTORE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleSINTER(params types.HandlerFuncParams) ([]byte, error) {
+func handleSINTER(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := sinterKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -280,7 +279,7 @@ func handleSINTER(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleSINTERCARD(params types.HandlerFuncParams) ([]byte, error) {
+func handleSINTERCARD(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := sintercardKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -347,7 +346,7 @@ func handleSINTERCARD(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleSINTERSTORE(params types.HandlerFuncParams) ([]byte, error) {
+func handleSINTERSTORE(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := sinterstoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -405,7 +404,7 @@ func handleSINTERSTORE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", intersect.Cardinality())), nil
 }
 
-func handleSISMEMBER(params types.HandlerFuncParams) ([]byte, error) {
+func handleSISMEMBER(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := sismemberKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -434,7 +433,7 @@ func handleSISMEMBER(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(":1\r\n"), nil
 }
 
-func handleSMEMBERS(params types.HandlerFuncParams) ([]byte, error) {
+func handleSMEMBERS(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := smembersKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -469,7 +468,7 @@ func handleSMEMBERS(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleSMISMEMBER(params types.HandlerFuncParams) ([]byte, error) {
+func handleSMISMEMBER(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := smismemberKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -512,7 +511,7 @@ func handleSMISMEMBER(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleSMOVE(params types.HandlerFuncParams) ([]byte, error) {
+func handleSMOVE(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := smoveKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -565,7 +564,7 @@ func handleSMOVE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", res)), nil
 }
 
-func handleSPOP(params types.HandlerFuncParams) ([]byte, error) {
+func handleSPOP(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := spopKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -609,7 +608,7 @@ func handleSPOP(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleSRANDMEMBER(params types.HandlerFuncParams) ([]byte, error) {
+func handleSRANDMEMBER(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := srandmemberKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -653,7 +652,7 @@ func handleSRANDMEMBER(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleSREM(params types.HandlerFuncParams) ([]byte, error) {
+func handleSREM(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := sremKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -681,7 +680,7 @@ func handleSREM(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
-func handleSUNION(params types.HandlerFuncParams) ([]byte, error) {
+func handleSUNION(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := sunionKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -732,7 +731,7 @@ func handleSUNION(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleSUNIONSTORE(params types.HandlerFuncParams) ([]byte, error) {
+func handleSUNIONSTORE(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := sunionstoreKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -791,8 +790,8 @@ func handleSUNIONSTORE(params types.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", union.Cardinality())), nil
 }
 
-func Commands() []types.Command {
-	return []types.Command{
+func Commands() []internal.Command {
+	return []internal.Command{
 		{
 			Command:           "sadd",
 			Module:            constants.SetModule,

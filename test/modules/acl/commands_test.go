@@ -23,10 +23,12 @@ import (
 	"github.com/echovault/echovault/pkg/echovault"
 	"github.com/tidwall/resp"
 	"net"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
+	"unsafe"
 )
 
 var bindAddr string
@@ -64,10 +66,20 @@ func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig strin
 	)
 
 	// Add the initial test users to the ACL module
-	a := mockServer.GetACL().(*acl.ACL)
+	a := getACL(mockServer)
 	a.AddUsers(generateInitialTestUsers())
 
 	return mockServer
+}
+
+func getUnexportedField(field reflect.Value) interface{} {
+	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
+}
+
+func getACL(mockServer *echovault.EchoVault) *acl.ACL {
+	method := getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getACL"))
+	f := method.(func() interface{})
+	return f().(*acl.ACL)
 }
 
 func generateInitialTestUsers() []*acl.User {
@@ -459,10 +471,7 @@ func Test_HandleSetUser(t *testing.T) {
 	}()
 	wg.Wait()
 
-	a, ok := mockServer.GetACL().(*acl.ACL)
-	if !ok {
-		t.Error("error loading ACL module")
-	}
+	a := getACL(mockServer)
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 	if err != nil {
@@ -1055,7 +1064,7 @@ func Test_HandleGetUser(t *testing.T) {
 	}()
 	wg.Wait()
 
-	a, _ := mockServer.GetACL().(*acl.ACL)
+	a := getACL(mockServer)
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 	if err != nil {
@@ -1208,7 +1217,7 @@ func Test_HandleDelUser(t *testing.T) {
 	}()
 	wg.Wait()
 
-	a, _ := mockServer.GetACL().(*acl.ACL)
+	a := getACL(mockServer)
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 	if err != nil {
@@ -1358,7 +1367,7 @@ func Test_HandleList(t *testing.T) {
 	}()
 	wg.Wait()
 
-	a, _ := mockServer.GetACL().(*acl.ACL)
+	a := getACL(mockServer)
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 	if err != nil {

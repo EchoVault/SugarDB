@@ -16,24 +16,24 @@ package generic
 
 import (
 	"errors"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/types"
 )
 
-func setKeyFunc(cmd []string) (types.AccessKeys, error) {
+func setKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 3 || len(cmd) > 7 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func msetKeyFunc(cmd []string) (types.AccessKeys, error) {
+func msetKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd[1:])%2 != 0 {
-		return types.AccessKeys{}, errors.New("each key must be paired with a value")
+		return internal.AccessKeys{}, errors.New("each key must be paired with a value")
 	}
 	var keys []string
 	for i, key := range cmd[1:] {
@@ -41,95 +41,95 @@ func msetKeyFunc(cmd []string) (types.AccessKeys, error) {
 			keys = append(keys, key)
 		}
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: keys,
 	}, nil
 }
 
-func getKeyFunc(cmd []string) (types.AccessKeys, error) {
+func getKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func mgetKeyFunc(cmd []string) (types.AccessKeys, error) {
+func mgetKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func delKeyFunc(cmd []string) (types.AccessKeys, error) {
+func delKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:],
 	}, nil
 }
 
-func persistKeyFunc(cmd []string) (types.AccessKeys, error) {
+func persistKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:],
 	}, nil
 }
 
-func expireTimeKeyFunc(cmd []string) (types.AccessKeys, error) {
+func expireTimeKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func ttlKeyFunc(cmd []string) (types.AccessKeys, error) {
+func ttlKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) != 2 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func expireKeyFunc(cmd []string) (types.AccessKeys, error) {
+func expireKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 3 || len(cmd) > 4 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func expireAtKeyFunc(cmd []string) (types.AccessKeys, error) {
+func expireAtKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	if len(cmd) < 3 || len(cmd) > 4 {
-		return types.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
 	}
-	return types.AccessKeys{
+	return internal.AccessKeys{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
