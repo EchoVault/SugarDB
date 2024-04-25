@@ -18,7 +18,6 @@ import (
 	"context"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/commands"
 	"github.com/echovault/echovault/pkg/echovault"
 	"log"
 	"os"
@@ -49,7 +48,6 @@ func main() {
 	server, err := echovault.NewEchoVault(
 		echovault.WithContext(ctx),
 		echovault.WithConfig(conf),
-		echovault.WithCommands(commands.All()),
 	)
 
 	if err != nil {

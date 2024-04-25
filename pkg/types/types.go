@@ -16,8 +16,6 @@ package types
 
 import (
 	"context"
-	"github.com/echovault/echovault/internal/clock"
-	"net"
 	"time"
 )
 
@@ -32,50 +30,6 @@ type EchoVault interface {
 	SetValue(ctx context.Context, key string, value interface{}) error
 	GetExpiry(ctx context.Context, key string) time.Time
 	SetExpiry(ctx context.Context, key string, expire time.Time, touch bool)
-	RemoveExpiry(key string)
+	RemoveExpiry(ctx context.Context, key string)
 	DeleteKey(ctx context.Context, key string) error
-	GetClock() clock.Clock
-	GetAllCommands() []Command
-	GetACL() interface{}
-	GetPubSub() interface{}
-	TakeSnapshot() error
-	RewriteAOF() error
-	GetLatestSnapshotTime() int64
 }
-
-type AccessKeys struct {
-	Channels  []string
-	ReadKeys  []string
-	WriteKeys []string
-}
-type KeyExtractionFunc func(cmd []string) (AccessKeys, error)
-
-type HandlerFunc func(ctx context.Context, cmd []string, echovault EchoVault, conn *net.Conn) ([]byte, error)
-
-type SubCommand struct {
-	Command     string
-	Module      string
-	Categories  []string
-	Description string
-	Sync        bool // Specifies if sub-command should be synced across cluster
-	KeyExtractionFunc
-	HandlerFunc
-}
-
-type Command struct {
-	Command     string
-	Module      string
-	Categories  []string
-	Description string
-	SubCommands []SubCommand
-	Sync        bool // Specifies if command should be synced across cluster
-	KeyExtractionFunc
-	HandlerFunc
-}
-
-type ACL interface {
-	RegisterConnection(conn *net.Conn)
-	AuthorizeConnection(conn *net.Conn, cmd []string, command Command, subCommand SubCommand) error
-}
-
-type PubSub interface{}
