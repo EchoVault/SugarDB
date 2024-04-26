@@ -34,7 +34,7 @@ type CommandListOptions struct {
 	MODULE  string
 }
 
-// TODO: Add description for CommandOptions type
+// TODO: Write godoc comment for CommandOptions type
 type CommandOptions struct {
 	Command           string
 	Module            string
@@ -110,7 +110,7 @@ func (server *EchoVault) REWRITEAOF() (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
-// TODO: Add description for ADD_COMMAND method
+// TODO: Write godoc comment for ADD_COMMAND method
 func (server *EchoVault) ADD_COMMAND(command CommandOptions) error {
 	// Check if commands already exists
 	for _, c := range server.commands {
@@ -163,4 +163,9 @@ func (server *EchoVault) ADD_COMMAND(command CommandOptions) error {
 		}),
 	})
 	return nil
+}
+
+// TODO: Write godoc comment for EXECUTE_COMMAND method
+func (server *EchoVault) EXECUTE_COMMAND(command []string) ([]byte, error) {
+	return server.handleCommand(server.context, internal.EncodeCommand(command), nil, false, true)
 }
