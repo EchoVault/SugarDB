@@ -16,6 +16,7 @@ package types
 
 import (
 	"context"
+	"net"
 	"time"
 )
 
@@ -32,4 +33,29 @@ type EchoVault interface {
 	SetExpiry(ctx context.Context, key string, expire time.Time, touch bool)
 	RemoveExpiry(ctx context.Context, key string)
 	DeleteKey(ctx context.Context, key string) error
+}
+
+type PluginAccessKeys struct {
+	ReadKeys  []string
+	WriteKeys []string
+}
+type PluginKeyExtractionFunc func(cmd []string) (PluginAccessKeys, error)
+
+type PluginHandlerFunc func(params PluginHandlerFuncParams) ([]byte, error)
+type PluginHandlerFuncParams struct {
+	Context          context.Context
+	Command          []string
+	Connection       *net.Conn
+	KeyLock          func(ctx context.Context, key string) (bool, error)
+	KeyUnlock        func(ctx context.Context, key string)
+	KeyRLock         func(ctx context.Context, key string) (bool, error)
+	KeyRUnlock       func(ctx context.Context, key string)
+	KeyExists        func(ctx context.Context, key string) bool
+	CreateKeyAndLock func(ctx context.Context, key string) (bool, error)
+	GetValue         func(ctx context.Context, key string) interface{}
+	SetValue         func(ctx context.Context, key string, value interface{}) error
+	GetExpiry        func(ctx context.Context, key string) time.Time
+	SetExpiry        func(ctx context.Context, key string, expire time.Time, touch bool)
+	RemoveExpiry     func(ctx context.Context, key string)
+	DeleteKey        func(ctx context.Context, key string) error
 }

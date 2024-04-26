@@ -14,7 +14,12 @@
 
 package echovault
 
-import "github.com/echovault/echovault/internal"
+import (
+	"fmt"
+	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/pkg/types"
+	"strings"
+)
 
 // CommandListOptions modifies the result from the COMMAND_LIST command.
 //
@@ -27,6 +32,17 @@ type CommandListOptions struct {
 	ACLCAT  string
 	PATTERN string
 	MODULE  string
+}
+
+// TODO: Add description for CommandOptions type
+type CommandOptions struct {
+	Command           string
+	Module            string
+	Categories        []string
+	Description       string
+	Sync              bool
+	KeyExtractionFunc types.PluginKeyExtractionFunc
+	HandlerFunc       types.PluginHandlerFunc
 }
 
 // COMMAND_LIST returns the list of commands currently loaded in the EchoVault instance.
@@ -92,4 +108,59 @@ func (server *EchoVault) REWRITEAOF() (string, error) {
 		return "", err
 	}
 	return internal.ParseStringResponse(b)
+}
+
+// TODO: Add description for ADD_COMMAND method
+func (server *EchoVault) ADD_COMMAND(command CommandOptions) error {
+	// Check if commands already exists
+	for _, c := range server.commands {
+		if strings.EqualFold(c.Command, command.Command) {
+			return fmt.Errorf("command %s already exists", command.Command)
+		}
+	}
+	server.commands = append(server.commands, internal.Command{
+		Command: command.Command,
+		Module:  strings.ToLower(command.Module), // Convert module to lower case for uniformity
+		Categories: func() []string {
+			// Convert all the categories to lower case for uniformity
+			cats := make([]string, len(command.Categories))
+			for i, cat := range command.Categories {
+				cats[i] = strings.ToLower(cat)
+			}
+			return cats
+		}(),
+		Description: command.Description,
+		Sync:        command.Sync,
+		KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.AccessKeys, error) {
+			accessKeys, err := command.KeyExtractionFunc(cmd)
+			if err != nil {
+				return internal.AccessKeys{}, err
+			}
+			return internal.AccessKeys{
+				Channels:  []string{},
+				ReadKeys:  accessKeys.ReadKeys,
+				WriteKeys: accessKeys.WriteKeys,
+			}, nil
+		}),
+		HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
+			return command.HandlerFunc(types.PluginHandlerFuncParams{
+				Context:          params.Context,
+				Command:          params.Command,
+				Connection:       params.Connection,
+				KeyLock:          params.KeyLock,
+				KeyUnlock:        params.KeyUnlock,
+				KeyRLock:         params.KeyRLock,
+				KeyRUnlock:       params.KeyRUnlock,
+				KeyExists:        params.KeyExists,
+				CreateKeyAndLock: params.CreateKeyAndLock,
+				GetValue:         params.GetValue,
+				SetValue:         params.SetValue,
+				GetExpiry:        params.GetExpiry,
+				SetExpiry:        params.SetExpiry,
+				RemoveExpiry:     params.RemoveExpiry,
+				DeleteKey:        params.DeleteKey,
+			})
+		}),
+	})
+	return nil
 }

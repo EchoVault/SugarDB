@@ -21,7 +21,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
+      # - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
       - PASSWORD=password1
       - FORWARD_COMMAND=false
@@ -44,7 +44,7 @@ services:
       - "7946:7946"
       - "7999:8000"
     volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
+      - ./volumes/config/acl.yml:/etc/config/echovault/acl.yml
       - ./volumes/standalone_node:/var/lib/echovault
     networks:
       - testnet
@@ -65,7 +65,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=true
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
+      # - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
       - FORWARD_COMMAND=true
       - SNAPSHOT_THRESHOLD=1000
@@ -87,7 +87,7 @@ services:
       - "7945:7946"
       - "8000:8000"
     volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
+      - ./volumes/config/acl.yml:/etc/config/echovault/acl.yml
       - ./volumes/cluster_node_1:/var/lib/echovault
     networks:
       - testnet
@@ -108,7 +108,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
+      # - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
       - FORWARD_COMMAND=true
       - SNAPSHOT_THRESHOLD=1000
@@ -130,7 +130,7 @@ services:
       - "7947:7946"
       - "8001:8000"
     volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
+      - ./volumes/config/acl.yml:/etc/config/echovault/acl.yml
       - ./volumes/cluster_node_2:/var/lib/echovault
     networks:
       - testnet
@@ -151,7 +151,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
+      # - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
       - FORWARD_COMMAND=true
       - SNAPSHOT_THRESHOLD=1000
@@ -173,7 +173,7 @@ services:
       - "7948:7946"
       - "8002:8000"
     volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
+      - ./volumes/config/acl.yml:/etc/config/echovault/acl.yml
       - ./volumes/cluster_node_3:/var/lib/echovault
     networks:
       - testnet
@@ -194,7 +194,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
+      # - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
       - FORWARD_COMMAND=true
       - SNAPSHOT_THRESHOLD=1000
@@ -216,7 +216,7 @@ services:
       - "7949:7946"
       - "8003:8000"
     volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
+      - ./volumes/config/acl.yml:/etc/config/echovault/acl.yml
       - ./volumes/cluster_node_4:/var/lib/echovault
     networks:
       - testnet
@@ -237,7 +237,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
-      - ACL_CONFIG=/etc/config/echovault/acl.yml
+      # - ACL_CONFIG=/etc/config/echovault/acl.yml
       - REQUIRE_PASS=false
       - FORWARD_COMMAND=true
       - SNAPSHOT_THRESHOLD=1000
@@ -259,7 +259,7 @@ services:
       - "7950:7946"
       - "8004:8000"
     volumes:
-      - ./config/acl.yml:/etc/config/echovault/acl.yml
+      - ./volumes/config/acl.yml:/etc/config/echovault/acl.yml
       - ./volumes/cluster_node_5:/var/lib/echovault
     networks:
       - testnet
