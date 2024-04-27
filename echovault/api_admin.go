@@ -41,6 +41,18 @@ type CommandOptions struct {
 	Module            string
 	Categories        []string
 	Description       string
+	SubCommand        []SubCommandOptions
+	Sync              bool
+	KeyExtractionFunc types.PluginKeyExtractionFunc
+	HandlerFunc       types.PluginHandlerFunc
+}
+
+// TODO: Write godoc comment for SubCommandOptions type
+type SubCommandOptions struct {
+	Command           string
+	Module            string
+	Categories        []string
+	Description       string
 	Sync              bool
 	KeyExtractionFunc types.PluginKeyExtractionFunc
 	HandlerFunc       types.PluginHandlerFunc
@@ -119,50 +131,124 @@ func (server *EchoVault) ADD_COMMAND(command CommandOptions) error {
 			return fmt.Errorf("command %s already exists", command.Command)
 		}
 	}
-	server.commands = append(server.commands, internal.Command{
+
+	if command.SubCommand == nil || len(command.SubCommand) == 0 {
+		// Add command with no subcommands
+		server.commands = append(server.commands, internal.Command{
+			Command: command.Command,
+			Module:  strings.ToLower(command.Module), // Convert module to lower case for uniformity
+			Categories: func() []string {
+				// Convert all the categories to lower case for uniformity
+				cats := make([]string, len(command.Categories))
+				for i, cat := range command.Categories {
+					cats[i] = strings.ToLower(cat)
+				}
+				return cats
+			}(),
+			Description: command.Description,
+			Sync:        command.Sync,
+			KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.AccessKeys, error) {
+				accessKeys, err := command.KeyExtractionFunc(cmd)
+				if err != nil {
+					return internal.AccessKeys{}, err
+				}
+				return internal.AccessKeys{
+					Channels:  []string{},
+					ReadKeys:  accessKeys.ReadKeys,
+					WriteKeys: accessKeys.WriteKeys,
+				}, nil
+			}),
+			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
+				return command.HandlerFunc(types.PluginHandlerFuncParams{
+					Context:          params.Context,
+					Command:          params.Command,
+					Connection:       params.Connection,
+					KeyLock:          params.KeyLock,
+					KeyUnlock:        params.KeyUnlock,
+					KeyRLock:         params.KeyRLock,
+					KeyRUnlock:       params.KeyRUnlock,
+					KeyExists:        params.KeyExists,
+					CreateKeyAndLock: params.CreateKeyAndLock,
+					GetValue:         params.GetValue,
+					SetValue:         params.SetValue,
+					GetExpiry:        params.GetExpiry,
+					SetExpiry:        params.SetExpiry,
+					RemoveExpiry:     params.RemoveExpiry,
+					DeleteKey:        params.DeleteKey,
+				})
+			}),
+		})
+		return nil
+	}
+
+	// Add command with subcommands
+	newCommand := internal.Command{
 		Command: command.Command,
-		Module:  strings.ToLower(command.Module), // Convert module to lower case for uniformity
+		Module:  command.Module,
 		Categories: func() []string {
 			// Convert all the categories to lower case for uniformity
 			cats := make([]string, len(command.Categories))
-			for i, cat := range command.Categories {
-				cats[i] = strings.ToLower(cat)
+			for j, cat := range command.Categories {
+				cats[j] = strings.ToLower(cat)
 			}
 			return cats
 		}(),
-		Description: command.Description,
-		Sync:        command.Sync,
-		KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.AccessKeys, error) {
-			accessKeys, err := command.KeyExtractionFunc(cmd)
-			if err != nil {
-				return internal.AccessKeys{}, err
-			}
-			return internal.AccessKeys{
-				Channels:  []string{},
-				ReadKeys:  accessKeys.ReadKeys,
-				WriteKeys: accessKeys.WriteKeys,
-			}, nil
-		}),
-		HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
-			return command.HandlerFunc(types.PluginHandlerFuncParams{
-				Context:          params.Context,
-				Command:          params.Command,
-				Connection:       params.Connection,
-				KeyLock:          params.KeyLock,
-				KeyUnlock:        params.KeyUnlock,
-				KeyRLock:         params.KeyRLock,
-				KeyRUnlock:       params.KeyRUnlock,
-				KeyExists:        params.KeyExists,
-				CreateKeyAndLock: params.CreateKeyAndLock,
-				GetValue:         params.GetValue,
-				SetValue:         params.SetValue,
-				GetExpiry:        params.GetExpiry,
-				SetExpiry:        params.SetExpiry,
-				RemoveExpiry:     params.RemoveExpiry,
-				DeleteKey:        params.DeleteKey,
-			})
-		}),
-	})
+		Description:       command.Description,
+		Sync:              command.Sync,
+		KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) { return internal.AccessKeys{}, nil },
+		HandlerFunc:       func(param internal.HandlerFuncParams) ([]byte, error) { return nil, nil },
+		SubCommands:       make([]internal.SubCommand, len(command.SubCommand)),
+	}
+
+	for i, sc := range command.SubCommand {
+		newCommand.SubCommands[i] = internal.SubCommand{
+			Command: sc.Command,
+			Module:  strings.ToLower(command.Module),
+			Categories: func() []string {
+				// Convert all the categories to lower case for uniformity
+				cats := make([]string, len(sc.Categories))
+				for j, cat := range sc.Categories {
+					cats[j] = strings.ToLower(cat)
+				}
+				return cats
+			}(),
+			Description: sc.Description,
+			Sync:        sc.Sync,
+			KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.AccessKeys, error) {
+				accessKeys, err := sc.KeyExtractionFunc(cmd)
+				if err != nil {
+					return internal.AccessKeys{}, err
+				}
+				return internal.AccessKeys{
+					Channels:  []string{},
+					ReadKeys:  accessKeys.ReadKeys,
+					WriteKeys: accessKeys.WriteKeys,
+				}, nil
+			}),
+			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
+				return sc.HandlerFunc(types.PluginHandlerFuncParams{
+					Context:          params.Context,
+					Command:          params.Command,
+					Connection:       params.Connection,
+					KeyLock:          params.KeyLock,
+					KeyUnlock:        params.KeyUnlock,
+					KeyRLock:         params.KeyRLock,
+					KeyRUnlock:       params.KeyRUnlock,
+					KeyExists:        params.KeyExists,
+					CreateKeyAndLock: params.CreateKeyAndLock,
+					GetValue:         params.GetValue,
+					SetValue:         params.SetValue,
+					GetExpiry:        params.GetExpiry,
+					SetExpiry:        params.SetExpiry,
+					RemoveExpiry:     params.RemoveExpiry,
+					DeleteKey:        params.DeleteKey,
+				})
+			}),
+		}
+	}
+
+	server.commands = append(server.commands, newCommand)
+
 	return nil
 }
 
