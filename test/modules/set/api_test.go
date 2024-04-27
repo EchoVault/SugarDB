@@ -89,7 +89,7 @@ func TestEchoVault_SADD(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.SADD(tt.key, tt.members...)
+			got, err := server.SAdd(tt.key, tt.members...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SADD() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -142,7 +142,7 @@ func TestEchoVault_SCARD(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.SCARD(tt.key)
+			got, err := server.SCard(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SCARD() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -229,7 +229,7 @@ func TestEchoVault_SDIFF(t *testing.T) {
 					}
 				}
 			}
-			got, err := server.SDIFF(tt.keys...)
+			got, err := server.SDiff(tt.keys...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SDIFF() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -327,7 +327,7 @@ func TestEchoVault_SDIFFSTORE(t *testing.T) {
 					}
 				}
 			}
-			got, err := server.SDIFFSTORE(tt.destination, tt.keys...)
+			got, err := server.SDiffStore(tt.destination, tt.keys...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SDIFFSTORE() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -414,7 +414,7 @@ func TestEchoVault_SINTER(t *testing.T) {
 					}
 				}
 			}
-			got, err := server.SINTER(tt.keys...)
+			got, err := server.SInter(tt.keys...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SINTER() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -523,7 +523,7 @@ func TestEchoVault_SINTERCARD(t *testing.T) {
 					}
 				}
 			}
-			got, err := server.SINTERCARD(tt.keys, tt.limit)
+			got, err := server.SInterCard(tt.keys, tt.limit)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SINTERCARD() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -616,7 +616,7 @@ func TestEchoVault_SINTERSTORE(t *testing.T) {
 					}
 				}
 			}
-			got, err := server.SINTERSTORE(tt.destination, tt.keys...)
+			got, err := server.SInterStore(tt.destination, tt.keys...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SINTERSTORE() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -673,7 +673,7 @@ func TestEchoVault_SISMEMBER(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.SISMEMBER(tt.key, tt.member)
+			got, err := server.SisMember(tt.key, tt.member)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SISMEMBER() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -726,7 +726,7 @@ func TestEchoVault_SMEMBERS(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.SMEMBERS(tt.key)
+			got, err := server.SMembers(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SMEMBERS() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -807,7 +807,7 @@ func TestEchoVault_SMISMEMBER(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.SMISMEMBER(tt.key, tt.members...)
+			got, err := server.SMisMember(tt.key, tt.members...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SMISMEMBER() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -891,7 +891,7 @@ func TestEchoVault_SMOVE(t *testing.T) {
 					}
 				}
 			}
-			got, err := server.SMOVE(tt.source, tt.destination, tt.member)
+			got, err := server.SMove(tt.source, tt.destination, tt.member)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SMOVE() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -940,7 +940,7 @@ func TestEchoVault_SPOP(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.SPOP(tt.key, tt.count)
+			got, err := server.SPop(tt.key, tt.count)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SPOP() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1003,7 +1003,7 @@ func TestEchoVault_SRANDMEMBER(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.SRANDMEMBER(tt.key, tt.count)
+			got, err := server.SRandMember(tt.key, tt.count)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SRANDMEMBER() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1066,7 +1066,7 @@ func TestEchoVault_SREM(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.SREM(tt.key, tt.members...)
+			got, err := server.SRem(tt.key, tt.members...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SREM() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1146,7 +1146,7 @@ func TestEchoVault_SUNION(t *testing.T) {
 					}
 				}
 			}
-			got, err := server.SUNION(tt.keys...)
+			got, err := server.SUnion(tt.keys...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SUNION() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1221,7 +1221,7 @@ func TestEchoVault_SUNIONSTORE(t *testing.T) {
 					}
 				}
 			}
-			got, err := server.SUNIONSTORE(tt.destination, tt.keys...)
+			got, err := server.SUnionStore(tt.destination, tt.keys...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SUNIONSTORE() error = %v, wantErr %v", err, tt.wantErr)
 				return

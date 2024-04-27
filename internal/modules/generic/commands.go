@@ -46,7 +46,7 @@ func handleSet(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 
-	// If GET is provided, the response should be the current stored value.
+	// If Get is provided, the response should be the current stored value.
 	// If there's no current value, then the response should be nil.
 	if options.get {
 		if !params.KeyExists(params.Context, key) {

@@ -480,7 +480,7 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 // Start starts the EchoVault instance's TCP listener.
 // This allows the instance to accept connections handle client commands over TCP.
 //
-// You can still use command functions like echovault.SET if you're embedding EchoVault in you application.
+// You can still use command functions like echovault.Set if you're embedding EchoVault in your application.
 // However, if you'd like to also accept TCP request on the same instance, you must call this function.
 func (server *EchoVault) Start() {
 	server.startTCP()

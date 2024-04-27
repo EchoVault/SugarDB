@@ -87,7 +87,7 @@ func TestEchoVault_LLEN(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.LLEN(tt.key)
+			got, err := server.LLen(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LLEN() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -175,7 +175,7 @@ func TestEchoVault_LINDEX(t *testing.T) {
 			}
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := server.LINDEX(tt.key, tt.index)
+			got, err := server.LIndex(tt.key, tt.index)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LINDEX() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -345,7 +345,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 					}
 				}
 			}
-			got, err := server.LMOVE(tt.source, tt.destination, tt.whereFrom, tt.whereTo)
+			got, err := server.LMove(tt.source, tt.destination, tt.whereFrom, tt.whereTo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LMOVE() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -374,7 +374,7 @@ func TestEchoVault_POP(t *testing.T) {
 			preset:      true,
 			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
 			key:         "key1",
-			popFunc:     server.LPOP,
+			popFunc:     server.LPop,
 			want:        "value1",
 			wantErr:     false,
 		},
@@ -383,7 +383,7 @@ func TestEchoVault_POP(t *testing.T) {
 			preset:      true,
 			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
 			key:         "key2",
-			popFunc:     server.RPOP,
+			popFunc:     server.RPop,
 			want:        "value4",
 			wantErr:     false,
 		},
@@ -392,7 +392,7 @@ func TestEchoVault_POP(t *testing.T) {
 			preset:      true,
 			key:         "key3",
 			presetValue: "Default value",
-			popFunc:     server.LPOP,
+			popFunc:     server.LPop,
 			want:        "",
 			wantErr:     true,
 		},
@@ -401,7 +401,7 @@ func TestEchoVault_POP(t *testing.T) {
 			preset:      true,
 			presetValue: "Default value",
 			key:         "key6",
-			popFunc:     server.RPOP,
+			popFunc:     server.RPop,
 			want:        "",
 			wantErr:     true,
 		},
@@ -446,7 +446,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			presetValue: []interface{}{"1", "2", "4", "5"},
 			key:         "key1",
 			values:      []string{"value1", "value2"},
-			lpushFunc:   server.LPUSHX,
+			lpushFunc:   server.LPushX,
 			want:        "OK",
 			wantErr:     false,
 		},
@@ -456,7 +456,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			presetValue: []interface{}{"1", "2", "4", "5"},
 			key:         "key2",
 			values:      []string{"value1", "value2"},
-			lpushFunc:   server.LPUSH,
+			lpushFunc:   server.LPush,
 			want:        "OK",
 			wantErr:     false,
 		},
@@ -466,7 +466,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			presetValue: nil,
 			key:         "key3",
 			values:      []string{"value1", "value2"},
-			lpushFunc:   server.LPUSH,
+			lpushFunc:   server.LPush,
 			want:        "OK",
 			wantErr:     false,
 		},
@@ -476,7 +476,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			presetValue: nil,
 			key:         "key4",
 			values:      []string{"value1", "value2"},
-			lpushFunc:   server.LPUSHX,
+			lpushFunc:   server.LPushX,
 			want:        "",
 			wantErr:     true,
 		},
@@ -521,7 +521,7 @@ func TestEchoVault_RPUSH(t *testing.T) {
 			presetValue: nil,
 			key:         "key1",
 			values:      []string{"value1", "value2"},
-			rpushFunc:   server.RPUSH,
+			rpushFunc:   server.RPush,
 			want:        "OK",
 			wantErr:     false,
 		},
@@ -531,7 +531,7 @@ func TestEchoVault_RPUSH(t *testing.T) {
 			presetValue: nil,
 			key:         "key2",
 			values:      []string{"value1", "value2"},
-			rpushFunc:   server.RPUSHX,
+			rpushFunc:   server.RPushX,
 			want:        "",
 			wantErr:     true,
 		},
@@ -664,7 +664,7 @@ func TestEchoVault_LRANGE(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.LRANGE(tt.key, tt.start, tt.end)
+			got, err := server.LRange(tt.key, tt.start, tt.end)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LRANGE() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -729,7 +729,7 @@ func TestEchoVault_LREM(t *testing.T) {
 			}
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := server.LREM(tt.key, tt.count, tt.value)
+			got, err := server.LRem(tt.key, tt.count, tt.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LREM() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -834,7 +834,7 @@ func TestEchoVault_LSET(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.LSET(tt.key, tt.index, tt.value)
+			got, err := server.LSet(tt.key, tt.index, tt.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LSET() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -942,7 +942,7 @@ func TestEchoVault_LTRIM(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.LTRIM(tt.key, tt.start, tt.end)
+			got, err := server.LTrim(tt.key, tt.start, tt.end)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LTRIM() error = %v, wantErr %v", err, tt.wantErr)
 				return

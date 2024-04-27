@@ -57,7 +57,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 		{
 			name:        "Return substring within the range of the string",
 			key:         "key1",
-			substrFunc:  server.SUBSTR,
+			substrFunc:  server.SubStr,
 			presetValue: "Test String One",
 			start:       5,
 			end:         10,
@@ -67,7 +67,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 		{
 			name:        "Return substring at the end of the string with exact end index",
 			key:         "key2",
-			substrFunc:  server.SUBSTR,
+			substrFunc:  server.SubStr,
 			presetValue: "Test String Two",
 			start:       12,
 			end:         14,
@@ -77,7 +77,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 		{
 			name:        "Return substring at the end of the string with end index greater than length",
 			key:         "key3",
-			substrFunc:  server.SUBSTR,
+			substrFunc:  server.SubStr,
 			presetValue: "Test String Three",
 			start:       12,
 			end:         75,
@@ -86,7 +86,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 		{
 			name:        "Return the substring at the start of the string with 0 start index",
 			key:         "key4",
-			substrFunc:  server.SUBSTR,
+			substrFunc:  server.SubStr,
 			presetValue: "Test String Four",
 			start:       0,
 			end:         3,
@@ -98,7 +98,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 			// Substring should begin abs(start) from the end of the string when start is negative.
 			name:        "Return the substring with negative start index",
 			key:         "key5",
-			substrFunc:  server.SUBSTR,
+			substrFunc:  server.SubStr,
 			presetValue: "Test String Five",
 			start:       -11,
 			end:         10,
@@ -110,7 +110,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 			// When end index is smaller than start index, the 2 indices are reversed.
 			name:        "Return reverse substring with end index smaller than start index",
 			key:         "key6",
-			substrFunc:  server.SUBSTR,
+			substrFunc:  server.SubStr,
 			presetValue: "Test String Six",
 			start:       4,
 			end:         0,
@@ -119,7 +119,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 		{
 			name:        "Return substring within the range of the string",
 			key:         "key7",
-			substrFunc:  server.GETRANGE,
+			substrFunc:  server.GetRange,
 			presetValue: "Test String One",
 			start:       5,
 			end:         10,
@@ -129,7 +129,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 		{
 			name:        "Return substring at the end of the string with exact end index",
 			key:         "key8",
-			substrFunc:  server.GETRANGE,
+			substrFunc:  server.GetRange,
 			presetValue: "Test String Two",
 			start:       12,
 			end:         14,
@@ -139,7 +139,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 		{
 			name:        "Return substring at the end of the string with end index greater than length",
 			key:         "key9",
-			substrFunc:  server.GETRANGE,
+			substrFunc:  server.GetRange,
 			presetValue: "Test String Three",
 			start:       12,
 			end:         75,
@@ -148,7 +148,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 		{
 			name:        "Return the substring at the start of the string with 0 start index",
 			key:         "key10",
-			substrFunc:  server.GETRANGE,
+			substrFunc:  server.GetRange,
 			presetValue: "Test String Four",
 			start:       0,
 			end:         3,
@@ -160,7 +160,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 			// Substring should begin abs(start) from the end of the string when start is negative.
 			name:        "Return the substring with negative start index",
 			key:         "key11",
-			substrFunc:  server.GETRANGE,
+			substrFunc:  server.GetRange,
 			presetValue: "Test String Five",
 			start:       -11,
 			end:         10,
@@ -172,7 +172,7 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 			// When end index is smaller than start index, the 2 indices are reversed.
 			name:        "Return reverse substring with end index smaller than start index",
 			key:         "key12",
-			substrFunc:  server.GETRANGE,
+			substrFunc:  server.GetRange,
 			presetValue: "Test String Six",
 			start:       4,
 			end:         0,
@@ -276,7 +276,7 @@ func TestEchoVault_SETRANGE(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.SETRANGE(tt.key, tt.offset, tt.new)
+			got, err := server.SetRange(tt.key, tt.offset, tt.new)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SETRANGE() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -322,7 +322,7 @@ func TestEchoVault_STRLEN(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.STRLEN(tt.key)
+			got, err := server.StrLen(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("STRLEN() error = %v, wantErr %v", err, tt.wantErr)
 				return

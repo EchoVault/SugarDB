@@ -96,7 +96,7 @@ func TestEchoVault_HDEL(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.HDEL(tt.key, tt.fields...)
+			got, err := server.HDel(tt.key, tt.fields...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HDEL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -153,7 +153,7 @@ func TestEchoVault_HEXISTS(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.HEXISTS(tt.key, tt.field)
+			got, err := server.HExists(tt.key, tt.field)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HEXISTS() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -206,7 +206,7 @@ func TestEchoVault_HGETALL(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.HGETALL(tt.key)
+			got, err := server.HGetAll(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HGETALL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -317,14 +317,14 @@ func TestEchoVault_HINCRBY(t *testing.T) {
 			var got float64
 			var err error
 			if tt.incr_type == HINCRBY {
-				got, err = server.HINCRBY(tt.key, tt.field, tt.increment_int)
+				got, err = server.HIncrBy(tt.key, tt.field, tt.increment_int)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("HINCRBY() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
 			}
 			if tt.incr_type == HINCRBYFLOAT {
-				got, err = server.HINCRBYFLOAT(tt.key, tt.field, tt.increment_float)
+				got, err = server.HIncrByFloat(tt.key, tt.field, tt.increment_float)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("HINCRBYFLOAT() error = %v, wantErr %v", err, tt.wantErr)
 					return
@@ -378,7 +378,7 @@ func TestEchoVault_HKEYS(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.HKEYS(tt.key)
+			got, err := server.HKeys(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HKEYS() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -436,7 +436,7 @@ func TestEchoVault_HLEN(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.HLEN(tt.key)
+			got, err := server.HLen(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HLEN() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -455,7 +455,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 		name        string
 		presetValue interface{}
 		key         string
-		options     echovault.HRANDFIELDOptions
+		options     echovault.HRandFieldOptions
 		wantCount   int
 		want        []string
 		wantErr     bool
@@ -464,7 +464,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 			name:        "Get a random field",
 			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
 			key:         "key1",
-			options:     echovault.HRANDFIELDOptions{Count: 1},
+			options:     echovault.HRandFieldOptions{Count: 1},
 			wantCount:   1,
 			want:        []string{"field1", "field2", "field3"},
 			wantErr:     false,
@@ -473,7 +473,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 			name:        "Get a random field with a value",
 			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
 			key:         "key2",
-			options:     echovault.HRANDFIELDOptions{WithValues: true, Count: 1},
+			options:     echovault.HRandFieldOptions{WithValues: true, Count: 1},
 			wantCount:   2,
 			want:        []string{"field1", "value1", "field2", "123456789", "field3", "3.142"},
 			wantErr:     false,
@@ -488,7 +488,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key3",
-			options:   echovault.HRANDFIELDOptions{Count: 3},
+			options:   echovault.HRandFieldOptions{Count: 3},
 			wantCount: 3,
 			want:      []string{"field1", "field2", "field3", "field4", "field5"},
 			wantErr:   false,
@@ -503,7 +503,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key4",
-			options:   echovault.HRANDFIELDOptions{WithValues: true, Count: 3},
+			options:   echovault.HRandFieldOptions{WithValues: true, Count: 3},
 			wantCount: 6,
 			want: []string{
 				"field1", "value1", "field2", "123456789", "field3",
@@ -521,7 +521,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key5",
-			options:   echovault.HRANDFIELDOptions{Count: 5},
+			options:   echovault.HRandFieldOptions{Count: 5},
 			wantCount: 5,
 			want:      []string{"field1", "field2", "field3", "field4", "field5"},
 			wantErr:   false,
@@ -536,7 +536,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key5",
-			options:   echovault.HRANDFIELDOptions{WithValues: true, Count: 5},
+			options:   echovault.HRandFieldOptions{WithValues: true, Count: 5},
 			wantCount: 10,
 			want: []string{
 				"field1", "value1", "field2", "123456789", "field3",
@@ -548,7 +548,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 			name:        "Trying to get random field on a non hash map returns error",
 			presetValue: "Default value",
 			key:         "key12",
-			options:     echovault.HRANDFIELDOptions{},
+			options:     echovault.HRandFieldOptions{},
 			wantCount:   0,
 			want:        nil,
 			wantErr:     true,
@@ -563,7 +563,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.HRANDFIELD(tt.key, tt.options)
+			got, err := server.HRandField(tt.key, tt.options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HRANDFIELD() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -596,7 +596,7 @@ func TestEchoVault_HSET(t *testing.T) {
 			name:            "HSETNX set field on non-existent hash map",
 			key:             "key1",
 			presetValue:     nil,
-			hsetFunc:        server.HSETNX,
+			hsetFunc:        server.HSetNX,
 			fieldValuePairs: map[string]string{"field1": "value1"},
 			want:            1,
 			wantErr:         false,
@@ -605,7 +605,7 @@ func TestEchoVault_HSET(t *testing.T) {
 			name:            "HSETNX set field on existing hash map",
 			key:             "key2",
 			presetValue:     map[string]interface{}{"field1": "value1"},
-			hsetFunc:        server.HSETNX,
+			hsetFunc:        server.HSetNX,
 			fieldValuePairs: map[string]string{"field2": "value2"},
 			want:            1,
 			wantErr:         false,
@@ -614,7 +614,7 @@ func TestEchoVault_HSET(t *testing.T) {
 			name:            "HSETNX skips operation when setting on existing field",
 			key:             "key3",
 			presetValue:     map[string]interface{}{"field1": "value1"},
-			hsetFunc:        server.HSETNX,
+			hsetFunc:        server.HSetNX,
 			fieldValuePairs: map[string]string{"field1": "value1"},
 			want:            0,
 			wantErr:         false,
@@ -624,7 +624,7 @@ func TestEchoVault_HSET(t *testing.T) {
 			key:             "key4",
 			presetValue:     nil,
 			fieldValuePairs: map[string]string{"field1": "value1", "field2": "value2"},
-			hsetFunc:        server.HSET,
+			hsetFunc:        server.HSet,
 			want:            2,
 			wantErr:         false,
 		},
@@ -633,7 +633,7 @@ func TestEchoVault_HSET(t *testing.T) {
 			key:             "key5",
 			presetValue:     map[string]interface{}{"field1": "value1", "field2": "value2"},
 			fieldValuePairs: map[string]string{"field1": "value1-new", "field2": "value2-ne2", "field3": "value3"},
-			hsetFunc:        server.HSET,
+			hsetFunc:        server.HSet,
 			want:            3,
 			wantErr:         false,
 		},
@@ -642,7 +642,7 @@ func TestEchoVault_HSET(t *testing.T) {
 			key:             "key6",
 			presetValue:     "Default preset value",
 			fieldValuePairs: map[string]string{"field1": "value1"},
-			hsetFunc:        server.HSET,
+			hsetFunc:        server.HSet,
 			want:            0,
 			wantErr:         true,
 		},
@@ -723,7 +723,7 @@ func TestEchoVault_HSTRLEN(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.HSTRLEN(tt.key, tt.fields...)
+			got, err := server.HStrLen(tt.key, tt.fields...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HSTRLEN() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -776,7 +776,7 @@ func TestEchoVault_HVALS(t *testing.T) {
 					return
 				}
 			}
-			got, err := server.HVALS(tt.key)
+			got, err := server.HVals(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HVALS() error = %v, wantErr %v", err, tt.wantErr)
 				return

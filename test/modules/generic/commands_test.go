@@ -599,7 +599,7 @@ func Test_HandleGET(t *testing.T) {
 			value: "3.142",
 		},
 	}
-	// Test successful GET command
+	// Test successful Get command
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("GET, %d", i))

@@ -22,7 +22,7 @@ import (
 	"strings"
 )
 
-// CommandListOptions modifies the result from the COMMAND_LIST command.
+// CommandListOptions modifies the result from the CommandList command.
 //
 // ACLCAT filters the results by the provided category. Has the highest priority.
 //
@@ -58,14 +58,14 @@ type SubCommandOptions struct {
 	HandlerFunc       types.PluginHandlerFunc
 }
 
-// COMMAND_LIST returns the list of commands currently loaded in the EchoVault instance.
+// CommandList returns the list of commands currently loaded in the EchoVault instance.
 //
 // Parameters:
 //
 // `options` - CommandListOptions.
 //
 // Returns: a string slice of all the loaded commands. SubCommands are represented as "command|subcommand".
-func (server *EchoVault) COMMAND_LIST(options CommandListOptions) ([]string, error) {
+func (server *EchoVault) CommandList(options CommandListOptions) ([]string, error) {
 	cmd := []string{"COMMAND", "LIST"}
 
 	switch {
@@ -85,10 +85,10 @@ func (server *EchoVault) COMMAND_LIST(options CommandListOptions) ([]string, err
 	return internal.ParseStringArrayResponse(b)
 }
 
-// COMMAND_COUNT returns the number of commands currently loaded in the EchoVault instance.
+// CommandCount returns the number of commands currently loaded in the EchoVault instance.
 //
 // Returns: integer representing the count of all available commands.
-func (server *EchoVault) COMMAND_COUNT() (int, error) {
+func (server *EchoVault) CommandCount() (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"COMMAND", "COUNT"}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -96,8 +96,8 @@ func (server *EchoVault) COMMAND_COUNT() (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// SAVE triggers a new snapshot.
-func (server *EchoVault) SAVE() (string, error) {
+// Save triggers a new snapshot.
+func (server *EchoVault) Save() (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SAVE"}), nil, false, true)
 	if err != nil {
 		return "", err
@@ -105,8 +105,8 @@ func (server *EchoVault) SAVE() (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
-// LASTSAVE returns the unix epoch milliseconds timestamp of the last save.
-func (server *EchoVault) LASTSAVE() (int, error) {
+// LastSave returns the unix epoch milliseconds timestamp of the last save.
+func (server *EchoVault) LastSave() (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LASTSAVE"}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -114,8 +114,8 @@ func (server *EchoVault) LASTSAVE() (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// REWRITEAOF triggers a compaction of the AOF file.
-func (server *EchoVault) REWRITEAOF() (string, error) {
+// RewriteAOF triggers a compaction of the AOF file.
+func (server *EchoVault) RewriteAOF() (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"REWRITEAOF"}), nil, false, true)
 	if err != nil {
 		return "", err
@@ -123,8 +123,8 @@ func (server *EchoVault) REWRITEAOF() (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
-// TODO: Write godoc comment for ADD_COMMAND method
-func (server *EchoVault) ADD_COMMAND(command CommandOptions) error {
+// TODO: Write godoc comment for AddCommand method
+func (server *EchoVault) AddCommand(command CommandOptions) error {
 	// Check if commands already exists
 	for _, c := range server.commands {
 		if strings.EqualFold(c.Command, command.Command) {
@@ -252,13 +252,13 @@ func (server *EchoVault) ADD_COMMAND(command CommandOptions) error {
 	return nil
 }
 
-// TODO: Write godoc comment for EXECUTE_COMMAND method
-func (server *EchoVault) EXECUTE_COMMAND(command []string) ([]byte, error) {
+// TODO: Write godoc comment for ExecuteCommand method
+func (server *EchoVault) ExecuteCommand(command []string) ([]byte, error) {
 	return server.handleCommand(server.context, internal.EncodeCommand(command), nil, false, true)
 }
 
-// TODO: Write godoc commend for REMOVE_COMMAND method
-func (server *EchoVault) REMOVE_COMMAND(command ...string) {
+// TODO: Write godoc commend for RemoveCommand method
+func (server *EchoVault) RemoveCommand(command ...string) {
 	switch len(command) {
 	case 1:
 		// Remove command
