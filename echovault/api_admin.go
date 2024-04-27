@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/types"
+	"slices"
 	"strings"
 )
 
@@ -168,4 +169,27 @@ func (server *EchoVault) ADD_COMMAND(command CommandOptions) error {
 // TODO: Write godoc comment for EXECUTE_COMMAND method
 func (server *EchoVault) EXECUTE_COMMAND(command []string) ([]byte, error) {
 	return server.handleCommand(server.context, internal.EncodeCommand(command), nil, false, true)
+}
+
+// TODO: Write godoc commend for REMOVE_COMMAND method
+func (server *EchoVault) REMOVE_COMMAND(command ...string) {
+	switch len(command) {
+	case 1:
+		// Remove command
+		server.commands = slices.DeleteFunc(server.commands, func(c internal.Command) bool {
+			return strings.EqualFold(c.Command, command[0])
+		})
+	case 2:
+		// Remove subcommand
+		for i := 0; i < len(server.commands); i++ {
+			if !strings.EqualFold(server.commands[i].Command, command[0]) {
+				continue
+			}
+			if server.commands[i].SubCommands != nil && len(server.commands[i].SubCommands) > 0 {
+				server.commands[i].SubCommands = slices.DeleteFunc(server.commands[i].SubCommands, func(sc internal.SubCommand) bool {
+					return strings.EqualFold(sc.Command, command[1])
+				})
+			}
+		}
+	}
 }
