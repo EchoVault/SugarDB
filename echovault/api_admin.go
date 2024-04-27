@@ -147,12 +147,12 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 			}(),
 			Description: command.Description,
 			Sync:        command.Sync,
-			KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.AccessKeys, error) {
+			KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				accessKeys, err := command.KeyExtractionFunc(cmd)
 				if err != nil {
-					return internal.AccessKeys{}, err
+					return internal.KeyExtractionFuncResult{}, err
 				}
-				return internal.AccessKeys{
+				return internal.KeyExtractionFuncResult{
 					Channels:  []string{},
 					ReadKeys:  accessKeys.ReadKeys,
 					WriteKeys: accessKeys.WriteKeys,
@@ -193,11 +193,13 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 			}
 			return cats
 		}(),
-		Description:       command.Description,
-		Sync:              command.Sync,
-		KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) { return internal.AccessKeys{}, nil },
-		HandlerFunc:       func(param internal.HandlerFuncParams) ([]byte, error) { return nil, nil },
-		SubCommands:       make([]internal.SubCommand, len(command.SubCommand)),
+		Description: command.Description,
+		Sync:        command.Sync,
+		KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+			return internal.KeyExtractionFuncResult{}, nil
+		},
+		HandlerFunc: func(param internal.HandlerFuncParams) ([]byte, error) { return nil, nil },
+		SubCommands: make([]internal.SubCommand, len(command.SubCommand)),
 	}
 
 	for i, sc := range command.SubCommand {
@@ -214,12 +216,12 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 			}(),
 			Description: sc.Description,
 			Sync:        sc.Sync,
-			KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.AccessKeys, error) {
+			KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				accessKeys, err := sc.KeyExtractionFunc(cmd)
 				if err != nil {
-					return internal.AccessKeys{}, err
+					return internal.KeyExtractionFuncResult{}, err
 				}
-				return internal.AccessKeys{
+				return internal.KeyExtractionFuncResult{
 					Channels:  []string{},
 					ReadKeys:  accessKeys.ReadKeys,
 					WriteKeys: accessKeys.WriteKeys,

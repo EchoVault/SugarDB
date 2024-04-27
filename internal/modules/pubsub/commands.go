@@ -108,12 +108,12 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.PubSubCategory, constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(SUBSCRIBE channel [channel ...]) Subscribe to one or more channels.",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				// Treat the channels as keys
 				if len(cmd) < 2 {
-					return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+					return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 				}
-				return internal.AccessKeys{
+				return internal.KeyExtractionFuncResult{
 					Channels:  cmd[1:],
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -127,12 +127,12 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.PubSubCategory, constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(PSUBSCRIBE pattern [pattern ...]) Subscribe to one or more glob patterns.",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				// Treat the patterns as keys
 				if len(cmd) < 2 {
-					return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+					return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 				}
-				return internal.AccessKeys{
+				return internal.KeyExtractionFuncResult{
 					Channels:  cmd[1:],
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -146,12 +146,12 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.PubSubCategory, constants.FastCategory},
 			Description: "(PUBLISH channel message) Publish a message to the specified channel.",
 			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				// Treat the channel as a key
 				if len(cmd) != 3 {
-					return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+					return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 				}
-				return internal.AccessKeys{
+				return internal.KeyExtractionFuncResult{
 					Channels:  cmd[1:2],
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -167,9 +167,9 @@ func Commands() []internal.Command {
 If the channel list is not provided, then the connection will be unsubscribed from all the channels that
 it's currently subscribe to.`,
 			Sync: false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				// Treat the channels as keys
-				return internal.AccessKeys{
+				return internal.KeyExtractionFuncResult{
 					Channels:  cmd[1:],
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -185,8 +185,8 @@ it's currently subscribe to.`,
 If the pattern list is not provided, then the connection will be unsubscribed from all the patterns that
 it's currently subscribe to.`,
 			Sync: false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-				return internal.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
 					Channels:  cmd[1:],
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -200,8 +200,8 @@ it's currently subscribe to.`,
 			Categories:  []string{},
 			Description: "",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-				return internal.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -219,8 +219,8 @@ it's currently subscribe to.`,
 match the given pattern. If no pattern is provided, all active channels are returned. Active channels are 
 channels with 1 or more subscribers.`,
 					Sync: false,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -234,8 +234,8 @@ channels with 1 or more subscribers.`,
 					Categories:  []string{constants.PubSubCategory, constants.SlowCategory},
 					Description: `(PUBSUB NUMPAT) Return the number of patterns that are currently subscribed to by clients.`,
 					Sync:        false,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -250,8 +250,8 @@ channels with 1 or more subscribers.`,
 					Description: `(PUBSUB NUMSUB [channel [channel ...]]) Return an array of arrays containing the provided
 channel name and how many clients are currently subscribed to the channel.`,
 					Sync: false,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  cmd[2:],
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),

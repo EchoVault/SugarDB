@@ -40,8 +40,8 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.FastCategory, constants.ConnectionCategory},
 			Description: "(PING [value]) Ping the echovault. If a value is provided, the value will be echoed.",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-				return internal.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),

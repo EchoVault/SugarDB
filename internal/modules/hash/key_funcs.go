@@ -20,139 +20,139 @@ import (
 	"github.com/echovault/echovault/internal"
 )
 
-func hsetKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hsetKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 4 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func hsetnxKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hsetnxKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 4 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func hgetKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hgetKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hstrlenKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hstrlenKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hvalsKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hvalsKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hrandfieldKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hrandfieldKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 2 || len(cmd) > 4 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
 	if len(cmd) == 2 {
-		return internal.AccessKeys{
+		return internal.KeyExtractionFuncResult{
 			Channels:  make([]string, 0),
 			ReadKeys:  cmd[1:],
 			WriteKeys: make([]string, 0),
 		}, nil
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hlenKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hlenKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hkeysKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hkeysKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hincrbyKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hincrbyKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 4 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func hgetallKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hgetallKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hexistsKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hexistsKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func hdelKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func hdelKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],

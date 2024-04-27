@@ -495,8 +495,8 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(AUTH [username] password) Authenticates the connection",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-				return internal.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -510,8 +510,8 @@ func Commands() []internal.Command {
 			Categories:  []string{},
 			Description: "Access-Control-List commands",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-				return internal.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -525,8 +525,8 @@ func Commands() []internal.Command {
 					Description: `(ACL CAT [category]) List all the categories. 
 If the optional category is provided, list all the commands in the category`,
 					Sync: false,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -540,8 +540,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL USERS) List all usernames of the configured ACL users",
 					Sync:        false,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -555,8 +555,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL SETUSER) Configure a new or existing user",
 					Sync:        true,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -570,8 +570,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL GETUSER username) List the ACL rules of a user",
 					Sync:        false,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -585,8 +585,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL DELUSER username [username ...]) Deletes users and terminates their connections. Cannot delete default user",
 					Sync:        true,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -600,8 +600,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.FastCategory},
 					Description: "(ACL WHOAMI) Returns the authenticated user of the current connection",
 					Sync:        true,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -615,8 +615,8 @@ If the optional category is provided, list all the commands in the category`,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL LIST) Dumps effective acl rules in acl config file format",
 					Sync:        true,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -633,8 +633,8 @@ If the optional category is provided, list all the commands in the category`,
 When 'MERGE' is passed, users from config file who share a username with users in memory will be merged.
 When 'REPLACE' is passed, users from config file who share a username with users in memory will replace the user in memory.`,
 					Sync: true,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -648,8 +648,8 @@ When 'REPLACE' is passed, users from config file who share a username with users
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 					Description: "(ACL SAVE) Saves the effective ACL rules the configured ACL config file",
 					Sync:        true,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),

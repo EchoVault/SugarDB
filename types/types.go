@@ -35,11 +35,11 @@ type EchoVault interface {
 	DeleteKey(ctx context.Context, key string) error
 }
 
-type PluginAccessKeys struct {
+type PluginKeyExtractionFuncResult struct {
 	ReadKeys  []string
 	WriteKeys []string
 }
-type PluginKeyExtractionFunc func(cmd []string) (PluginAccessKeys, error)
+type PluginKeyExtractionFunc func(cmd []string) (PluginKeyExtractionFuncResult, error)
 
 type PluginHandlerFunc func(params PluginHandlerFuncParams) ([]byte, error)
 type PluginHandlerFuncParams struct {
