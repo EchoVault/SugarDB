@@ -17,8 +17,8 @@ package hash
 import (
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/constants"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/constants"
 	"math/rand"
 	"slices"
 	"strconv"

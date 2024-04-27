@@ -16,8 +16,8 @@ package list
 
 import (
 	"context"
+	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/echovault"
 	"reflect"
 	"testing"
 )

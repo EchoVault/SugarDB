@@ -16,10 +16,10 @@ package sorted_set
 
 import (
 	"context"
+	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	ss "github.com/echovault/echovault/internal/modules/sorted_set"
-	"github.com/echovault/echovault/pkg/echovault"
 	"math"
 	"reflect"
 	"strconv"

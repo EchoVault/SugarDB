@@ -16,8 +16,8 @@ package generic
 
 import (
 	"errors"
+	"github.com/echovault/echovault/constants"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/constants"
 )
 
 func setKeyFunc(cmd []string) (internal.AccessKeys, error) {

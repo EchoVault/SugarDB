@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/constants"
 	"time"
 )
 

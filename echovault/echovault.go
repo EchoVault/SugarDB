@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/constants"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/aof"
 	"github.com/echovault/echovault/internal/clock"
@@ -38,7 +39,6 @@ import (
 	str "github.com/echovault/echovault/internal/modules/string"
 	"github.com/echovault/echovault/internal/raft"
 	"github.com/echovault/echovault/internal/snapshot"
-	"github.com/echovault/echovault/pkg/constants"
 	"io"
 	"log"
 	"net"
@@ -185,6 +185,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			Config:                echovault.config,
 			EchoVault:             echovault,
 			GetCommand:            echovault.getCommand,
+			CreateKeyAndLock:      echovault.CreateKeyAndLock,
+			SetValue:              echovault.SetValue,
+			SetExpiry:             echovault.SetExpiry,
+			KeyUnlock:             echovault.KeyUnlock,
 			DeleteKey:             echovault.DeleteKey,
 			StartSnapshot:         echovault.startSnapshot,
 			FinishSnapshot:        echovault.finishSnapshot,

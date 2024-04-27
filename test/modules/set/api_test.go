@@ -16,9 +16,9 @@ package set
 
 import (
 	"context"
+	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/modules/set"
-	"github.com/echovault/echovault/pkg/echovault"
 	"reflect"
 	"slices"
 	"testing"

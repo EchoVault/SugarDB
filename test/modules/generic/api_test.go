@@ -16,10 +16,10 @@ package generic
 
 import (
 	"context"
+	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/echovault"
 	"reflect"
 	"slices"
 	"strings"

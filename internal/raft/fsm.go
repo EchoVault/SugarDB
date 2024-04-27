@@ -20,19 +20,22 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/types"
 	"github.com/hashicorp/raft"
 	"io"
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 type FSMOpts struct {
 	Config                config.Config
-	EchoVault             types.EchoVault
 	GetState              func() map[string]internal.KeyData
 	GetCommand            func(command string) (internal.Command, error)
+	CreateKeyAndLock      func(ctx context.Context, key string) (bool, error)
+	SetValue              func(ctx context.Context, key string, value interface{}) error
+	SetExpiry             func(ctx context.Context, key string, expire time.Time, touch bool)
+	KeyUnlock             func(ctx context.Context, key string)
 	DeleteKey             func(ctx context.Context, key string) error
 	StartSnapshot         func()
 	FinishSnapshot        func()
@@ -154,14 +157,14 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 	// Set state
 	ctx := context.Background()
 	for k, v := range internal.FilterExpiredKeys(data.State) {
-		if _, err = fsm.options.EchoVault.CreateKeyAndLock(ctx, k); err != nil {
+		if _, err = fsm.options.CreateKeyAndLock(ctx, k); err != nil {
 			log.Fatal(err)
 		}
-		if err = fsm.options.EchoVault.SetValue(ctx, k, v.Value); err != nil {
+		if err = fsm.options.SetValue(ctx, k, v.Value); err != nil {
 			log.Fatal(err)
 		}
-		fsm.options.EchoVault.SetExpiry(ctx, k, v.ExpireAt, false)
-		fsm.options.EchoVault.KeyUnlock(ctx, k)
+		fsm.options.SetExpiry(ctx, k, v.ExpireAt, false)
+		fsm.options.KeyUnlock(ctx, k)
 	}
 	// Set latest snapshot milliseconds
 	fsm.options.SetLatestSnapshotTime(data.LatestSnapshotMilliseconds)

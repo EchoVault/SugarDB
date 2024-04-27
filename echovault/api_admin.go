@@ -17,7 +17,7 @@ package echovault
 import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/types"
+	"github.com/echovault/echovault/types"
 	"strings"
 )
 
