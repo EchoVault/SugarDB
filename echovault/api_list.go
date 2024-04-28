@@ -225,18 +225,18 @@ func (server *EchoVault) RPop(key string) (string, error) {
 //
 // `values` - ...string - the list of elements to add to push to the beginning of the list.
 //
-// Returns: "OK" when the list has been successfully modified or created.
+// Returns: An integer with the length of the new list.
 //
 // Errors:
 //
 // "LPush command on non-list item" - when the provided key is not a list.
-func (server *EchoVault) LPush(key string, values ...string) (string, error) {
+func (server *EchoVault) LPush(key string, values ...string) (int, error) {
 	cmd := append([]string{"LPUSH", key}, values...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	return internal.ParseStringResponse(b)
+	return internal.ParseIntegerResponse(b)
 }
 
 // LPushX pushed 1 or more values to the beginning of an existing list. The command only succeeds on a pre-existing list.
@@ -247,18 +247,18 @@ func (server *EchoVault) LPush(key string, values ...string) (string, error) {
 //
 // `values` - ...string - the list of elements to add to push to the beginning of the list.
 //
-// Returns: "OK" when the list has been successfully modified.
+// Returns: An integer with the length of the new list.
 //
 // Errors:
 //
 // "LPushX command on non-list item" - when the provided key is not a list or doesn't exist.
-func (server *EchoVault) LPushX(key string, values ...string) (string, error) {
+func (server *EchoVault) LPushX(key string, values ...string) (int, error) {
 	cmd := append([]string{"LPUSHX", key}, values...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	return internal.ParseStringResponse(b)
+	return internal.ParseIntegerResponse(b)
 }
 
 // RPush pushed 1 or more values to the end of a list. If the list does not exist, a new list is created
@@ -270,18 +270,18 @@ func (server *EchoVault) LPushX(key string, values ...string) (string, error) {
 //
 // `values` - ...string - the list of elements to add to push to the end of the list.
 //
-// Returns: "OK" when the list has been successfully modified or created.
+// Returns: An integer with the length of the new list.
 //
 // Errors:
 //
 // "RPush command on non-list item" - when the provided key is not a list.
-func (server *EchoVault) RPush(key string, values ...string) (string, error) {
+func (server *EchoVault) RPush(key string, values ...string) (int, error) {
 	cmd := append([]string{"RPUSH", key}, values...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	return internal.ParseStringResponse(b)
+	return internal.ParseIntegerResponse(b)
 }
 
 // RPushX pushed 1 or more values to the end of an existing list. The command only succeeds on a pre-existing list.
@@ -292,16 +292,16 @@ func (server *EchoVault) RPush(key string, values ...string) (string, error) {
 //
 // `values` - ...string - the list of elements to add to push to the end of the list.
 //
-// Returns: "OK" when the list has been successfully modified.
+// Returns: An integer with the length of the new list.
 //
 // Errors:
 //
 // "RPushX command on non-list item" - when the provided key is not a list or doesn't exist.
-func (server *EchoVault) RPushX(key string, values ...string) (string, error) {
+func (server *EchoVault) RPushX(key string, values ...string) (int, error) {
 	cmd := append([]string{"RPUSHX", key}, values...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	return internal.ParseStringResponse(b)
+	return internal.ParseIntegerResponse(b)
 }

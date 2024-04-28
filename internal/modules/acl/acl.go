@@ -193,7 +193,7 @@ func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
 			}
 		}
 		// Skip if the current username was not found in the ACL
-		if username != user.Username {
+		if user == nil {
 			continue
 		}
 		// Terminate every connection attached to this user

@@ -421,7 +421,7 @@ func handleLPush(params internal.HandlerFuncParams) ([]byte, error) {
 	if err = params.SetValue(params.Context, key, append(newElems, l...)); err != nil {
 		return nil, err
 	}
-	return []byte(constants.OkResponse), nil
+	return []byte(fmt.Sprintf(":%d\r\n", len(l)+len(newElems))), nil
 }
 
 func handleRPush(params internal.HandlerFuncParams) ([]byte, error) {
@@ -469,7 +469,7 @@ func handleRPush(params internal.HandlerFuncParams) ([]byte, error) {
 	if err = params.SetValue(params.Context, key, append(l, newElems...)); err != nil {
 		return nil, err
 	}
-	return []byte(constants.OkResponse), nil
+	return []byte(fmt.Sprintf(":%d\r\n", len(l)+len(newElems))), nil
 }
 
 func handlePop(params internal.HandlerFuncParams) ([]byte, error) {

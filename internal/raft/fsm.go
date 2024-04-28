@@ -102,7 +102,14 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 
 			handler := command.HandlerFunc
 
-			subCommand, ok := internal.GetSubCommand(command, request.CMD).(internal.SubCommand)
+			sc, err := internal.GetSubCommand(command, request.CMD)
+			if err != nil {
+				return internal.ApplyResponse{
+					Error:    err,
+					Response: nil,
+				}
+			}
+			subCommand, ok := sc.(internal.SubCommand)
 			if ok {
 				handler = subCommand.HandlerFunc
 			}

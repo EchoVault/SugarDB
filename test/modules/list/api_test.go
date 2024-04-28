@@ -436,8 +436,8 @@ func TestEchoVault_LPUSH(t *testing.T) {
 		key         string
 		values      []string
 		presetValue interface{}
-		lpushFunc   func(key string, values ...string) (string, error)
-		want        string
+		lpushFunc   func(key string, values ...string) (int, error)
+		want        int
 		wantErr     bool
 	}{
 		{
@@ -447,7 +447,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			key:         "key1",
 			values:      []string{"value1", "value2"},
 			lpushFunc:   server.LPushX,
-			want:        "OK",
+			want:        6,
 			wantErr:     false,
 		},
 		{
@@ -457,7 +457,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			key:         "key2",
 			values:      []string{"value1", "value2"},
 			lpushFunc:   server.LPush,
-			want:        "OK",
+			want:        6,
 			wantErr:     false,
 		},
 		{
@@ -467,7 +467,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			key:         "key3",
 			values:      []string{"value1", "value2"},
 			lpushFunc:   server.LPush,
-			want:        "OK",
+			want:        2,
 			wantErr:     false,
 		},
 		{
@@ -477,7 +477,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			key:         "key4",
 			values:      []string{"value1", "value2"},
 			lpushFunc:   server.LPushX,
-			want:        "",
+			want:        0,
 			wantErr:     true,
 		},
 	}
@@ -511,8 +511,8 @@ func TestEchoVault_RPUSH(t *testing.T) {
 		key         string
 		values      []string
 		presetValue interface{}
-		rpushFunc   func(key string, values ...string) (string, error)
-		want        string
+		rpushFunc   func(key string, values ...string) (int, error)
+		want        int
 		wantErr     bool
 	}{
 		{
@@ -522,7 +522,7 @@ func TestEchoVault_RPUSH(t *testing.T) {
 			key:         "key1",
 			values:      []string{"value1", "value2"},
 			rpushFunc:   server.RPush,
-			want:        "OK",
+			want:        2,
 			wantErr:     false,
 		},
 		{
@@ -532,7 +532,7 @@ func TestEchoVault_RPUSH(t *testing.T) {
 			key:         "key2",
 			values:      []string{"value1", "value2"},
 			rpushFunc:   server.RPushX,
-			want:        "",
+			want:        0,
 			wantErr:     true,
 		},
 	}

@@ -128,16 +128,21 @@ func GetIPAddress() (string, error) {
 	return localAddr, nil
 }
 
-func GetSubCommand(command Command, cmd []string) interface{} {
-	if len(command.SubCommands) == 0 || len(cmd) < 2 {
-		return nil
+func GetSubCommand(command Command, cmd []string) (interface{}, error) {
+	if command.SubCommands == nil || len(command.SubCommands) == 0 {
+		// If the command has no sub-commands, return nil
+		return nil, nil
+	}
+	if len(cmd) < 2 {
+		// If the cmd provided by the user has less than 2 tokens, there's no need to search for a subcommand
+		return nil, nil
 	}
 	for _, subCommand := range command.SubCommands {
 		if strings.EqualFold(subCommand.Command, cmd[1]) {
-			return subCommand
+			return subCommand, nil
 		}
 	}
-	return nil
+	return nil, fmt.Errorf("command %s %s not supported", cmd[0], cmd[1])
 }
 
 func IsWriteCommand(command Command, subCommand SubCommand) bool {

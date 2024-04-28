@@ -73,7 +73,11 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	synchronize := command.Sync
 	handler := command.HandlerFunc
 
-	subCommand, ok := internal.GetSubCommand(command, cmd).(internal.SubCommand)
+	sc, err := internal.GetSubCommand(command, cmd)
+	if err != nil {
+		return nil, err
+	}
+	subCommand, ok := sc.(internal.SubCommand)
 	if ok {
 		synchronize = subCommand.Sync
 		handler = subCommand.HandlerFunc

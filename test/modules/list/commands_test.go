@@ -1241,7 +1241,7 @@ func Test_HandleLPUSH(t *testing.T) {
 		key              string
 		presetValue      interface{}
 		command          []string
-		expectedResponse interface{}
+		expectedResponse int
 		expectedValue    []interface{}
 		expectedError    error
 	}{
@@ -1251,7 +1251,7 @@ func Test_HandleLPUSH(t *testing.T) {
 			key:              "LpushKey1",
 			presetValue:      []interface{}{"1", "2", "4", "5"},
 			command:          []string{"LPUSHX", "LpushKey1", "value1", "value2"},
-			expectedResponse: "OK",
+			expectedResponse: 6,
 			expectedValue:    []interface{}{"value1", "value2", "1", "2", "4", "5"},
 			expectedError:    nil,
 		},
@@ -1261,7 +1261,7 @@ func Test_HandleLPUSH(t *testing.T) {
 			key:              "LpushKey2",
 			presetValue:      []interface{}{"1", "2", "4", "5"},
 			command:          []string{"LPUSH", "LpushKey2", "value1", "value2"},
-			expectedResponse: "OK",
+			expectedResponse: 6,
 			expectedValue:    []interface{}{"value1", "value2", "1", "2", "4", "5"},
 			expectedError:    nil,
 		},
@@ -1271,7 +1271,7 @@ func Test_HandleLPUSH(t *testing.T) {
 			key:              "LpushKey3",
 			presetValue:      nil,
 			command:          []string{"LPUSH", "LpushKey3", "value1", "value2"},
-			expectedResponse: "OK",
+			expectedResponse: 2,
 			expectedValue:    []interface{}{"value1", "value2"},
 			expectedError:    nil,
 		},
@@ -1281,7 +1281,7 @@ func Test_HandleLPUSH(t *testing.T) {
 			key:              "LpushKey5",
 			presetValue:      nil,
 			command:          []string{"LPUSH", "LpushKey5"},
-			expectedResponse: nil,
+			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
@@ -1291,7 +1291,7 @@ func Test_HandleLPUSH(t *testing.T) {
 			key:              "LpushKey6",
 			presetValue:      nil,
 			command:          []string{"LPUSHX", "LpushKey7", "count", "value1"},
-			expectedResponse: nil,
+			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("LPUSHX command on non-list item"),
 		},
@@ -1329,8 +1329,8 @@ func Test_HandleLPUSH(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if rv.String() != test.expectedResponse {
-				t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected \"%d\" response, got \"%s\"", test.expectedResponse, rv.String())
 			}
 			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 				t.Error(err)
@@ -1359,7 +1359,7 @@ func Test_HandleRPUSH(t *testing.T) {
 		key              string
 		presetValue      interface{}
 		command          []string
-		expectedResponse interface{}
+		expectedResponse int
 		expectedValue    []interface{}
 		expectedError    error
 	}{
@@ -1369,7 +1369,7 @@ func Test_HandleRPUSH(t *testing.T) {
 			key:              "RpushKey1",
 			presetValue:      []interface{}{"1", "2", "4", "5"},
 			command:          []string{"RPUSHX", "RpushKey1", "value1", "value2"},
-			expectedResponse: "OK",
+			expectedResponse: 6,
 			expectedValue:    []interface{}{"1", "2", "4", "5", "value1", "value2"},
 			expectedError:    nil,
 		},
@@ -1379,7 +1379,7 @@ func Test_HandleRPUSH(t *testing.T) {
 			key:              "RpushKey2",
 			presetValue:      []interface{}{"1", "2", "4", "5"},
 			command:          []string{"RPUSH", "RpushKey2", "value1", "value2"},
-			expectedResponse: "OK",
+			expectedResponse: 6,
 			expectedValue:    []interface{}{"1", "2", "4", "5", "value1", "value2"},
 			expectedError:    nil,
 		},
@@ -1389,7 +1389,7 @@ func Test_HandleRPUSH(t *testing.T) {
 			key:              "RpushKey3",
 			presetValue:      nil,
 			command:          []string{"RPUSH", "RpushKey3", "value1", "value2"},
-			expectedResponse: "OK",
+			expectedResponse: 2,
 			expectedValue:    []interface{}{"value1", "value2"},
 			expectedError:    nil,
 		},
@@ -1399,7 +1399,7 @@ func Test_HandleRPUSH(t *testing.T) {
 			key:              "RpushKey5",
 			presetValue:      nil,
 			command:          []string{"RPUSH", "RpushKey5"},
-			expectedResponse: nil,
+			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
@@ -1409,7 +1409,7 @@ func Test_HandleRPUSH(t *testing.T) {
 			key:              "RpushKey6",
 			presetValue:      nil,
 			command:          []string{"RPUSHX", "RpushKey7", "count", "value1"},
-			expectedResponse: nil,
+			expectedResponse: 0,
 			expectedValue:    nil,
 			expectedError:    errors.New("RPUSHX command on non-list item"),
 		},
@@ -1447,8 +1447,8 @@ func Test_HandleRPUSH(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if rv.String() != test.expectedResponse {
-				t.Errorf("expected \"%s\" response, got \"%s\"", test.expectedResponse, rv.String())
+			if rv.Integer() != test.expectedResponse {
+				t.Errorf("expected \"%d\" response, got \"%s\"", test.expectedResponse, rv.String())
 			}
 			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
 				t.Error(err)
