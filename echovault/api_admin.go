@@ -125,7 +125,7 @@ func (server *EchoVault) RewriteAOF() (string, error) {
 
 // TODO: Write godoc comment for AddCommand method
 func (server *EchoVault) AddCommand(command CommandOptions) error {
-	// Check if commands already exists
+	// Check if command already exists
 	for _, c := range server.commands {
 		if strings.EqualFold(c.Command, command.Command) {
 			return fmt.Errorf("command %s already exists", command.Command)
@@ -203,6 +203,12 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 	}
 
 	for i, sc := range command.SubCommand {
+		// Skip the subcommand if it already exists in newCommand
+		if slices.ContainsFunc(newCommand.SubCommands, func(subcommand internal.SubCommand) bool {
+			return strings.EqualFold(subcommand.Command, sc.Command)
+		}) {
+			continue
+		}
 		newCommand.SubCommands[i] = internal.SubCommand{
 			Command: sc.Command,
 			Module:  strings.ToLower(command.Module),
