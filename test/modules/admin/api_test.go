@@ -18,9 +18,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/constants"
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/internal/constants"
 	"github.com/echovault/echovault/types"
 	"github.com/tidwall/resp"
 	"strconv"
@@ -64,16 +64,16 @@ Test command to handle successful addition of a single command without subcomman
 The value passed must be an integer.`,
 					Categories: []string{},
 					Sync:       false,
-					KeyExtractionFunc: func(cmd []string) (types.PluginKeyExtractionFuncResult, error) {
+					KeyExtractionFunc: func(cmd []string) (types.CommandKeyExtractionFuncResult, error) {
 						if len(cmd) != 4 {
-							return types.PluginKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+							return types.CommandKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 						}
-						return types.PluginKeyExtractionFuncResult{
+						return types.CommandKeyExtractionFuncResult{
 							WriteKeys: cmd[1:2],
 							ReadKeys:  cmd[2:3],
 						}, nil
 					},
-					HandlerFunc: func(params types.PluginHandlerFuncParams) ([]byte, error) {
+					HandlerFunc: func(params types.CommandHandlerFuncParams) ([]byte, error) {
 						if len(params.Command) != 4 {
 							return nil, errors.New(constants.WrongArgsResponse)
 						}
@@ -128,16 +128,16 @@ Test command to handle successful addition of a single command with subcommands.
 The value passed must be an integer.`,
 							Categories: []string{},
 							Sync:       false,
-							KeyExtractionFunc: func(cmd []string) (types.PluginKeyExtractionFuncResult, error) {
+							KeyExtractionFunc: func(cmd []string) (types.CommandKeyExtractionFuncResult, error) {
 								if len(cmd) != 5 {
-									return types.PluginKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+									return types.CommandKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 								}
-								return types.PluginKeyExtractionFuncResult{
+								return types.CommandKeyExtractionFuncResult{
 									WriteKeys: cmd[2:3],
 									ReadKeys:  cmd[3:4],
 								}, nil
 							},
-							HandlerFunc: func(params types.PluginHandlerFuncParams) ([]byte, error) {
+							HandlerFunc: func(params types.CommandHandlerFuncParams) ([]byte, error) {
 								if len(params.Command) != 5 {
 									return nil, errors.New(constants.WrongArgsResponse)
 								}
@@ -187,7 +187,7 @@ The value passed must be an integer.`,
 				t.Errorf("AddCommand() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			for _, scenario := range tt.scenarios {
-				b, err := server.ExecuteCommand(scenario.command)
+				b, err := server.ExecuteCommand(scenario.command...)
 				if scenario.wantErr != nil {
 					if scenario.wantErr.Error() != err.Error() {
 						t.Errorf("AddCommand() error = %v, wantErr %v", err, scenario.wantErr)
@@ -243,7 +243,7 @@ func TestEchoVault_ExecuteCommand(t *testing.T) {
 			if tt.args.presetValue != nil {
 				_, _ = server.LPush(tt.args.key, tt.args.presetValue...)
 			}
-			b, err := server.ExecuteCommand(tt.args.command)
+			b, err := server.ExecuteCommand(tt.args.command...)
 			if tt.wantErr != nil {
 				if err.Error() != tt.wantErr.Error() {
 					t.Errorf("ExecuteCommand() error = %v, wantErr %v", err, tt.wantErr)
@@ -298,7 +298,7 @@ func TestEchoVault_RemoveCommand(t *testing.T) {
 		server := createEchoVault()
 		t.Run(tt.name, func(t *testing.T) {
 			server.RemoveCommand(tt.args.removeCommand...)
-			_, err := server.ExecuteCommand(tt.args.executeCommand)
+			_, err := server.ExecuteCommand(tt.args.executeCommand...)
 			if tt.wantErr != nil {
 				if err.Error() != tt.wantErr.Error() {
 					t.Errorf("RemoveCommand() error = %v, wantErr %v", err, tt.wantErr)

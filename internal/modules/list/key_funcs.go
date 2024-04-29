@@ -16,8 +16,8 @@ package list
 
 import (
 	"errors"
-	"github.com/echovault/echovault/constants"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/constants"
 )
 
 func lpushKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {

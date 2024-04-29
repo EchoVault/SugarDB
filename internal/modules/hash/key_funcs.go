@@ -16,8 +16,8 @@ package hash
 
 import (
 	"errors"
-	"github.com/echovault/echovault/constants"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/constants"
 )
 
 func hsetKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {

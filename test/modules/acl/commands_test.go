@@ -17,9 +17,9 @@ package acl
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/echovault/echovault/constants"
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/internal/constants"
 	"github.com/echovault/echovault/internal/modules/acl"
 	"github.com/tidwall/resp"
 	"net"

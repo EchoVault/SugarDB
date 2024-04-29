@@ -16,8 +16,8 @@ package set
 
 import (
 	"errors"
-	"github.com/echovault/echovault/constants"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/constants"
 	"slices"
 	"strings"
 )

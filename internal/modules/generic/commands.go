@@ -17,8 +17,8 @@ package generic
 import (
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/constants"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/constants"
 	"log"
 	"strconv"
 	"strings"

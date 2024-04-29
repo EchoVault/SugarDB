@@ -35,7 +35,28 @@ type CommandListOptions struct {
 	MODULE  string
 }
 
-// TODO: Write godoc comment for CommandOptions type
+// CommandOptions provides the specification of the command to be added to the EchoVault instance.
+//
+// Command is the keyword used to trigger this command (e.g. LPUSH, ZADD, ACL ...).
+//
+// Module is a string that classifies a group of commands.
+//
+// Categories is a string slice of all the categories that this command belongs to.
+//
+// Description is a string describing the command, can include an example of how to trigger the command.
+//
+// SubCommand is a slice of subcommands for this command.
+//
+// Sync is a boolean value that determines whether this command should be synced across a replication cluster.
+// If subcommands are specified, each subcommand will override this value for its own execution.
+//
+// KeyExtractionFunc is a function that extracts the keys from the command if the command accesses any keys.
+// the extracted keys are used by the ACL layer to determine whether a TCP client is authorized to execute this command.
+// If subcommands are specified, this function is discarded and each subcommands must implement its own KeyExtractionFunc.
+//
+// HandlerFunc is the command handler. This function must return a valid RESP2 response as it the command will be
+// available to RESP clients. If subcommands are specified, this function is discarded and each subcommand must implement
+// its own HandlerFunc.
 type CommandOptions struct {
 	Command           string
 	Module            string
@@ -43,19 +64,36 @@ type CommandOptions struct {
 	Description       string
 	SubCommand        []SubCommandOptions
 	Sync              bool
-	KeyExtractionFunc types.PluginKeyExtractionFunc
-	HandlerFunc       types.PluginHandlerFunc
+	KeyExtractionFunc types.CommandKeyExtractionFunc
+	HandlerFunc       types.CommandHandlerFunc
 }
 
-// TODO: Write godoc comment for SubCommandOptions type
+// SubCommandOptions provides the specification of a subcommand within CommandOptions.
+//
+// Command is the keyword used to trigger this subcommand (e.g. "CAT" for the subcommand "ACL CAT").
+//
+// Module is a string that classifies a group of commands/subcommands.
+//
+// Categories is a string slice of all the categories that this subcommand belongs to.
+//
+// Description is a string describing the subcommand, can include an example of how to trigger the subcommand.
+//
+// Sync is a boolean value that determines whether this subcommand should be synced across a replication cluster.
+// This value overrides the Sync value set by the parent command. It's possible to have some synced and un-synced
+// subcommands with the same parent command regardless of the parent's Sync value.
+//
+// KeyExtractionFunc is a function that extracts the keys from the subcommand if it accesses any keys.
+//
+// HandlerFunc is the subcommand handler. This function must return a valid RESP2 response as it will be
+// available to RESP clients.
 type SubCommandOptions struct {
 	Command           string
 	Module            string
 	Categories        []string
 	Description       string
 	Sync              bool
-	KeyExtractionFunc types.PluginKeyExtractionFunc
-	HandlerFunc       types.PluginHandlerFunc
+	KeyExtractionFunc types.CommandKeyExtractionFunc
+	HandlerFunc       types.CommandHandlerFunc
 }
 
 // CommandList returns the list of commands currently loaded in the EchoVault instance.
@@ -123,7 +161,15 @@ func (server *EchoVault) RewriteAOF() (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
-// TODO: Write godoc comment for AddCommand method
+// AddCommand adds a new command to EchoVault. The added command can be executed using the ExecuteCommand method.
+//
+// Parameters:
+//
+// `command` - CommandOptions.
+//
+// Errors:
+//
+// "command <command> already exists" - If a command with the same command name as the passed command already exists.
 func (server *EchoVault) AddCommand(command CommandOptions) error {
 	// Check if command already exists
 	for _, c := range server.commands {
@@ -159,7 +205,7 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 				}, nil
 			}),
 			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
-				return command.HandlerFunc(types.PluginHandlerFuncParams{
+				return command.HandlerFunc(types.CommandHandlerFuncParams{
 					Context:          params.Context,
 					Command:          params.Command,
 					Connection:       params.Connection,
@@ -171,10 +217,6 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 					CreateKeyAndLock: params.CreateKeyAndLock,
 					GetValue:         params.GetValue,
 					SetValue:         params.SetValue,
-					GetExpiry:        params.GetExpiry,
-					SetExpiry:        params.SetExpiry,
-					RemoveExpiry:     params.RemoveExpiry,
-					DeleteKey:        params.DeleteKey,
 				})
 			}),
 		})
@@ -234,7 +276,7 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 				}, nil
 			}),
 			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
-				return sc.HandlerFunc(types.PluginHandlerFuncParams{
+				return sc.HandlerFunc(types.CommandHandlerFuncParams{
 					Context:          params.Context,
 					Command:          params.Command,
 					Connection:       params.Connection,
@@ -246,10 +288,6 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 					CreateKeyAndLock: params.CreateKeyAndLock,
 					GetValue:         params.GetValue,
 					SetValue:         params.SetValue,
-					GetExpiry:        params.GetExpiry,
-					SetExpiry:        params.SetExpiry,
-					RemoveExpiry:     params.RemoveExpiry,
-					DeleteKey:        params.DeleteKey,
 				})
 			}),
 		}
@@ -260,12 +298,47 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 	return nil
 }
 
-// TODO: Write godoc comment for ExecuteCommand method
-func (server *EchoVault) ExecuteCommand(command []string) ([]byte, error) {
+// ExecuteCommand executes the command passed to it. If 1 string is passed, EchoVault will try to
+// execute the command. If 2 strings are passed, EchoVault will attempt to execute the subcommand of the command.
+// If more than 2 strings are provided, all additional strings will be ignored.
+//
+// This method returns the raw RESP response from the command handler. You will have to parse the RESP response if
+// you want to use the return value from the handler.
+//
+// This method does not work with handlers that manipulate the client connection directly (i.e SUBSCRIBE, PSUBSCRIBE).
+// If you'd like to (p)subscribe or (p)unsubscribe, use the (P)SUBSCRIBE and (P)UNSUBSCRIBE methods instead.
+//
+// Parameters:
+//
+// `command` - ...string.
+//
+// Returns: []byte - Raw RESP response returned by the command handler.
+//
+// Errors:
+//
+// All errors from the command handler are forwarded to the caller. Other errors returned include:
+//
+// "command <command> not supported" - If the command does not exist.
+//
+// "command <command> <subcommand> not supported" - If the command exists but the subcommand does not exist for that command.
+func (server *EchoVault) ExecuteCommand(command ...string) ([]byte, error) {
 	return server.handleCommand(server.context, internal.EncodeCommand(command), nil, false, true)
 }
 
-// TODO: Write godoc commend for RemoveCommand method
+// RemoveCommand removes the specified command or subcommand from EchoVault.
+// When commands are removed, they will no longer be available for both the embedded instance and for TCP clients.
+//
+// Note: If a command is removed, the API wrapper for the command will also be unusable.
+// For example, calling RemoveCommand("LPUSH") will cause the LPUSH method to always return a
+// "command LPUSH not supported" error so use this method with caution.
+//
+// If one string is passed, the command matching that string is removed along will all of its subcommand if it has any.
+// If two strings are passed, only the subcommand of the specified command is removed.
+// If more than 2 strings are passed, all additional strings are ignored.
+//
+// Parameters:
+//
+// `command` - ...string.
 func (server *EchoVault) RemoveCommand(command ...string) {
 	switch len(command) {
 	case 1:

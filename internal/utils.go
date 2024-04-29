@@ -20,7 +20,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/constants"
+	"github.com/echovault/echovault/internal/constants"
 	"io"
 	"log"
 	"math/big"
