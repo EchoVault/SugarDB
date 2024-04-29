@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/echovault/echovault/pkg/types"
+	"github.com/echovault/echovault/types"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 )
@@ -35,6 +35,10 @@ import (
 type Opts struct {
 	Config                config.Config
 	EchoVault             types.EchoVault
+	CreateKeyAndLock      func(ctx context.Context, key string) (bool, error)
+	SetValue              func(ctx context.Context, key string, value interface{}) error
+	SetExpiry             func(ctx context.Context, key string, expire time.Time, touch bool)
+	KeyUnlock             func(ctx context.Context, key string)
 	GetState              func() map[string]internal.KeyData
 	GetCommand            func(command string) (internal.Command, error)
 	DeleteKey             func(ctx context.Context, key string) error
@@ -114,9 +118,12 @@ func (r *Raft) RaftInit(ctx context.Context) {
 		raftConfig,
 		NewFSM(FSMOpts{
 			Config:                r.options.Config,
-			EchoVault:             r.options.EchoVault,
 			GetState:              r.options.GetState,
 			GetCommand:            r.options.GetCommand,
+			CreateKeyAndLock:      r.options.CreateKeyAndLock,
+			SetValue:              r.options.SetValue,
+			SetExpiry:             r.options.SetExpiry,
+			KeyUnlock:             r.options.KeyUnlock,
 			DeleteKey:             r.options.DeleteKey,
 			StartSnapshot:         r.options.StartSnapshot,
 			FinishSnapshot:        r.options.FinishSnapshot,

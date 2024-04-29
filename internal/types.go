@@ -47,13 +47,13 @@ type SnapshotObject struct {
 	LatestSnapshotMilliseconds int64
 }
 
-type AccessKeys struct {
+type KeyExtractionFuncResult struct {
 	Channels  []string
 	ReadKeys  []string
 	WriteKeys []string
 }
 
-type KeyExtractionFunc func(cmd []string) (AccessKeys, error)
+type KeyExtractionFunc func(cmd []string) (KeyExtractionFuncResult, error)
 
 type HandlerFuncParams struct {
 	Context               context.Context

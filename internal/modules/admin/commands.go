@@ -18,7 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/internal/constants"
 	"github.com/gobwas/glob"
 	"slices"
 	"strings"
@@ -197,8 +197,8 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory},
 			Description: "Get a list of all the commands in available on the echovault with categories and descriptions",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-				return internal.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -212,8 +212,8 @@ func Commands() []internal.Command {
 			Categories:  []string{},
 			Description: "Commands pertaining to echovault commands",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-				return internal.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -226,8 +226,8 @@ func Commands() []internal.Command {
 					Categories:  []string{constants.SlowCategory, constants.ConnectionCategory},
 					Description: "Get command documentation",
 					Sync:        false,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -241,8 +241,8 @@ func Commands() []internal.Command {
 					Categories:  []string{constants.SlowCategory},
 					Description: "Get the dumber of commands in the echovault",
 					Sync:        false,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -257,8 +257,8 @@ func Commands() []internal.Command {
 					Description: `(COMMAND LIST [FILTERBY <ACLCAT category | PATTERN pattern | MODULE module>]) Get the list of command names.
 Allows for filtering by ACL category or glob pattern.`,
 					Sync: false,
-					KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-						return internal.AccessKeys{
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
 							ReadKeys:  make([]string, 0),
 							WriteKeys: make([]string, 0),
@@ -274,8 +274,8 @@ Allows for filtering by ACL category or glob pattern.`,
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(SAVE) Trigger a snapshot save",
 			Sync:        true,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-				return internal.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -294,8 +294,8 @@ Allows for filtering by ACL category or glob pattern.`,
 			Categories:  []string{constants.AdminCategory, constants.FastCategory, constants.DangerousCategory},
 			Description: "(LASTSAVE) Get unix timestamp for the latest snapshot in milliseconds.",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-				return internal.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),
@@ -315,8 +315,8 @@ Allows for filtering by ACL category or glob pattern.`,
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(REWRITEAOF) Trigger re-writing of append process",
 			Sync:        false,
-			KeyExtractionFunc: func(cmd []string) (internal.AccessKeys, error) {
-				return internal.AccessKeys{
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
 					ReadKeys:  make([]string, 0),
 					WriteKeys: make([]string, 0),

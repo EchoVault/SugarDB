@@ -19,11 +19,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/echovault"
+	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
 	"net"
 	"reflect"
@@ -599,7 +599,7 @@ func Test_HandleGET(t *testing.T) {
 			value: "3.142",
 		},
 	}
-	// Test successful GET command
+	// Test successful Get command
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("GET, %d", i))

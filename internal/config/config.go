@@ -20,7 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/internal/constants"
 	"log"
 	"os"
 	"path"

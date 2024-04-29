@@ -16,9 +16,9 @@ package main
 
 import (
 	"context"
+	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/echovault"
 	"log"
 	"os"
 	"os/signal"

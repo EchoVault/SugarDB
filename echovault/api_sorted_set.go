@@ -19,7 +19,7 @@ import (
 	"strconv"
 )
 
-// ZADDOptions allows you to modify the effects of the ZADD command.
+// ZAddOptions allows you to modify the effects of the ZAdd command.
 //
 // "NX" only adds the member if it currently does not exist in the sorted set. This flag is mutually exclusive with the
 // "GT" and "LT" flags. The "NX" flag takes higher priority than the "XX" flag.
@@ -34,9 +34,9 @@ import (
 // "CH" modifies the result to return total number of members changed + added, instead of only new members added. When
 // this flag is set to true, only the number of members that have been updated will be returned.
 //
-// "INCR" modifies the command to act like ZINCRBY, only one score/member pair can be specified in this mode. When this flag
+// "INCR" modifies the command to act like ZIncrBy, only one score/member pair can be specified in this mode. When this flag
 // is provided, only one member/score pair is allowed.
-type ZADDOptions struct {
+type ZAddOptions struct {
 	NX   bool
 	XX   bool
 	GT   bool
@@ -45,7 +45,7 @@ type ZADDOptions struct {
 	INCR bool
 }
 
-// ZINTEROptions allows you to modify the result of the ZINTER* and ZUNION* family of commands
+// ZInterOptions allows you to modify the result of the ZInter* and ZUnion* family of commands
 //
 // Weights is a slice of float64 that determines the weights of each sorted set in the aggregation command.
 // each weight will be each weight will be applied to the sorted set at the corresponding index.
@@ -57,29 +57,29 @@ type ZADDOptions struct {
 // "SUM" will add all the scores to place in the resulting sorted set.
 //
 // WithScores determines whether to return the scores of the resulting set.
-type ZINTEROptions struct {
+type ZInterOptions struct {
 	Weights    []float64
 	Aggregate  string
 	WithScores bool
 }
-type ZINTERSTOREOptions ZINTEROptions
-type ZUNIONOptions ZINTEROptions
-type ZUNIONSTOREOptions ZINTEROptions
+type ZInterStoreOptions ZInterOptions
+type ZUnionOptions ZInterOptions
+type ZUnionStoreOptions ZInterOptions
 
-// ZMPOPOptions allows you to modify the result of the ZMPOP command.
+// ZMPopOptions allows you to modify the result of the ZMPop command.
 //
 // Min instructs EchoVault to pop the minimum score elements. Min is higher priority than Max.
 //
 // Max instructs EchoVault to pop the maximum score elements.
 //
 // Count specifies the number of elements to pop.
-type ZMPOPOptions struct {
+type ZMPopOptions struct {
 	Min   bool
 	Max   bool
 	Count uint
 }
 
-// ZRANGEOptions allows you to modify the effects of the ZRANGE* family of commands.
+// ZRangeOptions allows you to modify the effects of the ZRange* family of commands.
 //
 // WithScores specifies whether to return the associated scores.
 //
@@ -87,17 +87,17 @@ type ZMPOPOptions struct {
 //
 // ByLex returns the elements within the lexicographical ranges specified.
 //
-// Offset specifies the offset to from which to start the ZRANGE process.
+// Offset specifies the offset to from which to start the ZRange process.
 //
 // Count specifies the number of elements to return.
-type ZRANGEOptions struct {
+type ZRangeOptions struct {
 	WithScores bool
 	ByScore    bool
 	ByLex      bool
 	Offset     uint
 	Count      uint
 }
-type ZRANGESTOREOptions ZRANGEOptions
+type ZRangeStoreOptions ZRangeOptions
 
 func buildMemberScoreMap(arr [][]string, withscores bool) (map[string]float64, error) {
 	result := make(map[string]float64, len(arr))
@@ -134,7 +134,7 @@ func buildIntegerScoreMap(arr [][]string, withscores bool) (map[int]float64, err
 	return result, nil
 }
 
-// ZADD adds member(s) to a sorted set. If the sorted set does not exist, a new sorted set is created with the
+// ZAdd adds member(s) to a sorted set. If the sorted set does not exist, a new sorted set is created with the
 // member(s).
 //
 // Parameters:
@@ -143,7 +143,7 @@ func buildIntegerScoreMap(arr [][]string, withscores bool) (map[int]float64, err
 //
 // `members` - map[string]float64 - a map of the members to add. The key is the string and the value is a float64 score.
 //
-// `options` - ZADDOptions
+// `options` - ZAddOptions
 //
 // Returns: The number of members added, or the number of members updated in the "CH" flag is true.
 //
@@ -151,11 +151,11 @@ func buildIntegerScoreMap(arr [][]string, withscores bool) (map[int]float64, err
 //
 // "GT/LT flags not allowed if NX flag is provided" - when GT/LT flags are provided alongside NX flag.
 //
-// "cannot pass more than one score/member pair when INCR flag is provided" - when INCR flag is provided and more than
-// one member-score pair is provided.
+// "cannot pass more than one score/member pair when INCR flag is provided" - when INCR flag is provided with more than
+// one member-score pair.
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set
-func (server *EchoVault) ZADD(key string, members map[string]float64, options ZADDOptions) (int, error) {
+func (server *EchoVault) ZAdd(key string, members map[string]float64, options ZAddOptions) (int, error) {
 	cmd := []string{"ZADD", key}
 
 	switch {
@@ -192,7 +192,7 @@ func (server *EchoVault) ZADD(key string, members map[string]float64, options ZA
 	return internal.ParseIntegerResponse(b)
 }
 
-// ZCARD returns the cardinality of the sorted set.
+// ZCard returns the cardinality of the sorted set.
 //
 // Parameters:
 //
@@ -203,7 +203,7 @@ func (server *EchoVault) ZADD(key string, members map[string]float64, options ZA
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set
-func (server *EchoVault) ZCARD(key string) (int, error) {
+func (server *EchoVault) ZCard(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ZCARD", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -211,7 +211,7 @@ func (server *EchoVault) ZCARD(key string) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// ZCOUNT returns the number of elements in the sorted set key with scores in the range of min and max.
+// ZCount returns the number of elements in the sorted set key with scores in the range of min and max.
 //
 // Parameters:
 //
@@ -226,7 +226,7 @@ func (server *EchoVault) ZCARD(key string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set
-func (server *EchoVault) ZCOUNT(key string, min, max float64) (int, error) {
+func (server *EchoVault) ZCount(key string, min, max float64) (int, error) {
 	cmd := []string{
 		"ZCOUNT",
 		key,
@@ -240,7 +240,7 @@ func (server *EchoVault) ZCOUNT(key string, min, max float64) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// ZDIFF Calculates the difference between the sorted sets and returns the resulting sorted set.
+// ZDiff Calculates the difference between the sorted sets and returns the resulting sorted set.
 // All keys that are non-existed are skipped.
 //
 // Parameters:
@@ -255,7 +255,7 @@ func (server *EchoVault) ZCOUNT(key string, min, max float64) (int, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set.
-func (server *EchoVault) ZDIFF(withscores bool, keys ...string) (map[string]float64, error) {
+func (server *EchoVault) ZDiff(withscores bool, keys ...string) (map[string]float64, error) {
 	cmd := append([]string{"ZDIFF"}, keys...)
 	if withscores {
 		cmd = append(cmd, "WITHSCORES")
@@ -273,7 +273,7 @@ func (server *EchoVault) ZDIFF(withscores bool, keys ...string) (map[string]floa
 	return buildMemberScoreMap(arr, withscores)
 }
 
-// ZDIFFSTORE Calculates the difference between the sorted sets and stores the resulting sorted set at 'destination'.
+// ZDiffStore Calculates the difference between the sorted sets and stores the resulting sorted set at 'destination'.
 // Non-existent keys will be skipped.
 //
 // Parameters:
@@ -287,7 +287,7 @@ func (server *EchoVault) ZDIFF(withscores bool, keys ...string) (map[string]floa
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZDIFFSTORE(destination string, keys ...string) (int, error) {
+func (server *EchoVault) ZDiffStore(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"ZDIFFSTORE", destination}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -296,21 +296,21 @@ func (server *EchoVault) ZDIFFSTORE(destination string, keys ...string) (int, er
 	return internal.ParseIntegerResponse(b)
 }
 
-// ZINTER Calculates the intersection between the sorted sets and returns the resulting sorted set.
+// ZInter Calculates the intersection between the sorted sets and returns the resulting sorted set.
 // if any of the keys provided are non-existent, an empty map is returned.
 //
 // Parameters:
 //
 // `keys` - []string - the keys to the sorted sets to be used in calculating the intersection.
 //
-// `options` - ZINTEROptions
+// `options` - ZInterOptions
 //
 // Returns: A map representing the resulting sorted set where the key is the member and the value is a float64 score.
 //
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set.
-func (server *EchoVault) ZINTER(keys []string, options ZINTEROptions) (map[string]float64, error) {
+func (server *EchoVault) ZInter(keys []string, options ZInterOptions) (map[string]float64, error) {
 	cmd := append([]string{"ZINTER"}, keys...)
 
 	if len(options.Weights) > 0 {
@@ -341,7 +341,7 @@ func (server *EchoVault) ZINTER(keys []string, options ZINTEROptions) (map[strin
 	return buildMemberScoreMap(arr, options.WithScores)
 }
 
-// ZINTERSTORE Calculates the intersection between the sorted sets and stores the resulting sorted set at 'destination'.
+// ZInterStore Calculates the intersection between the sorted sets and stores the resulting sorted set at 'destination'.
 // If any of the keys does not exist, the operation is abandoned.
 //
 // Parameters:
@@ -350,20 +350,20 @@ func (server *EchoVault) ZINTER(keys []string, options ZINTEROptions) (map[strin
 //
 // `keys` - []string - the keys to the sorted sets to be used in calculating the intersection.
 //
-// `options` - ZINTERSTOREOptions
+// `options` - ZInterStoreOptions
 //
 // Returns: The cardinality of the new sorted set.
 //
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZINTERSTORE(destination string, keys []string, options ZINTERSTOREOptions) (int, error) {
+func (server *EchoVault) ZInterStore(destination string, keys []string, options ZInterStoreOptions) (int, error) {
 	cmd := append([]string{"ZINTERSTORE", destination}, keys...)
 
 	if len(options.Weights) > 0 {
 		cmd = append(cmd, "WEIGHTS")
 		for _, weight := range options.Weights {
-			cmd = append(cmd, strconv.FormatFloat(float64(weight), 'f', -1, 64))
+			cmd = append(cmd, strconv.FormatFloat(weight, 'f', -1, 64))
 		}
 	}
 
@@ -383,27 +383,27 @@ func (server *EchoVault) ZINTERSTORE(destination string, keys []string, options 
 	return internal.ParseIntegerResponse(b)
 }
 
-// ZUNION Calculates the union between the sorted sets and returns the resulting sorted set.
+// ZUnion Calculates the union between the sorted sets and returns the resulting sorted set.
 // if any of the keys provided are non-existent, an error is returned.
 //
 // Parameters:
 //
 // `keys` - []string - the keys to the sorted sets to be used in calculating the union.
 //
-// `options` - ZUNIONOptions
+// `options` - ZUnionOptions
 //
 // Returns: A map representing the resulting sorted set where the key is the member and the value is a float64 score.
 //
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set.
-func (server *EchoVault) ZUNION(keys []string, options ZUNIONOptions) (map[string]float64, error) {
+func (server *EchoVault) ZUnion(keys []string, options ZUnionOptions) (map[string]float64, error) {
 	cmd := append([]string{"ZUNION"}, keys...)
 
 	if len(options.Weights) > 0 {
 		cmd = append(cmd, "WEIGHTS")
 		for _, weight := range options.Weights {
-			cmd = append(cmd, strconv.FormatFloat(float64(weight), 'f', -1, 64))
+			cmd = append(cmd, strconv.FormatFloat(weight, 'f', -1, 64))
 		}
 	}
 
@@ -428,7 +428,7 @@ func (server *EchoVault) ZUNION(keys []string, options ZUNIONOptions) (map[strin
 	return buildMemberScoreMap(arr, options.WithScores)
 }
 
-// ZUNIONSTORE Calculates the union between the sorted sets and stores the resulting sorted set at 'destination'.
+// ZUnionStore Calculates the union between the sorted sets and stores the resulting sorted set at 'destination'.
 // Non-existent keys will be skipped.
 //
 // Parameters:
@@ -437,14 +437,14 @@ func (server *EchoVault) ZUNION(keys []string, options ZUNIONOptions) (map[strin
 //
 // `keys` - []string - the keys to the sorted sets to be used in calculating the union.
 //
-// `options` - ZUNIONSTOREOptions
+// `options` - ZUnionStoreOptions
 //
 // Returns: The cardinality of the new sorted set.
 //
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZUNIONSTORE(destination string, keys []string, options ZUNIONSTOREOptions) (int, error) {
+func (server *EchoVault) ZUnionStore(destination string, keys []string, options ZUnionStoreOptions) (int, error) {
 	cmd := append([]string{"ZUNIONSTORE", destination}, keys...)
 
 	if len(options.Weights) > 0 {
@@ -470,7 +470,7 @@ func (server *EchoVault) ZUNIONSTORE(destination string, keys []string, options 
 	return internal.ParseIntegerResponse(b)
 }
 
-// ZINCRBY Increments the score of the specified sorted set's member by the increment. If the member does not exist, it is created.
+// ZIncrBy Increments the score of the specified sorted set's member by the increment. If the member does not exist, it is created.
 // If the key does not exist, it is created with new sorted set and the member added with the increment as its score.
 //
 // Parameters:
@@ -486,7 +486,7 @@ func (server *EchoVault) ZUNIONSTORE(destination string, keys []string, options 
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZINCRBY(key string, increment float64, member string) (float64, error) {
+func (server *EchoVault) ZIncrBy(key string, increment float64, member string) (float64, error) {
 	cmd := []string{"ZINCRBY", key, strconv.FormatFloat(increment, 'f', -1, 64), member}
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -499,21 +499,21 @@ func (server *EchoVault) ZINCRBY(key string, increment float64, member string) (
 	return f, nil
 }
 
-// ZMPOP Pop a 'count' elements from multiple sorted sets. MIN or MAX determines whether to pop elements with the lowest
+// ZMPop Pop a 'count' elements from multiple sorted sets. MIN or MAX determines whether to pop elements with the lowest
 // or highest scores respectively.
 //
 // Parameters:
 //
 // `keys` - []string - the keys to the sorted sets to pop from.
 //
-// `options` - ZMPOPOptions
+// `options` - ZMPopOptions
 //
 // Returns: A 2-dimensional slice where each slice contains the member and score at the 0 and 1 indices respectively.
 //
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZMPOP(keys []string, options ZMPOPOptions) ([][]string, error) {
+func (server *EchoVault) ZMPop(keys []string, options ZMPopOptions) ([][]string, error) {
 	cmd := append([]string{"ZMPOP"}, keys...)
 
 	switch {
@@ -540,7 +540,7 @@ func (server *EchoVault) ZMPOP(keys []string, options ZMPOPOptions) ([][]string,
 	return internal.ParseNestedStringArrayResponse(b)
 }
 
-// ZMSCORE Returns the associated scores of the specified member in the sorted set.
+// ZMScore Returns the associated scores of the specified member in the sorted set.
 //
 // Parameters:
 //
@@ -555,7 +555,7 @@ func (server *EchoVault) ZMPOP(keys []string, options ZMPOPOptions) ([][]string,
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZMSCORE(key string, members ...string) ([]interface{}, error) {
+func (server *EchoVault) ZMScore(key string, members ...string) ([]interface{}, error) {
 	cmd := []string{"ZMSCORE", key}
 	for _, member := range members {
 		cmd = append(cmd, member)
@@ -587,7 +587,7 @@ func (server *EchoVault) ZMSCORE(key string, members ...string) ([]interface{}, 
 	return scores, nil
 }
 
-// ZLEXCOUNT returns the number of elements in the sorted set within the lexicographical range between min and max.
+// ZLexCount returns the number of elements in the sorted set within the lexicographical range between min and max.
 // This function only returns a non-zero value if all the members have the same score.
 //
 // Parameters:
@@ -604,7 +604,7 @@ func (server *EchoVault) ZMSCORE(key string, members ...string) ([]interface{}, 
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set
-func (server *EchoVault) ZLEXCOUNT(key, min, max string) (int, error) {
+func (server *EchoVault) ZLexCount(key, min, max string) (int, error) {
 	cmd := []string{"ZLEXCOUNT", key, min, max}
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -613,7 +613,7 @@ func (server *EchoVault) ZLEXCOUNT(key, min, max string) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// ZPOPMAX Removes and returns 'count' number of members in the sorted set with the highest scores. Default count is 1.
+// ZPopMax Removes and returns 'count' number of members in the sorted set with the highest scores. Default count is 1.
 //
 // Parameters:
 //
@@ -629,7 +629,7 @@ func (server *EchoVault) ZLEXCOUNT(key, min, max string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZPOPMAX(key string, count uint) ([][]string, error) {
+func (server *EchoVault) ZPopMax(key string, count uint) ([][]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ZPOPMAX", key, strconv.Itoa(int(count))}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -637,7 +637,7 @@ func (server *EchoVault) ZPOPMAX(key string, count uint) ([][]string, error) {
 	return internal.ParseNestedStringArrayResponse(b)
 }
 
-// ZPOPMIN Removes and returns 'count' number of members in the sorted set with the lowest scores. Default count is 1.
+// ZPopMin Removes and returns 'count' number of members in the sorted set with the lowest scores. Default count is 1.
 //
 // Parameters:
 //
@@ -653,7 +653,7 @@ func (server *EchoVault) ZPOPMAX(key string, count uint) ([][]string, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZPOPMIN(key string, count uint) ([][]string, error) {
+func (server *EchoVault) ZPopMin(key string, count uint) ([][]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ZPOPMIN", key, strconv.Itoa(int(count))}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -661,7 +661,7 @@ func (server *EchoVault) ZPOPMIN(key string, count uint) ([][]string, error) {
 	return internal.ParseNestedStringArrayResponse(b)
 }
 
-// ZRANDMEMBER Returns a list of length equivalent to 'count' containing random members of the sorted set.
+// ZRandMember Returns a list of length equivalent to 'count' containing random members of the sorted set.
 // If count is negative, repeated elements are allowed. If count is positive, the returned elements will be distinct.
 // The default count is 1. If a count of 0 is passed, it will be ignored.
 //
@@ -682,7 +682,7 @@ func (server *EchoVault) ZPOPMIN(key string, count uint) ([][]string, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRANDMEMBER(key string, count int, withscores bool) ([][]string, error) {
+func (server *EchoVault) ZRandMember(key string, count int, withscores bool) ([][]string, error) {
 	cmd := []string{"ZRANDMEMBER", key}
 	if count != 0 {
 		cmd = append(cmd, strconv.Itoa(count))
@@ -699,7 +699,7 @@ func (server *EchoVault) ZRANDMEMBER(key string, count int, withscores bool) ([]
 	return internal.ParseNestedStringArrayResponse(b)
 }
 
-// ZRANK Returns the rank of the specified member in the sorted set. The rank is derived from organising the members
+// ZRank Returns the rank of the specified member in the sorted set. The rank is derived from organising the members
 // in descending order of score.
 //
 // Parameters:
@@ -717,7 +717,7 @@ func (server *EchoVault) ZRANDMEMBER(key string, count int, withscores bool) ([]
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRANK(key string, member string, withscores bool) (map[int]float64, error) {
+func (server *EchoVault) ZRank(key string, member string, withscores bool) (map[int]float64, error) {
 	cmd := []string{"ZRANK", key, member}
 	if withscores {
 		cmd = append(cmd, "WITHSCORES")
@@ -752,9 +752,9 @@ func (server *EchoVault) ZRANK(key string, member string, withscores bool) (map[
 	return res, nil
 }
 
-// ZREVRANK works the same as ZRANK but derives the member's rank based on ascending order of
+// ZRevRank works the same as ZRank but derives the member's rank based on ascending order of
 // the members' scores.
-func (server *EchoVault) ZREVRANK(key string, member string, withscores bool) (map[int]float64, error) {
+func (server *EchoVault) ZRevRank(key string, member string, withscores bool) (map[int]float64, error) {
 	cmd := []string{"ZREVRANK", key, member}
 	if withscores {
 		cmd = append(cmd, "WITHSCORES")
@@ -770,7 +770,7 @@ func (server *EchoVault) ZREVRANK(key string, member string, withscores bool) (m
 	return buildIntegerScoreMap(arr, withscores)
 }
 
-// ZSCORE Returns the score of the member in the sorted set.
+// ZScore Returns the score of the member in the sorted set.
 //
 // Parameters:
 //
@@ -784,7 +784,7 @@ func (server *EchoVault) ZREVRANK(key string, member string, withscores bool) (m
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZSCORE(key string, member string) (interface{}, error) {
+func (server *EchoVault) ZScore(key string, member string) (interface{}, error) {
 	cmd := []string{"ZSCORE", key, member}
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -808,7 +808,7 @@ func (server *EchoVault) ZSCORE(key string, member string) (interface{}, error) 
 	return score, nil
 }
 
-// ZREM Removes the listed members from the sorted set.
+// ZRem Removes the listed members from the sorted set.
 //
 // Parameters:
 //
@@ -821,7 +821,7 @@ func (server *EchoVault) ZSCORE(key string, member string) (interface{}, error) 
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZREM(key string, members ...string) (int, error) {
+func (server *EchoVault) ZRem(key string, members ...string) (int, error) {
 	cmd := []string{"ZREM", key}
 	for _, member := range members {
 		cmd = append(cmd, member)
@@ -833,7 +833,7 @@ func (server *EchoVault) ZREM(key string, members ...string) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// ZREMRANGEBYSCORE Removes the elements whose scores are in the range between min and max.
+// ZRemRangeByScore Removes the elements whose scores are in the range between min and max.
 //
 // Parameters:
 //
@@ -848,7 +848,7 @@ func (server *EchoVault) ZREM(key string, members ...string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZREMRANGEBYSCORE(key string, min float64, max float64) (int, error) {
+func (server *EchoVault) ZRemRangeByScore(key string, min float64, max float64) (int, error) {
 	cmd := []string{
 		"ZREMRANGEBYSCORE",
 		key,
@@ -864,7 +864,7 @@ func (server *EchoVault) ZREMRANGEBYSCORE(key string, min float64, max float64) 
 	return internal.ParseIntegerResponse(b)
 }
 
-// ZRANGE Returns the range of elements in the sorted set.
+// ZRange Returns the range of elements in the sorted set.
 //
 // Parameters:
 //
@@ -874,14 +874,14 @@ func (server *EchoVault) ZREMRANGEBYSCORE(key string, min float64, max float64) 
 //
 // `stop` - string - The maximum boundary.
 //
-// `options` - ZRANGEOptions
+// `options` - ZRangeOptions
 //
 // Returns: A map of map[string]float64 where the key is the member and the value is its score.
 //
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRANGE(key, start, stop string, options ZRANGEOptions) (map[string]float64, error) {
+func (server *EchoVault) ZRange(key, start, stop string, options ZRangeOptions) (map[string]float64, error) {
 	cmd := []string{"ZRANGE", key, start, stop}
 
 	switch {
@@ -914,7 +914,7 @@ func (server *EchoVault) ZRANGE(key, start, stop string, options ZRANGEOptions) 
 	return buildMemberScoreMap(arr, options.WithScores)
 }
 
-// ZRANGESTORE Works like ZRANGE but stores the result in at the 'destination' key.
+// ZRangeStore Works like ZRange but stores the result in at the 'destination' key.
 //
 // Parameters:
 //
@@ -926,14 +926,14 @@ func (server *EchoVault) ZRANGE(key, start, stop string, options ZRANGEOptions) 
 //
 // `stop` - string - The maximum boundary.
 //
-// `options` - ZRANGESTOREOptions
+// `options` - ZRangeStoreOptions
 //
 // Returns: The cardinality of the new sorted set.
 //
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRANGESTORE(destination, source, start, stop string, options ZRANGESTOREOptions) (int, error) {
+func (server *EchoVault) ZRangeStore(destination, source, start, stop string, options ZRangeStoreOptions) (int, error) {
 	cmd := []string{"ZRANGESTORE", destination, source, start, stop}
 
 	switch {

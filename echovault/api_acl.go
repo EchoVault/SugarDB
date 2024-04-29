@@ -21,16 +21,16 @@ import (
 	"github.com/tidwall/resp"
 )
 
-// ACLLOADOptions modifies the behaviour of the ACL_LOAD function.
+// ACLLoadOptions modifies the behaviour of the ACLLoad function.
 // If Merge is true, the ACL configuration from the file will be merged with the in-memory ACL configuration.
 // If Replace is set to true, the ACL configuration from the file will replace the in-memory ACL configuration.
 // If both flags are set to true, Merge will be prioritised.
-type ACLLOADOptions struct {
+type ACLLoadOptions struct {
 	Merge   bool
 	Replace bool
 }
 
-// User is the user object passed to the ACL_SETUSER function to update an existing user or create a new user.
+// User is the user object passed to the ACLSetUser function to update an existing user or create a new user.
 //
 // Username - string - the user's username.
 //
@@ -75,10 +75,10 @@ type ACLLOADOptions struct {
 // IncludeWriteKeys - []string - the list of keys the user is allowed write access to. The default is all.
 // This field accepts glob pattern strings.
 //
-// IncludeChannels - []string - the list of PubSub channels the user is allowed to access ("SUBSCRIBE" and "PUBLISH").
+// IncludeChannels - []string - the list of PubSub channels the user is allowed to access ("Subscribe" and "Publish").
 // This field accepts glob pattern strings.
 //
-// ExcludeChannels - []string - the list of PubSub channels the user cannot access ("SUBSCRIBE" and "PUBLISH").
+// ExcludeChannels - []string - the list of PubSub channels the user cannot access ("Subscribe" and "Publish").
 // This field accepts glob pattern strings.
 type User struct {
 	Username      string
@@ -109,7 +109,7 @@ type User struct {
 	ExcludeChannels []string
 }
 
-// ACL_CAT returns either the list of all categories or the list of commands within a specified category.
+// ACLCat returns either the list of all categories or the list of commands within a specified category.
 //
 // Parameters:
 //
@@ -122,7 +122,7 @@ type User struct {
 // Errors:
 //
 // "category <category> not found" - when the provided category is not found in the loaded commands.
-func (server *EchoVault) ACL_CAT(category ...string) ([]string, error) {
+func (server *EchoVault) ACLCat(category ...string) ([]string, error) {
 	cmd := []string{"ACL", "CAT"}
 	if len(category) > 0 {
 		cmd = append(cmd, category[0])
@@ -134,8 +134,8 @@ func (server *EchoVault) ACL_CAT(category ...string) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// ACL_USERS returns a string slice containing the usernames of all the loaded users in the ACL module.
-func (server *EchoVault) ACL_USERS() ([]string, error) {
+// ACLUsers returns a string slice containing the usernames of all the loaded users in the ACL module.
+func (server *EchoVault) ACLUsers() ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "USERS"}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func (server *EchoVault) ACL_USERS() ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// ACL_SETUSER modifies or creates a new user. If the user with the specified username exists, the ACL user will be modified.
+// ACLSetUser modifies or creates a new user. If the user with the specified username exists, the ACL user will be modified.
 // Otherwise, a new User is created.
 //
 // Parameters:
@@ -151,7 +151,7 @@ func (server *EchoVault) ACL_USERS() ([]string, error) {
 // `user` - User - The user object to add/update.
 //
 // Returns: "OK" if the user is successfully created/updated.
-func (server *EchoVault) ACL_SETUSER(user User) (string, error) {
+func (server *EchoVault) ACLSetUser(user User) (string, error) {
 	cmd := []string{"ACL", "SETUSER", user.Username}
 
 	if user.Enabled {
@@ -244,7 +244,7 @@ func (server *EchoVault) ACL_SETUSER(user User) (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
-// ACL_GETUSER gets the ACL configuration of the name with the given username.
+// ACLGetUser gets the ACL configuration of the name with the given username.
 //
 // Parameters:
 //
@@ -288,7 +288,7 @@ func (server *EchoVault) ACL_SETUSER(user User) (string, error) {
 // Errors:
 //
 // "user not found" - if the user requested does not exist in the ACL rules.
-func (server *EchoVault) ACL_GETUSER(username string) (map[string][]string, error) {
+func (server *EchoVault) ACLGetUser(username string) (map[string][]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "GETUSER", username}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -317,14 +317,14 @@ func (server *EchoVault) ACL_GETUSER(username string) (map[string][]string, erro
 	return result, nil
 }
 
-// ACL_DELUSER deletes all the users with the specified usernames.
+// ACLDelUser deletes all the users with the specified usernames.
 //
 // Parameters:
 //
 // `usernames` - ...string - A string of usernames to delete from the ACL module.
 //
 // Returns: "OK" if the deletion is successful.
-func (server *EchoVault) ACL_DELUSER(usernames ...string) (string, error) {
+func (server *EchoVault) ACLDelUser(usernames ...string) (string, error) {
 	cmd := append([]string{"ACL", "DELUSER"}, usernames...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -333,8 +333,8 @@ func (server *EchoVault) ACL_DELUSER(usernames ...string) (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
-// ACL_LIST lists all the currently loaded ACL users and their rules.
-func (server *EchoVault) ACL_LIST() ([]string, error) {
+// ACLList lists all the currently loaded ACL users and their rules.
+func (server *EchoVault) ACLList() ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "LIST"}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -342,15 +342,15 @@ func (server *EchoVault) ACL_LIST() ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// ACL_LOAD loads the ACL configuration from the configured ACL file. The load function can either merge the loaded
+// ACLLoad loads the ACL configuration from the configured ACL file. The load function can either merge the loaded
 // config with the in-memory config, or replace the in-memory config with the loaded config entirely.
 //
 // Parameters:
 //
-// `options` - ACLLOADOptions - modifies the load behaviour.
+// `options` - ACLLoadOptions - modifies the load behaviour.
 //
 // Returns: "OK" if the load is successful.
-func (server *EchoVault) ACL_LOAD(options ACLLOADOptions) (string, error) {
+func (server *EchoVault) ACLLoad(options ACLLoadOptions) (string, error) {
 	cmd := []string{"ACL", "LOAD"}
 	switch {
 	case options.Merge:
@@ -369,10 +369,10 @@ func (server *EchoVault) ACL_LOAD(options ACLLOADOptions) (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
-// ACL_SAVE saves the current ACL configuration to the configured ACL file.
+// ACLSave saves the current ACL configuration to the configured ACL file.
 //
 // Returns: "OK" if the save is successful.
-func (server *EchoVault) ACL_SAVE() (string, error) {
+func (server *EchoVault) ACLSave() (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "SAVE"}), nil, false, true)
 	if err != nil {
 		return "", err

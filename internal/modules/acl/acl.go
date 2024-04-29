@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/internal/constants"
 	"github.com/gobwas/glob"
 	"gopkg.in/yaml.v3"
 	"log"
@@ -193,7 +193,7 @@ func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
 			}
 		}
 		// Skip if the current username was not found in the ACL
-		if username != user.Username {
+		if user == nil {
 			continue
 		}
 		// Terminate every connection attached to this user

@@ -19,7 +19,7 @@ import (
 	"strconv"
 )
 
-// SADD adds member(s) to a set. If the set does not exist, a new sorted set is created with the
+// SAdd adds member(s) to a set. If the set does not exist, a new sorted set is created with the
 // member(s).
 //
 // Parameters:
@@ -33,7 +33,7 @@ import (
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SADD(key string, members ...string) (int, error) {
+func (server *EchoVault) SAdd(key string, members ...string) (int, error) {
 	cmd := append([]string{"SADD", key}, members...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -42,7 +42,7 @@ func (server *EchoVault) SADD(key string, members ...string) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// SCARD Returns the cardinality of the set.
+// SCard Returns the cardinality of the set.
 //
 // Parameters:
 //
@@ -53,7 +53,7 @@ func (server *EchoVault) SADD(key string, members ...string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SCARD(key string) (int, error) {
+func (server *EchoVault) SCard(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SCARD", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -61,7 +61,7 @@ func (server *EchoVault) SCARD(key string) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// SDIFF Calculates the difference between the provided sets. Keys that don't exist or that are not sets
+// SDiff Calculates the difference between the provided sets. Keys that don't exist or that are not sets
 // will be skipped.
 //
 // Parameters:
@@ -75,7 +75,7 @@ func (server *EchoVault) SCARD(key string) (int, error) {
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 //
 // "key for base set <key> does not exist" - if the first key is not a set.
-func (server *EchoVault) SDIFF(keys ...string) ([]string, error) {
+func (server *EchoVault) SDiff(keys ...string) ([]string, error) {
 	cmd := append([]string{"SDIFF"}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -84,9 +84,9 @@ func (server *EchoVault) SDIFF(keys ...string) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// SDIFFSTORE works like SDIFF but instead of returning the resulting set elements, the resulting set is stored
+// SDiffStore works like SDiff but instead of returning the resulting set elements, the resulting set is stored
 // at the 'destination' key.
-func (server *EchoVault) SDIFFSTORE(destination string, keys ...string) (int, error) {
+func (server *EchoVault) SDiffStore(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SDIFFSTORE", destination}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -95,7 +95,7 @@ func (server *EchoVault) SDIFFSTORE(destination string, keys ...string) (int, er
 	return internal.ParseIntegerResponse(b)
 }
 
-// SINTER Calculates the intersection between the provided sets. If any of the keys does not exist,
+// SInter Calculates the intersection between the provided sets. If any of the keys does not exist,
 // then there is no intersection.
 //
 // Parameters:
@@ -109,7 +109,7 @@ func (server *EchoVault) SDIFFSTORE(destination string, keys ...string) (int, er
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 //
 // "not enough sets in the keys provided" - when only one of the provided keys is a valid set.
-func (server *EchoVault) SINTER(keys ...string) ([]string, error) {
+func (server *EchoVault) SInter(keys ...string) ([]string, error) {
 	cmd := append([]string{"SINTER"}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -118,7 +118,7 @@ func (server *EchoVault) SINTER(keys ...string) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// SINTERCARD Calculates the cardinality of the intersection between the sets provided.
+// SInterCard Calculates the cardinality of the intersection between the sets provided.
 //
 // Parameters:
 //
@@ -133,7 +133,7 @@ func (server *EchoVault) SINTER(keys ...string) ([]string, error) {
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 //
 // "not enough sets in the keys provided" - when only one of the provided keys is a valid set.
-func (server *EchoVault) SINTERCARD(keys []string, limit uint) (int, error) {
+func (server *EchoVault) SInterCard(keys []string, limit uint) (int, error) {
 	cmd := append([]string{"SINTERCARD"}, keys...)
 	if limit > 0 {
 		cmd = append(cmd, []string{"LIMIT", strconv.Itoa(int(limit))}...)
@@ -145,9 +145,9 @@ func (server *EchoVault) SINTERCARD(keys []string, limit uint) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// SINTERSTORE works the same as SINTER but instead of returning the elements in the resulting set, it is stored
+// SInterStore works the same as SInter but instead of returning the elements in the resulting set, it is stored
 // at the 'destination' key and the cardinality of the resulting set is returned.
-func (server *EchoVault) SINTERSTORE(destination string, keys ...string) (int, error) {
+func (server *EchoVault) SInterStore(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SINTERSTORE", destination}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -156,7 +156,7 @@ func (server *EchoVault) SINTERSTORE(destination string, keys ...string) (int, e
 	return internal.ParseIntegerResponse(b)
 }
 
-// SISMEMBER Returns if member is contained in the set.
+// SisMember Returns if member is contained in the set.
 //
 // Parameters:
 //
@@ -169,7 +169,7 @@ func (server *EchoVault) SINTERSTORE(destination string, keys ...string) (int, e
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SISMEMBER(key, member string) (bool, error) {
+func (server *EchoVault) SisMember(key, member string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SISMEMBER", key, member}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -177,7 +177,7 @@ func (server *EchoVault) SISMEMBER(key, member string) (bool, error) {
 	return internal.ParseBooleanResponse(b)
 }
 
-// SMEMBERS Returns all the members of the specified set.
+// SMembers Returns all the members of the specified set.
 //
 // Parameters:
 //
@@ -188,7 +188,7 @@ func (server *EchoVault) SISMEMBER(key, member string) (bool, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SMEMBERS(key string) ([]string, error) {
+func (server *EchoVault) SMembers(key string) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SMEMBERS", key}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func (server *EchoVault) SMEMBERS(key string) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// SMISMEMBER Returns the membership status of all the specified members.
+// SMisMember Returns the membership status of all the specified members.
 //
 // Parameters:
 //
@@ -210,7 +210,7 @@ func (server *EchoVault) SMEMBERS(key string) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SMISMEMBER(key string, members ...string) ([]bool, error) {
+func (server *EchoVault) SMisMember(key string, members ...string) ([]bool, error) {
 	cmd := append([]string{"SMISMEMBER", key}, members...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -219,7 +219,7 @@ func (server *EchoVault) SMISMEMBER(key string, members ...string) ([]bool, erro
 	return internal.ParseBooleanArrayResponse(b)
 }
 
-// SMOVE Move the specified member from 'source' set to 'destination' set.
+// SMove Move the specified member from 'source' set to 'destination' set.
 //
 // Parameters:
 //
@@ -238,7 +238,7 @@ func (server *EchoVault) SMISMEMBER(key string, members ...string) ([]bool, erro
 // "source is not a set" - when the source key does not hold a set.
 //
 // "destination is not a set" - when the destination key does not hold a set.
-func (server *EchoVault) SMOVE(source, destination, member string) (bool, error) {
+func (server *EchoVault) SMove(source, destination, member string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SMOVE", source, destination, member}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -246,7 +246,7 @@ func (server *EchoVault) SMOVE(source, destination, member string) (bool, error)
 	return internal.ParseBooleanResponse(b)
 }
 
-// SPOP Pop one or more elements from the set.
+// SPop Pop one or more elements from the set.
 //
 // Parameters:
 //
@@ -259,7 +259,7 @@ func (server *EchoVault) SMOVE(source, destination, member string) (bool, error)
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SPOP(key string, count uint) ([]string, error) {
+func (server *EchoVault) SPop(key string, count uint) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SPOP", key, strconv.Itoa(int(count))}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -267,7 +267,7 @@ func (server *EchoVault) SPOP(key string, count uint) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// SRANDMEMBER Returns one or more random members from the set without removing them.
+// SRandMember Returns one or more random members from the set without removing them.
 //
 // Parameters:
 //
@@ -281,7 +281,7 @@ func (server *EchoVault) SPOP(key string, count uint) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SRANDMEMBER(key string, count int) ([]string, error) {
+func (server *EchoVault) SRandMember(key string, count int) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SRANDMEMBER", key, strconv.Itoa(count)}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -289,7 +289,7 @@ func (server *EchoVault) SRANDMEMBER(key string, count int) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// SREM Remove one or more members from a set.
+// SRem Remove one or more members from a set.
 //
 // Parameters:
 //
@@ -302,7 +302,7 @@ func (server *EchoVault) SRANDMEMBER(key string, count int) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SREM(key string, members ...string) (int, error) {
+func (server *EchoVault) SRem(key string, members ...string) (int, error) {
 	cmd := append([]string{"SREM", key}, members...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -311,7 +311,7 @@ func (server *EchoVault) SREM(key string, members ...string) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// SUNION Calculates the union between the provided sets. Keys that don't exist or that are not sets
+// SUnion Calculates the union between the provided sets. Keys that don't exist or that are not sets
 // will be skipped.
 //
 // Parameters:
@@ -323,7 +323,7 @@ func (server *EchoVault) SREM(key string, members ...string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SUNION(keys ...string) ([]string, error) {
+func (server *EchoVault) SUnion(keys ...string) ([]string, error) {
 	cmd := append([]string{"SUNION"}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -332,9 +332,9 @@ func (server *EchoVault) SUNION(keys ...string) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// SUNIONSTORE store works like SUNION but instead of returning the resulting elements, it stores the resulting
+// SUnionStore store works like SUnion but instead of returning the resulting elements, it stores the resulting
 // set at the 'destination' key. The return value is an integer representing the cardinality of the new set.
-func (server *EchoVault) SUNIONSTORE(destination string, keys ...string) (int, error) {
+func (server *EchoVault) SUnionStore(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SUNIONSTORE", destination}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {

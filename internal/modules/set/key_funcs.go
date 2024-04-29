@@ -17,69 +17,69 @@ package set
 import (
 	"errors"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/internal/constants"
 	"slices"
 	"strings"
 )
 
-func saddKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func saddKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func scardKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func scardKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func sdiffKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func sdiffKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func sdiffstoreKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func sdiffstoreKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[2:],
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func sinterKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func sinterKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func sintercardKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func sintercardKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
 
 	limitIdx := slices.IndexFunc(cmd, func(s string) bool {
@@ -87,124 +87,124 @@ func sintercardKeyFunc(cmd []string) (internal.AccessKeys, error) {
 	})
 
 	if limitIdx == -1 {
-		return internal.AccessKeys{
+		return internal.KeyExtractionFuncResult{
 			Channels:  make([]string, 0),
 			ReadKeys:  cmd[1:],
 			WriteKeys: make([]string, 0),
 		}, nil
 	}
 
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:limitIdx],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func sinterstoreKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func sinterstoreKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[2:],
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func sismemberKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func sismemberKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func smembersKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func smembersKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func smismemberKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func smismemberKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func smoveKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func smoveKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 4 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:3],
 	}, nil
 }
 
-func spopKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func spopKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func srandmemberKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func srandmemberKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 2 || len(cmd) > 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func sremKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func sremKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func sunionKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func sunionKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func sunionstoreKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func sunionstoreKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 3 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[2:],
 		WriteKeys: cmd[1:2],

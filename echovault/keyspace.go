@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/internal/constants"
 	"log"
 	"math/rand"
 	"runtime"
@@ -245,7 +245,7 @@ func (server *EchoVault) SetExpiry(ctx context.Context, key string, expireAt tim
 	}
 }
 
-// RemoveExpiry is called by commands that remove key expiry (e.g. PERSIST).
+// RemoveExpiry is called by commands that remove key expiry (e.g. Persist).
 // The key must be locked prior ro calling this function.
 func (server *EchoVault) RemoveExpiry(_ context.Context, key string) {
 	// Reset expiry time

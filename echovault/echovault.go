@@ -24,6 +24,7 @@ import (
 	"github.com/echovault/echovault/internal/aof"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/internal/constants"
 	"github.com/echovault/echovault/internal/eviction"
 	"github.com/echovault/echovault/internal/memberlist"
 	"github.com/echovault/echovault/internal/modules/acl"
@@ -38,7 +39,6 @@ import (
 	str "github.com/echovault/echovault/internal/modules/string"
 	"github.com/echovault/echovault/internal/raft"
 	"github.com/echovault/echovault/internal/snapshot"
-	"github.com/echovault/echovault/pkg/constants"
 	"io"
 	"log"
 	"net"
@@ -185,6 +185,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			Config:                echovault.config,
 			EchoVault:             echovault,
 			GetCommand:            echovault.getCommand,
+			CreateKeyAndLock:      echovault.CreateKeyAndLock,
+			SetValue:              echovault.SetValue,
+			SetExpiry:             echovault.SetExpiry,
+			KeyUnlock:             echovault.KeyUnlock,
 			DeleteKey:             echovault.DeleteKey,
 			StartSnapshot:         echovault.startSnapshot,
 			FinishSnapshot:        echovault.finishSnapshot,
@@ -476,7 +480,7 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 // Start starts the EchoVault instance's TCP listener.
 // This allows the instance to accept connections handle client commands over TCP.
 //
-// You can still use command functions like echovault.SET if you're embedding EchoVault in you application.
+// You can still use command functions like echovault.Set if you're embedding EchoVault in your application.
 // However, if you'd like to also accept TCP request on the same instance, you must call this function.
 func (server *EchoVault) Start() {
 	server.startTCP()

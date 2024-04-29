@@ -19,17 +19,17 @@ import (
 	"strconv"
 )
 
-// HRANDFIELDOptions modifies the behaviour of the HRANDFIELD function.
+// HRandFieldOptions modifies the behaviour of the HRandField function.
 //
 // Count determines the number of random fields to return. If set to 0, an empty slice will be returned.
 //
 // WithValues determines whether the returned map should contain the values as well as the fields.
-type HRANDFIELDOptions struct {
+type HRandFieldOptions struct {
 	Count      uint
 	WithValues bool
 }
 
-// HSET creates or modifies a hash map with the values provided. If the hash map does not exist it will be created.
+// HSet creates or modifies a hash map with the values provided. If the hash map does not exist it will be created.
 //
 // Parameters:
 //
@@ -43,7 +43,7 @@ type HRANDFIELDOptions struct {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key exists but is not a hash.
-func (server *EchoVault) HSET(key string, fieldValuePairs map[string]string) (int, error) {
+func (server *EchoVault) HSet(key string, fieldValuePairs map[string]string) (int, error) {
 	cmd := []string{"HSET", key}
 
 	for k, v := range fieldValuePairs {
@@ -58,7 +58,7 @@ func (server *EchoVault) HSET(key string, fieldValuePairs map[string]string) (in
 	return internal.ParseIntegerResponse(b)
 }
 
-// HSETNX modifies an existing hash map with the values provided. This function will only be successful if the
+// HSetNX modifies an existing hash map with the values provided. This function will only be successful if the
 // hash map already exists.
 //
 // Parameters:
@@ -73,7 +73,7 @@ func (server *EchoVault) HSET(key string, fieldValuePairs map[string]string) (in
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HSETNX(key string, fieldValuePairs map[string]string) (int, error) {
+func (server *EchoVault) HSetNX(key string, fieldValuePairs map[string]string) (int, error) {
 	cmd := []string{"HSETNX", key}
 
 	for k, v := range fieldValuePairs {
@@ -88,7 +88,7 @@ func (server *EchoVault) HSETNX(key string, fieldValuePairs map[string]string) (
 	return internal.ParseIntegerResponse(b)
 }
 
-// HSTRLEN returns the length of the values held at the specified fields of a hash map.
+// HStrLen returns the length of the values held at the specified fields of a hash map.
 //
 // Parameters:
 //
@@ -102,7 +102,7 @@ func (server *EchoVault) HSETNX(key string, fieldValuePairs map[string]string) (
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HSTRLEN(key string, fields ...string) ([]int, error) {
+func (server *EchoVault) HStrLen(key string, fields ...string) ([]int, error) {
 	cmd := append([]string{"HSTRLEN", key}, fields...)
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -113,7 +113,7 @@ func (server *EchoVault) HSTRLEN(key string, fields ...string) ([]int, error) {
 	return internal.ParseIntegerArrayResponse(b)
 }
 
-// HVALS returns all the values in a hash map.
+// HVals returns all the values in a hash map.
 //
 // Parameters:
 //
@@ -124,7 +124,7 @@ func (server *EchoVault) HSTRLEN(key string, fields ...string) ([]int, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HVALS(key string) ([]string, error) {
+func (server *EchoVault) HVals(key string) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HVALS", key}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -132,20 +132,20 @@ func (server *EchoVault) HVALS(key string) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// HRANDFIELD returns a random list of fields from the hash map.
+// HRandField returns a random list of fields from the hash map.
 //
 // Parameters:
 //
 // `key` - string - the key to the hash map.
 //
-// `options` - HRANDFIELDOptions
+// `options` - HRandFieldOptions
 //
 // Returns: a string slice containing random fields of the hash map. If the key does not exist, an empty slice is returned.
 //
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HRANDFIELD(key string, options HRANDFIELDOptions) ([]string, error) {
+func (server *EchoVault) HRandField(key string, options HRandFieldOptions) ([]string, error) {
 	cmd := []string{"HRANDFIELD", key}
 
 	if options.Count == 0 {
@@ -166,7 +166,7 @@ func (server *EchoVault) HRANDFIELD(key string, options HRANDFIELDOptions) ([]st
 	return internal.ParseStringArrayResponse(b)
 }
 
-// HLEN returns the length of the hash map.
+// HLen returns the length of the hash map.
 //
 // Parameters:
 //
@@ -177,7 +177,7 @@ func (server *EchoVault) HRANDFIELD(key string, options HRANDFIELDOptions) ([]st
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HLEN(key string) (int, error) {
+func (server *EchoVault) HLen(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HLEN", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -185,7 +185,7 @@ func (server *EchoVault) HLEN(key string) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// HKEYS returns all the keys in a hash map.
+// HKeys returns all the keys in a hash map.
 //
 // Parameters:
 //
@@ -196,7 +196,7 @@ func (server *EchoVault) HLEN(key string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HKEYS(key string) ([]string, error) {
+func (server *EchoVault) HKeys(key string) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HKEYS", key}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -204,7 +204,7 @@ func (server *EchoVault) HKEYS(key string) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// HINCRBY increment the value of the hash map at the given field by an integer. If the hash map does not exist,
+// HIncrBy increment the value of the hash map at the given field by an integer. If the hash map does not exist,
 // a new hash map is created with the field and increment as the value.
 //
 // Parameters:
@@ -220,7 +220,7 @@ func (server *EchoVault) HKEYS(key string) ([]string, error) {
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
 //
 // "value at field <field> is not a number" - when the field holds a value that is not a number.
-func (server *EchoVault) HINCRBY(key, field string, increment int) (float64, error) {
+func (server *EchoVault) HIncrBy(key, field string, increment int) (float64, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HINCRBY", key, field, strconv.Itoa(increment)}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -228,8 +228,8 @@ func (server *EchoVault) HINCRBY(key, field string, increment int) (float64, err
 	return internal.ParseFloatResponse(b)
 }
 
-// HINCRBYFLOAT behaves like HINCRBY but with a float increment instead of an integer increment.
-func (server *EchoVault) HINCRBYFLOAT(key, field string, increment float64) (float64, error) {
+// HIncrByFloat behaves like HIncrBy but with a float increment instead of an integer increment.
+func (server *EchoVault) HIncrByFloat(key, field string, increment float64) (float64, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HINCRBYFLOAT", key, field, strconv.FormatFloat(increment, 'f', -1, 64)}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -237,7 +237,7 @@ func (server *EchoVault) HINCRBYFLOAT(key, field string, increment float64) (flo
 	return internal.ParseFloatResponse(b)
 }
 
-// HGETALL returns a flattened slice of all keys and values in a hash map.
+// HGetAll returns a flattened slice of all keys and values in a hash map.
 //
 // Parameters:
 //
@@ -249,7 +249,7 @@ func (server *EchoVault) HINCRBYFLOAT(key, field string, increment float64) (flo
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HGETALL(key string) ([]string, error) {
+func (server *EchoVault) HGetAll(key string) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HGETALL", key}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -257,7 +257,7 @@ func (server *EchoVault) HGETALL(key string) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
-// HEXISTS checks if a field exists in a hash map.
+// HExists checks if a field exists in a hash map.
 //
 // Parameters:
 //
@@ -270,7 +270,7 @@ func (server *EchoVault) HGETALL(key string) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HEXISTS(key, field string) (bool, error) {
+func (server *EchoVault) HExists(key, field string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HEXISTS", key, field}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -278,7 +278,7 @@ func (server *EchoVault) HEXISTS(key, field string) (bool, error) {
 	return internal.ParseBooleanResponse(b)
 }
 
-// HDEL delete 1 or more fields from a hash map.
+// HDel delete 1 or more fields from a hash map.
 //
 // Parameters:
 //
@@ -291,7 +291,7 @@ func (server *EchoVault) HEXISTS(key, field string) (bool, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HDEL(key string, fields ...string) (int, error) {
+func (server *EchoVault) HDel(key string, fields ...string) (int, error) {
 	cmd := append([]string{"HDEL", key}, fields...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {

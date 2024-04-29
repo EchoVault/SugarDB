@@ -17,36 +17,36 @@ package str
 import (
 	"errors"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/pkg/constants"
+	"github.com/echovault/echovault/internal/constants"
 )
 
-func setRangeKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func setRangeKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 4 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
 	}, nil
 }
 
-func strLenKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func strLenKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
-func subStrKeyFunc(cmd []string) (internal.AccessKeys, error) {
+func subStrKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 4 {
-		return internal.AccessKeys{}, errors.New(constants.WrongArgsResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	return internal.AccessKeys{
+	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],
 		WriteKeys: make([]string, 0),

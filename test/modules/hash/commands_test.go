@@ -19,10 +19,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/pkg/constants"
-	"github.com/echovault/echovault/pkg/echovault"
+	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
 	"net"
 	"reflect"
@@ -87,7 +87,7 @@ func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) int
 }
 
 func Test_HandleHSET(t *testing.T) {
-	// Tests for both HSET and HSETNX
+	// Tests for both HSet and HSetNX
 	tests := []struct {
 		name             string
 		preset           bool
@@ -232,7 +232,7 @@ func Test_HandleHSET(t *testing.T) {
 }
 
 func Test_HandleHINCRBY(t *testing.T) {
-	// Tests for both HINCRBY and HINCRBYFLOAT
+	// Tests for both HIncrBy and HIncrByFloat
 	tests := []struct {
 		name             string
 		preset           bool

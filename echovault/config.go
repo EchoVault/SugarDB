@@ -1,4 +1,4 @@
-package config
+package echovault
 
 import (
 	"github.com/echovault/echovault/internal/config"
