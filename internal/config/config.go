@@ -58,6 +58,7 @@ type Config struct {
 	EvictionPolicy     string        `json:"EvictionPolicy" yaml:"EvictionPolicy"`
 	EvictionSample     uint          `json:"EvictionSample" yaml:"EvictionSample"`
 	EvictionInterval   time.Duration `json:"EvictionInterval" yaml:"EvictionInterval"`
+	Modules            []string      `json:"Plugins" yaml:"Plugins"`
 }
 
 func GetConfig() (Config, error) {
@@ -131,6 +132,18 @@ There is no limit by default.`, func(memory string) error {
 			return nil
 		})
 
+	var modules []string
+	flag.Func(
+		"loadmodule",
+		`Path to shared object library to extend EchoVault commands (e.g. /path/to/plugin.so)`,
+		func(p string) error {
+			if !strings.HasSuffix(p, ".so") {
+				return fmt.Errorf("\"%s\" is not a .so file", p)
+			}
+			modules = append(modules, p)
+			return nil
+		})
+
 	tls := flag.Bool("tls", false, "Start the echovault in TLS mode. Default is false.")
 	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
@@ -200,6 +213,7 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		EvictionPolicy:     evictionPolicy,
 		EvictionSample:     *evictionSample,
 		EvictionInterval:   *evictionInterval,
+		Modules:            modules,
 	}
 
 	if len(*config) > 0 {
