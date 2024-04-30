@@ -40,7 +40,7 @@ Some key features offered by EchoVault include:
 2) Replication cluster support using the RAFT algorithm.
 3) ACL Layer for user Authentication and Authorization.
 4) Distributed Pub/Sub functionality with consumer groups.
-5) Sets, Sorted Sets, Hashes.
+5) Sets, Sorted Sets, Hashes, Lists and more.
 6) Persistence layer with Snapshots and Append-Only files.
 7) Key Eviction Policies.
 
