@@ -12,28 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package types
+package echovault
 
 import (
 	"context"
 	"net"
-	"time"
 )
-
-type EchoVault interface {
-	KeyLock(ctx context.Context, key string) (bool, error)
-	KeyUnlock(ctx context.Context, key string)
-	KeyRLock(ctx context.Context, key string) (bool, error)
-	KeyRUnlock(ctx context.Context, key string)
-	KeyExists(ctx context.Context, key string) bool
-	CreateKeyAndLock(ctx context.Context, key string) (bool, error)
-	GetValue(ctx context.Context, key string) interface{}
-	SetValue(ctx context.Context, key string, value interface{}) error
-	GetExpiry(ctx context.Context, key string) time.Time
-	SetExpiry(ctx context.Context, key string, expire time.Time, touch bool)
-	RemoveExpiry(ctx context.Context, key string)
-	DeleteKey(ctx context.Context, key string) error
-}
 
 // CommandKeyExtractionFuncResult specifies the keys accessed by the associated command or subcommand.
 // ReadKeys is a string slice containing the keys that the commands read from.

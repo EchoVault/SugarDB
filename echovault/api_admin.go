@@ -17,7 +17,6 @@ package echovault
 import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/types"
 	"slices"
 	"strings"
 )
@@ -64,8 +63,8 @@ type CommandOptions struct {
 	Description       string
 	SubCommand        []SubCommandOptions
 	Sync              bool
-	KeyExtractionFunc types.CommandKeyExtractionFunc
-	HandlerFunc       types.CommandHandlerFunc
+	KeyExtractionFunc CommandKeyExtractionFunc
+	HandlerFunc       CommandHandlerFunc
 }
 
 // SubCommandOptions provides the specification of a subcommand within CommandOptions.
@@ -92,8 +91,8 @@ type SubCommandOptions struct {
 	Categories        []string
 	Description       string
 	Sync              bool
-	KeyExtractionFunc types.CommandKeyExtractionFunc
-	HandlerFunc       types.CommandHandlerFunc
+	KeyExtractionFunc CommandKeyExtractionFunc
+	HandlerFunc       CommandHandlerFunc
 }
 
 // CommandList returns the list of commands currently loaded in the EchoVault instance.
@@ -205,7 +204,7 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 				}, nil
 			}),
 			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
-				return command.HandlerFunc(types.CommandHandlerFuncParams{
+				return command.HandlerFunc(CommandHandlerFuncParams{
 					Context:          params.Context,
 					Command:          params.Command,
 					Connection:       params.Connection,
@@ -276,7 +275,7 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 				}, nil
 			}),
 			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
-				return sc.HandlerFunc(types.CommandHandlerFuncParams{
+				return sc.HandlerFunc(CommandHandlerFuncParams{
 					Context:          params.Context,
 					Command:          params.Command,
 					Connection:       params.Connection,
