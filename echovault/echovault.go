@@ -183,7 +183,6 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{
 			Config:                echovault.config,
-			EchoVault:             echovault,
 			GetCommand:            echovault.getCommand,
 			CreateKeyAndLock:      echovault.CreateKeyAndLock,
 			SetValue:              echovault.SetValue,

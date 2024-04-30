@@ -27,14 +27,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/echovault/echovault/types"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 )
 
 type Opts struct {
 	Config                config.Config
-	EchoVault             types.EchoVault
 	CreateKeyAndLock      func(ctx context.Context, key string) (bool, error)
 	SetValue              func(ctx context.Context, key string, value interface{}) error
 	SetExpiry             func(ctx context.Context, key string, expire time.Time, touch bool)
