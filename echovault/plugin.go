@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func (server *EchoVault) LoadModules(path string, args ...string) error {
+func (server *EchoVault) LoadModule(path string, args ...string) error {
 	p, err := plugin.Open(path)
 	if err != nil {
 		return err
@@ -125,7 +125,7 @@ func (server *EchoVault) LoadModules(path string, args ...string) error {
 	return nil
 }
 
-func (server *EchoVault) UnloadModules(module string) {
+func (server *EchoVault) UnloadModule(module string) {
 	server.commands = slices.DeleteFunc(server.commands, func(command internal.Command) bool {
 		return strings.EqualFold(command.Module, module)
 	})
