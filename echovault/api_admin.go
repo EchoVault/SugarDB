@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"net"
 	"slices"
 	"strings"
 )
@@ -58,9 +57,6 @@ type CommandHandlerFunc func(params CommandHandlerFuncParams) ([]byte, error)
 //
 // Command is the string slice command containing the command that triggered this handler.
 //
-// Connection is the TCP connection that triggered this command. In embedded mode, this will always be nil.
-// Any TCP client that trigger the custom command will have its connection passed to the handler here.
-//
 // KeyExists returns true if the key passed to it exists in the store.
 //
 // CreateKeyAndLock creates the new key and immediately write locks it. If the key already exists, then
@@ -89,7 +85,6 @@ type CommandHandlerFunc func(params CommandHandlerFuncParams) ([]byte, error)
 type CommandHandlerFuncParams struct {
 	Context          context.Context
 	Command          []string
-	Connection       *net.Conn
 	KeyExists        func(ctx context.Context, key string) bool
 	CreateKeyAndLock func(ctx context.Context, key string) (bool, error)
 	KeyLock          func(ctx context.Context, key string) (bool, error)
@@ -273,7 +268,6 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 				return command.HandlerFunc(CommandHandlerFuncParams{
 					Context:          params.Context,
 					Command:          params.Command,
-					Connection:       params.Connection,
 					KeyLock:          params.KeyLock,
 					KeyUnlock:        params.KeyUnlock,
 					KeyRLock:         params.KeyRLock,
@@ -344,7 +338,6 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 				return sc.HandlerFunc(CommandHandlerFuncParams{
 					Context:          params.Context,
 					Command:          params.Command,
-					Connection:       params.Connection,
 					KeyLock:          params.KeyLock,
 					KeyUnlock:        params.KeyUnlock,
 					KeyRLock:         params.KeyRLock,
