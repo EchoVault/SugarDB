@@ -158,6 +158,13 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		internal.ContextServerID(echovault.config.ServerID),
 	)
 
+	// Load .so modules from config
+	for _, path := range echovault.config.Modules {
+		if err := echovault.LoadModule(path); err != nil {
+			log.Println(err)
+		}
+	}
+
 	// Function for server commands retrieval
 	echovault.getCommands = func() []internal.Command {
 		return echovault.commands
