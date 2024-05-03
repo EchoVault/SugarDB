@@ -18,6 +18,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/echovault/echovault/echovault"
+	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/echovault/echovault/internal/modules/acl"
@@ -37,7 +38,9 @@ var mockServer *echovault.EchoVault
 
 func init() {
 	bindAddr = "localhost"
-	port = 7496
+
+	p, _ := internal.GetFreePort()
+	port = uint16(p)
 
 	mockServer = setUpServer(bindAddr, port, true, "")
 
@@ -406,8 +409,8 @@ func Test_HandleCat(t *testing.T) {
 }
 
 func Test_HandleUsers(t *testing.T) {
-	var port uint16 = 7491
-	mockServer := setUpServer(bindAddr, port, false, "")
+	port, _ := internal.GetFreePort()
+	mockServer := setUpServer(bindAddr, uint16(port), false, "")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -461,8 +464,8 @@ func Test_HandleUsers(t *testing.T) {
 }
 
 func Test_HandleSetUser(t *testing.T) {
-	var port uint16 = 7492
-	mockServer := setUpServer(bindAddr, port, false, "")
+	port, _ := internal.GetFreePort()
+	mockServer := setUpServer(bindAddr, uint16(port), false, "")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -1054,8 +1057,8 @@ func Test_HandleSetUser(t *testing.T) {
 }
 
 func Test_HandleGetUser(t *testing.T) {
-	var port uint16 = 7493
-	mockServer := setUpServer(bindAddr, port, false, "")
+	port, _ := internal.GetFreePort()
+	mockServer := setUpServer(bindAddr, uint16(port), false, "")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -1207,8 +1210,8 @@ func Test_HandleGetUser(t *testing.T) {
 }
 
 func Test_HandleDelUser(t *testing.T) {
-	var port uint16 = 7494
-	mockServer := setUpServer(bindAddr, port, false, "")
+	port, _ := internal.GetFreePort()
+	mockServer := setUpServer(bindAddr, uint16(port), false, "")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -1357,8 +1360,8 @@ func Test_HandleWhoAmI(t *testing.T) {
 }
 
 func Test_HandleList(t *testing.T) {
-	var port uint16 = 7495
-	mockServer := setUpServer(bindAddr, port, false, "")
+	port, _ := internal.GetFreePort()
+	mockServer := setUpServer(bindAddr, uint16(port), false, "")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
