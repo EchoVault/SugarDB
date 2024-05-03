@@ -21,7 +21,6 @@ import (
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
-	"github.com/echovault/echovault/types"
 	"github.com/tidwall/resp"
 	"strconv"
 	"testing"
@@ -64,16 +63,16 @@ Test command to handle successful addition of a single command without subcomman
 The value passed must be an integer.`,
 					Categories: []string{},
 					Sync:       false,
-					KeyExtractionFunc: func(cmd []string) (types.CommandKeyExtractionFuncResult, error) {
+					KeyExtractionFunc: func(cmd []string) (echovault.CommandKeyExtractionFuncResult, error) {
 						if len(cmd) != 4 {
-							return types.CommandKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+							return echovault.CommandKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 						}
-						return types.CommandKeyExtractionFuncResult{
+						return echovault.CommandKeyExtractionFuncResult{
 							WriteKeys: cmd[1:2],
 							ReadKeys:  cmd[2:3],
 						}, nil
 					},
-					HandlerFunc: func(params types.CommandHandlerFuncParams) ([]byte, error) {
+					HandlerFunc: func(params echovault.CommandHandlerFuncParams) ([]byte, error) {
 						if len(params.Command) != 4 {
 							return nil, errors.New(constants.WrongArgsResponse)
 						}
@@ -128,16 +127,16 @@ Test command to handle successful addition of a single command with subcommands.
 The value passed must be an integer.`,
 							Categories: []string{},
 							Sync:       false,
-							KeyExtractionFunc: func(cmd []string) (types.CommandKeyExtractionFuncResult, error) {
+							KeyExtractionFunc: func(cmd []string) (echovault.CommandKeyExtractionFuncResult, error) {
 								if len(cmd) != 5 {
-									return types.CommandKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+									return echovault.CommandKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 								}
-								return types.CommandKeyExtractionFuncResult{
+								return echovault.CommandKeyExtractionFuncResult{
 									WriteKeys: cmd[2:3],
 									ReadKeys:  cmd[3:4],
 								}, nil
 							},
-							HandlerFunc: func(params types.CommandHandlerFuncParams) ([]byte, error) {
+							HandlerFunc: func(params echovault.CommandHandlerFuncParams) ([]byte, error) {
 								if len(params.Command) != 5 {
 									return nil, errors.New(constants.WrongArgsResponse)
 								}

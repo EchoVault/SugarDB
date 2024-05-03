@@ -33,5 +33,6 @@ func DefaultConfig() Config {
 		EvictionPolicy:     constants.NoEviction,
 		EvictionSample:     20,
 		EvictionInterval:   100 * time.Millisecond,
+		Modules:            make([]string, 0),
 	}
 }

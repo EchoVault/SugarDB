@@ -15,9 +15,9 @@
 package echovault
 
 import (
+	"context"
 	"fmt"
 	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/types"
 	"slices"
 	"strings"
 )
@@ -33,6 +33,66 @@ type CommandListOptions struct {
 	ACLCAT  string
 	PATTERN string
 	MODULE  string
+}
+
+// CommandKeyExtractionFuncResult specifies the keys accessed by the associated command or subcommand.
+// ReadKeys is a string slice containing the keys that the commands read from.
+// WriteKeys is a string slice containing the keys that the command writes to.
+//
+// These keys will typically be extracted from the command slice, but they can also be hardcoded.
+type CommandKeyExtractionFuncResult struct {
+	ReadKeys  []string
+	WriteKeys []string
+}
+
+// CommandKeyExtractionFunc if the function that extracts the keys accessed by the command or subcommand.
+type CommandKeyExtractionFunc func(cmd []string) (CommandKeyExtractionFuncResult, error)
+
+// CommandHandlerFunc is the handler function for the command or subcommand.
+//
+// This function must return a byte slice containing a valid RESP2 response, or an error.
+type CommandHandlerFunc func(params CommandHandlerFuncParams) ([]byte, error)
+
+// CommandHandlerFuncParams contains the helper parameters passed to the command's handler by EchoVault.
+//
+// Command is the string slice command containing the command that triggered this handler.
+//
+// KeyExists returns true if the key passed to it exists in the store.
+//
+// CreateKeyAndLock creates the new key and immediately write locks it. If the key already exists, then
+// it is simply write locked which makes this function safe to call even if the key already exists. Always call
+// KeyUnlock when done after CreateKeyAndLock.
+//
+// KeyLock acquires a write lock for the specified key. If the lock is successfully acquired, the function will return
+// (true, nil). Otherwise, it will return false and an error describing why the locking failed. Always call KeyUnlock
+// when done after KeyLock.
+//
+// KeyUnlock releases the write lock for the specified key. Always call this after KeyLock otherwise the key will not be
+// lockable by any future invocations of this command or other commands.
+//
+// KeyRLock acquires a read lock for the specified key. If the lock is successfully acquired, the function will return
+// (true, nil). Otherwise, it will return false and an error describing why the locking failed. Always call KeyRUnlock
+// when done after KeyRLock.
+//
+// KeyRUnlock releases the real lock for the specified key. Always call this after KeyRLock otherwise the key will not be
+// write-lockable by any future invocations of this command or other commands.
+//
+// GetValue returns the value held at the specified key as an interface{}. Make sure to invoke KeyLock or KeyRLock on the
+// key before GetValue to ensure thread safety.
+//
+// SetValue sets the value at the specified key. Make sure to invoke KeyLock on the key before
+// SetValue to ensure thread safety.
+type CommandHandlerFuncParams struct {
+	Context          context.Context
+	Command          []string
+	KeyExists        func(ctx context.Context, key string) bool
+	CreateKeyAndLock func(ctx context.Context, key string) (bool, error)
+	KeyLock          func(ctx context.Context, key string) (bool, error)
+	KeyUnlock        func(ctx context.Context, key string)
+	KeyRLock         func(ctx context.Context, key string) (bool, error)
+	KeyRUnlock       func(ctx context.Context, key string)
+	GetValue         func(ctx context.Context, key string) interface{}
+	SetValue         func(ctx context.Context, key string, value interface{}) error
 }
 
 // CommandOptions provides the specification of the command to be added to the EchoVault instance.
@@ -64,8 +124,8 @@ type CommandOptions struct {
 	Description       string
 	SubCommand        []SubCommandOptions
 	Sync              bool
-	KeyExtractionFunc types.CommandKeyExtractionFunc
-	HandlerFunc       types.CommandHandlerFunc
+	KeyExtractionFunc CommandKeyExtractionFunc
+	HandlerFunc       CommandHandlerFunc
 }
 
 // SubCommandOptions provides the specification of a subcommand within CommandOptions.
@@ -92,8 +152,8 @@ type SubCommandOptions struct {
 	Categories        []string
 	Description       string
 	Sync              bool
-	KeyExtractionFunc types.CommandKeyExtractionFunc
-	HandlerFunc       types.CommandHandlerFunc
+	KeyExtractionFunc CommandKeyExtractionFunc
+	HandlerFunc       CommandHandlerFunc
 }
 
 // CommandList returns the list of commands currently loaded in the EchoVault instance.
@@ -171,6 +231,8 @@ func (server *EchoVault) RewriteAOF() (string, error) {
 //
 // "command <command> already exists" - If a command with the same command name as the passed command already exists.
 func (server *EchoVault) AddCommand(command CommandOptions) error {
+	server.commandsRWMut.Lock()
+	defer server.commandsRWMut.Unlock()
 	// Check if command already exists
 	for _, c := range server.commands {
 		if strings.EqualFold(c.Command, command.Command) {
@@ -205,10 +267,9 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 				}, nil
 			}),
 			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
-				return command.HandlerFunc(types.CommandHandlerFuncParams{
+				return command.HandlerFunc(CommandHandlerFuncParams{
 					Context:          params.Context,
 					Command:          params.Command,
-					Connection:       params.Connection,
 					KeyLock:          params.KeyLock,
 					KeyUnlock:        params.KeyUnlock,
 					KeyRLock:         params.KeyRLock,
@@ -276,10 +337,9 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 				}, nil
 			}),
 			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
-				return sc.HandlerFunc(types.CommandHandlerFuncParams{
+				return sc.HandlerFunc(CommandHandlerFuncParams{
 					Context:          params.Context,
 					Command:          params.Command,
-					Connection:       params.Connection,
 					KeyLock:          params.KeyLock,
 					KeyUnlock:        params.KeyUnlock,
 					KeyRLock:         params.KeyRLock,
@@ -340,6 +400,9 @@ func (server *EchoVault) ExecuteCommand(command ...string) ([]byte, error) {
 //
 // `command` - ...string.
 func (server *EchoVault) RemoveCommand(command ...string) {
+	server.commandsRWMut.Lock()
+	defer server.commandsRWMut.Unlock()
+
 	switch len(command) {
 	case 1:
 		// Remove command

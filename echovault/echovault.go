@@ -82,8 +82,9 @@ type EchoVault struct {
 	}
 
 	// Holds the list of all commands supported by the echovault.
-	commands    []internal.Command
-	getCommands func() []internal.Command
+	commandsRWMut sync.RWMutex
+	commands      []internal.Command
+	getCommands   func() []internal.Command
 
 	raft       *raft.Raft             // The raft replication layer for the echovault.
 	memberList *memberlist.MemberList // The memberlist layer for the echovault.
@@ -133,6 +134,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		store:           make(map[string]internal.KeyData),
 		keyLocks:        make(map[string]*sync.RWMutex),
 		keyCreationLock: &sync.Mutex{},
+		commandsRWMut:   sync.RWMutex{},
 		commands: func() []internal.Command {
 			var commands []internal.Command
 			commands = append(commands, acl.Commands()...)
@@ -157,6 +159,15 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		echovault.context, "ServerID",
 		internal.ContextServerID(echovault.config.ServerID),
 	)
+
+	// Load .so modules from config
+	for _, path := range echovault.config.Modules {
+		if err := echovault.LoadModule(path); err != nil {
+			log.Printf("%s %v\n", path, err)
+			continue
+		}
+		log.Printf("loaded plugin %s\n", path)
+	}
 
 	// Function for server commands retrieval
 	echovault.getCommands = func() []internal.Command {
@@ -183,7 +194,6 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{
 			Config:                echovault.config,
-			EchoVault:             echovault,
 			GetCommand:            echovault.getCommand,
 			CreateKeyAndLock:      echovault.CreateKeyAndLock,
 			SetValue:              echovault.SetValue,

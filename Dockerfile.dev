@@ -41,3 +41,6 @@ CMD "./server" \
   "--cert-key-pair=${CERT_KEY_PAIR_2}" \
   # List of client certs
   "--client-ca=${CLIENT_CA_1}" \
+  # List of plugins to load on startup
+  "--loadmodule=${MODULE_1}" \
+  "--loadmodule=${MODULE_2}" \

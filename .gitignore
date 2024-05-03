@@ -1,8 +1,6 @@
 .idea
 bin
-volumes
-/config/
-
+volumes/nodes
 dist/
 pkg/modules/*/aof
 pkg/echovault/aof
