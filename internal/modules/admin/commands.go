@@ -199,9 +199,7 @@ func Commands() []internal.Command {
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
-					Channels:  make([]string, 0),
-					ReadKeys:  make([]string, 0),
-					WriteKeys: make([]string, 0),
+					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
 				}, nil
 			},
 			HandlerFunc: handleGetAllCommands,
@@ -214,9 +212,7 @@ func Commands() []internal.Command {
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
-					Channels:  make([]string, 0),
-					ReadKeys:  make([]string, 0),
-					WriteKeys: make([]string, 0),
+					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
 				}, nil
 			},
 			SubCommands: []internal.SubCommand{
@@ -228,9 +224,7 @@ func Commands() []internal.Command {
 					Sync:        false,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
-							Channels:  make([]string, 0),
-							ReadKeys:  make([]string, 0),
-							WriteKeys: make([]string, 0),
+							Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
 						}, nil
 					},
 					HandlerFunc: handleCommandDocs,
@@ -243,9 +237,7 @@ func Commands() []internal.Command {
 					Sync:        false,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
-							Channels:  make([]string, 0),
-							ReadKeys:  make([]string, 0),
-							WriteKeys: make([]string, 0),
+							Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
 						}, nil
 					},
 					HandlerFunc: handleCommandCount,
@@ -259,9 +251,7 @@ Allows for filtering by ACL category or glob pattern.`,
 					Sync: false,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
-							Channels:  make([]string, 0),
-							ReadKeys:  make([]string, 0),
-							WriteKeys: make([]string, 0),
+							Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
 						}, nil
 					},
 					HandlerFunc: handleCommandList,
@@ -276,9 +266,7 @@ Allows for filtering by ACL category or glob pattern.`,
 			Sync:        true,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
-					Channels:  make([]string, 0),
-					ReadKeys:  make([]string, 0),
-					WriteKeys: make([]string, 0),
+					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
 				}, nil
 			},
 			HandlerFunc: func(params internal.HandlerFuncParams) ([]byte, error) {
@@ -296,9 +284,7 @@ Allows for filtering by ACL category or glob pattern.`,
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
-					Channels:  make([]string, 0),
-					ReadKeys:  make([]string, 0),
-					WriteKeys: make([]string, 0),
+					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
 				}, nil
 			},
 			HandlerFunc: func(params internal.HandlerFuncParams) ([]byte, error) {
@@ -317,9 +303,7 @@ Allows for filtering by ACL category or glob pattern.`,
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
-					Channels:  make([]string, 0),
-					ReadKeys:  make([]string, 0),
-					WriteKeys: make([]string, 0),
+					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
 				}, nil
 			},
 			HandlerFunc: func(params internal.HandlerFuncParams) ([]byte, error) {
@@ -327,6 +311,85 @@ Allows for filtering by ACL category or glob pattern.`,
 					return nil, err
 				}
 				return []byte(constants.OkResponse), nil
+			},
+		},
+		{
+			Command:     "module",
+			Module:      constants.AdminModule,
+			Categories:  []string{},
+			Description: "Module commands",
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
+					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
+				}, nil
+			},
+			SubCommands: []internal.SubCommand{
+				{
+					Command:    "load",
+					Module:     constants.AdminModule,
+					Categories: []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
+					Description: `(MODULE LOAD path [arg [arg ...]]) Load a module from a dynamic library at runtime. 
+The path should be the full path to the module, including the .so filename. Any args will be be passed unmodified to the
+module's key extraction and handler functions.`,
+					Sync: true,
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
+							Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
+						}, nil
+					},
+					HandlerFunc: func(params internal.HandlerFuncParams) ([]byte, error) {
+						if len(params.Command) < 3 {
+							return nil, errors.New(constants.WrongArgsResponse)
+						}
+						var args []string
+						if len(params.Command) > 3 {
+							args = params.Command[3:]
+						}
+						if err := params.LoadModule(params.Command[2], args...); err != nil {
+							return nil, err
+						}
+						return []byte(constants.OkResponse), nil
+					},
+				},
+				{
+					Command:     "unload",
+					Module:      constants.AdminModule,
+					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
+					Description: `(MODULE UNLOAD name) Unloads a module based on the its name as displayed by the MODULE LIST command.`,
+					Sync:        true,
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
+							Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
+						}, nil
+					},
+					HandlerFunc: func(params internal.HandlerFuncParams) ([]byte, error) {
+						if len(params.Command) != 3 {
+							return nil, errors.New(constants.WrongArgsResponse)
+						}
+						params.UnloadModule(params.Command[2])
+						return []byte(constants.OkResponse), nil
+					},
+				},
+				{
+					Command:     "list",
+					Module:      constants.AdminModule,
+					Categories:  []string{constants.AdminModule, constants.SlowCategory, constants.DangerousCategory},
+					Description: `(MODULE LIST) List all the modules that are currently loaded in the server.`,
+					Sync:        false,
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
+							Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
+						}, nil
+					},
+					HandlerFunc: func(params internal.HandlerFuncParams) ([]byte, error) {
+						modules := params.ListModules()
+						res := fmt.Sprintf("*%d\r\n", len(modules))
+						for _, module := range modules {
+							res += fmt.Sprintf("$%d\r\n%s\r\n", len(module), module)
+						}
+						return []byte(res), nil
+					},
+				},
 			},
 		},
 	}

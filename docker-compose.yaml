@@ -40,15 +40,15 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
-      - MODULE_1=/lib/echovault/modules/module_1.so
-      - MODULE_2=/lib/echovault/modules/module_2.so
+      - MODULE_1=/lib/echovault/modules/module_set/module_set.so
+      - MODULE_2=/lib/echovault/modules/module_get/module_get.so
     ports:
       - "7480:7480"
       - "7946:7946"
       - "7999:8000"
     volumes:
       - ./volumes/config:/etc/echovault/config
-      - ./volumes/plugins:/lib/echovault/plugins
+      - ./volumes/modules:/lib/echovault/modules
       - ./volumes/nodes/standalone_node:/var/lib/echovault
     networks:
       - testnet
@@ -87,8 +87,8 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
-      - MODULE_1=/lib/echovault/modules/module_1.so
-      - MODULE_2=/lib/echovault/modules/module_2.so
+      - MODULE_1=/lib/echovault/modules/module_set/module_set.so
+      - MODULE_2=/lib/echovault/modules/module_get/module_get.so
     ports:
       - "7481:7480"
       - "7945:7946"
@@ -134,8 +134,8 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
-      - MODULE_1=/lib/echovault/modules/module_1.so
-      - MODULE_2=/lib/echovault/modules/module_2.so
+      - MODULE_1=/lib/echovault/modules/module_set/module_set.so
+      - MODULE_2=/lib/echovault/modules/module_get/module_get.so
     ports:
       - "7482:7480"
       - "7947:7946"
@@ -181,8 +181,8 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
-      - MODULE_1=/lib/echovault/modules/module_1.so
-      - MODULE_2=/lib/echovault/modules/module_2.so
+      - MODULE_1=/lib/echovault/modules/module_set/module_set.so
+      - MODULE_2=/lib/echovault/modules/module_get/module_get.so
     ports:
       - "7483:7480"
       - "7948:7946"
@@ -228,8 +228,8 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
-      - MODULE_1=/lib/echovault/modules/module_1.so
-      - MODULE_2=/lib/echovault/modules/module_2.so
+      - MODULE_1=/lib/echovault/modules/module_set/module_set.so
+      - MODULE_2=/lib/echovault/modules/module_get/module_get.so
     ports:
       - "7484:7480"
       - "7949:7946"
@@ -275,8 +275,8 @@ services:
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
-      - MODULE_1=/lib/echovault/modules/module_1.so
-      - MODULE_2=/lib/echovault/modules/module_2.so
+      - MODULE_1=/lib/echovault/modules/module_set/module_set.so
+      - MODULE_2=/lib/echovault/modules/module_get/module_get.so
     ports:
       - "7485:7480"
       - "7950:7946"

@@ -25,6 +25,8 @@ import (
 )
 
 func (server *EchoVault) getCommand(cmd string) (internal.Command, error) {
+	server.commandsRWMut.RLock()
+	defer server.commandsRWMut.RUnlock()
 	for _, command := range server.commands {
 		if strings.EqualFold(command.Command, cmd) {
 			return command, nil
@@ -52,6 +54,9 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 		TakeSnapshot:          server.takeSnapshot,
 		GetLatestSnapshotTime: server.getLatestSnapshotTime,
 		RewriteAOF:            server.rewriteAOF,
+		LoadModule:            server.LoadModule,
+		UnloadModule:          server.UnloadModule,
+		ListModules:           server.ListModules,
 		GetClock:              server.getClock,
 		GetPubSub:             server.getPubSub,
 		GetACL:                server.getACL,

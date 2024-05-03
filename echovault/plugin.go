@@ -3,23 +3,25 @@ package echovault
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/echovault/echovault/internal"
 	"plugin"
 	"slices"
 	"strings"
 )
 
+// TODO: Add godoc comment
 func (server *EchoVault) LoadModule(path string, args ...string) error {
 	p, err := plugin.Open(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("plugin open: %v", err)
 	}
 
 	commandSymbol, err := p.Lookup("Command")
 	if err != nil {
 		return err
 	}
-	command, ok := commandSymbol.(string)
+	command, ok := commandSymbol.(*string)
 	if !ok {
 		return errors.New("command symbol is not a string")
 	}
@@ -28,7 +30,7 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 	if err != nil {
 		return err
 	}
-	categories, ok := categoriesSymbol.([]string)
+	categories, ok := categoriesSymbol.(*[]string)
 	if !ok {
 		return errors.New("categories symbol not a string slice")
 	}
@@ -37,7 +39,7 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 	if err != nil {
 		return err
 	}
-	description, ok := descriptionSymbol.(string)
+	description, ok := descriptionSymbol.(*string)
 	if !ok {
 		return errors.New("description symbol is no a string")
 	}
@@ -46,14 +48,14 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 	if err != nil {
 		return err
 	}
-	sync, ok := syncSymbol.(bool)
+	sync, ok := syncSymbol.(*bool)
 	if !ok {
 		return errors.New("sync symbol is not a bool")
 	}
 
 	keyExtractionFuncSymbol, err := p.Lookup("KeyExtractionFunc")
 	if err != nil {
-		return err
+		return fmt.Errorf("key extraction func symbol: %v", err)
 	}
 	keyExtractionFunc, ok := keyExtractionFuncSymbol.(func(cmd []string, args ...string) ([]string, []string, error))
 	if !ok {
@@ -62,7 +64,7 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 
 	handlerFuncSymbol, err := p.Lookup("HandlerFunc")
 	if err != nil {
-		return err
+		return fmt.Errorf("handler func symbol: %v", err)
 	}
 	handlerFunc, ok := handlerFuncSymbol.(func(
 		ctx context.Context,
@@ -81,19 +83,22 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 		return errors.New("handler function has unexpected signature")
 	}
 
+	server.commandsRWMut.Lock()
+	defer server.commandsRWMut.Unlock()
+
 	server.commands = append(server.commands, internal.Command{
-		Command: command,
+		Command: *command,
 		Module:  path,
 		Categories: func() []string {
 			// Convert all the categories to lower case for uniformity
-			cats := make([]string, len(categories))
-			for i, cat := range categories {
+			cats := make([]string, len(*categories))
+			for i, cat := range *categories {
 				cats[i] = strings.ToLower(cat)
 			}
 			return cats
 		}(),
-		Description: description,
-		Sync:        sync,
+		Description: *description,
+		Sync:        *sync,
 		SubCommands: make([]internal.SubCommand, 0),
 		KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 			readKeys, writeKeys, err := keyExtractionFunc(cmd, args...)
@@ -125,8 +130,26 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 	return nil
 }
 
+// TODO: Add godoc comment
 func (server *EchoVault) UnloadModule(module string) {
+	server.commandsRWMut.Lock()
+	defer server.commandsRWMut.Unlock()
 	server.commands = slices.DeleteFunc(server.commands, func(command internal.Command) bool {
 		return strings.EqualFold(command.Module, module)
 	})
+}
+
+// TODO: Add godoc comment
+func (server *EchoVault) ListModules() []string {
+	server.commandsRWMut.RLock()
+	defer server.commandsRWMut.RUnlock()
+	var modules []string
+	for _, command := range server.commands {
+		if !slices.ContainsFunc(modules, func(module string) bool {
+			return strings.EqualFold(module, command.Module)
+		}) {
+			modules = append(modules, strings.ToLower(command.Module))
+		}
+	}
+	return modules
 }

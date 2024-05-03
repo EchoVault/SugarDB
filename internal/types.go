@@ -78,6 +78,9 @@ type HandlerFuncParams struct {
 	TakeSnapshot          func() error
 	RewriteAOF            func() error
 	GetLatestSnapshotTime func() int64
+	LoadModule            func(path string, args ...string) error
+	UnloadModule          func(module string)
+	ListModules           func() []string
 }
 
 type HandlerFunc func(params HandlerFuncParams) ([]byte, error)

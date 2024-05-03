@@ -231,6 +231,8 @@ func (server *EchoVault) RewriteAOF() (string, error) {
 //
 // "command <command> already exists" - If a command with the same command name as the passed command already exists.
 func (server *EchoVault) AddCommand(command CommandOptions) error {
+	server.commandsRWMut.Lock()
+	defer server.commandsRWMut.Unlock()
 	// Check if command already exists
 	for _, c := range server.commands {
 		if strings.EqualFold(c.Command, command.Command) {
@@ -398,6 +400,9 @@ func (server *EchoVault) ExecuteCommand(command ...string) ([]byte, error) {
 //
 // `command` - ...string.
 func (server *EchoVault) RemoveCommand(command ...string) {
+	server.commandsRWMut.Lock()
+	defer server.commandsRWMut.Unlock()
+
 	switch len(command) {
 	case 1:
 		// Remove command
