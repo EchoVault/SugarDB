@@ -38,9 +38,12 @@ var ps *pubsub.PubSub
 var mockServer *echovault.EchoVault
 
 var bindAddr = "localhost"
-var port uint16 = 7490
+var port uint16
 
 func init() {
+	p, _ := internal.GetFreePort()
+	port = uint16(p)
+
 	mockServer = setUpServer(bindAddr, port)
 
 	getPubSub := getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getPubSub")).(func() interface{})
@@ -547,8 +550,8 @@ func Test_HandlePubSubChannels(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		// Create separate mock echovault for this test
-		var port uint16 = 7590
-		mockServer := setUpServer(bindAddr, port)
+		port, _ := internal.GetFreePort()
+		mockServer := setUpServer(bindAddr, uint16(port))
 
 		ctx := context.WithValue(context.Background(), "test_name", "PUBSUB CHANNELS")
 
@@ -682,8 +685,8 @@ func Test_HandleNumPat(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		// Create separate mock echovault for this test
-		var port uint16 = 7591
-		mockServer := setUpServer(bindAddr, port)
+		port, _ := internal.GetFreePort()
+		mockServer := setUpServer(bindAddr, uint16(port))
 
 		ctx := context.WithValue(context.Background(), "test_name", "PUBSUB NUMPAT")
 
@@ -777,8 +780,8 @@ func Test_HandleNumSub(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		// Create separate mock echovault for this test
-		var port uint16 = 7591
-		mockServer := setUpServer(bindAddr, port)
+		port, _ := internal.GetFreePort()
+		mockServer := setUpServer(bindAddr, uint16(port))
 
 		ctx := context.WithValue(context.Background(), "test_name", "PUBSUB NUMSUB")
 
