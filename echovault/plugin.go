@@ -10,7 +10,14 @@ import (
 	"strings"
 )
 
-// TODO: Add godoc comment
+// LoadModule loads an external module into EchoVault ar runtime.
+//
+// Parameters:
+//
+// `path` - string - The full path to the .so plugin to be loaded.
+//
+// `args` - ...string - A list of args that will be passed unmodified to the plugins command's
+// KeyExtractionFunc and HandlerFunc
 func (server *EchoVault) LoadModule(path string, args ...string) error {
 	p, err := plugin.Open(path)
 	if err != nil {
@@ -130,7 +137,11 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 	return nil
 }
 
-// TODO: Add godoc comment
+// UnloadModule unloads the provided module
+//
+// Parameters:
+//
+// `module` - string - module name as displayed by the ListModules method.
 func (server *EchoVault) UnloadModule(module string) {
 	server.commandsRWMut.Lock()
 	defer server.commandsRWMut.Unlock()
@@ -139,7 +150,9 @@ func (server *EchoVault) UnloadModule(module string) {
 	})
 }
 
-// TODO: Add godoc comment
+// ListModules lists the currently loaded modules
+//
+// Returns: a string slice representing all the currently loaded modules.
 func (server *EchoVault) ListModules() []string {
 	server.commandsRWMut.RLock()
 	defer server.commandsRWMut.RUnlock()
