@@ -12,36 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package hash
+package echovault
 
 import (
 	"context"
-	"github.com/echovault/echovault/echovault"
-	"github.com/echovault/echovault/internal/config"
 	"reflect"
 	"slices"
 	"testing"
 )
-
-func createEchoVault() *echovault.EchoVault {
-	ev, _ := echovault.NewEchoVault(
-		echovault.WithConfig(config.Config{
-			DataDir: "",
-		}),
-	)
-	return ev
-}
-
-func presetValue(server *echovault.EchoVault, ctx context.Context, key string, value interface{}) error {
-	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
-		return err
-	}
-	if err := server.SetValue(ctx, key, value); err != nil {
-		return err
-	}
-	server.KeyUnlock(ctx, key)
-	return nil
-}
 
 func TestEchoVault_HDEL(t *testing.T) {
 	server := createEchoVault()
@@ -455,7 +433,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 		name        string
 		presetValue interface{}
 		key         string
-		options     echovault.HRandFieldOptions
+		options     HRandFieldOptions
 		wantCount   int
 		want        []string
 		wantErr     bool
@@ -464,7 +442,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 			name:        "Get a random field",
 			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
 			key:         "key1",
-			options:     echovault.HRandFieldOptions{Count: 1},
+			options:     HRandFieldOptions{Count: 1},
 			wantCount:   1,
 			want:        []string{"field1", "field2", "field3"},
 			wantErr:     false,
@@ -473,7 +451,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 			name:        "Get a random field with a value",
 			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
 			key:         "key2",
-			options:     echovault.HRandFieldOptions{WithValues: true, Count: 1},
+			options:     HRandFieldOptions{WithValues: true, Count: 1},
 			wantCount:   2,
 			want:        []string{"field1", "value1", "field2", "123456789", "field3", "3.142"},
 			wantErr:     false,
@@ -488,7 +466,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key3",
-			options:   echovault.HRandFieldOptions{Count: 3},
+			options:   HRandFieldOptions{Count: 3},
 			wantCount: 3,
 			want:      []string{"field1", "field2", "field3", "field4", "field5"},
 			wantErr:   false,
@@ -503,7 +481,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key4",
-			options:   echovault.HRandFieldOptions{WithValues: true, Count: 3},
+			options:   HRandFieldOptions{WithValues: true, Count: 3},
 			wantCount: 6,
 			want: []string{
 				"field1", "value1", "field2", "123456789", "field3",
@@ -521,7 +499,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key5",
-			options:   echovault.HRandFieldOptions{Count: 5},
+			options:   HRandFieldOptions{Count: 5},
 			wantCount: 5,
 			want:      []string{"field1", "field2", "field3", "field4", "field5"},
 			wantErr:   false,
@@ -536,7 +514,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 				"field5": "value5",
 			},
 			key:       "key5",
-			options:   echovault.HRandFieldOptions{WithValues: true, Count: 5},
+			options:   HRandFieldOptions{WithValues: true, Count: 5},
 			wantCount: 10,
 			want: []string{
 				"field1", "value1", "field2", "123456789", "field3",
@@ -548,7 +526,7 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 			name:        "Trying to get random field on a non hash map returns error",
 			presetValue: "Default value",
 			key:         "key12",
-			options:     echovault.HRandFieldOptions{},
+			options:     HRandFieldOptions{},
 			wantCount:   0,
 			want:        nil,
 			wantErr:     true,
