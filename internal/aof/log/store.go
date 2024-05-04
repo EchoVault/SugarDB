@@ -15,11 +15,9 @@
 package log
 
 import (
-	"bufio"
-	"bytes"
-	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal/clock"
+	"github.com/tidwall/resp"
 	"io"
 	"log"
 	"os"
@@ -38,7 +36,7 @@ type AppendReadWriter interface {
 
 type AppendStore struct {
 	clock         clock.Clock
-	strategy      string               // Append file sync strategy. Can only be "always", "everysec", or "no
+	strategy      string               // Append file sync strategy. Can only be "always", "everysec", or "no"
 	mut           sync.Mutex           // Store mutex
 	rw            AppendReadWriter     // The ReadWriter used to persist and load the log
 	directory     string               // The directory for the AOF file if we must create one
@@ -53,7 +51,7 @@ func WithClock(clock clock.Clock) func(store *AppendStore) {
 
 func WithStrategy(strategy string) func(store *AppendStore) {
 	return func(store *AppendStore) {
-		store.strategy = strategy
+		store.strategy = strings.ToLower(strategy)
 	}
 }
 
@@ -75,7 +73,7 @@ func WithHandleCommandFunc(f func(command []byte)) func(store *AppendStore) {
 	}
 }
 
-func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
+func NewAppendStore(options ...func(store *AppendStore)) (*AppendStore, error) {
 	store := &AppendStore{
 		clock:         clock.NewClock(),
 		directory:     "",
@@ -94,11 +92,11 @@ func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
 		// Create the directory if it does not exist
 		err := os.MkdirAll(path.Join(store.directory, "aof"), os.ModePerm)
 		if err != nil {
-			log.Println(fmt.Errorf("new append store -> mkdir error: %+v", err))
+			return nil, fmt.Errorf("new append store -> mkdir error: %+v", err)
 		}
 		f, err := os.OpenFile(path.Join(store.directory, "aof", "log.aof"), os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModePerm)
 		if err != nil {
-			log.Println(fmt.Errorf("new append store -> open file error: %+v", err))
+			return nil, fmt.Errorf("new append store -> open file error: %+v", err)
 		}
 		store.rw = f
 	}
@@ -108,40 +106,46 @@ func NewAppendStore(options ...func(store *AppendStore)) *AppendStore {
 	if strings.EqualFold(store.strategy, "everysec") {
 		go func() {
 			for {
+				store.mut.Lock()
 				if err := store.Sync(); err != nil {
+					store.mut.Unlock()
 					log.Println(fmt.Errorf("new append store error: %+v", err))
 					break
 				}
+				store.mut.Unlock()
 				<-store.clock.After(1 * time.Second)
 			}
 		}()
 	}
-	return store
+
+	return store, nil
 }
 
 func (store *AppendStore) Write(command []byte) error {
-	store.mut.Lock()
-	defer store.mut.Unlock()
 	// Skip operation if ReadWriter is not defined
 	if store.rw == nil {
 		return nil
 	}
+
+	store.mut.Lock()
+	defer store.mut.Unlock()
+
 	// Add new line before writing to AOF file.
 	out := append(command, []byte("\r\n")...)
 	if _, err := store.rw.Write(out); err != nil {
 		return err
 	}
+
 	if strings.EqualFold(store.strategy, "always") {
 		if err := store.Sync(); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
 func (store *AppendStore) Sync() error {
-	store.mut.Lock()
-	defer store.mut.Unlock()
 	if store.rw != nil {
 		return store.rw.Sync()
 	}
@@ -152,33 +156,26 @@ func (store *AppendStore) Restore() error {
 	store.mut.Lock()
 	defer store.mut.Unlock()
 
-	buf := bufio.NewReader(store.rw)
-
-	var commands [][]byte
-	var line []byte
-
-	for {
-		b, _, err := buf.ReadLine()
-		if err != nil && errors.Is(err, io.EOF) {
-			break
-		} else if err != nil {
-			return err
-		}
-		if len(b) <= 0 {
-			line = append(line, []byte("\r\n\r\n")...)
-			commands = append(commands, line)
-			line = []byte{}
-			continue
-		}
-		if len(line) > 0 {
-			line = append(line, append([]byte("\r\n"), bytes.TrimLeft(b, "\x00")...)...)
-			continue
-		}
-		line = append(line, bytes.TrimLeft(b, "\x00")...)
+	// Move cursor to the beginning of the file
+	if _, err := store.rw.Seek(0, 0); err != nil {
+		return fmt.Errorf("restore aof: %v", err)
 	}
 
-	for _, c := range commands {
-		store.handleCommand(c)
+	r := resp.NewReader(store.rw)
+	for {
+		value, n, err := r.ReadValue()
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			// Break out when there are no more bytes to read
+			break
+		}
+		command, err := value.MarshalRESP()
+		if err != nil {
+			return err
+		}
+		store.handleCommand(command)
 	}
 
 	return nil

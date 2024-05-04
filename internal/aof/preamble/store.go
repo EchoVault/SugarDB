@@ -20,7 +20,6 @@ import (
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/clock"
 	"io"
-	"log"
 	"os"
 	"path"
 	"sync"
@@ -72,7 +71,7 @@ func WithDirectory(directory string) func(store *PreambleStore) {
 	}
 }
 
-func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
+func NewPreambleStore(options ...func(store *PreambleStore)) (*PreambleStore, error) {
 	store := &PreambleStore{
 		clock:     clock.NewClock(),
 		rw:        nil,
@@ -93,16 +92,16 @@ func NewPreambleStore(options ...func(store *PreambleStore)) *PreambleStore {
 	if store.rw == nil && store.directory != "" {
 		err := os.MkdirAll(path.Join(store.directory, "aof"), os.ModePerm)
 		if err != nil {
-			log.Println(fmt.Errorf("new preamble store -> mkdir error: %+v", err))
+			return nil, fmt.Errorf("new preamble store -> mkdir error: %+v", err)
 		}
 		f, err := os.OpenFile(path.Join(store.directory, "aof", "preamble.bin"), os.O_RDWR|os.O_CREATE, os.ModePerm)
 		if err != nil {
-			log.Println(fmt.Errorf("new preamble store -> open file error: %+v", err))
+			return nil, fmt.Errorf("new preamble store -> open file error: %+v", err)
 		}
 		store.rw = f
 	}
 
-	return store
+	return store, nil
 }
 
 func (store *PreambleStore) CreatePreamble() error {
