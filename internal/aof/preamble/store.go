@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"sync"
+	"time"
 )
 
 type PreambleReadWriter interface {
@@ -141,6 +142,11 @@ func (store *PreambleStore) Restore() error {
 		return nil
 	}
 
+	// Seek to the beginning of the file before beginning restore
+	if _, err := store.rw.Seek(0, 0); err != nil {
+		return fmt.Errorf("restore preamble: %v", err)
+	}
+
 	b, err := io.ReadAll(store.rw)
 	if err != nil {
 		return err
@@ -173,6 +179,9 @@ func (store *PreambleStore) Close() error {
 func (store *PreambleStore) filterExpiredKeys(state map[string]internal.KeyData) map[string]internal.KeyData {
 	var keysToDelete []string
 	for k, v := range state {
+		if v.ExpireAt.Equal(time.Time{}) {
+			continue
+		}
 		if v.ExpireAt.Before(store.clock.Now()) {
 			keysToDelete = append(keysToDelete, k)
 		}

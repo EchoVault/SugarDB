@@ -34,7 +34,7 @@ func marshalRespCommand(command []string) []byte {
 	))
 }
 
-func Test_LogWithNoReadWriter(t *testing.T) {
+func Test_AppendStore(t *testing.T) {
 	tests := []struct {
 		name             string
 		directory        string
@@ -44,7 +44,7 @@ func Test_LogWithNoReadWriter(t *testing.T) {
 	}{
 		{
 			name:      "1. Not passing an AppendReadWriter to NewAppendStore should create a new append file",
-			directory: "./testdata/with_no_read_writer",
+			directory: "./testdata/log/with_no_read_writer",
 			strategy:  "always",
 			commands: [][]string{
 				{"SET", "key1", "value1"},
@@ -55,7 +55,7 @@ func Test_LogWithNoReadWriter(t *testing.T) {
 		},
 		{
 			name:      "2. Passing an existing AppendReadWriter to NewAppendStore should successfully append and restore",
-			directory: "./testdata/with_read_writer",
+			directory: "./testdata/log/with_read_writer",
 			strategy:  "always",
 			commands: [][]string{
 				{"SET", "key1", "value1"},
@@ -77,7 +77,7 @@ func Test_LogWithNoReadWriter(t *testing.T) {
 		},
 		{
 			name:      "3. Using everysec strategy should sync the AOF file after one second",
-			directory: "./testdata/with_everysec_strategy",
+			directory: "./testdata/log/with_everysec_strategy",
 			strategy:  "everysec",
 			commands: [][]string{
 				{"SET", "key1", "value1"},
@@ -141,4 +141,6 @@ func Test_LogWithNoReadWriter(t *testing.T) {
 			t.Error("timeout error")
 		}
 	}
+
+	_ = os.RemoveAll("./testdata")
 }

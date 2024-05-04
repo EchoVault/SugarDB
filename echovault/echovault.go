@@ -256,7 +256,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			}),
 		)
 		// Set up standalone AOF engine
-		echovault.aofEngine = aof.NewAOFEngine(
+		aofEngine, err := aof.NewAOFEngine(
 			aof.WithClock(echovault.clock),
 			aof.WithDirectory(echovault.config.DataDir),
 			aof.WithStrategy(echovault.config.AOFSyncStrategy),
@@ -289,6 +289,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 				}
 			}),
 		)
+		if err != nil {
+			return nil, err
+		}
+		echovault.aofEngine = aofEngine
 	}
 
 	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
