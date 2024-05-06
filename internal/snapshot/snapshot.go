@@ -123,11 +123,11 @@ func NewSnapshotEngine(options ...func(engine *Engine)) *Engine {
 		getStateFunc: func() map[string]internal.KeyData {
 			return map[string]internal.KeyData{}
 		},
+		setKeyDataFunc:            func(key string, data internal.KeyData) {},
 		setLatestSnapshotTimeFunc: func(msec int64) {},
 		getLatestSnapshotTimeFunc: func() int64 {
 			return 0
 		},
-		setKeyDataFunc: func(key string, data internal.KeyData) {},
 	}
 
 	for _, option := range options {
@@ -214,7 +214,7 @@ func (engine *Engine) TakeSnapshot() error {
 
 	// Get current state
 	snapshotObject := internal.SnapshotObject{
-		State:                      internal.FilterExpiredKeys(engine.getStateFunc()),
+		State:                      internal.FilterExpiredKeys(engine.clock.Now(), engine.getStateFunc()),
 		LatestSnapshotMilliseconds: engine.getLatestSnapshotTimeFunc(),
 	}
 	out, err := json.Marshal(snapshotObject)
@@ -350,7 +350,7 @@ func (engine *Engine) Restore() error {
 
 	engine.setLatestSnapshotTimeFunc(snapshotObject.LatestSnapshotMilliseconds)
 
-	for key, data := range internal.FilterExpiredKeys(snapshotObject.State) {
+	for key, data := range internal.FilterExpiredKeys(engine.clock.Now(), snapshotObject.State) {
 		engine.setKeyDataFunc(key, data)
 	}
 
