@@ -26,6 +26,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"sync/atomic"
 	"time"
 )
 
@@ -39,7 +40,7 @@ type Manifest struct {
 
 type Engine struct {
 	clock                     clock.Clock
-	changeCount               uint64
+	changeCount               atomic.Uint64
 	directory                 string
 	snapshotInterval          time.Duration
 	snapshotThreshold         uint64
@@ -114,7 +115,7 @@ func WithSetKeyDataFunc(f func(key string, data internal.KeyData)) func(engine *
 func NewSnapshotEngine(options ...func(engine *Engine)) *Engine {
 	engine := &Engine{
 		clock:              clock.NewClock(),
-		changeCount:        0,
+		changeCount:        atomic.Uint64{},
 		directory:          "",
 		snapshotInterval:   5 * time.Minute,
 		snapshotThreshold:  1000,
@@ -138,7 +139,7 @@ func NewSnapshotEngine(options ...func(engine *Engine)) *Engine {
 		go func() {
 			for {
 				<-engine.clock.After(engine.snapshotInterval)
-				if engine.changeCount == engine.snapshotThreshold {
+				if engine.changeCount.Load() == engine.snapshotThreshold {
 					if err := engine.TakeSnapshot(); err != nil {
 						log.Println(err)
 					}
@@ -360,9 +361,9 @@ func (engine *Engine) Restore() error {
 }
 
 func (engine *Engine) IncrementChangeCount() {
-	engine.changeCount += 1
+	engine.changeCount.Add(1)
 }
 
 func (engine *Engine) resetChangeCount() {
-	engine.changeCount = 0
+	engine.changeCount.Store(0)
 }

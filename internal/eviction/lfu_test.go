@@ -34,6 +34,7 @@ func Test_CacheLFU(t *testing.T) {
 	}
 
 	cache := eviction.NewCacheLFU()
+	mut := sync.RWMutex{}
 
 	wg := sync.WaitGroup{}
 	for _, entry := range entries {
@@ -43,7 +44,9 @@ func Test_CacheLFU(t *testing.T) {
 			access int
 		}) {
 			for i := 0; i < entry.access; i++ {
+				mut.Lock()
 				cache.Update(entry.key)
+				mut.Unlock()
 			}
 			wg.Done()
 		}(entry)
@@ -52,10 +55,12 @@ func Test_CacheLFU(t *testing.T) {
 
 	expectedKeys := []string{"key1", "key5", "key4", "key3", "key2"}
 
+	mut.Lock()
 	for i := 0; i < len(expectedKeys); i++ {
 		key := heap.Pop(&cache).(string)
 		if key != expectedKeys[i] {
 			t.Errorf("expected popped key at index %d to be %s, got %s", i, expectedKeys[i], key)
 		}
 	}
+	mut.Unlock()
 }
