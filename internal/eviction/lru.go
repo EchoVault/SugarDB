@@ -58,7 +58,7 @@ func (cache *CacheLRU) Push(key any) {
 	n := len(cache.entries)
 	cache.entries = append(cache.entries, &EntryLRU{
 		key:      key.(string),
-		unixTime: time.Now().Unix(),
+		unixTime: time.Now().UnixMilli(),
 		index:    n,
 	})
 }
@@ -84,7 +84,7 @@ func (cache *CacheLRU) Update(key string) {
 		return e.key == key
 	})
 	entry := cache.entries[entryIdx]
-	entry.unixTime = time.Now().Unix()
+	entry.unixTime = time.Now().UnixMilli()
 	heap.Fix(cache, entryIdx)
 }
 

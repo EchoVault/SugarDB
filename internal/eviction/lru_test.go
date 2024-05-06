@@ -12,4 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package eviction
+package eviction_test
+
+import (
+	"container/heap"
+	"github.com/echovault/echovault/internal/eviction"
+	"testing"
+	"time"
+)
+
+func Test_CacheLRU(t *testing.T) {
+	keys := []string{"key1", "key2", "key3", "key4", "key5"}
+
+	cache := eviction.NewCacheLRU()
+
+	for _, key := range keys {
+		cache.Update(key)
+	}
+
+	access := []string{"key3", "key4", "key1", "key2", "key5"}
+	for _, key := range access {
+		cache.Update(key)
+		<-time.After(1 * time.Millisecond)
+	}
+
+	for i := len(access) - 1; i >= 0; i-- {
+		key := heap.Pop(&cache).(string)
+		if key != access[i] {
+			t.Errorf("expected key at index %d to be %s, got %s", i, access[i], key)
+		}
+	}
+}
