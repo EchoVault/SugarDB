@@ -46,11 +46,11 @@ func (cache *CacheLFU) Len() int {
 }
 
 func (cache *CacheLFU) Less(i, j int) bool {
-	// If 2 entries have the same count, return the older one
+	// If 2 entries have the same count, swap using addedTime
 	if cache.entries[i].count == cache.entries[j].count {
 		return cache.entries[i].addedTime > cache.entries[j].addedTime
 	}
-	// Otherwise, return the one with a lower count
+	// Otherwise, swap using count
 	return cache.entries[i].count < cache.entries[j].count
 }
 

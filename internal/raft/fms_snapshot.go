@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/raft"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type SnapshotOpts struct {
@@ -52,7 +53,7 @@ func (s *Snapshot) Persist(sink raft.SnapshotSink) error {
 	}
 
 	snapshotObject := internal.SnapshotObject{
-		State:                      internal.FilterExpiredKeys(s.options.data),
+		State:                      internal.FilterExpiredKeys(time.Now(), s.options.data),
 		LatestSnapshotMilliseconds: int64(msec),
 	}
 

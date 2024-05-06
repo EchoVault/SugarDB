@@ -163,7 +163,7 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 
 	// Set state
 	ctx := context.Background()
-	for k, v := range internal.FilterExpiredKeys(data.State) {
+	for k, v := range internal.FilterExpiredKeys(time.Now(), data.State) {
 		if _, err = fsm.options.CreateKeyAndLock(ctx, k); err != nil {
 			log.Fatal(err)
 		}

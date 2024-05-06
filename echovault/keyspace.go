@@ -15,6 +15,7 @@
 package echovault
 
 import (
+	"container/heap"
 	"context"
 	"errors"
 	"fmt"
@@ -385,7 +386,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 				return fmt.Errorf("adjsutMemoryUsage -> LFU cache empty")
 			}
 
-			key := server.lfuCache.cache.Pop().(string)
+			key := heap.Pop(&server.lfuCache.cache).(string)
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
 				if err := server.DeleteKey(ctx, key); err != nil {
@@ -417,7 +418,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 				return fmt.Errorf("adjsutMemoryUsage -> LRU cache empty")
 			}
 
-			key := server.lruCache.cache.Pop().(string)
+			key := heap.Pop(&server.lruCache.cache).(string)
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key.
 				if err := server.DeleteKey(ctx, key); err != nil {
