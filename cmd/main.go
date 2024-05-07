@@ -54,9 +54,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	go server.Start()
+	go func() {
+		if err := server.Start(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	<-cancelCh
 
-	server.ShutDown()
+	if err := server.ShutDown(); err != nil {
+		log.Println(err)
+	}
 }
