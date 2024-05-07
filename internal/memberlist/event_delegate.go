@@ -16,8 +16,8 @@ package memberlist
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/hashicorp/memberlist"
+	"log"
 )
 
 type EventDelegate struct {
@@ -50,14 +50,13 @@ func (eventDelegate *EventDelegate) NotifyLeave(node *memberlist.Node) {
 	err := json.Unmarshal(node.Meta, &meta)
 
 	if err != nil {
-		fmt.Println("Could not get leaving node's metadata.")
+		log.Println("Could not get leaving node's metadata.")
 		return
 	}
 
 	err = eventDelegate.options.removeRaftServer(meta)
-
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 

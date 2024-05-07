@@ -219,13 +219,14 @@ func (r *Raft) TakeSnapshot() error {
 	return r.raft.Snapshot().Error()
 }
 
-func (r *Raft) RaftShutdown() {
+func (r *Raft) RaftShutdown() error {
 	// Leadership transfer if current node is the leader
 	if r.IsRaftLeader() {
 		err := r.raft.LeadershipTransfer().Error()
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("raft shutdwon: %v", err)
 		}
-		fmt.Println("Leadership transfer successful.")
+		log.Println("Leadership transfer successful.")
 	}
+	return nil
 }

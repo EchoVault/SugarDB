@@ -155,10 +155,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		option(echovault)
 	}
 
-	echovault.context = context.WithValue(
-		echovault.context, "ServerID",
-		internal.ContextServerID(echovault.config.ServerID),
-	)
+	echovault.context = context.WithValue(echovault.context, "ServerID", echovault.config.ServerID)
 
 	// Load .so modules from config
 	for _, path := range echovault.config.Modules {
@@ -348,7 +345,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	return echovault, nil
 }
 
-func (server *EchoVault) startTCP() {
+func (server *EchoVault) startTCP() error {
 	conf := server.config
 
 	listenConfig := net.ListenConfig{
@@ -356,29 +353,28 @@ func (server *EchoVault) startTCP() {
 	}
 
 	listener, err := listenConfig.Listen(server.context, "tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port))
-
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("start tcp: %v", err)
 	}
 
 	if !conf.TLS {
 		// TCP
-		fmt.Printf("Starting TCP echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		log.Printf("Starting TCP echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 	}
 
 	if conf.TLS || conf.MTLS {
 		// TLS
 		if conf.TLS {
-			fmt.Printf("Starting mTLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+			log.Printf("Starting mTLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		} else {
-			fmt.Printf("Starting TLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+			log.Printf("Starting TLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		}
 
 		var certificates []tls.Certificate
 		for _, certKeyPair := range conf.CertKeyPairs {
 			c, err := tls.LoadX509KeyPair(certKeyPair[0], certKeyPair[1])
 			if err != nil {
-				log.Fatal(err)
+				return fmt.Errorf("start tcp: load certificates: %v", err)
 			}
 			certificates = append(certificates, c)
 		}
@@ -391,14 +387,14 @@ func (server *EchoVault) startTCP() {
 			for _, c := range conf.ClientCAs {
 				ca, err := os.Open(c)
 				if err != nil {
-					log.Fatal(err)
+					return fmt.Errorf("start tcp: open cert: %v", err)
 				}
 				certBytes, err := io.ReadAll(ca)
 				if err != nil {
-					log.Fatal(err)
+					return fmt.Errorf("start tcp: read cert: %v", err)
 				}
 				if ok := clientCerts.AppendCertsFromPEM(certBytes); !ok {
-					log.Fatal(err)
+					return fmt.Errorf("start tcp: append cert: %v", err)
 				}
 			}
 		}
@@ -414,7 +410,7 @@ func (server *EchoVault) startTCP() {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Could not establish connection")
+			log.Println("Could not establish connection")
 			continue
 		}
 		// Read loop for connection
@@ -431,8 +427,8 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 	w, r := io.Writer(conn), io.Reader(conn)
 
 	cid := server.connId.Add(1)
-	ctx := context.WithValue(server.context, internal.ContextConnID("ConnectionID"),
-		fmt.Sprintf("%s-%d", server.context.Value(internal.ContextServerID("ServerID")), cid))
+	ctx := context.WithValue(server.context, "ConnectionID",
+		fmt.Sprintf("%s-%d", server.context.Value("ServerID").(string), cid))
 
 	for {
 		message, err := internal.ReadMessage(r)
@@ -502,8 +498,8 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 //
 // You can still use command functions like echovault.Set if you're embedding EchoVault in your application.
 // However, if you'd like to also accept TCP request on the same instance, you must call this function.
-func (server *EchoVault) Start() {
-	server.startTCP()
+func (server *EchoVault) Start() error {
+	return server.startTCP()
 }
 
 // takeSnapshot triggers a snapshot when called.
@@ -569,11 +565,16 @@ func (server *EchoVault) rewriteAOF() error {
 
 // ShutDown gracefully shuts down the EchoVault instance.
 // This function shuts down the memberlist and raft layers.
-func (server *EchoVault) ShutDown() {
+func (server *EchoVault) ShutDown() error {
 	if server.isInCluster() {
-		server.raft.RaftShutdown()
-		server.memberList.MemberListShutdown()
+		if err := server.raft.RaftShutdown(); err != nil {
+			return err
+		}
+		if err := server.memberList.MemberListShutdown(); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (server *EchoVault) initialiseCaches() {

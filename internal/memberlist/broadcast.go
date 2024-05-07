@@ -16,8 +16,8 @@ package memberlist
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/hashicorp/memberlist"
+	"log"
 )
 
 type BroadcastMessage struct {
@@ -51,12 +51,10 @@ func (broadcastMessage *BroadcastMessage) Invalidates(other memberlist.Broadcast
 // Message Implements Broadcast interface
 func (broadcastMessage *BroadcastMessage) Message() []byte {
 	msg, err := json.Marshal(broadcastMessage)
-
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return []byte{}
 	}
-
 	return msg
 }
 

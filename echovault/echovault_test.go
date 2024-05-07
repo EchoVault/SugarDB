@@ -50,6 +50,10 @@ func getBindAddr() net.IP {
 	return getBindAddrNet(0)
 }
 
+func yield() {
+	<-time.After(50 * time.Millisecond)
+}
+
 func buildReplicationCluster(size int) ([]Node, error) {
 	doneChan := make(chan []Node, 1)
 	errChan := make(chan error, 1)
@@ -91,7 +95,7 @@ func buildReplicationCluster(size int) ([]Node, error) {
 
 			// Set up echovault instance on node field for current node
 			conf := DefaultConfig()
-			conf.ServerID = fmt.Sprintf("Server:%d", i)
+			conf.ServerID = fmt.Sprintf("Server%d", i+1)
 			conf.BindAddr = getBindAddr().String()
 			conf.Port = uint16(port)
 			conf.InMemory = true
@@ -99,6 +103,7 @@ func buildReplicationCluster(size int) ([]Node, error) {
 			conf.MemberListBindPort = uint16(memberlistPort)
 			conf.RaftBindPort = uint16(raftPort)
 			conf.JoinAddr = joinAddress
+			conf.ForwardCommand = true
 
 			server, err := NewEchoVault(WithConfig(conf))
 			if err != nil {
@@ -121,7 +126,6 @@ func buildReplicationCluster(size int) ([]Node, error) {
 					}
 				}
 			}
-
 		}
 
 		doneChan <- nodes
@@ -137,20 +141,20 @@ func buildReplicationCluster(size int) ([]Node, error) {
 	}
 }
 
-func Test_DataReplication(t *testing.T) {
-	cluster, err := buildReplicationCluster(3)
+func Test_SetDataOnLeaderNode(t *testing.T) {
+	cluster, err := buildReplicationCluster(5)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-
 	// Set a value on the leader node
-	res, err := cluster[0].server.Set("key1", "value1", SetOptions{})
+	res, err := cluster[0].server.Set("key2", "value1", SetOptions{})
 	if err != nil {
 		t.Error(err)
+		return
 	}
+	// Check the value
 	if res != "OK" {
-		t.Errorf("expected response \"OK\", got %s", res)
+		t.Errorf("expected response to be OK, got %s", res)
 	}
-
 }

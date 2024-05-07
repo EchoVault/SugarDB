@@ -27,12 +27,12 @@ func (server *EchoVault) isInCluster() bool {
 }
 
 func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) error {
-	serverId, _ := ctx.Value(internal.ContextServerID("ServerID")).(string)
+	serverId, _ := ctx.Value("ServerID").(string)
 
 	deleteKeyRequest := internal.ApplyRequest{
 		Type:         "delete-key",
 		ServerID:     serverId,
-		ConnectionID: "nil",
+		ConnectionID: "",
 		Key:          key,
 	}
 
@@ -61,8 +61,15 @@ func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) err
 }
 
 func (server *EchoVault) raftApplyCommand(ctx context.Context, cmd []string) ([]byte, error) {
-	serverId, _ := ctx.Value(internal.ContextServerID("ServerID")).(string)
-	connectionId, _ := ctx.Value(internal.ContextConnID("ConnectionID")).(string)
+	serverId := ctx.Value("ServerID").(string)
+
+	// Extract ConnectionID from the context.
+	// If the command is executed in embedded mode, this value will be nil
+	connectionIdContextValue := ctx.Value("ConnectionID")
+	connectionId := "embedded"
+	if connectionIdContextValue != nil {
+		connectionId = connectionIdContextValue.(string)
+	}
 
 	applyRequest := internal.ApplyRequest{
 		Type:         "command",

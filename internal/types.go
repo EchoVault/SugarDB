@@ -26,9 +26,6 @@ type KeyData struct {
 	ExpireAt time.Time
 }
 
-type ContextServerID string
-type ContextConnID string
-
 type ApplyRequest struct {
 	Type         string   `json:"Type"` // command | delete-key
 	ServerID     string   `json:"ServerID"`

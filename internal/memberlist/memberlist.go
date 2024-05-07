@@ -127,7 +127,10 @@ func (m *MemberList) broadcastRaftAddress() {
 // The ForwardDeleteKey function is only called by non-leaders.
 // It uses the broadcast queue to forward a key eviction command within the cluster.
 func (m *MemberList) ForwardDeleteKey(ctx context.Context, key string) {
-	connId, _ := ctx.Value(internal.ContextConnID("ConnectionID")).(string)
+	connId := "embedded"
+	if c := ctx.Value("ConnectionID"); c != nil {
+		connId = ctx.Value("ConnectionID").(string)
+	}
 	m.broadcastQueue.QueueBroadcast(&BroadcastMessage{
 		Action:      "DeleteKey",
 		Content:     []byte(key),
@@ -144,7 +147,10 @@ func (m *MemberList) ForwardDeleteKey(ctx context.Context, key string) {
 // The ForwardDataMutation function is only called by non-leaders.
 // It uses the broadcast queue to forward a data mutation within the cluster.
 func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd []byte) {
-	connId, _ := ctx.Value(internal.ContextConnID("ConnectionID")).(string)
+	connId := "embedded"
+	if c := ctx.Value("ConnectionID"); c != nil {
+		connId = ctx.Value("ConnectionID").(string)
+	}
 	m.broadcastQueue.QueueBroadcast(&BroadcastMessage{
 		Action:      "MutateData",
 		Content:     cmd,
@@ -158,17 +164,18 @@ func (m *MemberList) ForwardDataMutation(ctx context.Context, cmd []byte) {
 	})
 }
 
-func (m *MemberList) MemberListShutdown() {
+func (m *MemberList) MemberListShutdown() error {
 	// Gracefully leave memberlist cluster
 	err := m.memberList.Leave(500 * time.Millisecond)
 	if err != nil {
-		log.Fatal("Could not gracefully leave memberlist cluster")
+		return fmt.Errorf("memberlist shutdown: leave: %v", err)
 	}
 
 	err = m.memberList.Shutdown()
 	if err != nil {
-		log.Fatal("Could not gracefully shutdown memberlist background maintenance")
+		return fmt.Errorf("memberlist shutdown: %v", err)
 	}
 
-	fmt.Println("Successfully shutdown memberlist")
+	log.Println("Successfully shutdown memberlist")
+	return nil
 }

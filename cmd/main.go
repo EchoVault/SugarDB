@@ -31,7 +31,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx := context.WithValue(context.Background(), internal.ContextServerID("ServerID"), conf.ServerID)
+	ctx := context.WithValue(context.Background(), "ServerID", conf.ServerID)
 
 	// Default BindAddr if it's not specified
 	if conf.BindAddr == "" {

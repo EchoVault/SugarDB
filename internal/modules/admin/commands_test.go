@@ -17,7 +17,6 @@ package admin_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
@@ -91,7 +90,6 @@ func Test_CommandsHandler(t *testing.T) {
 		t.Error(err)
 	}
 
-	for _, element := range rv.Array() {
-		fmt.Println(element)
+	for _, _ = range rv.Array() {
 	}
 }

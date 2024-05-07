@@ -68,7 +68,7 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 	var msg BroadcastMessage
 
 	if err := json.Unmarshal(msgBytes, &msg); err != nil {
-		fmt.Print(err)
+		log.Println(err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 		}
 		err := delegate.options.addVoter(msg.NodeMeta.ServerID, msg.NodeMeta.RaftAddr, 0, 0)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 
 	case "DeleteKey":
@@ -92,8 +92,8 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 		}
 		// Current node is the cluster leader, handle the key deletion
 		ctx := context.WithValue(
-			context.WithValue(context.Background(), internal.ContextServerID("ServerID"), string(msg.ServerID)),
-			internal.ContextConnID("ConnectionID"), msg.ConnId)
+			context.WithValue(context.Background(), "ServerID", string(msg.ServerID)),
+			"ConnectionID", msg.ConnId)
 
 		key := string(msg.Content)
 
@@ -109,15 +109,13 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 		}
 		// Current node is the cluster leader, handle the mutation
 		ctx := context.WithValue(
-			context.WithValue(context.Background(), internal.ContextServerID("ServerID"), string(msg.ServerID)),
-			internal.ContextConnID("ConnectionID"), msg.ConnId)
-
+			context.WithValue(context.Background(), "ServerID", string(msg.ServerID)),
+			"ConnectionID", msg.ConnId)
 		cmd, err := internal.Decode(msg.Content)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-
 		if _, err := delegate.options.applyMutate(ctx, cmd); err != nil {
 			log.Println(err)
 		}

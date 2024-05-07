@@ -123,6 +123,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 
 	// Handle other commands that need to be synced across the cluster
 	if server.raft.IsRaftLeader() {
+		// fmt.Println("WE ARE HERE")
 		var res []byte
 		res, err = server.raftApplyCommand(ctx, cmd)
 		if err != nil {

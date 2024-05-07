@@ -68,8 +68,8 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 			}
 		}
 
-		ctx := context.WithValue(context.Background(), internal.ContextServerID("ServerID"), request.ServerID)
-		ctx = context.WithValue(ctx, internal.ContextConnID("ConnectionID"), request.ConnectionID)
+		ctx := context.WithValue(context.Background(), "ServerID", request.ServerID)
+		ctx = context.WithValue(ctx, "ConnectionID", request.ConnectionID)
 
 		switch strings.ToLower(request.Type) {
 		default:
