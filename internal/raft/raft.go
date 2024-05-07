@@ -57,7 +57,7 @@ func NewRaft(opts Opts) *Raft {
 	}
 }
 
-func (r *Raft) RaftInit(ctx context.Context) {
+func (r *Raft) RaftInit(ctx context.Context) error {
 	conf := r.options.Config
 
 	raftConfig := raft.DefaultConfig()
@@ -76,19 +76,19 @@ func (r *Raft) RaftInit(ctx context.Context) {
 	} else {
 		boltdb, err := raftboltdb.NewBoltStore(filepath.Join(conf.DataDir, "logs.db"))
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("raft new boltdb error: %v", err)
 		}
 
 		logStore, err = raft.NewLogCache(512, boltdb)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("raft new log cache error: %v", err)
 		}
 
 		stableStore = raft.StableStore(boltdb)
 
 		snapshotStore, err = raft.NewFileSnapshotStore(conf.DataDir, 2, os.Stdout)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("raft new file snapshot store error: %v", err)
 		}
 	}
 
@@ -96,7 +96,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 
 	advertiseAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("raft resolve tcp address error: %v", err)
 	}
 
 	raftTransport, err := raft.NewTCPTransport(
@@ -106,9 +106,8 @@ func (r *Raft) RaftInit(ctx context.Context) {
 		500*time.Millisecond,
 		os.Stdout,
 	)
-
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("raft new tcp transport error: %v", err)
 	}
 
 	// Start raft echovault
@@ -133,9 +132,8 @@ func (r *Raft) RaftInit(ctx context.Context) {
 		snapshotStore,
 		raftTransport,
 	)
-
 	if err != nil {
-		log.Fatalf("Could not start node with error; %s", err)
+		return fmt.Errorf("raft start error: %v", err)
 	}
 
 	if conf.BootstrapCluster {
@@ -152,6 +150,8 @@ func (r *Raft) RaftInit(ctx context.Context) {
 	}
 
 	r.raft = raftServer
+
+	return nil
 }
 
 func (r *Raft) Apply(cmd []byte, timeout time.Duration) raft.ApplyFuture {

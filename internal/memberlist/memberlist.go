@@ -59,10 +59,12 @@ func NewMemberList(opts Opts) *MemberList {
 	}
 }
 
-func (m *MemberList) MemberListInit(ctx context.Context) {
+func (m *MemberList) MemberListInit(ctx context.Context) error {
 	cfg := memberlist.DefaultLocalConfig()
+	cfg.RequireNodeNames = true
 	cfg.BindAddr = m.options.Config.BindAddr
 	cfg.BindPort = int(m.options.Config.MemberListBindPort)
+	cfg.Name = m.options.Config.ServerID
 	cfg.Delegate = NewDelegate(DelegateOpts{
 		config:         m.options.Config,
 		broadcastQueue: m.broadcastQueue,
@@ -83,17 +85,17 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 	}
 
 	list, err := memberlist.Create(cfg)
-	m.memberList = list
-
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("memberlist create error: %v", err)
 	}
+
+	m.memberList = list
 
 	if m.options.Config.JoinAddr != "" {
 		backoffPolicy := internal.RetryBackoff(retry.NewFibonacci(1*time.Second), 5, 200*time.Millisecond, 0, 0)
 
 		err = retry.Do(ctx, backoffPolicy, func(ctx context.Context) error {
-			_, err = list.Join([]string{m.options.Config.JoinAddr})
+			_, err = list.Join([]string{cfg.Name + "/" + m.options.Config.JoinAddr})
 			if err != nil {
 				return retry.RetryableError(err)
 			}
@@ -101,11 +103,13 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 		})
 
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("memberlist join error: %v", err)
 		}
 
 		m.broadcastRaftAddress()
 	}
+
+	return nil
 }
 
 func (m *MemberList) broadcastRaftAddress() {

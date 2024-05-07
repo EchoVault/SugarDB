@@ -575,7 +575,7 @@ func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
 
 	// If sampleSize is 0, there's no need to calculate deleted percentage.
 	if sampleSize == 0 {
-		log.Println("no keys to sample, skipping eviction")
+		// log.Println("no keys to sample, skipping eviction") // TODO: Uncomment this line
 		return nil
 	}
 

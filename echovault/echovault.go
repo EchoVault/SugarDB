@@ -312,9 +312,15 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	}
 
 	if echovault.isInCluster() {
-		// Initialise raft and memberlist
-		echovault.raft.RaftInit(echovault.context)
-		echovault.memberList.MemberListInit(echovault.context)
+		// Initialise raft
+		if err := echovault.raft.RaftInit(echovault.context); err != nil {
+			return nil, err
+		}
+		// Initialise memberlist
+		if err := echovault.memberList.MemberListInit(echovault.context); err != nil {
+			return nil, err
+		}
+		// Initialise caches
 		if echovault.raft.IsRaftLeader() {
 			echovault.initialiseCaches()
 		}
