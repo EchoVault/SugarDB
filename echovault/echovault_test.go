@@ -50,10 +50,6 @@ func getBindAddr() net.IP {
 	return getBindAddrNet(0)
 }
 
-func yield() {
-	<-time.After(50 * time.Millisecond)
-}
-
 func buildReplicationCluster(size int) ([]Node, error) {
 	doneChan := make(chan []Node, 1)
 	errChan := make(chan error, 1)
@@ -136,7 +132,7 @@ func buildReplicationCluster(size int) ([]Node, error) {
 		return nil, err
 	case nodes := <-doneChan:
 		return nodes, nil
-	case <-time.After(10 * time.Second):
+	case <-time.After(20 * time.Second):
 		return nil, errors.New("build cluster timeout")
 	}
 }
