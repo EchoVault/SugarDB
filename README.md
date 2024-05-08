@@ -125,15 +125,10 @@ To install via homebrew, run:
 Once installed, you can run the server with the following command:
 `echovault --bind-addr=localhost --data-dir="path/to/persistence/directory"`
 
-Next, [install the client via homebrew](https://github.com/EchoVault/EchoVault-CLI).
-
 ### Binaries
 
 You can download the binaries by clicking on a release tag and downloading
 the binary for your system.
-
-Checkout the [configuration section](#configuration) for the possible configuration
-flags.
 
 # Clients
 
