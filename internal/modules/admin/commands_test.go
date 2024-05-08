@@ -153,6 +153,185 @@ func Test_AdminCommand(t *testing.T) {
 		}
 	})
 
+	t.Run("Test COMMAND COUNT command", func(t *testing.T) {
+		t.Parallel()
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		mockServer, err := setupServer(uint16(port))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		res, err := getHandler(mockServer, "COMMAND", "COUNT")(
+			getHandlerFuncParams(context.Background(), mockServer, []string{"command", "count"}, nil),
+		)
+		if err != nil {
+			t.Error(err)
+		}
+
+		rd := resp.NewReader(bytes.NewReader(res))
+		rv, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+
+		// Get all the commands from the existing modules.
+		var commands []internal.Command
+		commands = append(commands, acl.Commands()...)
+		commands = append(commands, admin.Commands()...)
+		commands = append(commands, generic.Commands()...)
+		commands = append(commands, hash.Commands()...)
+		commands = append(commands, list.Commands()...)
+		commands = append(commands, connection.Commands()...)
+		commands = append(commands, pubsub.Commands()...)
+		commands = append(commands, set.Commands()...)
+		commands = append(commands, sorted_set.Commands()...)
+		commands = append(commands, str.Commands()...)
+
+		// Flatten the commands and subcommands.
+		var allCommands []string
+		for _, c := range commands {
+			if c.SubCommands == nil || len(c.SubCommands) == 0 {
+				allCommands = append(allCommands, c.Command)
+				continue
+			}
+			for _, sc := range c.SubCommands {
+				allCommands = append(allCommands, fmt.Sprintf("%s|%s", c.Command, sc.Command))
+			}
+		}
+
+		if len(allCommands) != rv.Integer() {
+			t.Errorf("expected COMMAND COUNT to return %d, got %d", len(allCommands), rv.Integer())
+		}
+	})
+
+	t.Run("Test COMMAND LIST command", func(t *testing.T) {
+		t.Parallel()
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		mockServer, err := setupServer(uint16(port))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		// Get all the commands from the existing modules.
+		var allCommands []internal.Command
+		allCommands = append(allCommands, acl.Commands()...)
+		allCommands = append(allCommands, admin.Commands()...)
+		allCommands = append(allCommands, generic.Commands()...)
+		allCommands = append(allCommands, hash.Commands()...)
+		allCommands = append(allCommands, list.Commands()...)
+		allCommands = append(allCommands, connection.Commands()...)
+		allCommands = append(allCommands, pubsub.Commands()...)
+		allCommands = append(allCommands, set.Commands()...)
+		allCommands = append(allCommands, sorted_set.Commands()...)
+		allCommands = append(allCommands, str.Commands()...)
+
+		tests := []struct {
+			name string
+			cmd  []string
+			want []string
+		}{
+			{
+				name: "1. Return all commands with no filter specified",
+				cmd:  []string{"COMMAND", "LIST"},
+				want: func() []string {
+					var commands []string
+					for _, command := range allCommands {
+						if command.SubCommands == nil || len(command.SubCommands) == 0 {
+							commands = append(commands, command.Command)
+							continue
+						}
+						for _, subcommand := range command.SubCommands {
+							commands = append(commands, fmt.Sprintf("%s %s", command.Command, subcommand.Command))
+						}
+					}
+					return commands
+				}(),
+			},
+			{
+				name: "2. Return all commands that contain the provided ACL category",
+				cmd:  []string{"COMMAND", "LIST", "FILTERBY", "ACLCAT", constants.FastCategory},
+				want: func() []string {
+					var commands []string
+					for _, command := range allCommands {
+						if (command.SubCommands == nil || len(command.SubCommands) == 0) &&
+							slices.Contains(command.Categories, constants.FastCategory) {
+							commands = append(commands, command.Command)
+							continue
+						}
+						for _, subcommand := range command.SubCommands {
+							if slices.Contains(subcommand.Categories, constants.FastCategory) {
+								commands = append(commands, fmt.Sprintf("%s %s", command.Command, subcommand.Command))
+							}
+						}
+					}
+					return commands
+				}(),
+			},
+			{
+				name: "3. Return all commands that match the provided pattern",
+				cmd:  []string{"COMMAND", "LIST", "FILTERBY", "PATTERN", "z*"},
+				want: func() []string {
+					var commands []string
+					for _, command := range sorted_set.Commands() {
+						commands = append(commands, command.Command)
+					}
+					return commands
+				}(),
+			},
+			{
+				name: "4. Return all commands that belong to the specified module",
+				cmd:  []string{"COMMAND", "LIST", "FILTERBY", "MODULE", constants.HashModule},
+				want: func() []string {
+					var commands []string
+					for _, command := range hash.Commands() {
+						commands = append(commands, command.Command)
+					}
+					return commands
+				}(),
+			},
+		}
+
+		for _, test := range tests {
+			res, err := getHandler(mockServer, test.cmd...)(
+				getHandlerFuncParams(context.Background(), mockServer, test.cmd, nil),
+			)
+			if err != nil {
+				t.Error(err)
+			}
+
+			rd := resp.NewReader(bytes.NewReader(res))
+			rv, _, err := rd.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if len(rv.Array()) != len(test.want) {
+				t.Errorf("expected response of length %d, got %d", len(test.want), len(rv.Array()))
+			}
+
+			for _, command := range rv.Array() {
+				if !slices.ContainsFunc(test.want, func(c string) bool {
+					return strings.EqualFold(c, command.String())
+				}) {
+					t.Errorf("command \"%s\" is not expected in response but is returned", command.String())
+				}
+			}
+		}
+	})
+
 	t.Run("Test MODULE LOAD command", func(t *testing.T) {
 		t.Parallel()
 
