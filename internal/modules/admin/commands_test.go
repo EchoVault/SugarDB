@@ -34,7 +34,6 @@ import (
 	str "github.com/echovault/echovault/internal/modules/string"
 	"github.com/tidwall/resp"
 	"net"
-	"os"
 	"reflect"
 	"slices"
 	"strings"
@@ -43,30 +42,20 @@ import (
 	"unsafe"
 )
 
-var mockServer *echovault.EchoVault
-var port uint16
-
-func init() {
-	p, _ := internal.GetFreePort()
-	port = uint16(p)
-	setupServer(port)
-}
-
-func setupServer(port uint16) *echovault.EchoVault {
+func setupServer(port uint16) (*echovault.EchoVault, error) {
 	cfg := echovault.DefaultConfig()
 	cfg.DataDir = ""
 	cfg.BindAddr = "localhost"
 	cfg.Port = port
 	cfg.EvictionPolicy = constants.NoEviction
-	mockServer, _ = echovault.NewEchoVault(echovault.WithConfig(cfg))
-	return mockServer
+	return echovault.NewEchoVault(echovault.WithConfig(cfg))
 }
 
 func getUnexportedField(field reflect.Value) interface{} {
 	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
 }
 
-func getHandler(commands ...string) internal.HandlerFunc {
+func getHandler(mockServer *echovault.EchoVault, commands ...string) internal.HandlerFunc {
 	if len(commands) == 0 {
 		return nil
 	}
@@ -89,7 +78,7 @@ func getHandler(commands ...string) internal.HandlerFunc {
 	return nil
 }
 
-func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) internal.HandlerFuncParams {
+func getHandlerFuncParams(ctx context.Context, mockServer *echovault.EchoVault, cmd []string, conn *net.Conn) internal.HandlerFuncParams {
 	getCommands :=
 		getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getCommands")).(func() []internal.Command)
 	return internal.HandlerFuncParams{
@@ -101,13 +90,27 @@ func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) int
 }
 
 func Test_AdminCommand(t *testing.T) {
-	t.Cleanup(func() {
-		_ = os.RemoveAll("./testdata")
-	})
+	// t.Cleanup(func() {
+	// 	_ = os.RemoveAll("./testdata")
+	// })
 
 	t.Run("Test COMMANDS command", func(t *testing.T) {
 		t.Parallel()
-		res, err := getHandler("COMMANDS")(getHandlerFuncParams(context.Background(), []string{"commands"}, nil))
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		mockServer, err := setupServer(uint16(port))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		res, err := getHandler(mockServer, "COMMANDS")(
+			getHandlerFuncParams(context.Background(), mockServer, []string{"commands"}, nil),
+		)
 		if err != nil {
 			t.Error(err)
 		}
@@ -150,6 +153,18 @@ func Test_AdminCommand(t *testing.T) {
 
 	t.Run("Test MODULE LOAD command", func(t *testing.T) {
 		t.Parallel()
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		mockServer, err := setupServer(uint16(port))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
 		tests := []struct {
 			name        string
 			execCommand []resp.Value
@@ -308,8 +323,17 @@ func Test_AdminCommand(t *testing.T) {
 
 	t.Run("Test MODULE UNLOAD command", func(t *testing.T) {
 		t.Parallel()
-		port, _ := internal.GetFreePort()
-		mockServer := setupServer(uint16(port))
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		mockServer, err := setupServer(uint16(port))
+		if err != nil {
+			t.Error(err)
+			return
+		}
 
 		wg := sync.WaitGroup{}
 		wg.Add(1)
@@ -488,8 +512,17 @@ func Test_AdminCommand(t *testing.T) {
 
 	t.Run("Test MODULE LIST command", func(t *testing.T) {
 		t.Parallel()
-		port, _ := internal.GetFreePort()
-		mockServer := setupServer(uint16(port))
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		mockServer, err := setupServer(uint16(port))
+		if err != nil {
+			t.Error(err)
+			return
+		}
 
 		wg := sync.WaitGroup{}
 		wg.Add(1)

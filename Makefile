@@ -19,5 +19,7 @@ test-unit:
 	CGO_ENABLED=1 go test ./... -coverprofile coverage/coverage.out
 
 test-race:
-	env CGO_ENABLED=1 CC=x86_64-linux-musl-gcc GOOS=linux GOARCH=amd64 DEST=internal/modules/admin/testdata/modules make build-modules && \
-	go clean -testcache && go test ./... --race
+	CGO_ENABLED=1 go build -buildmode=plugin --race -o internal/modules/admin/testdata/modules/module_set/module_set.so ./volumes/modules/module_set/module_set.go && \
+	CGO_ENABLED=1 go build -buildmode=plugin --race -o internal/modules/admin/testdata/modules/module_get/module_get.so ./volumes/modules/module_get/module_get.go && \
+	go clean -testcache && \
+	CGO_ENABLED=1 go test ./... --race
