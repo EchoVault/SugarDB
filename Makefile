@@ -1,6 +1,6 @@
 build-modules:
 	CGO_ENABLED=$(CGO_ENABLED) CC=$(CC) GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(DEST)/module_set/module_set.so ./volumes/modules/module_set/module_set.go && \
-CGO_ENABLED=$(CGO_ENABLED) CC=$(CC) GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(DEST)/module_get/module_get.so ./volumes/modules/module_get/module_get.go
+	CGO_ENABLED=$(CGO_ENABLED) CC=$(CC) GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(DEST)/module_get/module_get.so ./volumes/modules/module_get/module_get.go
 
 build-server:
 	 CGO_ENABLED=$(CGO_ENABLED) CC=$(CC) GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(DEST)/server ./cmd/main.go
@@ -13,7 +13,13 @@ run:
 	make build && docker-compose up --build
 
 test-unit:
-	go clean -testcache && go test ./... -coverprofile coverage/coverage.out
+	CGO_ENABLED=1 go build -buildmode=plugin -o internal/modules/admin/testdata/modules/module_set/module_set.so ./volumes/modules/module_set/module_set.go && \
+	CGO_ENABLED=1 go build -buildmode=plugin -o internal/modules/admin/testdata/modules/module_get/module_get.so ./volumes/modules/module_get/module_get.go && \
+	go clean -testcache && \
+	CGO_ENABLED=1 go test ./... -coverprofile coverage/coverage.out
 
 test-race:
-	go clean -testcache && go test ./... --race
+	CGO_ENABLED=1 go build -buildmode=plugin --race -o internal/modules/admin/testdata/modules/module_set/module_set.so ./volumes/modules/module_set/module_set.go && \
+	CGO_ENABLED=1 go build -buildmode=plugin --race -o internal/modules/admin/testdata/modules/module_get/module_get.so ./volumes/modules/module_get/module_get.go && \
+	go clean -testcache && \
+	CGO_ENABLED=1 go test ./... --race

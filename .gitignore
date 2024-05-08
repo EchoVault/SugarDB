@@ -5,3 +5,4 @@ dist/
 pkg/modules/*/aof
 pkg/echovault/aof
 dump.rdb
+**/*/testdata

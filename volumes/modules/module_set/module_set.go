@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 var Command string = "Module.Set"
@@ -31,7 +32,7 @@ var Sync bool = true
 
 func KeyExtractionFunc(cmd []string, args ...string) ([]string, []string, error) {
 	if len(cmd) != 3 {
-		return nil, nil, fmt.Errorf("wrong no of args for %s command", Command)
+		return nil, nil, fmt.Errorf("wrong no of args for %s command", strings.ToLower(Command))
 	}
 	return []string{}, cmd[1:2], nil
 }
