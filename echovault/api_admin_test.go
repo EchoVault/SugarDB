@@ -314,10 +314,31 @@ func TestEchoVault_Plugins(t *testing.T) {
 	if err := server.LoadModule(moduleSet); err != nil {
 		t.Error(err)
 	}
+	// Execute module.set command and expect "OK" response
+	res, err := server.ExecuteCommand("module.set", "key1", "15")
+	if err != nil {
+		t.Error(err)
+	}
+	rv, _, err := resp.NewReader(bytes.NewReader(res)).ReadValue()
+	if err != nil {
+		t.Error(err)
+	}
+	if rv.String() != "OK" {
+		t.Errorf("expected response \"OK\", got \"%s\"", rv.String())
+	}
 
 	// Load module.get module with args
 	if err := server.LoadModule(moduleGet, "10"); err != nil {
 		t.Error(err)
+	}
+	// Execute module.get command and expect an integer with the value 150
+	res, err = server.ExecuteCommand("module.get", "key1")
+	rv, _, err = resp.NewReader(bytes.NewReader(res)).ReadValue()
+	if err != nil {
+		t.Error(err)
+	}
+	if rv.Integer() != 150 {
+		t.Errorf("expected response 150, got %d", rv.Integer())
 	}
 
 	// Return error when trying to load module that does not exist
