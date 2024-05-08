@@ -37,6 +37,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -511,80 +512,80 @@ func Test_AdminCommand(t *testing.T) {
 		}
 	})
 
-	// t.Run("Test MODULE LIST command", func(t *testing.T) {
-	// 	t.Parallel()
-	//
-	// 	port, err := internal.GetFreePort()
-	// 	if err != nil {
-	// 		t.Error(err)
-	// 		return
-	// 	}
-	// 	mockServer, err := setupServer(uint16(port))
-	// 	if err != nil {
-	// 		t.Error(err)
-	// 		return
-	// 	}
-	//
-	// 	wg := sync.WaitGroup{}
-	// 	wg.Add(1)
-	// 	go func() {
-	// 		wg.Done()
-	// 		mockServer.Start()
-	// 	}()
-	// 	wg.Wait()
-	//
-	// 	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
-	// 	if err != nil {
-	// 		t.Error(err)
-	// 	}
-	//
-	// 	respConn := resp.NewConn(conn)
-	//
-	// 	// Load module.get module with arg
-	// 	if err := respConn.WriteArray([]resp.Value{
-	// 		resp.StringValue("MODULE"),
-	// 		resp.StringValue("LOAD"),
-	// 		resp.StringValue(path.Join(".", "testdata", "modules", "module_get", "module_get.so")),
-	// 	}); err != nil {
-	// 		t.Errorf("load module_get: %v", err)
-	// 		return
-	// 	}
-	// 	// Expect OK response
-	// 	r, _, err := respConn.ReadValue()
-	// 	if err != nil {
-	// 		t.Error(err)
-	// 		return
-	// 	}
-	// 	if r.String() != "OK" {
-	// 		t.Errorf("expected response OK, got \"%s\"", r.String())
-	// 		return
-	// 	}
-	//
-	// 	if err := respConn.WriteArray([]resp.Value{
-	// 		resp.StringValue("MODULE"),
-	// 		resp.StringValue("LIST"),
-	// 	}); err != nil {
-	// 		t.Errorf("list module: %v", err)
-	// 	}
-	// 	r, _, err = respConn.ReadValue()
-	// 	if err != nil {
-	// 		t.Error(err)
-	// 		return
-	// 	}
-	//
-	// 	serverModules := mockServer.ListModules()
-	//
-	// 	if len(r.Array()) != len(serverModules) {
-	// 		t.Errorf("expected response of length %d, got %d", len(serverModules), len(r.Array()))
-	// 		return
-	// 	}
-	//
-	// 	for _, resModule := range r.Array() {
-	// 		if !slices.ContainsFunc(serverModules, func(serverModule string) bool {
-	// 			return resModule.String() == serverModule
-	// 		}) {
-	// 			t.Errorf("could not file module \"%s\" in the loaded server modules \"%s\"", resModule, serverModules)
-	// 		}
-	// 	}
-	// })
+	t.Run("Test MODULE LIST command", func(t *testing.T) {
+		t.Parallel()
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		mockServer, err := setupServer(uint16(port))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			wg.Done()
+			mockServer.Start()
+		}()
+		wg.Wait()
+
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		if err != nil {
+			t.Error(err)
+		}
+
+		respConn := resp.NewConn(conn)
+
+		// Load module.get module with arg
+		if err := respConn.WriteArray([]resp.Value{
+			resp.StringValue("MODULE"),
+			resp.StringValue("LOAD"),
+			resp.StringValue(path.Join(".", "testdata", "modules", "module_get", "module_get.so")),
+		}); err != nil {
+			t.Errorf("load module_get: %v", err)
+			return
+		}
+		// Expect OK response
+		r, _, err := respConn.ReadValue()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if r.String() != "OK" {
+			t.Errorf("expected response OK, got \"%s\"", r.String())
+			return
+		}
+
+		if err := respConn.WriteArray([]resp.Value{
+			resp.StringValue("MODULE"),
+			resp.StringValue("LIST"),
+		}); err != nil {
+			t.Errorf("list module: %v", err)
+		}
+		r, _, err = respConn.ReadValue()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		serverModules := mockServer.ListModules()
+
+		if len(r.Array()) != len(serverModules) {
+			t.Errorf("expected response of length %d, got %d", len(serverModules), len(r.Array()))
+			return
+		}
+
+		for _, resModule := range r.Array() {
+			if !slices.ContainsFunc(serverModules, func(serverModule string) bool {
+				return resModule.String() == serverModule
+			}) {
+				t.Errorf("could not file module \"%s\" in the loaded server modules \"%s\"", resModule, serverModules)
+			}
+		}
+	})
 }
