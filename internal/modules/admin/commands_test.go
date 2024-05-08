@@ -35,6 +35,7 @@ import (
 	"github.com/tidwall/resp"
 	"net"
 	"os"
+	"path"
 	"reflect"
 	"slices"
 	"strings"
@@ -180,7 +181,7 @@ func Test_AdminCommand(t *testing.T) {
 				execCommand: []resp.Value{
 					resp.StringValue("MODULE"),
 					resp.StringValue("LOAD"),
-					resp.StringValue("./testdata/modules/module_set/module_set.so"),
+					resp.StringValue(path.Join(".", "testdata", "modules", "module_set", "module_set.so")),
 				},
 				wantExecRes: "OK",
 				wantExecErr: nil,
@@ -197,7 +198,7 @@ func Test_AdminCommand(t *testing.T) {
 				execCommand: []resp.Value{
 					resp.StringValue("MODULE"),
 					resp.StringValue("LOAD"),
-					resp.StringValue("./testdata/modules/module_get/module_get.so"),
+					resp.StringValue(path.Join(".", "testdata", "modules", "module_get", "module_get.so")),
 					resp.StringValue("10"), // With args
 				},
 				wantExecRes: "OK",
@@ -239,7 +240,7 @@ func Test_AdminCommand(t *testing.T) {
 				execCommand: []resp.Value{
 					resp.StringValue("MODULE"),
 					resp.StringValue("LOAD"),
-					resp.StringValue("./testdata/modules/module_set/module_set.so"),
+					resp.StringValue(path.Join(".", "testdata", "modules", "module_set", "module_set.so")),
 				},
 				wantExecRes: "OK",
 				testCommand: []resp.Value{
@@ -355,7 +356,7 @@ func Test_AdminCommand(t *testing.T) {
 		if err := respConn.WriteArray([]resp.Value{
 			resp.StringValue("MODULE"),
 			resp.StringValue("LOAD"),
-			resp.StringValue("./testdata/modules/module_set/module_set.so"),
+			resp.StringValue(path.Join(".", "testdata", "modules", "module_set", "module_set.so")),
 		}); err != nil {
 			t.Errorf("load module_set: %v", err)
 			return
@@ -375,7 +376,7 @@ func Test_AdminCommand(t *testing.T) {
 		if err := respConn.WriteArray([]resp.Value{
 			resp.StringValue("MODULE"),
 			resp.StringValue("LOAD"),
-			resp.StringValue("./testdata/modules/module_get/module_get.so"),
+			resp.StringValue(path.Join(".", "testdata", "modules", "module_get", "module_get.so")),
 			resp.StringValue("10"),
 		}); err != nil {
 			t.Errorf("load module_get: %v", err)
@@ -435,7 +436,7 @@ func Test_AdminCommand(t *testing.T) {
 		if err := respConn.WriteArray([]resp.Value{
 			resp.StringValue("MODULE"),
 			resp.StringValue("UNLOAD"),
-			resp.StringValue("./testdata/modules/module_set/module_set.so"),
+			resp.StringValue(path.Join(".", "testdata", "modules", "module_set", "module_set.so")),
 		}); err != nil {
 			t.Errorf("unload module_set: %v", err)
 			return
@@ -455,7 +456,7 @@ func Test_AdminCommand(t *testing.T) {
 		if err := respConn.WriteArray([]resp.Value{
 			resp.StringValue("MODULE"),
 			resp.StringValue("UNLOAD"),
-			resp.StringValue("./testdata/modules/module_get/module_get.so"),
+			resp.StringValue(path.Join(".", "testdata", "modules", "module_get", "module_get.so")),
 		}); err != nil {
 			t.Errorf("unload module_get: %v", err)
 			return
@@ -544,7 +545,7 @@ func Test_AdminCommand(t *testing.T) {
 		if err := respConn.WriteArray([]resp.Value{
 			resp.StringValue("MODULE"),
 			resp.StringValue("LOAD"),
-			resp.StringValue("./testdata/modules/module_get/module_get.so"),
+			resp.StringValue(path.Join(".", "testdata", "modules", "module_get", "module_get.so")),
 		}); err != nil {
 			t.Errorf("load module_get: %v", err)
 			return
