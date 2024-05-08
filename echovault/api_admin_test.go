@@ -12,32 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package admin
+package echovault
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/echovault"
-	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
 	"strconv"
 	"testing"
 )
 
-func createEchoVault() *echovault.EchoVault {
-	ev, _ := echovault.NewEchoVault(
-		echovault.WithConfig(config.Config{
-			DataDir: "",
-		}),
-	)
-	return ev
-}
-
 func TestEchoVault_AddCommand(t *testing.T) {
 	type args struct {
-		command echovault.CommandOptions
+		command CommandOptions
 	}
 	type scenarios struct {
 		name    string
@@ -55,7 +44,7 @@ func TestEchoVault_AddCommand(t *testing.T) {
 			name:    "1 Add command without subcommands",
 			wantErr: false,
 			args: args{
-				command: echovault.CommandOptions{
+				command: CommandOptions{
 					Command: "CommandOne",
 					Module:  "test-module",
 					Description: `(CommandOne write-key read-key <value>) 
@@ -63,16 +52,16 @@ Test command to handle successful addition of a single command without subcomman
 The value passed must be an integer.`,
 					Categories: []string{},
 					Sync:       false,
-					KeyExtractionFunc: func(cmd []string) (echovault.CommandKeyExtractionFuncResult, error) {
+					KeyExtractionFunc: func(cmd []string) (CommandKeyExtractionFuncResult, error) {
 						if len(cmd) != 4 {
-							return echovault.CommandKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+							return CommandKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 						}
-						return echovault.CommandKeyExtractionFuncResult{
+						return CommandKeyExtractionFuncResult{
 							WriteKeys: cmd[1:2],
 							ReadKeys:  cmd[2:3],
 						}, nil
 					},
-					HandlerFunc: func(params echovault.CommandHandlerFuncParams) ([]byte, error) {
+					HandlerFunc: func(params CommandHandlerFuncParams) ([]byte, error) {
 						if len(params.Command) != 4 {
 							return nil, errors.New(constants.WrongArgsResponse)
 						}
@@ -116,9 +105,9 @@ The value passed must be an integer.`,
 			name:    "2 Add command with subcommands",
 			wantErr: false,
 			args: args{
-				command: echovault.CommandOptions{
+				command: CommandOptions{
 					Command: "CommandTwo",
-					SubCommand: []echovault.SubCommandOptions{
+					SubCommand: []SubCommandOptions{
 						{
 							Command: "SubCommandOne",
 							Module:  "test-module",
@@ -127,16 +116,16 @@ Test command to handle successful addition of a single command with subcommands.
 The value passed must be an integer.`,
 							Categories: []string{},
 							Sync:       false,
-							KeyExtractionFunc: func(cmd []string) (echovault.CommandKeyExtractionFuncResult, error) {
+							KeyExtractionFunc: func(cmd []string) (CommandKeyExtractionFuncResult, error) {
 								if len(cmd) != 5 {
-									return echovault.CommandKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+									return CommandKeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 								}
-								return echovault.CommandKeyExtractionFuncResult{
+								return CommandKeyExtractionFuncResult{
 									WriteKeys: cmd[2:3],
 									ReadKeys:  cmd[3:4],
 								}, nil
 							},
-							HandlerFunc: func(params echovault.CommandHandlerFuncParams) ([]byte, error) {
+							HandlerFunc: func(params CommandHandlerFuncParams) ([]byte, error) {
 								if len(params.Command) != 5 {
 									return nil, errors.New(constants.WrongArgsResponse)
 								}

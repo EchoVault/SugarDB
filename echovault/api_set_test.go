@@ -12,37 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package set
+package echovault
 
 import (
 	"context"
-	"github.com/echovault/echovault/echovault"
-	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/modules/set"
 	"reflect"
 	"slices"
 	"testing"
 )
-
-func createEchoVault() *echovault.EchoVault {
-	ev, _ := echovault.NewEchoVault(
-		echovault.WithConfig(config.Config{
-			DataDir: "",
-		}),
-	)
-	return ev
-}
-
-func presetValue(server *echovault.EchoVault, ctx context.Context, key string, value interface{}) error {
-	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
-		return err
-	}
-	if err := server.SetValue(ctx, key, value); err != nil {
-		return err
-	}
-	server.KeyUnlock(ctx, key)
-	return nil
-}
 
 func TestEchoVault_SADD(t *testing.T) {
 	server := createEchoVault()
