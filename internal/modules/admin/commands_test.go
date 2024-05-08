@@ -34,6 +34,7 @@ import (
 	str "github.com/echovault/echovault/internal/modules/string"
 	"github.com/tidwall/resp"
 	"net"
+	"os"
 	"reflect"
 	"slices"
 	"strings"
@@ -90,9 +91,9 @@ func getHandlerFuncParams(ctx context.Context, mockServer *echovault.EchoVault, 
 }
 
 func Test_AdminCommand(t *testing.T) {
-	// t.Cleanup(func() {
-	// 	_ = os.RemoveAll("./testdata")
-	// })
+	t.Cleanup(func() {
+		_ = os.RemoveAll("./testdata")
+	})
 
 	t.Run("Test COMMANDS command", func(t *testing.T) {
 		t.Parallel()
