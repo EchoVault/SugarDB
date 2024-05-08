@@ -71,7 +71,7 @@ func getHandler(commands ...string) internal.HandlerFunc {
 		return nil
 	}
 	getCommands :=
-			getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getCommands")).(func() []internal.Command)
+		getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getCommands")).(func() []internal.Command)
 	for _, c := range getCommands() {
 		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
 			// Get command handler
@@ -91,7 +91,7 @@ func getHandler(commands ...string) internal.HandlerFunc {
 
 func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) internal.HandlerFuncParams {
 	getCommands :=
-			getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getCommands")).(func() []internal.Command)
+		getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getCommands")).(func() []internal.Command)
 	return internal.HandlerFuncParams{
 		Context:        ctx,
 		Command:        cmd,
@@ -105,7 +105,7 @@ func Test_AdminCommand(t *testing.T) {
 		_ = os.RemoveAll("./testdata")
 	})
 
-	t.Run("Test COMMAND command", func(t *testing.T) {
+	t.Run("Test COMMANDS command", func(t *testing.T) {
 		t.Parallel()
 		res, err := getHandler("COMMANDS")(getHandlerFuncParams(context.Background(), []string{"commands"}, nil))
 		if err != nil {
