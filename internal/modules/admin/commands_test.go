@@ -264,7 +264,6 @@ func Test_AdminCommand(t *testing.T) {
 				}
 				// If we expect an error, check if the error matches the one we expect.
 				if tests[i].wantExecErr != nil {
-					fmt.Println("RES: ", r)
 					if !strings.Contains(strings.ToLower(r.Error().Error()), strings.ToLower(tests[i].wantExecErr.Error())) {
 						t.Errorf("expected error to contain \"%s\", got \"%s\"", tests[i].wantExecErr.Error(), r.Error().Error())
 						return
