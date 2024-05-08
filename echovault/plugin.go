@@ -19,6 +19,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"io/fs"
+	"os"
 	"plugin"
 	"slices"
 	"strings"
@@ -35,6 +37,13 @@ import (
 func (server *EchoVault) LoadModule(path string, args ...string) error {
 	server.commandsRWMut.Lock()
 	defer server.commandsRWMut.Unlock()
+
+	if _, err := os.Stat(path); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("load module: module %s not found", path)
+		}
+		return fmt.Errorf("load module: %v", err)
+	}
 
 	p, err := plugin.Open(path)
 	if err != nil {

@@ -20,6 +20,9 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
+	"os"
+	"path"
+	"slices"
 	"strconv"
 	"testing"
 )
@@ -293,5 +296,60 @@ func TestEchoVault_RemoveCommand(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestEchoVault_Plugins(t *testing.T) {
+	t.Cleanup(func() {
+		_ = os.RemoveAll("./testdata")
+	})
+
+	server := createEchoVault()
+
+	moduleSet := path.Join(".", "testdata", "modules", "module_set", "module_set.so")
+	moduleGet := path.Join(".", "testdata", "modules", "module_get", "module_get.so")
+	nonExistent := path.Join(".", "testdata", "modules", "non_existent", "module_non_existent.so")
+
+	// Load module.set module
+	if err := server.LoadModule(moduleSet); err != nil {
+		t.Error(err)
+	}
+
+	// Load module.get module with args
+	if err := server.LoadModule(moduleGet, "10"); err != nil {
+		t.Error(err)
+	}
+
+	// Return error when trying to load module that does not exist
+	if err := server.LoadModule(nonExistent); err == nil {
+		t.Error("expected error but got nil instead")
+	} else {
+		if err.Error() != fmt.Sprintf("load module: module %s not found", nonExistent) {
+			t.Errorf(
+				"expected error \"%s\", got \"%s\"",
+				fmt.Sprintf("load module: module %s not found", nonExistent),
+				err.Error(),
+			)
+		}
+	}
+
+	// Module list should contain module_get and module_set modules
+	modules := server.ListModules()
+	for _, mod := range []string{moduleSet, moduleGet} {
+		if !slices.Contains(modules, mod) {
+			t.Errorf("expected modules list to contain module \"%s\" but did not find it", mod)
+		}
+	}
+
+	// Unload modules
+	server.UnloadModule(moduleSet)
+	server.UnloadModule(moduleGet)
+
+	// Make sure the modules are no longer loaded
+	modules = server.ListModules()
+	for _, mod := range []string{moduleSet, moduleGet} {
+		if slices.Contains(modules, mod) {
+			t.Errorf("expected modules list to not contain module \"%s\" but found it", mod)
+		}
 	}
 }
