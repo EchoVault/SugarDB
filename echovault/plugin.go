@@ -33,6 +33,9 @@ import (
 // `args` - ...string - A list of args that will be passed unmodified to the plugins command's
 // KeyExtractionFunc and HandlerFunc
 func (server *EchoVault) LoadModule(path string, args ...string) error {
+	server.commandsRWMut.Lock()
+	defer server.commandsRWMut.Unlock()
+
 	p, err := plugin.Open(path)
 	if err != nil {
 		return fmt.Errorf("plugin open: %v", err)
@@ -104,9 +107,12 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 		return errors.New("handler function has unexpected signature")
 	}
 
-	server.commandsRWMut.Lock()
-	defer server.commandsRWMut.Unlock()
+	// Remove the currently loaded version of this module and replace it with the new one
+	server.commands = slices.DeleteFunc(server.commands, func(command internal.Command) bool {
+		return strings.EqualFold(command.Module, path)
+	})
 
+	// Add the new command
 	server.commands = append(server.commands, internal.Command{
 		Command: *command,
 		Module:  path,
@@ -144,6 +150,7 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 				params.CreateKeyAndLock,
 				params.GetValue,
 				params.SetValue,
+				args...,
 			)
 		},
 	})

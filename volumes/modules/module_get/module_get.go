@@ -16,7 +16,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
 )
 
 var Command string = "Module.Get"
@@ -69,5 +71,13 @@ func HandlerFunc(
 		return nil, fmt.Errorf("value at key %s is not an integer", key)
 	}
 
-	return []byte(fmt.Sprintf(":%d\r\n", val*val)), nil
+	factor := val
+	if len(args) >= 1 {
+		factor, err = strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return nil, errors.New("first value of args must be an integer")
+		}
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n", val*factor)), nil
 }

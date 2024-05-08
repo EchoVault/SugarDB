@@ -357,15 +357,15 @@ func (server *EchoVault) startTCP() {
 
 	if !conf.TLS {
 		// TCP
-		fmt.Printf("Starting TCP echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		log.Printf("Starting TCP echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 	}
 
 	if conf.TLS || conf.MTLS {
 		// TLS
 		if conf.TLS {
-			fmt.Printf("Starting mTLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+			log.Printf("Starting mTLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		} else {
-			fmt.Printf("Starting TLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+			log.Printf("Starting TLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		}
 
 		var certificates []tls.Certificate
@@ -408,7 +408,7 @@ func (server *EchoVault) startTCP() {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Could not establish connection")
+			log.Println("Could not establish connection")
 			continue
 		}
 		// Read loop for connection
