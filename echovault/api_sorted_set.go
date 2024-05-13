@@ -87,6 +87,8 @@ type ZMPopOptions struct {
 //
 // ByLex returns the elements within the lexicographical ranges specified.
 //
+// Rev reverses the result from the previous filters.
+//
 // Offset specifies the offset to from which to start the ZRange process.
 //
 // Count specifies the number of elements to return.
@@ -94,6 +96,7 @@ type ZRangeOptions struct {
 	WithScores bool
 	ByScore    bool
 	ByLex      bool
+	Rev        bool
 	Offset     uint
 	Count      uint
 }
@@ -864,6 +867,62 @@ func (server *EchoVault) ZRemRangeByScore(key string, min float64, max float64) 
 	return internal.ParseIntegerResponse(b)
 }
 
+// ZRemRangeByLex Removes the elements that are lexicographically between min and max.
+//
+// Parameters:
+//
+// `key` - string - The keys to the sorted set.
+//
+// `min` - string - The minimum lexicographic boundary.
+//
+// `max` - string - The maximum lexicographic boundary.
+//
+// Returns: The number of elements that were successfully removed.
+//
+// Errors:
+//
+// "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
+func (server *EchoVault) ZRemRangeByLex(key, min, max string) (int, error) {
+	b, err := server.handleCommand(
+		server.context, internal.EncodeCommand([]string{"ZREMRANGEBYLEX", key, min, max}),
+		nil,
+		false,
+		true,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return internal.ParseIntegerResponse(b)
+}
+
+// ZRemRangeByRank Removes the elements that are ranked between min and max.
+//
+// Parameters:
+//
+// `key` - string - The keys to the sorted set.
+//
+// `min` - int - The minimum rank boundary.
+//
+// `max` - int - The maximum rank boundary.
+//
+// Returns: The number of elements that were successfully removed.
+//
+// Errors:
+//
+// "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
+func (server *EchoVault) ZRemRangeByRank(key string, min, max int) (int, error) {
+	b, err := server.handleCommand(
+		server.context, internal.EncodeCommand([]string{"ZREMRANGEBYRANK", key, strconv.Itoa(min), strconv.Itoa(max)}),
+		nil,
+		false,
+		true,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return internal.ParseIntegerResponse(b)
+}
+
 // ZRange Returns the range of elements in the sorted set.
 //
 // Parameters:
@@ -889,6 +948,8 @@ func (server *EchoVault) ZRange(key, start, stop string, options ZRangeOptions) 
 		cmd = append(cmd, "BYSCORE")
 	case options.ByLex:
 		cmd = append(cmd, "BYLEX")
+	case options.Rev:
+		cmd = append(cmd, "REV")
 	default:
 		cmd = append(cmd, "BYSCORE")
 	}
@@ -941,6 +1002,8 @@ func (server *EchoVault) ZRangeStore(destination, source, start, stop string, op
 		cmd = append(cmd, "BYSCORE")
 	case options.ByLex:
 		cmd = append(cmd, "BYLEX")
+	case options.Rev:
+		cmd = append(cmd, "REV")
 	default:
 		cmd = append(cmd, "BYSCORE")
 	}

@@ -17,6 +17,7 @@ package echovault
 import (
 	"github.com/echovault/echovault/internal"
 	"strconv"
+	"strings"
 )
 
 // SetOptions modifies the behaviour for the Set command
@@ -124,12 +125,12 @@ func (server *EchoVault) Set(key, value string, options SetOptions) (string, err
 //
 // `kvPairs` - map[string]string - a map representing all the keys and values to be set.
 //
-// Returns: "OK" if the set is successful.
+// Returns: true if the set is successful.
 //
 // Errors:
 //
-// "key <key> does already exists" - when the NX flag is set to true and the key already exists.
-func (server *EchoVault) MSet(kvPairs map[string]string) (string, error) {
+// "key <key> already exists" - when the NX flag is set to true and the key already exists.
+func (server *EchoVault) MSet(kvPairs map[string]string) (bool, error) {
 	cmd := []string{"MSET"}
 
 	for k, v := range kvPairs {
@@ -138,10 +139,15 @@ func (server *EchoVault) MSet(kvPairs map[string]string) (string, error) {
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return "", err
+		return false, err
 	}
 
-	return internal.ParseStringResponse(b)
+	s, err := internal.ParseStringResponse(b)
+	if err != nil {
+		return false, err
+	}
+
+	return strings.EqualFold(s, "ok"), nil
 }
 
 // Get retrieves the value at the provided key.
@@ -279,7 +285,7 @@ func (server *EchoVault) PTTL(key string) (int, error) {
 // `options` - ExpireOptions
 //
 // Returns: true if the key's expiry was successfully updated.
-func (server *EchoVault) Expire(key string, seconds int, options ExpireOptions) (int, error) {
+func (server *EchoVault) Expire(key string, seconds int, options ExpireOptions) (bool, error) {
 	cmd := []string{"EXPIRE", key, strconv.Itoa(seconds)}
 
 	switch {
@@ -295,10 +301,10 @@ func (server *EchoVault) Expire(key string, seconds int, options ExpireOptions) 
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
-	return internal.ParseIntegerResponse(b)
+	return internal.ParseBooleanResponse(b)
 }
 
 // PExpire set the given key's expiry in milliseconds from now.
@@ -313,7 +319,7 @@ func (server *EchoVault) Expire(key string, seconds int, options ExpireOptions) 
 // `options` - PExpireOptions
 //
 // Returns: true if the key's expiry was successfully updated.
-func (server *EchoVault) PExpire(key string, milliseconds int, options PExpireOptions) (int, error) {
+func (server *EchoVault) PExpire(key string, milliseconds int, options PExpireOptions) (bool, error) {
 	cmd := []string{"PEXPIRE", key, strconv.Itoa(milliseconds)}
 
 	switch {
@@ -329,10 +335,10 @@ func (server *EchoVault) PExpire(key string, milliseconds int, options PExpireOp
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
-	return internal.ParseIntegerResponse(b)
+	return internal.ParseBooleanResponse(b)
 }
 
 // ExpireAt set the given key's expiry in unix epoch seconds.
