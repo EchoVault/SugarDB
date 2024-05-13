@@ -59,4 +59,11 @@ func main() {
 	<-cancelCh
 
 	server.ShutDown()
+
+	// TODO: For example purposes only! Delete before PR!
+	// vault, err := echovault.NewEchoVault()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// newValue, err := vault.HIncrByFloat("key", "field", 7.75)
 }
