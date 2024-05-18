@@ -1,0 +1,68 @@
+[
+  {
+    "Username": "user1",
+    "Enabled": true,
+    "NoPassword": false,
+    "NoKeys": false,
+    "Passwords": [
+      {
+        "PasswordType": "plaintext",
+        "PasswordValue": "password1"
+      },
+      {
+        "PasswordType": "SHA256",
+        "PasswordValue": "6cf615d5bcaac778352a8f1f3360d23f02f34ec182e259897fd6ce485d7870d4"
+      }
+    ],
+    "IncludedCategories": [
+      "*"
+    ],
+    "ExcludedCategories": [],
+    "IncludedReadKeys": [
+      "*"
+    ],
+    "IncludedWriteKeys": [
+      "*"
+    ],
+    "IncludedPubSubChannels": [
+      "*"
+    ],
+    "ExcludedPubSubChannels": []
+  },
+  {
+    "Username": "user2",
+    "Enabled": true,
+    "NoPassword": false,
+    "NoKeys": false,
+    "Passwords": [
+      {
+        "PasswordType": "plaintext",
+        "PasswordValue": "password4"
+      },
+      {
+        "PasswordType": "SHA256",
+        "PasswordValue": "8b2c86ea9cf2ea4eb517fd1e06b74f399e7fec0fef92e3b482a6cf2e2b092023"
+      }
+    ],
+    "IncludedCategories": [
+      "hash",
+      "set",
+      "sortedset",
+      "list",
+      "generic"
+    ],
+    "ExcludedCategories": [],
+    "IncludedReadKeys": [
+      "*"
+    ],
+    "IncludedWriteKeys": [
+      "*"
+    ],
+    "IncludedPubSubChannels": [
+      "user:channel:*"
+    ],
+    "ExcludedPubSubChannels": [
+      "admin:channel:*"
+    ]
+  }
+]

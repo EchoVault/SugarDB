@@ -190,6 +190,7 @@ func (user *User) UpdateUser(cmd []string) error {
 		// Parse channels
 		if strings.EqualFold(str, "allChannels") {
 			user.IncludedPubSubChannels = []string{"*"}
+			continue
 		}
 		if len(str) > 2 && str[1] == '&' {
 			if str[0] == '+' {

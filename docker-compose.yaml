@@ -21,7 +21,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
-      # - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
       - REQUIRE_PASS=false
       - PASSWORD=password1
       - FORWARD_COMMAND=false
@@ -69,7 +69,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=true
-      # - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
       - REQUIRE_PASS=false
       - FORWARD_COMMAND=true
       - SNAPSHOT_THRESHOLD=1000
@@ -116,7 +116,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
-      # - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
       - REQUIRE_PASS=false
       - FORWARD_COMMAND=true
       - SNAPSHOT_THRESHOLD=1000
@@ -163,7 +163,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
-      # - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
       - REQUIRE_PASS=false
       - FORWARD_COMMAND=true
       - SNAPSHOT_THRESHOLD=1000
@@ -210,7 +210,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
-      # - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
       - REQUIRE_PASS=false
       - FORWARD_COMMAND=true
       - SNAPSHOT_THRESHOLD=1000
@@ -257,7 +257,7 @@ services:
       - TLS=false
       - MTLS=false
       - BOOTSTRAP_CLUSTER=false
-      # - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
       - REQUIRE_PASS=false
       - FORWARD_COMMAND=true
       - SNAPSHOT_THRESHOLD=1000
