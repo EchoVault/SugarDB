@@ -137,7 +137,7 @@ Redis clients.
 
 # Documentation
 
-https://echovault.io
+https://echovault.io/docs/intro
 
 
 
