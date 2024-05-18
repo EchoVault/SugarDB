@@ -176,7 +176,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 		destination string
 		whereFrom   string
 		whereTo     string
-		want        string
+		want        bool
 		wantErr     bool
 	}{
 		{
@@ -190,7 +190,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			destination: "destination1",
 			whereFrom:   "LEFT",
 			whereTo:     "LEFT",
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -204,7 +204,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			destination: "destination2",
 			whereFrom:   "LEFT",
 			whereTo:     "RIGHT",
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -218,7 +218,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			destination: "destination3",
 			whereFrom:   "RIGHT",
 			whereTo:     "LEFT",
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -232,7 +232,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			destination: "destination4",
 			whereFrom:   "RIGHT",
 			whereTo:     "RIGHT",
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -245,7 +245,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			destination: "destination5",
 			whereFrom:   "LEFT",
 			whereTo:     "LEFT",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -259,7 +259,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			destination: "destination6",
 			whereFrom:   "LEFT",
 			whereTo:     "LEFT",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -272,7 +272,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			destination: "destination7",
 			whereFrom:   "LEFT",
 			whereTo:     "LEFT",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -286,7 +286,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			destination: "destination8",
 			whereFrom:   "LEFT",
 			whereTo:     "LEFT",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -297,7 +297,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			destination: "destination9",
 			whereFrom:   "LEFT",
 			whereTo:     "LEFT",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -308,7 +308,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			destination: "destination10",
 			whereFrom:   "LEFT",
 			whereTo:     "LEFT",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 	}
@@ -664,7 +664,7 @@ func TestEchoVault_LREM(t *testing.T) {
 		key         string
 		count       int
 		value       string
-		want        string
+		want        bool
 		wantErr     bool
 	}{
 		{
@@ -674,7 +674,7 @@ func TestEchoVault_LREM(t *testing.T) {
 			key:         "key1",
 			count:       3,
 			value:       "4",
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -684,7 +684,7 @@ func TestEchoVault_LREM(t *testing.T) {
 			key:         "key2",
 			count:       -3,
 			value:       "4",
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -694,7 +694,7 @@ func TestEchoVault_LREM(t *testing.T) {
 			key:         "LremKey8",
 			count:       0,
 			value:       "value1",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 	}
@@ -729,7 +729,7 @@ func TestEchoVault_LSET(t *testing.T) {
 		key         string
 		index       int
 		value       string
-		want        string
+		want        bool
 		wantErr     bool
 	}{
 		{
@@ -739,7 +739,7 @@ func TestEchoVault_LSET(t *testing.T) {
 			key:         "key1",
 			index:       3,
 			value:       "new-value",
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -749,7 +749,7 @@ func TestEchoVault_LSET(t *testing.T) {
 			key:         "key2",
 			index:       0,
 			value:       "new-value",
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -759,7 +759,7 @@ func TestEchoVault_LSET(t *testing.T) {
 			key:         "key3",
 			index:       1,
 			value:       "new-value",
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -769,7 +769,7 @@ func TestEchoVault_LSET(t *testing.T) {
 			key:         "key4",
 			index:       0,
 			value:       "element",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -779,7 +779,7 @@ func TestEchoVault_LSET(t *testing.T) {
 			key:         "key5",
 			index:       0,
 			value:       "element",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -789,7 +789,7 @@ func TestEchoVault_LSET(t *testing.T) {
 			key:         "key6",
 			index:       3,
 			value:       "element",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -799,7 +799,7 @@ func TestEchoVault_LSET(t *testing.T) {
 			key:         "key7",
 			index:       -1,
 			value:       "element",
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 	}
@@ -834,7 +834,7 @@ func TestEchoVault_LTRIM(t *testing.T) {
 		key         string
 		start       int
 		end         int
-		want        string
+		want        bool
 		wantErr     bool
 	}{
 		{
@@ -847,7 +847,7 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			key:         "key1",
 			start:       3,
 			end:         6,
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -857,7 +857,7 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			key:         "key2",
 			start:       5,
 			end:         -1,
-			want:        "OK",
+			want:        true,
 			wantErr:     false,
 		},
 		{
@@ -867,7 +867,7 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			key:         "key3",
 			start:       3,
 			end:         1,
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -877,7 +877,7 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			key:         "key4",
 			start:       0,
 			end:         2,
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -887,7 +887,7 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			key:         "key5",
 			start:       0,
 			end:         3,
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -897,7 +897,7 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			key:         "key6",
 			start:       -1,
 			end:         3,
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 		{
@@ -907,7 +907,7 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			key:         "key7",
 			start:       10,
 			end:         11,
-			want:        "",
+			want:        false,
 			wantErr:     true,
 		},
 	}

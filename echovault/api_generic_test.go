@@ -609,7 +609,8 @@ func TestEchoVault_SET(t *testing.T) {
 		key          string
 		value        string
 		options      SetOptions
-		want         string
+		wantOk       bool
+		wantPrev     string
 		wantErr      bool
 	}{
 		{
@@ -618,7 +619,8 @@ func TestEchoVault_SET(t *testing.T) {
 			key:          "key1",
 			value:        "value1",
 			options:      SetOptions{},
-			want:         "OK",
+			wantOk:       true,
+			wantPrev:     "",
 			wantErr:      false,
 		},
 		{
@@ -627,7 +629,8 @@ func TestEchoVault_SET(t *testing.T) {
 			key:          "key2",
 			value:        "value2",
 			options:      SetOptions{NX: true},
-			want:         "OK",
+			wantOk:       true,
+			wantPrev:     "",
 			wantErr:      false,
 		},
 		{
@@ -638,11 +641,12 @@ func TestEchoVault_SET(t *testing.T) {
 					ExpireAt: time.Time{},
 				},
 			},
-			key:     "key3",
-			value:   "value3",
-			options: SetOptions{NX: true},
-			want:    "",
-			wantErr: true,
+			key:      "key3",
+			value:    "value3",
+			options:  SetOptions{NX: true},
+			wantOk:   false,
+			wantPrev: "",
+			wantErr:  true,
 		},
 		{
 			name: "Set new key value when key exists with XX flag passed",
@@ -652,11 +656,12 @@ func TestEchoVault_SET(t *testing.T) {
 					ExpireAt: time.Time{},
 				},
 			},
-			key:     "key4",
-			value:   "value4",
-			options: SetOptions{XX: true},
-			want:    "OK",
-			wantErr: false,
+			key:      "key4",
+			value:    "value4",
+			options:  SetOptions{XX: true},
+			wantOk:   true,
+			wantPrev: "",
+			wantErr:  false,
 		},
 		{
 			name:         "Return error when setting non-existent key with XX flag",
@@ -664,7 +669,8 @@ func TestEchoVault_SET(t *testing.T) {
 			key:          "key5",
 			value:        "value5",
 			options:      SetOptions{XX: true},
-			want:         "",
+			wantOk:       false,
+			wantPrev:     "",
 			wantErr:      true,
 		},
 		{
@@ -673,7 +679,8 @@ func TestEchoVault_SET(t *testing.T) {
 			key:          "key6",
 			value:        "value6",
 			options:      SetOptions{EX: 100},
-			want:         "OK",
+			wantOk:       true,
+			wantPrev:     "",
 			wantErr:      false,
 		},
 		{
@@ -682,7 +689,8 @@ func TestEchoVault_SET(t *testing.T) {
 			key:          "key7",
 			value:        "value7",
 			options:      SetOptions{PX: 4096},
-			want:         "OK",
+			wantOk:       true,
+			wantPrev:     "",
 			wantErr:      false,
 		},
 		{
@@ -691,7 +699,8 @@ func TestEchoVault_SET(t *testing.T) {
 			key:          "key8",
 			value:        "value8",
 			options:      SetOptions{EXAT: int(mockClock.Now().Add(200 * time.Second).Unix())},
-			want:         "OK",
+			wantOk:       true,
+			wantPrev:     "",
 			wantErr:      false,
 		},
 		{
@@ -700,7 +709,8 @@ func TestEchoVault_SET(t *testing.T) {
 			value:        "value9",
 			options:      SetOptions{PXAT: int(mockClock.Now().Add(4096 * time.Millisecond).UnixMilli())},
 			presetValues: nil,
-			want:         "OK",
+			wantOk:       true,
+			wantPrev:     "",
 			wantErr:      false,
 		},
 		{
@@ -711,11 +721,12 @@ func TestEchoVault_SET(t *testing.T) {
 					ExpireAt: time.Time{},
 				},
 			},
-			key:     "key10",
-			value:   "value10",
-			options: SetOptions{GET: true, EX: 1000},
-			want:    "previous-value",
-			wantErr: false,
+			key:      "key10",
+			value:    "value10",
+			options:  SetOptions{GET: true, EX: 1000},
+			wantOk:   true,
+			wantPrev: "previous-value",
+			wantErr:  false,
 		},
 		{
 			name:         "Return nil when GET value is passed and no previous value exists",
@@ -723,7 +734,8 @@ func TestEchoVault_SET(t *testing.T) {
 			key:          "key11",
 			value:        "value11",
 			options:      SetOptions{GET: true, EX: 1000},
-			want:         "",
+			wantOk:       true,
+			wantPrev:     "",
 			wantErr:      false,
 		},
 	}
@@ -734,13 +746,16 @@ func TestEchoVault_SET(t *testing.T) {
 					presetKeyData(server, context.Background(), k, d)
 				}
 			}
-			got, err := server.Set(tt.key, tt.value, tt.options)
+			previousValue, ok, err := server.Set(tt.key, tt.value, tt.options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SET() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("SET() got = %v, want %v", got, tt.want)
+			if ok != tt.wantOk {
+				t.Errorf("SET() ok got = %v, want %v", ok, tt.wantOk)
+			}
+			if previousValue != tt.wantPrev {
+				t.Errorf("SET() previous value got = %v, want %v", previousValue, tt.wantPrev)
 			}
 		})
 	}

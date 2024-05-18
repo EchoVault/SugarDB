@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/tidwall/resp"
+	"strings"
 )
 
 // ACLLoadOptions modifies the behaviour of the ACLLoad function.
@@ -150,8 +151,8 @@ func (server *EchoVault) ACLUsers() ([]string, error) {
 //
 // `user` - User - The user object to add/update.
 //
-// Returns: "OK" if the user is successfully created/updated.
-func (server *EchoVault) ACLSetUser(user User) (string, error) {
+// Returns: true if the user is successfully created/updated.
+func (server *EchoVault) ACLSetUser(user User) (bool, error) {
 	cmd := []string{"ACL", "SETUSER", user.Username}
 
 	if user.Enabled {
@@ -238,10 +239,11 @@ func (server *EchoVault) ACLSetUser(user User) (string, error) {
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return "", err
+		return false, err
 	}
 
-	return internal.ParseStringResponse(b)
+	s, err := internal.ParseStringResponse(b)
+	return strings.EqualFold(s, "ok"), err
 }
 
 // ACLGetUser gets the ACL configuration of the name with the given username.
@@ -323,14 +325,15 @@ func (server *EchoVault) ACLGetUser(username string) (map[string][]string, error
 //
 // `usernames` - ...string - A string of usernames to delete from the ACL module.
 //
-// Returns: "OK" if the deletion is successful.
-func (server *EchoVault) ACLDelUser(usernames ...string) (string, error) {
+// Returns: true if the deletion is successful.
+func (server *EchoVault) ACLDelUser(usernames ...string) (bool, error) {
 	cmd := append([]string{"ACL", "DELUSER"}, usernames...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return internal.ParseStringResponse(b)
+	s, err := internal.ParseStringResponse(b)
+	return strings.EqualFold(s, "ok"), err
 }
 
 // ACLList lists all the currently loaded ACL users and their rules.
@@ -349,8 +352,8 @@ func (server *EchoVault) ACLList() ([]string, error) {
 //
 // `options` - ACLLoadOptions - modifies the load behaviour.
 //
-// Returns: "OK" if the load is successful.
-func (server *EchoVault) ACLLoad(options ACLLoadOptions) (string, error) {
+// Returns: true if the load is successful.
+func (server *EchoVault) ACLLoad(options ACLLoadOptions) (bool, error) {
 	cmd := []string{"ACL", "LOAD"}
 	switch {
 	case options.Merge:
@@ -363,19 +366,21 @@ func (server *EchoVault) ACLLoad(options ACLLoadOptions) (string, error) {
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return "", err
+		return false, err
 	}
 
-	return internal.ParseStringResponse(b)
+	s, err := internal.ParseStringResponse(b)
+	return strings.EqualFold(s, "ok"), err
 }
 
 // ACLSave saves the current ACL configuration to the configured ACL file.
 //
-// Returns: "OK" if the save is successful.
-func (server *EchoVault) ACLSave() (string, error) {
+// Returns: true if the save is successful.
+func (server *EchoVault) ACLSave() (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "SAVE"}), nil, false, true)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return internal.ParseStringResponse(b)
+	s, err := internal.ParseStringResponse(b)
+	return strings.EqualFold(s, "ok"), err
 }

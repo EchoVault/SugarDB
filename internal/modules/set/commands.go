@@ -793,10 +793,11 @@ func handleSUNIONSTORE(params internal.HandlerFuncParams) ([]byte, error) {
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
-			Command:           "sadd",
-			Module:            constants.SetModule,
-			Categories:        []string{constants.SetCategory, constants.WriteCategory, constants.FastCategory},
-			Description:       "(SADD key member [member...]) Add one or more members to the set. If the set does not exist, it's created.",
+			Command:    "sadd",
+			Module:     constants.SetModule,
+			Categories: []string{constants.SetCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(SADD key member [member...]) 
+Add one or more members to the set. If the set does not exist, it's created.`,
 			Sync:              true,
 			KeyExtractionFunc: saddKeyFunc,
 			HandlerFunc:       handleSADD,
@@ -826,7 +827,7 @@ All keys that are non-existed or hold values that are not sets will be skipped.`
 			Module:     constants.SetModule,
 			Categories: []string{constants.SetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `(SDIFFSTORE destination key [key...]) Works the same as SDIFF but also stores the result at 'destination'.
-Returns the cardinality of the new set`,
+Returns the cardinality of the new set.`,
 			Sync:              true,
 			KeyExtractionFunc: sdiffstoreKeyFunc,
 			HandlerFunc:       handleSDIFFSTORE,
@@ -841,10 +842,11 @@ Returns the cardinality of the new set`,
 			HandlerFunc:       handleSINTER,
 		},
 		{
-			Command:           "sintercard",
-			Module:            constants.SetModule,
-			Categories:        []string{constants.SetCategory, constants.ReadCategory, constants.SlowCategory},
-			Description:       "(SINTERCARD key [key...] [LIMIT limit]) Returns the cardinality of the intersection between multiple sets.",
+			Command:    "sintercard",
+			Module:     constants.SetModule,
+			Categories: []string{constants.SetCategory, constants.ReadCategory, constants.SlowCategory},
+			Description: `(SINTERCARD key [key...] [LIMIT limit]) 
+Returns the cardinality of the intersection between multiple sets.`,
 			Sync:              false,
 			KeyExtractionFunc: sintercardKeyFunc,
 			HandlerFunc:       handleSINTERCARD,

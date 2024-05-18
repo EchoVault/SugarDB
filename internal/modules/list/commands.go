@@ -511,19 +511,21 @@ func handlePop(params internal.HandlerFuncParams) ([]byte, error) {
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
-			Command:           "lpush",
-			Module:            constants.ListModule,
-			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
-			Description:       "(LPUSH key element [element ...]) Prepends one or more values to the beginning of a list, creates the list if it does not exist.",
+			Command:    "lpush",
+			Module:     constants.ListModule,
+			Categories: []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(LPUSH key element [element ...]) 
+Prepends one or more values to the beginning of a list, creates the list if it does not exist.`,
 			Sync:              true,
 			KeyExtractionFunc: lpushKeyFunc,
 			HandlerFunc:       handleLPush,
 		},
 		{
-			Command:           "lpushx",
-			Module:            constants.ListModule,
-			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
-			Description:       "(LPUSHX key element [element ...]) Prepends a value to the beginning of a list only if the list exists.",
+			Command:    "lpushx",
+			Module:     constants.ListModule,
+			Categories: []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(LPUSHX key element [element ...]) 
+Prepends a value to the beginning of a list only if the list exists.`,
 			Sync:              true,
 			KeyExtractionFunc: lpushKeyFunc,
 			HandlerFunc:       handleLPush,
@@ -558,7 +560,7 @@ func Commands() []internal.Command {
 		{
 			Command:           "lindex",
 			Module:            constants.ListModule,
-			Categories:        []string{constants.ListCategory, constants.ReadCategory, constants.SlowCategory},
+			Categories:        []string{constants.ListCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       "(LINDEX key index) Gets list element by index.",
 			Sync:              false,
 			KeyExtractionFunc: lindexKeyFunc,
@@ -567,7 +569,7 @@ func Commands() []internal.Command {
 		{
 			Command:           "lset",
 			Module:            constants.ListModule,
-			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.SlowCategory},
+			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(LSET key index element) Sets the value of an element in a list by its index.",
 			Sync:              true,
 			KeyExtractionFunc: lsetKeyFunc,
@@ -586,16 +588,17 @@ func Commands() []internal.Command {
 			Command:           "lrem",
 			Module:            constants.ListModule,
 			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.SlowCategory},
-			Description:       "(LREM key count element) Remove elements from list.",
+			Description:       "(LREM key count element) Remove <count> elements from list.",
 			Sync:              true,
 			KeyExtractionFunc: lremKeyFunc,
 			HandlerFunc:       handleLRem,
 		},
 		{
-			Command:           "lmove",
-			Module:            constants.ListModule,
-			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.SlowCategory},
-			Description:       "(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>) Move element from one list to the other specifying left/right for both lists.",
+			Command:    "lmove",
+			Module:     constants.ListModule,
+			Categories: []string{constants.ListCategory, constants.WriteCategory, constants.SlowCategory},
+			Description: `(LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>) 
+Move element from one list to the other specifying left/right for both lists.`,
 			Sync:              true,
 			KeyExtractionFunc: lmoveKeyFunc,
 			HandlerFunc:       handleLMove,

@@ -78,14 +78,14 @@ type PExpireAtOptions ExpireOptions
 //
 // `options` - SetOptions.
 //
-// Returns: "OK" if the set is successful, If the "Get" flag in SetOptions is set to true, the previous value is returned.
+// Returns: true if the set is successful, If the "Get" flag in SetOptions is set to true, the previous value is returned.
 //
 // Errors:
 //
 // "key <key> does not exist"" - when the XX flag is set to true and the key does not exist.
 //
 // "key <key> does already exists" - when the NX flag is set to true and the key already exists.
-func (server *EchoVault) Set(key, value string, options SetOptions) (string, error) {
+func (server *EchoVault) Set(key, value string, options SetOptions) (string, bool, error) {
 	cmd := []string{"SET", key, value}
 
 	switch {
@@ -112,10 +112,18 @@ func (server *EchoVault) Set(key, value string, options SetOptions) (string, err
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
-	return internal.ParseStringResponse(b)
+	previousValue, err := internal.ParseStringResponse(b)
+	if err != nil {
+		return "", false, err
+	}
+	if !options.GET {
+		previousValue = ""
+	}
+
+	return previousValue, true, nil
 }
 
 // MSet set multiple values at multiple keys with one command. Existing keys are overwritten and non-existent

@@ -35,11 +35,13 @@ func handlePing(params internal.HandlerFuncParams) ([]byte, error) {
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
-			Command:     "ping",
-			Module:      constants.ConnectionModule,
-			Categories:  []string{constants.FastCategory, constants.ConnectionCategory},
-			Description: "(PING [value]) Ping the echovault. If a value is provided, the value will be echoed.",
-			Sync:        false,
+			Command:    "ping",
+			Module:     constants.ConnectionModule,
+			Categories: []string{constants.ConnectionCategory, constants.FastCategory},
+			Description: `(PING [message]) 
+Ping the echovault server. If a message is provided, the message will be echoed back to the client.
+Otherwise, the server will return "PONG".`,
+			Sync: false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
