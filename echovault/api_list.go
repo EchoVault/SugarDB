@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"strconv"
+	"strings"
 )
 
 // LLen returns the length of the list.
@@ -101,29 +102,33 @@ func (server *EchoVault) LIndex(key string, index uint) (string, error) {
 //
 // `value` - string - the new value to place at the given index.
 //
-// Returns: "OK" if the update is successful.
+// Returns: true if the update is successful.
 //
 // Errors:
 //
 // "LSet command on non-list item" - when the provided key exists but is not a list.
 //
 // "index must be within list range" - when the index is not within the list boundary.
-func (server *EchoVault) LSet(key string, index int, value string) (string, error) {
+func (server *EchoVault) LSet(key string, index int, value string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LSET", key, strconv.Itoa(index), value}), nil, false, true)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return internal.ParseStringResponse(b)
+	s, err := internal.ParseStringResponse(b)
+	return strings.EqualFold(s, "ok"), err
 }
 
 // LTrim work similarly to LRange but instead of returning the new list, it replaces the original list with the
 // trimmed list.
-func (server *EchoVault) LTrim(key string, start int, end int) (string, error) {
+//
+// Returns: true if the trim is successful.
+func (server *EchoVault) LTrim(key string, start int, end int) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LTRIM", key, strconv.Itoa(start), strconv.Itoa(end)}), nil, false, true)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return internal.ParseStringResponse(b)
+	s, err := internal.ParseStringResponse(b)
+	return strings.EqualFold(s, "ok"), err
 }
 
 // LRem removes 'count' instances of the specified element from the list.
@@ -136,17 +141,23 @@ func (server *EchoVault) LTrim(key string, start int, end int) (string, error) {
 //
 // `value` - string - the element to remove.
 //
-// Returns: "OK" if the removal was successful.
+// Returns: true if the removal was successful.
 //
 // Errors:
 //
 // "LRem command on non-list item" - when the provided key exists but is not a list.
-func (server *EchoVault) LRem(key string, count int, value string) (string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LREM", key, strconv.Itoa(count), value}), nil, false, true)
+func (server *EchoVault) LRem(key string, count int, value string) (bool, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{
+		"LREM", key, strconv.Itoa(count), value}),
+		nil,
+		false,
+		true,
+	)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return internal.ParseStringResponse(b)
+	s, err := internal.ParseStringResponse(b)
+	return strings.EqualFold(s, "ok"), err
 }
 
 // LMove moves an element from one list to another.
@@ -163,19 +174,20 @@ func (server *EchoVault) LRem(key string, count int, value string) (string, erro
 // `whereTo` - string - either "LEFT" or "RIGHT". If "LEFT", the element is added to the beginning of the destination list.
 // If "RIGHT", the element is added to the end of the destination list.
 //
-// Returns: "OK" if the removal was successful.
+// Returns: true if the removal was successful.
 //
 // Errors:
 //
 // "both source and destination must be lists" - when either source or destination are not lists.
 //
 // "wherefrom and whereto arguments must be either LEFT or RIGHT" - if whereFrom or whereTo are not either "LEFT" or "RIGHT".
-func (server *EchoVault) LMove(source, destination, whereFrom, whereTo string) (string, error) {
+func (server *EchoVault) LMove(source, destination, whereFrom, whereTo string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LMOVE", source, destination, whereFrom, whereTo}), nil, false, true)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return internal.ParseStringResponse(b)
+	s, err := internal.ParseStringResponse(b)
+	return strings.EqualFold(s, "ok"), err
 }
 
 // LPop pops an element from the start of the list and return it.

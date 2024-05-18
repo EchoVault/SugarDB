@@ -19,6 +19,7 @@ import (
 	"github.com/echovault/echovault/internal"
 	"github.com/tidwall/resp"
 	"net"
+	"strings"
 )
 
 type conn struct {
@@ -176,14 +177,15 @@ func (server *EchoVault) PUnsubscribe(tag string, patterns ...string) {
 //
 // `message` - string - The message to publish to the specified channel.
 //
-// Returns: "OK" when the publish is successful. This does not indicate whether each subscriber has received the message,
+// Returns: true when the publish is successful. This does not indicate whether each subscriber has received the message,
 // only that the message has been published.
-func (server *EchoVault) Publish(channel, message string) (string, error) {
+func (server *EchoVault) Publish(channel, message string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PUBLISH", channel, message}), nil, false, true)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return internal.ParseStringResponse(b)
+	s, err := internal.ParseStringResponse(b)
+	return strings.EqualFold(s, "ok"), err
 }
 
 // PubSubChannels returns the list of channels & patterns that match the glob pattern provided.

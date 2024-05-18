@@ -1769,7 +1769,7 @@ The elements are ordered from lowest score to highest score`,
 			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZLEXCOUNT key min max) Returns the number of elements in within the sorted set within the 
 lexicographical range between min and max. Returns 0, if the keys does not exist or if all the members do not have
-the same score. If the value held at key is not a sorted set, an error is returned`,
+the same score. If the value held at key is not a sorted set, an error is returned.`,
 			Sync:              false,
 			KeyExtractionFunc: zlexcountKeyFunc,
 			HandlerFunc:       handleZLEXCOUNT,
@@ -1779,7 +1779,7 @@ the same score. If the value held at key is not a sorted set, an error is return
 			Module:     constants.SortedSetModule,
 			Categories: []string{constants.SortedSetCategory, constants.ReadCategory, constants.SlowCategory},
 			Description: `(ZRANGE key start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count]
-  [WITHSCORES]) Returns the range of elements in the sorted set`,
+  [WITHSCORES]) Returns the range of elements in the sorted set.`,
 			Sync:              false,
 			KeyExtractionFunc: zrangeKeyCount,
 			HandlerFunc:       handleZRANGE,
@@ -1789,7 +1789,7 @@ the same score. If the value held at key is not a sorted set, an error is return
 			Module:     constants.SortedSetModule,
 			Categories: []string{constants.SortedSetCategory, constants.WriteCategory, constants.SlowCategory},
 			Description: `ZRANGESTORE destination source start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count]
-  [WITHSCORES] Retrieve the range of elements in the sorted set and store it in destination`,
+  [WITHSCORES] Retrieve the range of elements in the sorted set and store it in destination.`,
 			Sync:              true,
 			KeyExtractionFunc: zrangeStoreKeyFunc,
 			HandlerFunc:       handleZRANGESTORE,

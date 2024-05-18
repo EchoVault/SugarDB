@@ -333,8 +333,6 @@ func Test_AdminCommand(t *testing.T) {
 	})
 
 	t.Run("Test MODULE LOAD command", func(t *testing.T) {
-		t.Parallel()
-
 		port, err := internal.GetFreePort()
 		if err != nil {
 			t.Error(err)
@@ -503,8 +501,6 @@ func Test_AdminCommand(t *testing.T) {
 	})
 
 	t.Run("Test MODULE UNLOAD command", func(t *testing.T) {
-		t.Parallel()
-
 		port, err := internal.GetFreePort()
 		if err != nil {
 			t.Error(err)
@@ -527,6 +523,7 @@ func Test_AdminCommand(t *testing.T) {
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			t.Error(err)
+			return
 		}
 
 		respConn := resp.NewConn(conn)
@@ -692,8 +689,6 @@ func Test_AdminCommand(t *testing.T) {
 	})
 
 	t.Run("Test MODULE LIST command", func(t *testing.T) {
-		t.Parallel()
-
 		port, err := internal.GetFreePort()
 		if err != nil {
 			t.Error(err)
@@ -716,6 +711,7 @@ func Test_AdminCommand(t *testing.T) {
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			t.Error(err)
+			return
 		}
 
 		respConn := resp.NewConn(conn)

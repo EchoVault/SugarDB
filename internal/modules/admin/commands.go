@@ -195,7 +195,7 @@ func Commands() []internal.Command {
 			Command:     "commands",
 			Module:      constants.AdminModule,
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory},
-			Description: "Get a list of all the commands in available on the echovault with categories and descriptions",
+			Description: "Get a list of all the commands in available on the echovault with categories and descriptions.",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
@@ -232,8 +232,8 @@ func Commands() []internal.Command {
 				{
 					Command:     "count",
 					Module:      constants.AdminModule,
-					Categories:  []string{constants.SlowCategory},
-					Description: "Get the dumber of commands in the echovault",
+					Categories:  []string{constants.AdminCategory, constants.SlowCategory},
+					Description: "Get the dumber of commands in the echovault instance.",
 					Sync:        false,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
@@ -245,9 +245,9 @@ func Commands() []internal.Command {
 				{
 					Command:    "list",
 					Module:     constants.AdminModule,
-					Categories: []string{constants.SlowCategory},
-					Description: `(COMMAND LIST [FILTERBY <ACLCAT category | PATTERN pattern | MODULE module>]) Get the list of command names.
-Allows for filtering by ACL category or glob pattern.`,
+					Categories: []string{constants.AdminCategory, constants.SlowCategory},
+					Description: `(COMMAND LIST [FILTERBY <ACLCAT category | PATTERN pattern | MODULE module>]) 
+Get the list of command names. Allows for filtering by ACL category or glob pattern.`,
 					Sync: false,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
@@ -262,7 +262,7 @@ Allows for filtering by ACL category or glob pattern.`,
 			Command:     "save",
 			Module:      constants.AdminModule,
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
-			Description: "(SAVE) Trigger a snapshot save",
+			Description: "(SAVE) Trigger a snapshot save.",
 			Sync:        true,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
@@ -299,7 +299,7 @@ Allows for filtering by ACL category or glob pattern.`,
 			Command:     "rewriteaof",
 			Module:      constants.AdminModule,
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
-			Description: "(REWRITEAOF) Trigger re-writing of append process",
+			Description: "(REWRITEAOF) Trigger re-writing of append process.",
 			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
@@ -352,11 +352,12 @@ module's key extraction and handler functions.`,
 					},
 				},
 				{
-					Command:     "unload",
-					Module:      constants.AdminModule,
-					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
-					Description: `(MODULE UNLOAD name) Unloads a module based on the its name as displayed by the MODULE LIST command.`,
-					Sync:        true,
+					Command:    "unload",
+					Module:     constants.AdminModule,
+					Categories: []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
+					Description: `(MODULE UNLOAD name) 
+Unloads a module based on the its name as displayed by the MODULE LIST command.`,
+					Sync: true,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
 							Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),

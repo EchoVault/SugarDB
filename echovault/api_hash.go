@@ -88,6 +88,33 @@ func (server *EchoVault) HSetNX(key string, fieldValuePairs map[string]string) (
 	return internal.ParseIntegerResponse(b)
 }
 
+// HGet retrieves the values corresponding to the provided fields.
+//
+// Parameters:
+//
+// `key` - string - the key to the hash map.
+//
+// `fields` - ...string - the list of fields to fetch.
+//
+// Returns: A string slice of the values corresponding to the fields in the same order the fields were provided.
+//
+// Errors:
+//
+// "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
+func (server *EchoVault) HGet(key string, fields ...string) ([]string, error) {
+	b, err := server.handleCommand(
+		server.context,
+		internal.EncodeCommand(append([]string{"HGET", key}, fields...)),
+		nil,
+		false,
+		true,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return internal.ParseStringArrayResponse(b)
+}
+
 // HStrLen returns the length of the values held at the specified fields of a hash map.
 //
 // Parameters:
@@ -286,7 +313,7 @@ func (server *EchoVault) HExists(key, field string) (bool, error) {
 //
 // `fields` - ...string - a list of fields to delete.
 //
-// Returns: a boolean representing whether the field exists in the hash map. Returns 0 if the hash map does not exist.
+// Returns: an integer representing the number of fields deleted.
 //
 // Errors:
 //

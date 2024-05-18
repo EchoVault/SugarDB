@@ -14,7 +14,8 @@ build:
 	env CGO_ENABLED=1 CC=x86_64-linux-musl-gcc GOOS=linux GOARCH=amd64 DEST=bin/linux/x86_64 make build-server
 
 run:
-	make build && docker-compose up --build
+	make build && \
+	docker-compose up --build
 
 test-unit:
 	env RACE=false OUT=internal/modules/admin/testdata make build-modules-test && \

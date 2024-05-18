@@ -359,7 +359,7 @@ func handleExpire(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	if _, err = params.KeyLock(params.Context, key); err != nil {
-		return nil, err
+		return []byte(":0\r\n"), err
 	}
 	defer params.KeyUnlock(params.Context, key)
 
@@ -496,7 +496,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 			Command:           "mset",
 			Module:            constants.GenericModule,
 			Categories:        []string{constants.WriteCategory, constants.SlowCategory},
-			Description:       "(MSET key value [key value ...]) Automatically generic or modify multiple key/value pairs.",
+			Description:       "(MSET key value [key value ...]) Automatically set or modify multiple key/value pairs.",
 			Sync:              true,
 			KeyExtractionFunc: msetKeyFunc,
 			HandlerFunc:       handleMSet,

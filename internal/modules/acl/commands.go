@@ -490,11 +490,13 @@ func handleSave(params internal.HandlerFuncParams) ([]byte, error) {
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
-			Command:     "auth",
-			Module:      constants.ACLModule,
-			Categories:  []string{constants.ConnectionCategory, constants.SlowCategory},
-			Description: "(AUTH [username] password) Authenticates the connection",
-			Sync:        false,
+			Command:    "auth",
+			Module:     constants.ACLModule,
+			Categories: []string{constants.ConnectionCategory, constants.SlowCategory},
+			Description: `(AUTH [username] password) 
+Authenticates the connection. If the username is not provided, the connection will be authenticated against the
+default ACL user. Otherwise, it is authenticated against the ACL user with the provided username.`,
+			Sync: false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
@@ -522,8 +524,8 @@ func Commands() []internal.Command {
 					Command:    "cat",
 					Module:     constants.ACLModule,
 					Categories: []string{constants.SlowCategory},
-					Description: `(ACL CAT [category]) List all the categories. 
-If the optional category is provided, list all the commands in the category`,
+					Description: `(ACL CAT [category]) Lists all the categories. 
+If the optional category is provided, lists all the commands in the category.`,
 					Sync: false,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
@@ -538,7 +540,7 @@ If the optional category is provided, list all the commands in the category`,
 					Command:     "users",
 					Module:      constants.ACLModule,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
-					Description: "(ACL USERS) List all usernames of the configured ACL users",
+					Description: "(ACL USERS) Lists all usernames of the configured ACL users.",
 					Sync:        false,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
@@ -568,7 +570,7 @@ If the optional category is provided, list all the commands in the category`,
 					Command:     "getuser",
 					Module:      constants.ACLModule,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
-					Description: "(ACL GETUSER username) List the ACL rules of a user",
+					Description: "(ACL GETUSER username) List the ACL rules of a user.",
 					Sync:        false,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
@@ -580,11 +582,12 @@ If the optional category is provided, list all the commands in the category`,
 					HandlerFunc: handleGetUser,
 				},
 				{
-					Command:     "deluser",
-					Module:      constants.ACLModule,
-					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
-					Description: "(ACL DELUSER username [username ...]) Deletes users and terminates their connections. Cannot delete default user",
-					Sync:        true,
+					Command:    "deluser",
+					Module:     constants.ACLModule,
+					Categories: []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
+					Description: `(ACL DELUSER username [username ...]) 
+Deletes users and terminates their connections. Cannot delete default user.`,
+					Sync: true,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
 							Channels:  make([]string, 0),
@@ -598,7 +601,7 @@ If the optional category is provided, list all the commands in the category`,
 					Command:     "whoami",
 					Module:      constants.ACLModule,
 					Categories:  []string{constants.FastCategory},
-					Description: "(ACL WHOAMI) Returns the authenticated user of the current connection",
+					Description: "(ACL WHOAMI) Returns the authenticated user of the current connection.",
 					Sync:        true,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
@@ -613,7 +616,7 @@ If the optional category is provided, list all the commands in the category`,
 					Command:     "list",
 					Module:      constants.ACLModule,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
-					Description: "(ACL LIST) Dumps effective acl rules in acl config file format",
+					Description: "(ACL LIST) Dumps effective acl rules in ACL DSL format.",
 					Sync:        true,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{
@@ -646,7 +649,7 @@ When 'REPLACE' is passed, users from config file who share a username with users
 					Command:     "save",
 					Module:      constants.ACLModule,
 					Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
-					Description: "(ACL SAVE) Saves the effective ACL rules the configured ACL config file",
+					Description: "(ACL SAVE) Saves the effective ACL rules the configured ACL config file.",
 					Sync:        true,
 					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 						return internal.KeyExtractionFuncResult{

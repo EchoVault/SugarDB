@@ -86,6 +86,8 @@ func (server *EchoVault) SDiff(keys ...string) ([]string, error) {
 
 // SDiffStore works like SDiff but instead of returning the resulting set elements, the resulting set is stored
 // at the 'destination' key.
+//
+// Returns: an integer representing the cardinality of the new set.
 func (server *EchoVault) SDiffStore(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SDIFFSTORE", destination}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -334,6 +336,8 @@ func (server *EchoVault) SUnion(keys ...string) ([]string, error) {
 
 // SUnionStore store works like SUnion but instead of returning the resulting elements, it stores the resulting
 // set at the 'destination' key. The return value is an integer representing the cardinality of the new set.
+//
+// Returns: an integer representing the cardinality of the new union set.
 func (server *EchoVault) SUnionStore(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SUNIONSTORE", destination}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
