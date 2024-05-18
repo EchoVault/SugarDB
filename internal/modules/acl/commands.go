@@ -373,7 +373,7 @@ func handleLoad(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	acl.LockUsers()
-	defer acl.RUnlockUsers()
+	defer acl.UnlockUsers()
 
 	f, err := os.Open(acl.Config.AclConfig)
 	if err != nil {
