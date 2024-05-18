@@ -135,9 +135,9 @@ the binary for your system.
 EchoVault uses RESP, which makes it compatible with existing 
 Redis clients.
 
-# Documentation
+<hr />
 
-https://echovault.io/docs/intro
+<a href="https://echovault.io/docs/intro" target="_blank">Documentation</a>
 
 
 
