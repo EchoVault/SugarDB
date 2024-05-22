@@ -27,7 +27,7 @@ jobs:
       run: go build -v ./cmd/main.go
 
     - name: Test
-      run: make test-unit
+      run: make test
 
     - name: Test for Data Race
       run: make test-race

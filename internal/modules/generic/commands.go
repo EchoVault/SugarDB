@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/constants"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -233,7 +232,7 @@ func handleDel(params internal.HandlerFuncParams) ([]byte, error) {
 	for _, key := range keys.WriteKeys {
 		err = params.DeleteKey(params.Context, key)
 		if err != nil {
-			log.Printf("could not delete key %s due to error: %+v\n", key, err)
+			// log.Printf("could not delete key %s due to error: %+v\n", key, err) // TODO: Uncomment this
 			continue
 		}
 		count += 1

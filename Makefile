@@ -17,7 +17,7 @@ run:
 	make build && \
 	docker-compose up --build
 
-test-unit:
+test:
 	env RACE=false OUT=internal/modules/admin/testdata make build-modules-test && \
 	env RACE=false OUT=echovault/testdata make build-modules-test && \
 	go clean -testcache && \
