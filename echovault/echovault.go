@@ -61,9 +61,8 @@ type EchoVault struct {
 	// the new number is the new connection's ID.
 	connId atomic.Uint64
 
-	store           map[string]internal.KeyData // Data store to hold the keys and their associated data, expiry time, etc.
-	keyLocks        map[string]*sync.RWMutex    // Map to hold all the individual key locks.
-	keyCreationLock *sync.Mutex                 // The mutex for creating a new key. Only one goroutine should be able to create a key at a time.
+	storeLock *sync.RWMutex               // Global read-write mutex for entire store.
+	store     map[string]internal.KeyData // Data store to hold the keys and their associated data, expiry time, etc.
 
 	// Holds all the keys that are currently associated with an expiry.
 	keysWithExpiry struct {
@@ -128,13 +127,12 @@ func WithConfig(config config.Config) func(echovault *EchoVault) {
 // This functions accepts the WithContext, WithConfig and WithCommands options.
 func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	echovault := &EchoVault{
-		clock:           clock.NewClock(),
-		context:         context.Background(),
-		config:          config.DefaultConfig(),
-		store:           make(map[string]internal.KeyData),
-		keyLocks:        make(map[string]*sync.RWMutex),
-		keyCreationLock: &sync.Mutex{},
-		commandsRWMut:   sync.RWMutex{},
+		clock:         clock.NewClock(),
+		context:       context.Background(),
+		config:        config.DefaultConfig(),
+		storeLock:     &sync.RWMutex{},
+		store:         make(map[string]internal.KeyData),
+		commandsRWMut: sync.RWMutex{},
 		commands: func() []internal.Command {
 			var commands []internal.Command
 			commands = append(commands, acl.Commands()...)
@@ -195,10 +193,8 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		echovault.raft = raft.NewRaft(raft.Opts{
 			Config:                echovault.config,
 			GetCommand:            echovault.getCommand,
-			CreateKeyAndLock:      echovault.CreateKeyAndLock,
 			SetValue:              echovault.SetValue,
 			SetExpiry:             echovault.SetExpiry,
-			KeyUnlock:             echovault.KeyUnlock,
 			DeleteKey:             echovault.DeleteKey,
 			StartSnapshot:         echovault.startSnapshot,
 			FinishSnapshot:        echovault.finishSnapshot,
@@ -245,14 +241,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			}),
 			snapshot.WithSetKeyDataFunc(func(key string, data internal.KeyData) {
 				ctx := context.Background()
-				if _, err := echovault.CreateKeyAndLock(ctx, key); err != nil {
-					log.Println(err)
-				}
 				if err := echovault.SetValue(ctx, key, data.Value); err != nil {
 					log.Println(err)
 				}
 				echovault.SetExpiry(ctx, key, data.ExpireAt, false)
-				echovault.KeyUnlock(ctx, key)
 			}),
 		)
 		// Set up standalone AOF engine
@@ -273,14 +265,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			}),
 			aof.WithSetKeyDataFunc(func(key string, value internal.KeyData) {
 				ctx := context.Background()
-				if _, err := echovault.CreateKeyAndLock(ctx, key); err != nil {
-					log.Println(err)
-				}
 				if err := echovault.SetValue(ctx, key, value.Value); err != nil {
 					log.Println(err)
 				}
 				echovault.SetExpiry(ctx, key, value.ExpireAt, false)
-				echovault.KeyUnlock(ctx, key)
 			}),
 			aof.WithHandleCommandFunc(func(command []byte) {
 				_, err := echovault.handleCommand(context.Background(), command, nil, true, false)

@@ -42,6 +42,8 @@ func getBindAddr() net.IP {
 	return getBindAddrNet(0)
 }
 
+var setupLock sync.Mutex
+
 func setupServer(
 	serverId string,
 	bootstrapCluster bool,
@@ -51,6 +53,9 @@ func setupServer(
 	raftPort,
 	mlPort int,
 ) (*EchoVault, error) {
+	setupLock.Lock()
+	defer setupLock.Unlock()
+
 	config := DefaultConfig()
 	config.DataDir = "./testdata"
 	config.BindAddr = bindAddr
@@ -181,7 +186,7 @@ func Test_ClusterReplication(t *testing.T) {
 				t.Errorf("could not read data from follower node %d (test %d): %v", j, i, err)
 			}
 			if rd.String() != test.value {
-				t.Errorf("exptected value \"%s\" for follower node %d (test %d), got \"%s\"", test.value, j, i, rd.String())
+				t.Errorf("expected value \"%s\" for follower node %d (test %d), got \"%s\"", test.value, j, i, rd.String())
 			}
 		}
 	}
