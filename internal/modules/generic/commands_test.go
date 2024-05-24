@@ -15,8 +15,6 @@
 package generic_test
 
 import (
-	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/echovault"
@@ -26,15 +24,15 @@ import (
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
 	"net"
-	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
-	"unsafe"
 )
 
+var addr string
+var port int
 var mockServer *echovault.EchoVault
-
 var mockClock clock.Clock
 
 type KeyData struct {
@@ -44,65 +42,31 @@ type KeyData struct {
 
 func init() {
 	mockClock = clock.NewClock()
-
+	port, _ = internal.GetFreePort()
 	mockServer, _ = echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
+			BindAddr:       addr,
+			Port:           uint16(port),
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
 	)
-}
-
-func getUnexportedField(field reflect.Value) interface{} {
-	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
-}
-
-func getHandler(commands ...string) internal.HandlerFunc {
-	if len(commands) == 0 {
-		return nil
-	}
-	getCommands :=
-		getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getCommands")).(func() []internal.Command)
-	for _, c := range getCommands() {
-		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
-			// Get command handler
-			return c.HandlerFunc
-		}
-		if strings.EqualFold(commands[0], c.Command) {
-			// Get sub-command handler
-			for _, sc := range c.SubCommands {
-				if strings.EqualFold(commands[1], sc.Command) {
-					return sc.HandlerFunc
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) internal.HandlerFuncParams {
-	getClock :=
-		getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getClock")).(func() clock.Clock)
-	return internal.HandlerFuncParams{
-		Context:          ctx,
-		Command:          cmd,
-		Connection:       conn,
-		KeyExists:        mockServer.KeyExists,
-		CreateKeyAndLock: mockServer.CreateKeyAndLock,
-		KeyLock:          mockServer.KeyLock,
-		KeyRLock:         mockServer.KeyRLock,
-		KeyUnlock:        mockServer.KeyUnlock,
-		KeyRUnlock:       mockServer.KeyRUnlock,
-		GetValue:         mockServer.GetValue,
-		SetValue:         mockServer.SetValue,
-		GetExpiry:        mockServer.GetExpiry,
-		SetExpiry:        mockServer.SetExpiry,
-		DeleteKey:        mockServer.DeleteKey,
-		GetClock:         getClock,
-	}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		wg.Done()
+		mockServer.Start()
+	}()
+	wg.Wait()
 }
 
 func Test_HandleSET(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
 		command          []string
@@ -126,7 +90,7 @@ func Test_HandleSET(t *testing.T) {
 			command:          []string{"SET", "SetKey2", "1245678910"},
 			presetValues:     nil,
 			expectedResponse: "OK",
-			expectedValue:    1245678910,
+			expectedValue:    "1245678910",
 			expectedExpiry:   time.Time{},
 			expectedErr:      nil,
 		},
@@ -135,7 +99,7 @@ func Test_HandleSET(t *testing.T) {
 			command:          []string{"SET", "SetKey3", "45782.11341"},
 			presetValues:     nil,
 			expectedResponse: "OK",
-			expectedValue:    45782.11341,
+			expectedValue:    "45782.11341",
 			expectedExpiry:   time.Time{},
 			expectedErr:      nil,
 		},
@@ -409,35 +373,41 @@ func Test_HandleSET(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SET, %d", i+1))
-
 			if test.presetValues != nil {
 				for k, v := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					cmd := []resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(k),
+						resp.StringValue(v.Value.(string))}
+					err := client.WriteArray(cmd)
+					if err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					rd, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
-					mockServer.KeyUnlock(ctx, k)
+					if !strings.EqualFold(rd.String(), "ok") {
+						t.Errorf("expected preset response to be \"OK\", got %s", rd.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for j, c := range test.command {
+				command[j] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+
+			res, _, err := client.ReadValue()
+
 			if test.expectedErr != nil {
-				if err == nil {
-					t.Errorf("expected error \"%s\", got nil", test.expectedErr.Error())
-				}
-				if test.expectedErr.Error() != err.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedErr.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedErr.Error(), err.Error())
 				}
 				return
@@ -446,48 +416,57 @@ func Test_HandleSET(t *testing.T) {
 				t.Error(err)
 			}
 
-			rd := resp.NewReader(bytes.NewReader(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-
 			switch test.expectedResponse.(type) {
 			case string:
-				if test.expectedResponse != rv.String() {
-					t.Errorf("expected response \"%s\", got \"%s\"", test.expectedResponse, rv.String())
+				if test.expectedResponse != res.String() {
+					t.Errorf("expected response \"%s\", got \"%s\"", test.expectedResponse, res.String())
 				}
 			case nil:
-				if !rv.IsNull() {
-					t.Errorf("expcted nil response, got %+v", rv)
+				if !res.IsNull() {
+					t.Errorf("expcted nil response, got %+v", res)
 				}
 			default:
 				t.Error("test expected result should be nil or string")
 			}
 
-			// Compare expected value and expected time
 			key := test.command[1]
-			var value interface{}
-			var expireAt time.Time
 
-			if _, err = mockServer.KeyLock(ctx, key); err != nil {
+			// Compare expected value to response value
+			if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
 				t.Error(err)
 			}
-			value = mockServer.GetValue(ctx, key)
-			expireAt = mockServer.GetExpiry(ctx, key)
-			mockServer.KeyUnlock(ctx, key)
-
-			if value != test.expectedValue {
-				t.Errorf("expected value %+v, got %+v", test.expectedValue, value)
+			res, _, err = client.ReadValue()
+			if err != nil {
+				t.Error(err)
 			}
-			if test.expectedExpiry.Unix() != expireAt.Unix() {
-				t.Errorf("expected expiry time %d, got %d, cmd: %+v", test.expectedExpiry.Unix(), expireAt.Unix(), test.command)
+			if res.String() != test.expectedValue.(string) {
+				t.Errorf("expected value %s, got %s", test.expectedValue.(string), res.String())
+			}
+
+			// Compare expected expiry to response expiry
+			if !test.expectedExpiry.Equal(time.Time{}) {
+				if err = client.WriteArray([]resp.Value{resp.StringValue("EXPIRETIME"), resp.StringValue(key)}); err != nil {
+					t.Error(err)
+				}
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				if res.Integer() != int(test.expectedExpiry.Unix()) {
+					t.Errorf("expected expiry time %d, got %d", test.expectedExpiry.Unix(), res.Integer())
+				}
 			}
 		})
 	}
 }
 
 func Test_HandleMSET(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
 		command          []string
@@ -511,73 +490,70 @@ func Test_HandleMSET(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("MSET, %d", i))
-
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for j, c := range test.command {
+				command[j] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedErr != nil {
-				if err.Error() != test.expectedErr.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedErr.Error()) {
 					t.Errorf("expected error %s, got %s", test.expectedErr.Error(), err.Error())
 				}
 				return
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
+
+			if res.String() != test.expectedResponse {
+				t.Errorf("expected response %s, got %s", test.expectedResponse, res.String())
 			}
-			if rv.String() != test.expectedResponse {
-				t.Errorf("expected response %s, got %s", test.expectedResponse, rv.String())
-			}
+
 			for key, expectedValue := range test.expectedValues {
-				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
+				// Get value from server
+				if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
 					t.Error(err)
 				}
+				res, _, err = client.ReadValue()
 				switch expectedValue.(type) {
 				default:
 					t.Error("unexpected type for expectedValue")
 				case int:
 					ev, _ := expectedValue.(int)
-					value, ok := mockServer.GetValue(ctx, key).(int)
-					if !ok {
-						t.Errorf("expected integer type for key %s, got another type", key)
-					}
-					if value != ev {
-						t.Errorf("expected value %d for key %s, got %d", ev, key, value)
+					if res.Integer() != ev {
+						t.Errorf("expected value %d for key %s, got %d", ev, key, res.Integer())
 					}
 				case float64:
 					ev, _ := expectedValue.(float64)
-					value, ok := mockServer.GetValue(ctx, key).(float64)
-					if !ok {
-						t.Errorf("expected float type for key %s, got another type", key)
-					}
-					if value != ev {
-						t.Errorf("expected value %f for key %s, got %f", ev, key, value)
+					if res.Float() != ev {
+						t.Errorf("expected value %f for key %s, got %f", ev, key, res.Float())
 					}
 				case string:
 					ev, _ := expectedValue.(string)
-					value, ok := mockServer.GetValue(ctx, key).(string)
-					if !ok {
-						t.Errorf("expected string type for key %s, got another type", key)
-					}
-					if value != ev {
-						t.Errorf("expected value %s for key %s, got %s", ev, key, value)
+					if res.String() != ev {
+						t.Errorf("expected value %s for key %s, got %s", ev, key, res.String())
 					}
 				}
-				mockServer.KeyRUnlock(ctx, key)
 			}
 		})
 	}
 }
 
 func Test_HandleGET(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name  string
 		key   string
@@ -600,45 +576,50 @@ func Test_HandleGET(t *testing.T) {
 		},
 	}
 	// Test successful Get command
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("GET, %d", i))
 			func(key, value string) {
-
-				_, err := mockServer.CreateKeyAndLock(ctx, key)
+				// Preset the values
+				err = client.WriteArray([]resp.Value{resp.StringValue("SET"), resp.StringValue(key), resp.StringValue(value)})
 				if err != nil {
 					t.Error(err)
 				}
-				if err = mockServer.SetValue(ctx, key, value); err != nil {
-					t.Error(err)
-				}
-				mockServer.KeyUnlock(ctx, key)
 
-				handler := getHandler("GET")
-				if handler == nil {
-					t.Error("no handler found for command GET")
-					return
-				}
-
-				res, err := handler(getHandlerFuncParams(ctx, []string{"GET", key}, nil))
-
+				res, _, err := client.ReadValue()
 				if err != nil {
 					t.Error(err)
 				}
-				if !bytes.Equal(res, []byte(fmt.Sprintf("+%v\r\n", value))) {
-					t.Errorf("expected %s, got: %s", fmt.Sprintf("+%v\r\n", value), string(res))
+
+				if !strings.EqualFold(res.String(), "ok") {
+					t.Errorf("expected preset response to be \"OK\", got %s", res.String())
+				}
+
+				if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
+					t.Error(err)
+				}
+
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if res.String() != test.value {
+					t.Errorf("expected value %s, got %s", test.value, res.String())
 				}
 			}(test.key, test.value)
 		})
 	}
 
 	// Test get non-existent key
-	res, err := getHandler("GET")(getHandlerFuncParams(context.Background(), []string{"GET", "test4"}, nil))
+	if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue("test4")}); err != nil {
+		t.Error(err)
+	}
+	res, _, err := client.ReadValue()
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(res, []byte("$-1\r\n")) {
-		t.Errorf("expected %+v, got: %+v", "+nil\r\n", res)
+	if !res.IsNull() {
+		t.Errorf("expected nil, got: %+v", res)
 	}
 
 	errorTests := []struct {
@@ -659,16 +640,21 @@ func Test_HandleGET(t *testing.T) {
 	}
 	for _, test := range errorTests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
-			res, err = handler(getHandlerFuncParams(context.Background(), test.command, nil))
-			if res != nil {
-				t.Errorf("expected nil response, got: %+v", res)
+
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
 			}
-			if err.Error() != test.expected {
+
+			res, _, err = client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if !strings.Contains(res.Error().Error(), test.expected) {
 				t.Errorf("expected error '%s', got: %s", test.expected, err.Error())
 			}
 		})
@@ -676,6 +662,12 @@ func Test_HandleGET(t *testing.T) {
 }
 
 func Test_HandleMGET(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name          string
 		presetKeys    []string
@@ -710,47 +702,53 @@ func Test_HandleMGET(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("MGET, %d", i))
 			// Set up the values
 			for i, key := range test.presetKeys {
-				_, err := mockServer.CreateKeyAndLock(ctx, key)
+				if err = client.WriteArray([]resp.Value{
+					resp.StringValue("SET"),
+					resp.StringValue(key),
+					resp.StringValue(test.presetValues[i]),
+				}); err != nil {
+					t.Error(err)
+				}
+				res, _, err := client.ReadValue()
 				if err != nil {
 					t.Error(err)
 				}
-				if err = mockServer.SetValue(ctx, key, test.presetValues[i]); err != nil {
-					t.Error(err)
+				if !strings.EqualFold(res.String(), "ok") {
+					t.Errorf("expected preset response to be \"OK\", got \"%s\"", res.String())
 				}
-				mockServer.KeyUnlock(ctx, key)
-			}
-			// Test the command and its results
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			// Test the command and its results
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
+			}
+
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
 				// If we expect and error, branch out and check error
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error %+v, got: %+v", test.expectedError, err)
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
+
+			if res.Type().String() != "Array" {
+				t.Errorf("expected type Array, got: %s", res.Type().String())
 			}
-			rr := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rr.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			if rv.Type().String() != "Array" {
-				t.Errorf("expected type Array, got: %s", rv.Type().String())
-			}
-			for i, value := range rv.Array() {
+			for i, value := range res.Array() {
 				if test.expected[i] == nil {
 					if !value.IsNull() {
 						t.Errorf("expected nil value, got %+v", value)
@@ -766,10 +764,16 @@ func Test_HandleMGET(t *testing.T) {
 }
 
 func Test_HandleDEL(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
 		command          []string
-		presetValues     map[string]KeyData
+		presetValues     map[string]string
 		expectedResponse int
 		expectToExist    map[string]bool
 		expectedErr      error
@@ -777,11 +781,11 @@ func Test_HandleDEL(t *testing.T) {
 		{
 			name:    "1. Delete multiple keys",
 			command: []string{"DEL", "DelKey1", "DelKey2", "DelKey3", "DelKey4", "DelKey5"},
-			presetValues: map[string]KeyData{
-				"DelKey1": {Value: "value1", ExpireAt: time.Time{}},
-				"DelKey2": {Value: "value2", ExpireAt: time.Time{}},
-				"DelKey3": {Value: "value3", ExpireAt: time.Time{}},
-				"DelKey4": {Value: "value4", ExpireAt: time.Time{}},
+			presetValues: map[string]string{
+				"DelKey1": "value1",
+				"DelKey2": "value2",
+				"DelKey3": "value3",
+				"DelKey4": "value4",
 			},
 			expectedResponse: 4,
 			expectToExist: map[string]bool{
@@ -803,57 +807,63 @@ func Test_HandleDEL(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("DEL, %d", i))
-
 			if test.presetValues != nil {
 				for k, v := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					if err = client.WriteArray([]resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(k),
+						resp.StringValue(v),
+					}); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
-					mockServer.KeyUnlock(ctx, k)
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be \"OK\", got %s", res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedErr != nil {
-				if err == nil {
-					t.Errorf("exected error \"%s\", got nil", test.expectedErr.Error())
-				}
-				if test.expectedErr.Error() != err.Error() {
-					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedErr.Error(), err.Error())
+				if !strings.Contains(res.Error().Error(), test.expectedErr.Error()) {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedErr.Error(), res.Error().Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
+
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d, got %d", test.expectedResponse, res.Integer())
 			}
 
-			rd := resp.NewReader(bytes.NewReader(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
-			}
-
-			for k, expected := range test.expectToExist {
-				exists := mockServer.KeyExists(ctx, k)
+			for key, expected := range test.expectToExist {
+				if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
+					t.Error(err)
+				}
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				exists := !res.IsNull()
 				if exists != expected {
-					t.Errorf("expected exists status to be %+v, got %+v", expected, exists)
+					t.Errorf("expected existence of key %s to be %v, got %v", key, expected, exists)
 				}
 			}
 		})
@@ -861,6 +871,12 @@ func Test_HandleDEL(t *testing.T) {
 }
 
 func Test_HandlePERSIST(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
 		command          []string
@@ -919,76 +935,100 @@ func Test_HandlePERSIST(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("PERSIST, %d", i))
-
 			if test.presetValues != nil {
 				for k, v := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(k), resp.StringValue(v.Value.(string))}
+					if !v.ExpireAt.Equal(time.Time{}) {
+						command = append(command, []resp.Value{
+							resp.StringValue("PX"),
+							resp.StringValue(fmt.Sprintf("%d", v.ExpireAt.Sub(mockClock.Now()).Milliseconds())),
+						}...)
+					}
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
-					mockServer.KeyUnlock(ctx, k)
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err == nil {
-					t.Errorf("expected error \"%s\", got nil", test.expectedError.Error())
-				}
-				if test.expectedError.Error() != err.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
-			}
 
-			rd := resp.NewReader(bytes.NewReader(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d, got %d", test.expectedResponse, res.Integer())
 			}
 
 			if test.expectedValues == nil {
 				return
 			}
 
-			for k, expected := range test.expectedValues {
-				if _, err = mockServer.KeyLock(ctx, k); err != nil {
+			for key, expected := range test.expectedValues {
+				// Compare the value of the key with what's expected
+				if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
 					t.Error(err)
 				}
-				value := mockServer.GetValue(ctx, k)
-				expiry := mockServer.GetExpiry(ctx, k)
-				if value != expected.Value {
-					t.Errorf("expected value %+v, got %+v", expected.Value, value)
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
 				}
-				if expiry.UnixMilli() != expected.ExpireAt.UnixMilli() {
-					t.Errorf("expected exiry %d, got %d", expected.ExpireAt.UnixMilli(), expiry.UnixMilli())
+				if res.String() != expected.Value.(string) {
+					t.Errorf("expected value %s, got %s", expected.Value.(string), res.String())
 				}
-				mockServer.KeyUnlock(ctx, k)
+				// Compare the expiry of the key with what's expected
+				if err = client.WriteArray([]resp.Value{resp.StringValue("PTTL"), resp.StringValue(key)}); err != nil {
+					t.Error(err)
+				}
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				if expected.ExpireAt.Equal(time.Time{}) {
+					if res.Integer() != -1 {
+						t.Error("expected key to be persisted, it was not.")
+					}
+					continue
+				}
+				if res.Integer() != int(expected.ExpireAt.UnixMilli()) {
+					t.Errorf("expected expiry %d, got %d", expected.ExpireAt.UnixMilli(), res.Integer())
+				}
 			}
 		})
 	}
 }
 
 func Test_HandleEXPIRETIME(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
 		command          []string
@@ -1046,57 +1086,65 @@ func Test_HandleEXPIRETIME(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("EXPIRETIME/PEXPIRETIME, %d", i))
-
 			if test.presetValues != nil {
 				for k, v := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(k), resp.StringValue(v.Value.(string))}
+					if !v.ExpireAt.Equal(time.Time{}) {
+						command = append(command, []resp.Value{
+							resp.StringValue("PX"),
+							resp.StringValue(fmt.Sprintf("%d", v.ExpireAt.Sub(mockClock.Now()).Milliseconds())),
+						}...)
+					}
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
-					mockServer.KeyUnlock(ctx, k)
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err == nil {
-					t.Errorf("expected error \"%s\", got nil", test.expectedError.Error())
-				}
-				if test.expectedError.Error() != err.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
-			}
 
-			rd := resp.NewReader(bytes.NewReader(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d, got %d", test.expectedResponse, res.Integer())
 			}
 		})
 	}
 }
 
 func Test_HandleTTL(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
 		command          []string
@@ -1154,57 +1202,65 @@ func Test_HandleTTL(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("TTL/PTTL, %d", i))
-
 			if test.presetValues != nil {
 				for k, v := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(k), resp.StringValue(v.Value.(string))}
+					if !v.ExpireAt.Equal(time.Time{}) {
+						command = append(command, []resp.Value{
+							resp.StringValue("PX"),
+							resp.StringValue(fmt.Sprintf("%d", v.ExpireAt.Sub(mockClock.Now()).Milliseconds())),
+						}...)
+					}
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
-					mockServer.KeyUnlock(ctx, k)
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err == nil {
-					t.Errorf("expected error \"%s\", got nil", test.expectedError.Error())
-				}
-				if test.expectedError.Error() != err.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
-			}
 
-			rd := resp.NewReader(bytes.NewReader(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d, got %d", test.expectedResponse, res.Integer())
 			}
 		})
 	}
 }
 
 func Test_HandleEXPIRE(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
 		command          []string
@@ -1393,76 +1449,100 @@ func Test_HandleEXPIRE(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("PERSIST, %d", i))
-
 			if test.presetValues != nil {
 				for k, v := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(k), resp.StringValue(v.Value.(string))}
+					if !v.ExpireAt.Equal(time.Time{}) {
+						command = append(command, []resp.Value{
+							resp.StringValue("PX"),
+							resp.StringValue(fmt.Sprintf("%d", v.ExpireAt.Sub(mockClock.Now()).Milliseconds())),
+						}...)
+					}
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
-					mockServer.KeyUnlock(ctx, k)
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err == nil {
-					t.Errorf("expected error \"%s\", got nil", test.expectedError.Error())
-				}
-				if test.expectedError.Error() != err.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
-			}
 
-			rd := resp.NewReader(bytes.NewReader(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d, got %d", test.expectedResponse, res.Integer())
 			}
 
 			if test.expectedValues == nil {
 				return
 			}
 
-			for k, expected := range test.expectedValues {
-				if _, err = mockServer.KeyLock(ctx, k); err != nil {
+			for key, expected := range test.expectedValues {
+				// Compare the value of the key with what's expected
+				if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
 					t.Error(err)
 				}
-				value := mockServer.GetValue(ctx, k)
-				expiry := mockServer.GetExpiry(ctx, k)
-				if value != expected.Value {
-					t.Errorf("expected value %+v, got %+v", expected.Value, value)
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
 				}
-				if expiry.UnixMilli() != expected.ExpireAt.UnixMilli() {
-					t.Errorf("expected expiry %d, got %d", expected.ExpireAt.UnixMilli(), expiry.UnixMilli())
+				if res.String() != expected.Value.(string) {
+					t.Errorf("expected value %s, got %s", expected.Value.(string), res.String())
 				}
-				mockServer.KeyUnlock(ctx, k)
+				// Compare the expiry of the key with what's expected
+				if err = client.WriteArray([]resp.Value{resp.StringValue("PTTL"), resp.StringValue(key)}); err != nil {
+					t.Error(err)
+				}
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				if expected.ExpireAt.Equal(time.Time{}) {
+					if res.Integer() != -1 {
+						t.Error("expected key to be persisted, it was not.")
+					}
+					continue
+				}
+				if res.Integer() != int(expected.ExpireAt.Sub(mockClock.Now()).Milliseconds()) {
+					t.Errorf("expected expiry %d, got %d", expected.ExpireAt.Sub(mockClock.Now()).Milliseconds(), res.Integer())
+				}
 			}
 		})
 	}
 }
 
 func Test_HandleEXPIREAT(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error(err)
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
 		command          []string
@@ -1675,70 +1755,88 @@ func Test_HandleEXPIREAT(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("PERSIST, %d", i))
-
 			if test.presetValues != nil {
 				for k, v := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, k); err != nil {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(k), resp.StringValue(v.Value.(string))}
+					if !v.ExpireAt.Equal(time.Time{}) {
+						command = append(command, []resp.Value{
+							resp.StringValue("PX"),
+							resp.StringValue(fmt.Sprintf("%d", v.ExpireAt.Sub(mockClock.Now()).Milliseconds())),
+						}...)
+					}
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, k, v.Value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.SetExpiry(ctx, k, v.ExpireAt, false)
-					mockServer.KeyUnlock(ctx, k)
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err == nil {
-					t.Errorf("expected error \"%s\", got nil", test.expectedError.Error())
-				}
-				if test.expectedError.Error() != err.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
-			}
 
-			rd := resp.NewReader(bytes.NewReader(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response %d, got %d", test.expectedResponse, rv.Integer())
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response %d, got %d", test.expectedResponse, res.Integer())
 			}
 
 			if test.expectedValues == nil {
 				return
 			}
 
-			for k, expected := range test.expectedValues {
-				if _, err = mockServer.KeyLock(ctx, k); err != nil {
+			for key, expected := range test.expectedValues {
+				// Compare the value of the key with what's expected
+				if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
 					t.Error(err)
 				}
-				value := mockServer.GetValue(ctx, k)
-				expiry := mockServer.GetExpiry(ctx, k)
-				if value != expected.Value {
-					t.Errorf("expected value %+v, got %+v", expected.Value, value)
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
 				}
-				if expiry.UnixMilli() != expected.ExpireAt.UnixMilli() {
-					t.Errorf("expected expiry %d, got %d", expected.ExpireAt.UnixMilli(), expiry.UnixMilli())
+				if res.String() != expected.Value.(string) {
+					t.Errorf("expected value %s, got %s", expected.Value.(string), res.String())
 				}
-				mockServer.KeyUnlock(ctx, k)
+				// Compare the expiry of the key with what's expected
+				if err = client.WriteArray([]resp.Value{resp.StringValue("PTTL"), resp.StringValue(key)}); err != nil {
+					t.Error(err)
+				}
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				if expected.ExpireAt.Equal(time.Time{}) {
+					if res.Integer() != -1 {
+						t.Error("expected key to be persisted, it was not.")
+					}
+					continue
+				}
+				if res.Integer() != int(expected.ExpireAt.Sub(mockClock.Now()).Milliseconds()) {
+					t.Errorf("expected expiry %d, got %d", expected.ExpireAt.Sub(mockClock.Now()).Milliseconds(), res.Integer())
+				}
 			}
 		})
 	}

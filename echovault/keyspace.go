@@ -113,9 +113,13 @@ func (server *EchoVault) setValues(ctx context.Context, entries map[string]inter
 	}
 
 	for key, value := range entries {
+		expireAt := time.Time{}
+		if _, ok := server.store[key]; ok {
+			expireAt = server.store[key].ExpireAt
+		}
 		server.store[key] = internal.KeyData{
 			Value:    value,
-			ExpireAt: server.store[key].ExpireAt,
+			ExpireAt: expireAt,
 		}
 		if !server.isInCluster() {
 			server.snapshotEngine.IncrementChangeCount()

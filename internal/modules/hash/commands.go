@@ -32,6 +32,7 @@ func handleHSET(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 	entries := make(map[string]interface{})
 
 	if len(params.Command[2:])%2 != 0 {
@@ -42,26 +43,19 @@ func handleHSET(params internal.HandlerFuncParams) ([]byte, error) {
 		entries[params.Command[i]] = internal.AdaptType(params.Command[i+1])
 	}
 
-	if !params.KeyExists(params.Context, key) {
-		_, err = params.CreateKeyAndLock(params.Context, key)
+	if !keyExists {
 		if err != nil {
 			return nil, err
 		}
-		defer params.KeyUnlock(params.Context, key)
-		if err = params.SetValue(params.Context, key, entries); err != nil {
+		if err = params.SetValues(params.Context, map[string]interface{}{key: entries}); err != nil {
 			return nil, err
 		}
 		return []byte(fmt.Sprintf(":%d\r\n", len(entries))), nil
 	}
 
-	if _, err = params.KeyLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("value at %s is not a hash", key)
+		hash = make(map[string]interface{})
 	}
 
 	count := 0
@@ -76,7 +70,7 @@ func handleHSET(params internal.HandlerFuncParams) ([]byte, error) {
 		hash[field] = value
 		count += 1
 	}
-	if err = params.SetValue(params.Context, key, hash); err != nil {
+	if err = params.SetValues(params.Context, map[string]interface{}{key: hash}); err != nil {
 		return nil, err
 	}
 
@@ -90,18 +84,14 @@ func handleHGET(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 	fields := params.Command[2:]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte("$-1\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -141,18 +131,14 @@ func handleHSTRLEN(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 	fields := params.Command[2:]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte("$-1\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -192,17 +178,13 @@ func handleHVALS(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte("*0\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -233,6 +215,7 @@ func handleHRANDFIELD(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 
 	count := 1
 	if len(params.Command) >= 3 {
@@ -255,16 +238,11 @@ func handleHRANDFIELD(params internal.HandlerFuncParams) ([]byte, error) {
 		}
 	}
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte("*0\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -349,17 +327,13 @@ func handleHLEN(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -374,17 +348,13 @@ func handleHKEYS(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte("*0\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -404,6 +374,7 @@ func handleHINCRBY(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 	field := params.Command[2]
 
 	var intIncrement int
@@ -423,33 +394,24 @@ func handleHINCRBY(params internal.HandlerFuncParams) ([]byte, error) {
 		intIncrement = i
 	}
 
-	if !params.KeyExists(params.Context, key) {
-		if _, err := params.CreateKeyAndLock(params.Context, key); err != nil {
-			return nil, err
-		}
-		defer params.KeyUnlock(params.Context, key)
+	if !keyExists {
 		hash := make(map[string]interface{})
 		if strings.EqualFold(params.Command[0], "hincrbyfloat") {
 			hash[field] = floatIncrement
-			if err = params.SetValue(params.Context, key, hash); err != nil {
+			if err = params.SetValues(params.Context, map[string]interface{}{key: hash}); err != nil {
 				return nil, err
 			}
 			return []byte(fmt.Sprintf("+%s\r\n", strconv.FormatFloat(floatIncrement, 'f', -1, 64))), nil
 		} else {
 			hash[field] = intIncrement
-			if err = params.SetValue(params.Context, key, hash); err != nil {
+			if err = params.SetValues(params.Context, map[string]interface{}{key: hash}); err != nil {
 				return nil, err
 			}
 			return []byte(fmt.Sprintf(":%d\r\n", intIncrement)), nil
 		}
 	}
 
-	if _, err := params.KeyLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -477,7 +439,7 @@ func handleHINCRBY(params internal.HandlerFuncParams) ([]byte, error) {
 		}
 	}
 
-	if err = params.SetValue(params.Context, key, hash); err != nil {
+	if err = params.SetValues(params.Context, map[string]interface{}{key: hash}); err != nil {
 		return nil, err
 	}
 
@@ -496,17 +458,13 @@ func handleHGETALL(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte("*0\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -536,18 +494,14 @@ func handleHEXISTS(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 	field := params.Command[2]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -566,18 +520,14 @@ func handleHDEL(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 	fields := params.Command[2:]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = params.KeyLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
-
-	hash, ok := params.GetValue(params.Context, key).(map[string]interface{})
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("value at %s is not a hash", key)
 	}
@@ -591,7 +541,7 @@ func handleHDEL(params internal.HandlerFuncParams) ([]byte, error) {
 		}
 	}
 
-	if err = params.SetValue(params.Context, key, hash); err != nil {
+	if err = params.SetValues(params.Context, map[string]interface{}{key: hash}); err != nil {
 		return nil, err
 	}
 

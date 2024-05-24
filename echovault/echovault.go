@@ -29,14 +29,9 @@ import (
 	"github.com/echovault/echovault/internal/memberlist"
 	"github.com/echovault/echovault/internal/modules/acl"
 	"github.com/echovault/echovault/internal/modules/admin"
-	"github.com/echovault/echovault/internal/modules/connection"
 	"github.com/echovault/echovault/internal/modules/generic"
 	"github.com/echovault/echovault/internal/modules/hash"
-	"github.com/echovault/echovault/internal/modules/list"
 	"github.com/echovault/echovault/internal/modules/pubsub"
-	"github.com/echovault/echovault/internal/modules/set"
-	"github.com/echovault/echovault/internal/modules/sorted_set"
-	str "github.com/echovault/echovault/internal/modules/string"
 	"github.com/echovault/echovault/internal/raft"
 	"github.com/echovault/echovault/internal/snapshot"
 	"io"
@@ -139,12 +134,12 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			commands = append(commands, admin.Commands()...)
 			commands = append(commands, generic.Commands()...)
 			commands = append(commands, hash.Commands()...)
-			commands = append(commands, list.Commands()...)
-			commands = append(commands, connection.Commands()...)
-			commands = append(commands, pubsub.Commands()...)
-			commands = append(commands, set.Commands()...)
-			commands = append(commands, sorted_set.Commands()...)
-			commands = append(commands, str.Commands()...)
+			// commands = append(commands, list.Commands()...)
+			// commands = append(commands, connection.Commands()...)
+			// commands = append(commands, pubsub.Commands()...)
+			// commands = append(commands, set.Commands()...)
+			// commands = append(commands, sorted_set.Commands()...)
+			// commands = append(commands, str.Commands()...)
 			return commands
 		}(),
 	}
@@ -159,13 +154,14 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	)
 
 	// Load .so modules from config
-	for _, path := range echovault.config.Modules {
-		if err := echovault.LoadModule(path); err != nil {
-			log.Printf("%s %v\n", path, err)
-			continue
-		}
-		log.Printf("loaded plugin %s\n", path)
-	}
+	// TODO: Uncomment this
+	// for _, path := range echovault.config.Modules {
+	// 	if err := echovault.LoadModule(path); err != nil {
+	// 		log.Printf("%s %v\n", path, err)
+	// 		continue
+	// 	}
+	// 	log.Printf("loaded plugin %s\n", path)
+	// }
 
 	// Function for server commands retrieval
 	echovault.getCommands = func() []internal.Command {
@@ -190,35 +186,36 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	}
 
 	if echovault.isInCluster() {
-		echovault.raft = raft.NewRaft(raft.Opts{
-			Config:                echovault.config,
-			GetCommand:            echovault.getCommand,
-			SetValue:              echovault.SetValue,
-			SetExpiry:             echovault.SetExpiry,
-			DeleteKey:             echovault.DeleteKey,
-			StartSnapshot:         echovault.startSnapshot,
-			FinishSnapshot:        echovault.finishSnapshot,
-			SetLatestSnapshotTime: echovault.setLatestSnapshot,
-			GetHandlerFuncParams:  echovault.getHandlerFuncParams,
-			GetState: func() map[string]internal.KeyData {
-				state := make(map[string]internal.KeyData)
-				for k, v := range echovault.getState() {
-					if data, ok := v.(internal.KeyData); ok {
-						state[k] = data
-					}
-				}
-				return state
-			},
-		})
-		echovault.memberList = memberlist.NewMemberList(memberlist.Opts{
-			Config:           echovault.config,
-			HasJoinedCluster: echovault.raft.HasJoinedCluster,
-			AddVoter:         echovault.raft.AddVoter,
-			RemoveRaftServer: echovault.raft.RemoveServer,
-			IsRaftLeader:     echovault.raft.IsRaftLeader,
-			ApplyMutate:      echovault.raftApplyCommand,
-			ApplyDeleteKey:   echovault.raftApplyDeleteKey,
-		})
+		// TODO: Uncomment this
+		// echovault.raft = raft.NewRaft(raft.Opts{
+		// 	Config:                echovault.config,
+		// 	GetCommand:            echovault.getCommand,
+		// 	SetValue:              echovault.SetValue,
+		// 	SetExpiry:             echovault.SetExpiry,
+		// 	DeleteKey:             echovault.DeleteKey,
+		// 	StartSnapshot:         echovault.startSnapshot,
+		// 	FinishSnapshot:        echovault.finishSnapshot,
+		// 	SetLatestSnapshotTime: echovault.setLatestSnapshot,
+		// 	GetHandlerFuncParams:  echovault.getHandlerFuncParams,
+		// 	GetState: func() map[string]internal.KeyData {
+		// 		state := make(map[string]internal.KeyData)
+		// 		for k, v := range echovault.getState() {
+		// 			if data, ok := v.(internal.KeyData); ok {
+		// 				state[k] = data
+		// 			}
+		// 		}
+		// 		return state
+		// 	},
+		// })
+		// echovault.memberList = memberlist.NewMemberList(memberlist.Opts{
+		// 	Config:           echovault.config,
+		// 	HasJoinedCluster: echovault.raft.HasJoinedCluster,
+		// 	AddVoter:         echovault.raft.AddVoter,
+		// 	RemoveRaftServer: echovault.raft.RemoveServer,
+		// 	IsRaftLeader:     echovault.raft.IsRaftLeader,
+		// 	ApplyMutate:      echovault.raftApplyCommand,
+		// 	ApplyDeleteKey:   echovault.raftApplyDeleteKey,
+		// })
 	} else {
 		// Set up standalone snapshot engine
 		echovault.snapshotEngine = snapshot.NewSnapshotEngine(
@@ -241,10 +238,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			}),
 			snapshot.WithSetKeyDataFunc(func(key string, data internal.KeyData) {
 				ctx := context.Background()
-				if err := echovault.SetValue(ctx, key, data.Value); err != nil {
+				if err := echovault.setValues(ctx, map[string]interface{}{key: data.Value}); err != nil {
 					log.Println(err)
 				}
-				echovault.SetExpiry(ctx, key, data.ExpireAt, false)
+				echovault.setExpiry(ctx, key, data.ExpireAt, false)
 			}),
 		)
 		// Set up standalone AOF engine
@@ -265,10 +262,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			}),
 			aof.WithSetKeyDataFunc(func(key string, value internal.KeyData) {
 				ctx := context.Background()
-				if err := echovault.SetValue(ctx, key, value.Value); err != nil {
+				if err := echovault.setValues(ctx, map[string]interface{}{key: value.Value}); err != nil {
 					log.Println(err)
 				}
-				echovault.SetExpiry(ctx, key, value.ExpireAt, false)
+				echovault.setExpiry(ctx, key, value.ExpireAt, false)
 			}),
 			aof.WithHandleCommandFunc(func(command []byte) {
 				_, err := echovault.handleCommand(context.Background(), command, nil, true, false)
