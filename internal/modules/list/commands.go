@@ -350,10 +350,6 @@ func handleLMove(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 
-	checkLists := params.GetValues(params.Context, []string{source, destination})
-	fmt.Println("NEW SOURCE LIST: ", checkLists[source])
-	fmt.Println("NEW DESTINATION LIST: ", checkLists[destination])
-
 	return []byte(constants.OkResponse), nil
 }
 

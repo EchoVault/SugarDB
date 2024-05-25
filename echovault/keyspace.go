@@ -113,15 +113,6 @@ func (server *EchoVault) setValues(ctx context.Context, entries map[string]inter
 	}
 
 	for key, value := range entries {
-
-		// TODO: Delete this
-		if strings.Contains(key, "source") {
-			fmt.Println("SET SOURCE: ", value)
-		}
-		if strings.Contains(key, "destination") {
-			fmt.Println("SET DESTINATION: ", value)
-		}
-
 		expireAt := time.Time{}
 		if _, ok := server.store[key]; ok {
 			expireAt = server.store[key].ExpireAt
