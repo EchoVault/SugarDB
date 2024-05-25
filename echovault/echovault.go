@@ -29,8 +29,10 @@ import (
 	"github.com/echovault/echovault/internal/memberlist"
 	"github.com/echovault/echovault/internal/modules/acl"
 	"github.com/echovault/echovault/internal/modules/admin"
+	"github.com/echovault/echovault/internal/modules/connection"
 	"github.com/echovault/echovault/internal/modules/generic"
 	"github.com/echovault/echovault/internal/modules/hash"
+	"github.com/echovault/echovault/internal/modules/list"
 	"github.com/echovault/echovault/internal/modules/pubsub"
 	"github.com/echovault/echovault/internal/raft"
 	"github.com/echovault/echovault/internal/snapshot"
@@ -132,11 +134,11 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			var commands []internal.Command
 			commands = append(commands, acl.Commands()...)
 			commands = append(commands, admin.Commands()...)
+			commands = append(commands, connection.Commands()...)
 			commands = append(commands, generic.Commands()...)
 			commands = append(commands, hash.Commands()...)
-			// commands = append(commands, list.Commands()...)
-			// commands = append(commands, connection.Commands()...)
-			// commands = append(commands, pubsub.Commands()...)
+			commands = append(commands, list.Commands()...)
+			commands = append(commands, pubsub.Commands()...)
 			// commands = append(commands, set.Commands()...)
 			// commands = append(commands, sorted_set.Commands()...)
 			// commands = append(commands, str.Commands()...)
