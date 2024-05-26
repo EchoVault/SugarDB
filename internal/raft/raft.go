@@ -33,13 +33,11 @@ import (
 
 type Opts struct {
 	Config                config.Config
-	CreateKeyAndLock      func(ctx context.Context, key string) (bool, error)
-	SetValue              func(ctx context.Context, key string, value interface{}) error
+	SetValues             func(ctx context.Context, entries map[string]interface{}) error
 	SetExpiry             func(ctx context.Context, key string, expire time.Time, touch bool)
-	KeyUnlock             func(ctx context.Context, key string)
 	GetState              func() map[string]internal.KeyData
 	GetCommand            func(command string) (internal.Command, error)
-	DeleteKey             func(ctx context.Context, key string) error
+	DeleteKey             func(key string) error
 	StartSnapshot         func()
 	FinishSnapshot        func()
 	SetLatestSnapshotTime func(msec int64)
@@ -118,10 +116,8 @@ func (r *Raft) RaftInit(ctx context.Context) {
 			Config:                r.options.Config,
 			GetState:              r.options.GetState,
 			GetCommand:            r.options.GetCommand,
-			CreateKeyAndLock:      r.options.CreateKeyAndLock,
-			SetValue:              r.options.SetValue,
+			SetValues:             r.options.SetValues,
 			SetExpiry:             r.options.SetExpiry,
-			KeyUnlock:             r.options.KeyUnlock,
 			DeleteKey:             r.options.DeleteKey,
 			StartSnapshot:         r.options.StartSnapshot,
 			FinishSnapshot:        r.options.FinishSnapshot,

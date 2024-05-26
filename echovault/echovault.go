@@ -190,36 +190,39 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	}
 
 	if echovault.isInCluster() {
-		// TODO: Uncomment this
-		// echovault.raft = raft.NewRaft(raft.Opts{
-		// 	Config:                echovault.config,
-		// 	GetCommand:            echovault.getCommand,
-		// 	SetValue:              echovault.SetValue,
-		// 	SetExpiry:             echovault.SetExpiry,
-		// 	DeleteKey:             echovault.DeleteKey,
-		// 	StartSnapshot:         echovault.startSnapshot,
-		// 	FinishSnapshot:        echovault.finishSnapshot,
-		// 	SetLatestSnapshotTime: echovault.setLatestSnapshot,
-		// 	GetHandlerFuncParams:  echovault.getHandlerFuncParams,
-		// 	GetState: func() map[string]internal.KeyData {
-		// 		state := make(map[string]internal.KeyData)
-		// 		for k, v := range echovault.getState() {
-		// 			if data, ok := v.(internal.KeyData); ok {
-		// 				state[k] = data
-		// 			}
-		// 		}
-		// 		return state
-		// 	},
-		// })
-		// echovault.memberList = memberlist.NewMemberList(memberlist.Opts{
-		// 	Config:           echovault.config,
-		// 	HasJoinedCluster: echovault.raft.HasJoinedCluster,
-		// 	AddVoter:         echovault.raft.AddVoter,
-		// 	RemoveRaftServer: echovault.raft.RemoveServer,
-		// 	IsRaftLeader:     echovault.raft.IsRaftLeader,
-		// 	ApplyMutate:      echovault.raftApplyCommand,
-		// 	ApplyDeleteKey:   echovault.raftApplyDeleteKey,
-		// })
+		echovault.raft = raft.NewRaft(raft.Opts{
+			Config:                echovault.config,
+			GetCommand:            echovault.getCommand,
+			SetValues:             echovault.setValues,
+			SetExpiry:             echovault.setExpiry,
+			StartSnapshot:         echovault.startSnapshot,
+			FinishSnapshot:        echovault.finishSnapshot,
+			SetLatestSnapshotTime: echovault.setLatestSnapshot,
+			GetHandlerFuncParams:  echovault.getHandlerFuncParams,
+			DeleteKey: func(key string) error {
+				echovault.storeLock.Lock()
+				defer echovault.storeLock.Unlock()
+				return echovault.deleteKey(key)
+			},
+			GetState: func() map[string]internal.KeyData {
+				state := make(map[string]internal.KeyData)
+				for k, v := range echovault.getState() {
+					if data, ok := v.(internal.KeyData); ok {
+						state[k] = data
+					}
+				}
+				return state
+			},
+		})
+		echovault.memberList = memberlist.NewMemberList(memberlist.Opts{
+			Config:           echovault.config,
+			HasJoinedCluster: echovault.raft.HasJoinedCluster,
+			AddVoter:         echovault.raft.AddVoter,
+			RemoveRaftServer: echovault.raft.RemoveServer,
+			IsRaftLeader:     echovault.raft.IsRaftLeader,
+			ApplyMutate:      echovault.raftApplyCommand,
+			ApplyDeleteKey:   echovault.raftApplyDeleteKey,
+		})
 	} else {
 		// Set up standalone snapshot engine
 		echovault.snapshotEngine = snapshot.NewSnapshotEngine(

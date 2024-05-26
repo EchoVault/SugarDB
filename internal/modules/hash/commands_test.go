@@ -116,7 +116,7 @@ func Test_HandleHSET(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:             "6. HSET returns error when the target key is not a map",
+			name:             "6. HSET overwrites when the target key is not a map",
 			key:              "HsetKey6",
 			presetValue:      "Default preset value",
 			command:          []string{"HSET", "HsetKey6", "field1", "value1"},

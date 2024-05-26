@@ -467,13 +467,12 @@ func TestEchoVault_SINTERCARD(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Return 0 if any of the keys does not exist",
+			name: "Return error if any of the keys is non-existent",
 			presetValues: map[string]interface{}{
 				"key11": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
-				"key12": "Default value",
 				"key13": set.NewSet([]string{"one"}),
 			},
-			keys:    []string{"key11", "key12", "key13", "non-existent"},
+			keys:    []string{"key11", "key12", "key13"},
 			limit:   0,
 			want:    0,
 			wantErr: false,

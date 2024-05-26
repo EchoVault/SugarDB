@@ -32,11 +32,9 @@ type FSMOpts struct {
 	Config                config.Config
 	GetState              func() map[string]internal.KeyData
 	GetCommand            func(command string) (internal.Command, error)
-	CreateKeyAndLock      func(ctx context.Context, key string) (bool, error)
-	SetValue              func(ctx context.Context, key string, value interface{}) error
+	SetValues             func(ctx context.Context, entries map[string]interface{}) error
 	SetExpiry             func(ctx context.Context, key string, expire time.Time, touch bool)
-	KeyUnlock             func(ctx context.Context, key string)
-	DeleteKey             func(ctx context.Context, key string) error
+	DeleteKey             func(key string) error
 	StartSnapshot         func()
 	FinishSnapshot        func()
 	SetLatestSnapshotTime func(msec int64)
@@ -79,7 +77,7 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 			}
 
 		case "delete-key":
-			if err := fsm.options.DeleteKey(ctx, request.Key); err != nil {
+			if err := fsm.options.DeleteKey(request.Key); err != nil {
 				return internal.ApplyResponse{
 					Error:    err,
 					Response: nil,
@@ -164,14 +162,10 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 	// Set state
 	ctx := context.Background()
 	for k, v := range internal.FilterExpiredKeys(time.Now(), data.State) {
-		if _, err = fsm.options.CreateKeyAndLock(ctx, k); err != nil {
-			log.Fatal(err)
-		}
-		if err = fsm.options.SetValue(ctx, k, v.Value); err != nil {
+		if err = fsm.options.SetValues(ctx, map[string]interface{}{k: v.Value}); err != nil {
 			log.Fatal(err)
 		}
 		fsm.options.SetExpiry(ctx, k, v.ExpireAt, false)
-		fsm.options.KeyUnlock(ctx, k)
 	}
 	// Set latest snapshot milliseconds
 	fsm.options.SetLatestSnapshotTime(data.LatestSnapshotMilliseconds)
