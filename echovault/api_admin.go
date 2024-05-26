@@ -57,31 +57,12 @@ type CommandHandlerFunc func(params CommandHandlerFuncParams) ([]byte, error)
 //
 // Command is the string slice command containing the command that triggered this handler.
 //
-// KeyExists returns true if the key passed to it exists in the store.
+// KeysExist returns a map that specifies whether the key exists in the store.
 //
-// CreateKeyAndLock creates the new key and immediately write locks it. If the key already exists, then
-// it is simply write locked which makes this function safe to call even if the key already exists. Always call
-// KeyUnlock when done after CreateKeyAndLock.
+// GetValues returns a map with the values held at the specified keys. When a key does not exist in the store the
+// associated value will be nil.
 //
-// KeyLock acquires a write lock for the specified key. If the lock is successfully acquired, the function will return
-// (true, nil). Otherwise, it will return false and an error describing why the locking failed. Always call KeyUnlock
-// when done after KeyLock.
-//
-// KeyUnlock releases the write lock for the specified key. Always call this after KeyLock otherwise the key will not be
-// lockable by any future invocations of this command or other commands.
-//
-// KeyRLock acquires a read lock for the specified key. If the lock is successfully acquired, the function will return
-// (true, nil). Otherwise, it will return false and an error describing why the locking failed. Always call KeyRUnlock
-// when done after KeyRLock.
-//
-// KeyRUnlock releases the real lock for the specified key. Always call this after KeyRLock otherwise the key will not be
-// write-lockable by any future invocations of this command or other commands.
-//
-// GetValue returns the value held at the specified key as an interface{}. Make sure to invoke KeyLock or KeyRLock on the
-// key before GetValue to ensure thread safety.
-//
-// SetValue sets the value at the specified key. Make sure to invoke KeyLock on the key before
-// SetValue to ensure thread safety.
+// SetValues sets the keys given with their associated values.
 type CommandHandlerFuncParams struct {
 	Context   context.Context
 	Command   []string
