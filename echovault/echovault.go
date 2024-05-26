@@ -159,14 +159,13 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	)
 
 	// Load .so modules from config
-	// TODO: Uncomment this
-	// for _, path := range echovault.config.Modules {
-	// 	if err := echovault.LoadModule(path); err != nil {
-	// 		log.Printf("%s %v\n", path, err)
-	// 		continue
-	// 	}
-	// 	log.Printf("loaded plugin %s\n", path)
-	// }
+	for _, path := range echovault.config.Modules {
+		if err := echovault.LoadModule(path); err != nil {
+			log.Printf("%s %v\n", path, err)
+			continue
+		}
+		log.Printf("loaded plugin %s\n", path)
+	}
 
 	// Function for server commands retrieval
 	echovault.getCommands = func() []internal.Command {

@@ -16,6 +16,7 @@ package echovault
 
 import (
 	"context"
+	"fmt"
 	"github.com/echovault/echovault/internal"
 	"slices"
 	"strings"
@@ -82,16 +83,11 @@ type CommandHandlerFunc func(params CommandHandlerFuncParams) ([]byte, error)
 // SetValue sets the value at the specified key. Make sure to invoke KeyLock on the key before
 // SetValue to ensure thread safety.
 type CommandHandlerFuncParams struct {
-	Context          context.Context
-	Command          []string
-	KeyExists        func(ctx context.Context, key string) bool
-	CreateKeyAndLock func(ctx context.Context, key string) (bool, error)
-	KeyLock          func(ctx context.Context, key string) (bool, error)
-	KeyUnlock        func(ctx context.Context, key string)
-	KeyRLock         func(ctx context.Context, key string) (bool, error)
-	KeyRUnlock       func(ctx context.Context, key string)
-	GetValue         func(ctx context.Context, key string) interface{}
-	SetValue         func(ctx context.Context, key string, value interface{}) error
+	Context   context.Context
+	Command   []string
+	KeysExist func(keys []string) map[string]bool
+	GetValues func(ctx context.Context, keys []string) map[string]interface{}
+	SetValues func(ctx context.Context, entries map[string]interface{}) error
 }
 
 // CommandOptions provides the specification of the command to be added to the EchoVault instance.
@@ -229,133 +225,123 @@ func (server *EchoVault) RewriteAOF() (string, error) {
 // Errors:
 //
 // "command <command> already exists" - If a command with the same command name as the passed command already exists.
-// func (server *EchoVault) AddCommand(command CommandOptions) error {
-// 	server.commandsRWMut.Lock()
-// 	defer server.commandsRWMut.Unlock()
-// 	// Check if command already exists
-// 	for _, c := range server.commands {
-// 		if strings.EqualFold(c.Command, command.Command) {
-// 			return fmt.Errorf("command %s already exists", command.Command)
-// 		}
-// 	}
-//
-// 	if command.SubCommand == nil || len(command.SubCommand) == 0 {
-// 		// Add command with no subcommands
-// 		server.commands = append(server.commands, internal.Command{
-// 			Command: command.Command,
-// 			Module:  strings.ToLower(command.Module), // Convert module to lower case for uniformity
-// 			Categories: func() []string {
-// 				// Convert all the categories to lower case for uniformity
-// 				cats := make([]string, len(command.Categories))
-// 				for i, cat := range command.Categories {
-// 					cats[i] = strings.ToLower(cat)
-// 				}
-// 				return cats
-// 			}(),
-// 			Description: command.Description,
-// 			Sync:        command.Sync,
-// 			KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.KeyExtractionFuncResult, error) {
-// 				accessKeys, err := command.KeyExtractionFunc(cmd)
-// 				if err != nil {
-// 					return internal.KeyExtractionFuncResult{}, err
-// 				}
-// 				return internal.KeyExtractionFuncResult{
-// 					Channels:  []string{},
-// 					ReadKeys:  accessKeys.ReadKeys,
-// 					WriteKeys: accessKeys.WriteKeys,
-// 				}, nil
-// 			}),
-// 			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
-// 				return command.HandlerFunc(CommandHandlerFuncParams{
-// 					Context:          params.Context,
-// 					Command:          params.Command,
-// 					KeyLock:          params.KeyLock,
-// 					KeyUnlock:        params.KeyUnlock,
-// 					KeyRLock:         params.KeyRLock,
-// 					KeyRUnlock:       params.KeyRUnlock,
-// 					KeyExists:        params.KeyExists,
-// 					CreateKeyAndLock: params.CreateKeyAndLock,
-// 					GetValue:         params.GetValue,
-// 					SetValue:         params.SetValue,
-// 				})
-// 			}),
-// 		})
-// 		return nil
-// 	}
-//
-// 	// Add command with subcommands
-// 	newCommand := internal.Command{
-// 		Command: command.Command,
-// 		Module:  command.Module,
-// 		Categories: func() []string {
-// 			// Convert all the categories to lower case for uniformity
-// 			cats := make([]string, len(command.Categories))
-// 			for j, cat := range command.Categories {
-// 				cats[j] = strings.ToLower(cat)
-// 			}
-// 			return cats
-// 		}(),
-// 		Description: command.Description,
-// 		Sync:        command.Sync,
-// 		KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
-// 			return internal.KeyExtractionFuncResult{}, nil
-// 		},
-// 		HandlerFunc: func(param internal.HandlerFuncParams) ([]byte, error) { return nil, nil },
-// 		SubCommands: make([]internal.SubCommand, len(command.SubCommand)),
-// 	}
-//
-// 	for i, sc := range command.SubCommand {
-// 		// Skip the subcommand if it already exists in newCommand
-// 		if slices.ContainsFunc(newCommand.SubCommands, func(subcommand internal.SubCommand) bool {
-// 			return strings.EqualFold(subcommand.Command, sc.Command)
-// 		}) {
-// 			continue
-// 		}
-// 		newCommand.SubCommands[i] = internal.SubCommand{
-// 			Command: sc.Command,
-// 			Module:  strings.ToLower(command.Module),
-// 			Categories: func() []string {
-// 				// Convert all the categories to lower case for uniformity
-// 				cats := make([]string, len(sc.Categories))
-// 				for j, cat := range sc.Categories {
-// 					cats[j] = strings.ToLower(cat)
-// 				}
-// 				return cats
-// 			}(),
-// 			Description: sc.Description,
-// 			Sync:        sc.Sync,
-// 			KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.KeyExtractionFuncResult, error) {
-// 				accessKeys, err := sc.KeyExtractionFunc(cmd)
-// 				if err != nil {
-// 					return internal.KeyExtractionFuncResult{}, err
-// 				}
-// 				return internal.KeyExtractionFuncResult{
-// 					Channels:  []string{},
-// 					ReadKeys:  accessKeys.ReadKeys,
-// 					WriteKeys: accessKeys.WriteKeys,
-// 				}, nil
-// 			}),
-// 			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
-// 				return sc.HandlerFunc(CommandHandlerFuncParams{
-// 					Context:          params.Context,
-// 					Command:          params.Command,
-// 					KeyLock:          params.KeyLock,
-// 					KeyUnlock:        params.KeyUnlock,
-// 					KeyRLock:         params.KeyRLock,
-// 					KeyRUnlock:       params.KeyRUnlock,
-// 					KeyExists:        params.KeyExists,
-// 					CreateKeyAndLock: params.CreateKeyAndLock,
-// 					GetValue:         params.GetValue,
-// 					SetValue:         params.SetValue,
-// 				})
-// 			}),
-// 		}
-// 	}
-//
-// 	server.commands = append(server.commands, newCommand)
-//
-// 	return nil
-// }
+func (server *EchoVault) AddCommand(command CommandOptions) error {
+	server.commandsRWMut.Lock()
+	defer server.commandsRWMut.Unlock()
+	// Check if command already exists
+	for _, c := range server.commands {
+		if strings.EqualFold(c.Command, command.Command) {
+			return fmt.Errorf("command %s already exists", command.Command)
+		}
+	}
+
+	if command.SubCommand == nil || len(command.SubCommand) == 0 {
+		// Add command with no subcommands
+		server.commands = append(server.commands, internal.Command{
+			Command: command.Command,
+			Module:  strings.ToLower(command.Module), // Convert module to lower case for uniformity
+			Categories: func() []string {
+				// Convert all the categories to lower case for uniformity
+				cats := make([]string, len(command.Categories))
+				for i, cat := range command.Categories {
+					cats[i] = strings.ToLower(cat)
+				}
+				return cats
+			}(),
+			Description: command.Description,
+			Sync:        command.Sync,
+			KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				accessKeys, err := command.KeyExtractionFunc(cmd)
+				if err != nil {
+					return internal.KeyExtractionFuncResult{}, err
+				}
+				return internal.KeyExtractionFuncResult{
+					Channels:  []string{},
+					ReadKeys:  accessKeys.ReadKeys,
+					WriteKeys: accessKeys.WriteKeys,
+				}, nil
+			}),
+			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
+				return command.HandlerFunc(CommandHandlerFuncParams{
+					Context:   params.Context,
+					Command:   params.Command,
+					KeysExist: params.KeysExist,
+					GetValues: params.GetValues,
+					SetValues: params.SetValues,
+				})
+			}),
+		})
+		return nil
+	}
+
+	// Add command with subcommands
+	newCommand := internal.Command{
+		Command: command.Command,
+		Module:  command.Module,
+		Categories: func() []string {
+			// Convert all the categories to lower case for uniformity
+			cats := make([]string, len(command.Categories))
+			for j, cat := range command.Categories {
+				cats[j] = strings.ToLower(cat)
+			}
+			return cats
+		}(),
+		Description: command.Description,
+		Sync:        command.Sync,
+		KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+			return internal.KeyExtractionFuncResult{}, nil
+		},
+		HandlerFunc: func(param internal.HandlerFuncParams) ([]byte, error) { return nil, nil },
+		SubCommands: make([]internal.SubCommand, len(command.SubCommand)),
+	}
+
+	for i, sc := range command.SubCommand {
+		// Skip the subcommand if it already exists in newCommand
+		if slices.ContainsFunc(newCommand.SubCommands, func(subcommand internal.SubCommand) bool {
+			return strings.EqualFold(subcommand.Command, sc.Command)
+		}) {
+			continue
+		}
+		newCommand.SubCommands[i] = internal.SubCommand{
+			Command: sc.Command,
+			Module:  strings.ToLower(command.Module),
+			Categories: func() []string {
+				// Convert all the categories to lower case for uniformity
+				cats := make([]string, len(sc.Categories))
+				for j, cat := range sc.Categories {
+					cats[j] = strings.ToLower(cat)
+				}
+				return cats
+			}(),
+			Description: sc.Description,
+			Sync:        sc.Sync,
+			KeyExtractionFunc: internal.KeyExtractionFunc(func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				accessKeys, err := sc.KeyExtractionFunc(cmd)
+				if err != nil {
+					return internal.KeyExtractionFuncResult{}, err
+				}
+				return internal.KeyExtractionFuncResult{
+					Channels:  []string{},
+					ReadKeys:  accessKeys.ReadKeys,
+					WriteKeys: accessKeys.WriteKeys,
+				}, nil
+			}),
+			HandlerFunc: internal.HandlerFunc(func(params internal.HandlerFuncParams) ([]byte, error) {
+				return sc.HandlerFunc(CommandHandlerFuncParams{
+					Context:   params.Context,
+					Command:   params.Command,
+					KeysExist: params.KeysExist,
+					GetValues: params.GetValues,
+					SetValues: params.SetValues,
+				})
+			}),
+		}
+	}
+
+	server.commands = append(server.commands, newCommand)
+
+	return nil
+}
 
 // ExecuteCommand executes the command passed to it. If 1 string is passed, EchoVault will try to
 // execute the command. If 2 strings are passed, EchoVault will attempt to execute the subcommand of the command.
