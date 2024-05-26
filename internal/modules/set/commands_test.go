@@ -15,8 +15,6 @@
 package set_test
 
 import (
-	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/echovault"
@@ -26,68 +24,43 @@ import (
 	"github.com/echovault/echovault/internal/modules/set"
 	"github.com/tidwall/resp"
 	"net"
-	"reflect"
 	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
-	"unsafe"
 )
 
 var mockServer *echovault.EchoVault
+var addr = "localhost"
+var port int
 
 func init() {
+	port, _ = internal.GetFreePort()
 	mockServer, _ = echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
+			BindAddr:       addr,
+			Port:           uint16(port),
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
 		}),
 	)
-}
-
-func getUnexportedField(field reflect.Value) interface{} {
-	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
-}
-
-func getHandler(commands ...string) internal.HandlerFunc {
-	if len(commands) == 0 {
-		return nil
-	}
-	getCommands :=
-		getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getCommands")).(func() []internal.Command)
-	for _, c := range getCommands() {
-		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
-			// Get command handler
-			return c.HandlerFunc
-		}
-		if strings.EqualFold(commands[0], c.Command) {
-			// Get sub-command handler
-			for _, sc := range c.SubCommands {
-				if strings.EqualFold(commands[1], sc.Command) {
-					return sc.HandlerFunc
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) internal.HandlerFuncParams {
-	return internal.HandlerFuncParams{
-		Context:          ctx,
-		Command:          cmd,
-		Connection:       conn,
-		KeyExists:        mockServer.KeyExists,
-		CreateKeyAndLock: mockServer.CreateKeyAndLock,
-		KeyLock:          mockServer.KeyLock,
-		KeyRLock:         mockServer.KeyRLock,
-		KeyUnlock:        mockServer.KeyUnlock,
-		KeyRUnlock:       mockServer.KeyRUnlock,
-		GetValue:         mockServer.GetValue,
-		SetValue:         mockServer.SetValue,
-	}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		wg.Done()
+		mockServer.Start()
+	}()
+	wg.Wait()
 }
 
 func Test_HandleSADD(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
 		preset           bool
@@ -138,69 +111,101 @@ func Test_HandleSADD(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SADD, %d", i))
+			if test.presetValue != nil {
+				var command []resp.Value
+				var expected string
 
-			if test.preset {
-				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+				switch test.presetValue.(type) {
+				case string:
+					command = []resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(test.key),
+						resp.StringValue(test.presetValue.(string)),
+					}
+					expected = "ok"
+				case *set.Set:
+					command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(test.key)}
+					for _, element := range test.presetValue.(*set.Set).GetAll() {
+						command = append(command, []resp.Value{resp.StringValue(element)}...)
+					}
+					expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+				}
+
+				if err = client.WriteArray(command); err != nil {
 					t.Error(err)
 				}
-				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				res, _, err := client.ReadValue()
+				if err != nil {
 					t.Error(err)
 				}
-				mockServer.KeyUnlock(ctx, test.key)
+
+				if !strings.EqualFold(res.String(), expected) {
+					t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
+
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, res.Integer())
+			}
+
+			// Check if the resulting set(s) contain the expected members.
+			if test.expectedValue == nil {
+				return
+			}
+
+			if err := client.WriteArray([]resp.Value{resp.StringValue("SMEMBERS"), resp.StringValue(test.key)}); err != nil {
+				t.Error(err)
+			}
+			res, _, err = client.ReadValue()
 			if err != nil {
 				t.Error(err)
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
+
+			if len(res.Array()) != test.expectedValue.Cardinality() {
+				t.Errorf("expected set at key \"%s\" to have cardinality %d, got %d",
+					test.key, test.expectedValue.Cardinality(), len(res.Array()))
 			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected integer response %d, got %d", test.expectedResponse, rv.Integer())
-			}
-			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
-				t.Error(err)
-			}
-			currSet, ok := mockServer.GetValue(ctx, test.key).(*set.Set)
-			if !ok {
-				t.Errorf("expected set value at key \"%s\"", test.key)
-			}
-			if currSet.Cardinality() != test.expectedValue.Cardinality() {
-				t.Errorf("expected resulting cardinality to be %d, got %d", test.expectedValue.Cardinality(), currSet.Cardinality())
-			}
-			for _, member := range currSet.GetAll() {
-				if !test.expectedValue.Contains(member) {
-					t.Errorf("could not find member \"%s\" in expected set", member)
+
+			for _, item := range res.Array() {
+				if !test.expectedValue.Contains(item.String()) {
+					t.Errorf("unexpected memeber \"%s\", in response", item.String())
 				}
 			}
-			mockServer.KeyRUnlock(ctx, test.key)
 		})
 	}
 }
 
 func Test_HandleSCARD(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValue      interface{}
 		key              string
 		command          []string
@@ -210,7 +215,6 @@ func Test_HandleSCARD(t *testing.T) {
 	}{
 		{
 			name:             "1. Get cardinality of valid set.",
-			preset:           true,
 			presetValue:      set.NewSet([]string{"one", "two", "three", "four"}),
 			key:              "ScardKey1",
 			command:          []string{"SCARD", "ScardKey1"},
@@ -220,7 +224,6 @@ func Test_HandleSCARD(t *testing.T) {
 		},
 		{
 			name:             "2. Return 0 when trying to get cardinality on non-existent key",
-			preset:           false,
 			presetValue:      nil,
 			key:              "ScardKey2",
 			command:          []string{"SCARD", "ScardKey2"},
@@ -230,7 +233,6 @@ func Test_HandleSCARD(t *testing.T) {
 		},
 		{
 			name:             "3. Throw error when trying to get cardinality of a value that is not a set",
-			preset:           true,
 			presetValue:      "Default value",
 			key:              "ScardKey3",
 			command:          []string{"SCARD", "ScardKey3"},
@@ -239,7 +241,6 @@ func Test_HandleSCARD(t *testing.T) {
 		},
 		{
 			name:             "4. Command too short",
-			preset:           false,
 			key:              "ScardKey4",
 			command:          []string{"SCARD"},
 			expectedValue:    nil,
@@ -248,7 +249,6 @@ func Test_HandleSCARD(t *testing.T) {
 		},
 		{
 			name:             "5. Command too long",
-			preset:           false,
 			key:              "ScardKey5",
 			command:          []string{"SCARD", "ScardKey5", "ScardKey5"},
 			expectedValue:    nil,
@@ -257,61 +257,84 @@ func Test_HandleSCARD(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SCARD, %d", i))
+			if test.presetValue != nil {
+				var command []resp.Value
+				var expected string
 
-			if test.preset {
-				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+				switch test.presetValue.(type) {
+				case string:
+					command = []resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(test.key),
+						resp.StringValue(test.presetValue.(string)),
+					}
+					expected = "ok"
+				case *set.Set:
+					command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(test.key)}
+					for _, element := range test.presetValue.(*set.Set).GetAll() {
+						command = append(command, []resp.Value{resp.StringValue(element)}...)
+					}
+					expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+				}
+
+				if err = client.WriteArray(command); err != nil {
 					t.Error(err)
 				}
-				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				res, _, err := client.ReadValue()
+				if err != nil {
 					t.Error(err)
 				}
-				mockServer.KeyUnlock(ctx, test.key)
+
+				if !strings.EqualFold(res.String(), expected) {
+					t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
-			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected integer response %d, got %d", test.expectedResponse, rv.Integer())
+
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, res.Integer())
 			}
 		})
 	}
 }
 
 func Test_HandleSDIFF(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse []string
 		expectedError    error
 	}{
 		{
-			name:   "1. Get the difference between 2 sets.",
-			preset: true,
+			name: "1. Get the difference between 2 sets.",
 			presetValues: map[string]interface{}{
 				"SdiffKey1": set.NewSet([]string{"one", "two", "three", "four", "five"}),
 				"SdiffKey2": set.NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
@@ -321,8 +344,7 @@ func Test_HandleSDIFF(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "2. Get the difference between 3 sets.",
-			preset: true,
+			name: "2. Get the difference between 3 sets.",
 			presetValues: map[string]interface{}{
 				"SdiffKey3": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SdiffKey4": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
@@ -333,8 +355,7 @@ func Test_HandleSDIFF(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "3. Return base set element if base set is the only valid set",
-			preset: true,
+			name: "3. Return base set element if base set is the only valid set",
 			presetValues: map[string]interface{}{
 				"SdiffKey6": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SdiffKey7": "Default value",
@@ -345,8 +366,7 @@ func Test_HandleSDIFF(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "4. Throw error when base set is not a set.",
-			preset: true,
+			name: "4. Throw error when base set is not a set.",
 			presetValues: map[string]interface{}{
 				"SdiffKey9":  "Default value",
 				"SdiffKey10": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
@@ -357,8 +377,7 @@ func Test_HandleSDIFF(t *testing.T) {
 			expectedError:    errors.New("value at key SdiffKey9 is not a set"),
 		},
 		{
-			name:   "5. Throw error when base set is non-existent.",
-			preset: true,
+			name: "5. Throw error when base set is non-existent.",
 			presetValues: map[string]interface{}{
 				"SdiffKey12": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
 				"SdiffKey13": set.NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
@@ -369,54 +388,76 @@ func Test_HandleSDIFF(t *testing.T) {
 		},
 		{
 			name:             "6. Command too short",
-			preset:           false,
 			command:          []string{"SDIFF"},
 			expectedResponse: []string{},
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SDIFF, %d", i))
-
-			if test.preset {
+			if test.presetValues != nil {
+				var command []resp.Value
+				var expected string
 				for key, value := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+					switch value.(type) {
+					case string:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(key),
+							resp.StringValue(value.(string)),
+						}
+						expected = "ok"
+					case *set.Set:
+						command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(key)}
+						for _, element := range value.(*set.Set).GetAll() {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(value.(*set.Set).Cardinality())
+					}
+
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, key, value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.KeyUnlock(ctx, key)
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
+
+			if len(res.Array()) != len(test.expectedResponse) {
+				t.Errorf("expected response array of length \"%d\", got \"%d\"",
+					len(test.expectedResponse), len(res.Array()))
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			for _, responseElement := range rv.Array() {
-				if !slices.Contains(test.expectedResponse, responseElement.String()) {
-					t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+
+			for _, item := range res.Array() {
+				if !slices.Contains(test.expectedResponse, item.String()) {
+					t.Errorf("unexpected element \"%s\" in response", item.String())
 				}
 			}
 		})
@@ -424,9 +465,14 @@ func Test_HandleSDIFF(t *testing.T) {
 }
 
 func Test_HandleSDIFFSTORE(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValues     map[string]interface{}
 		destination      string
 		command          []string
@@ -435,8 +481,7 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 		expectedError    error
 	}{
 		{
-			name:   "1. Get the difference between 2 sets.",
-			preset: true,
+			name: "1. Get the difference between 2 sets.",
 			presetValues: map[string]interface{}{
 				"SdiffStoreKey1": set.NewSet([]string{"one", "two", "three", "four", "five"}),
 				"SdiffStoreKey2": set.NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
@@ -448,8 +493,7 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "2. Get the difference between 3 sets.",
-			preset: true,
+			name: "2. Get the difference between 3 sets.",
 			presetValues: map[string]interface{}{
 				"SdiffStoreKey3": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SdiffStoreKey4": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
@@ -462,8 +506,7 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "3. Return base set element if base set is the only valid set",
-			preset: true,
+			name: "3. Return base set element if base set is the only valid set",
 			presetValues: map[string]interface{}{
 				"SdiffStoreKey6": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SdiffStoreKey7": "Default value",
@@ -476,8 +519,7 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "4. Throw error when base set is not a set.",
-			preset: true,
+			name: "4. Throw error when base set is not a set.",
 			presetValues: map[string]interface{}{
 				"SdiffStoreKey9":  "Default value",
 				"SdiffStoreKey10": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
@@ -491,7 +533,6 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 		},
 		{
 			name:        "5. Throw error when base set is non-existent.",
-			preset:      true,
 			destination: "SdiffStoreDestination5",
 			presetValues: map[string]interface{}{
 				"SdiffStoreKey12": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
@@ -504,85 +545,118 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 		},
 		{
 			name:             "6. Command too short",
-			preset:           false,
 			command:          []string{"SDIFFSTORE", "SdiffStoreDestination6"},
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SDIFFSTORE, %d", i))
-
-			if test.preset {
+			if test.presetValues != nil {
+				var command []resp.Value
+				var expected string
 				for key, value := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+					switch value.(type) {
+					case string:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(key),
+							resp.StringValue(value.(string)),
+						}
+						expected = "ok"
+					case *set.Set:
+						command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(key)}
+						for _, element := range value.(*set.Set).GetAll() {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(value.(*set.Set).Cardinality())
+					}
+
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, key, value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.KeyUnlock(ctx, key)
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
+
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, res.Integer())
+			}
+
+			// Check if the resulting set(s) contain the expected members.
+			if test.expectedValue == nil {
+				return
+			}
+
+			if err := client.WriteArray([]resp.Value{
+				resp.StringValue("SMEMBERS"),
+				resp.StringValue(test.destination),
+			}); err != nil {
+				t.Error(err)
+			}
+			res, _, err = client.ReadValue()
 			if err != nil {
 				t.Error(err)
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
+
+			if len(res.Array()) != test.expectedValue.Cardinality() {
+				t.Errorf("expected set at key \"%s\" to have cardinality %d, got %d",
+					test.destination, test.expectedValue.Cardinality(), len(res.Array()))
 			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
-			}
-			if test.expectedValue != nil {
-				if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
-					t.Error(err)
+
+			for _, item := range res.Array() {
+				if !test.expectedValue.Contains(item.String()) {
+					t.Errorf("unexpected memeber \"%s\", in response", item.String())
 				}
-				currSet, ok := mockServer.GetValue(ctx, test.destination).(*set.Set)
-				if !ok {
-					t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
-				}
-				for _, elem := range currSet.GetAll() {
-					if !test.expectedValue.Contains(elem) {
-						t.Errorf("could not find element %s in the expected values", elem)
-					}
-				}
-				mockServer.KeyRUnlock(ctx, test.destination)
 			}
 		})
 	}
 }
 
 func Test_HandleSINTER(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse []string
 		expectedError    error
 	}{
 		{
-			name:   "1. Get the intersection between 2 sets.",
-			preset: true,
+			name: "1. Get the intersection between 2 sets.",
 			presetValues: map[string]interface{}{
 				"SinterKey1": set.NewSet([]string{"one", "two", "three", "four", "five"}),
 				"SinterKey2": set.NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
@@ -592,8 +666,7 @@ func Test_HandleSINTER(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "2. Get the intersection between 3 sets.",
-			preset: true,
+			name: "2. Get the intersection between 3 sets.",
 			presetValues: map[string]interface{}{
 				"SinterKey3": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SinterKey4": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
@@ -604,8 +677,7 @@ func Test_HandleSINTER(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "3. Throw an error if any of the provided keys are not sets",
-			preset: true,
+			name: "3. Throw an error if any of the provided keys are not sets",
 			presetValues: map[string]interface{}{
 				"SinterKey6": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SinterKey7": "Default value",
@@ -616,8 +688,7 @@ func Test_HandleSINTER(t *testing.T) {
 			expectedError:    errors.New("value at key SinterKey7 is not a set"),
 		},
 		{
-			name:   "4. Throw error when base set is not a set.",
-			preset: true,
+			name: "4. Throw error when base set is not a set.",
 			presetValues: map[string]interface{}{
 				"SinterKey9":  "Default value",
 				"SinterKey10": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
@@ -628,8 +699,7 @@ func Test_HandleSINTER(t *testing.T) {
 			expectedError:    errors.New("value at key SinterKey9 is not a set"),
 		},
 		{
-			name:   "5. If any of the keys does not exist, return an empty array.",
-			preset: true,
+			name: "5. If any of the keys does not exist, return an empty array.",
 			presetValues: map[string]interface{}{
 				"SinterKey12": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
 				"SinterKey13": set.NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
@@ -640,54 +710,76 @@ func Test_HandleSINTER(t *testing.T) {
 		},
 		{
 			name:             "6. Command too short",
-			preset:           false,
 			command:          []string{"SINTER"},
 			expectedResponse: []string{},
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SINTER, %d", i))
-
-			if test.preset {
+			if test.presetValues != nil {
+				var command []resp.Value
+				var expected string
 				for key, value := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+					switch value.(type) {
+					case string:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(key),
+							resp.StringValue(value.(string)),
+						}
+						expected = "ok"
+					case *set.Set:
+						command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(key)}
+						for _, element := range value.(*set.Set).GetAll() {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(value.(*set.Set).Cardinality())
+					}
+
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, key, value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.KeyUnlock(ctx, key)
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
+
+			if len(res.Array()) != len(test.expectedResponse) {
+				t.Errorf("expected response array of length \"%d\", got \"%d\"",
+					len(test.expectedResponse), len(res.Array()))
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			for _, responseElement := range rv.Array() {
-				if !slices.Contains(test.expectedResponse, responseElement.String()) {
-					t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+
+			for _, item := range res.Array() {
+				if !slices.Contains(test.expectedResponse, item.String()) {
+					t.Errorf("unexpected element \"%s\" in response", item.String())
 				}
 			}
 		})
@@ -695,17 +787,21 @@ func Test_HandleSINTER(t *testing.T) {
 }
 
 func Test_HandleSINTERCARD(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse int
 		expectedError    error
 	}{
 		{
-			name:   "1. Get the full intersect cardinality between 2 sets.",
-			preset: true,
+			name: "1. Get the full intersect cardinality between 2 sets.",
 			presetValues: map[string]interface{}{
 				"SinterCardKey1": set.NewSet([]string{"one", "two", "three", "four", "five"}),
 				"SinterCardKey2": set.NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
@@ -715,8 +811,7 @@ func Test_HandleSINTERCARD(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "2. Get an intersect cardinality between 2 sets with a limit",
-			preset: true,
+			name: "2. Get an intersect cardinality between 2 sets with a limit",
 			presetValues: map[string]interface{}{
 				"SinterCardKey3": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"}),
 				"SinterCardKey4": set.NewSet([]string{"three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"}),
@@ -726,8 +821,7 @@ func Test_HandleSINTERCARD(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "3. Get the full intersect cardinality between 3 sets.",
-			preset: true,
+			name: "3. Get the full intersect cardinality between 3 sets.",
 			presetValues: map[string]interface{}{
 				"SinterCardKey5": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SinterCardKey6": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
@@ -738,8 +832,7 @@ func Test_HandleSINTERCARD(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "4. Get the intersection of 3 sets with a limit",
-			preset: true,
+			name: "4. Get the intersection of 3 sets with a limit",
 			presetValues: map[string]interface{}{
 				"SinterCardKey8":  set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SinterCardKey9":  set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
@@ -750,8 +843,7 @@ func Test_HandleSINTERCARD(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "5. Return 0 if any of the keys does not exist",
-			preset: true,
+			name: "5. Return 0 if any of the keys does not exist",
 			presetValues: map[string]interface{}{
 				"SinterCardKey11": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SinterCardKey12": "Default value",
@@ -762,8 +854,7 @@ func Test_HandleSINTERCARD(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "6. Throw error when one of the keys is not a valid set.",
-			preset: true,
+			name: "6. Throw error when one of the keys is not a valid set.",
 			presetValues: map[string]interface{}{
 				"SinterCardKey14": "Default value",
 				"SinterCardKey15": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
@@ -775,62 +866,85 @@ func Test_HandleSINTERCARD(t *testing.T) {
 		},
 		{
 			name:             "7. Command too short",
-			preset:           false,
 			command:          []string{"SINTERCARD"},
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SINTERCARD, %d", i))
-
-			if test.preset {
+			if test.presetValues != nil {
+				var command []resp.Value
+				var expected string
 				for key, value := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+					switch value.(type) {
+					case string:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(key),
+							resp.StringValue(value.(string)),
+						}
+						expected = "ok"
+					case *set.Set:
+						command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(key)}
+						for _, element := range value.(*set.Set).GetAll() {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(value.(*set.Set).Cardinality())
+					}
+
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, key, value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.KeyUnlock(ctx, key)
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
 
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
-			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
+
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response array of length \"%d\", got \"%d\"", test.expectedResponse, res.Integer())
 			}
 		})
 	}
+
 }
 
 func Test_HandleSINTERSTORE(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValues     map[string]interface{}
 		destination      string
 		command          []string
@@ -839,8 +953,7 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 		expectedError    error
 	}{
 		{
-			name:   "1. Get the intersection between 2 sets and store it at the destination.",
-			preset: true,
+			name: "1. Get the intersection between 2 sets and store it at the destination.",
 			presetValues: map[string]interface{}{
 				"SinterStoreKey1": set.NewSet([]string{"one", "two", "three", "four", "five"}),
 				"SinterStoreKey2": set.NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
@@ -852,8 +965,7 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "2. Get the intersection between 3 sets and store it at the destination key.",
-			preset: true,
+			name: "2. Get the intersection between 3 sets and store it at the destination key.",
 			presetValues: map[string]interface{}{
 				"SinterStoreKey3": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SinterStoreKey4": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
@@ -866,8 +978,7 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "3. Throw error when any of the keys is not a set",
-			preset: true,
+			name: "3. Throw error when any of the keys is not a set",
 			presetValues: map[string]interface{}{
 				"SinterStoreKey6": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SinterStoreKey7": "Default value",
@@ -880,8 +991,7 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 			expectedError:    errors.New("value at key SinterStoreKey7 is not a set"),
 		},
 		{
-			name:   "4. Throw error when base set is not a set.",
-			preset: true,
+			name: "4. Throw error when base set is not a set.",
 			presetValues: map[string]interface{}{
 				"SinterStoreKey9":  "Default value",
 				"SinterStoreKey10": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
@@ -895,7 +1005,6 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 		},
 		{
 			name:        "5. Return an empty intersection if one of the keys does not exist.",
-			preset:      true,
 			destination: "SinterStoreDestination5",
 			presetValues: map[string]interface{}{
 				"SinterStoreKey12": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
@@ -908,75 +1017,111 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 		},
 		{
 			name:             "6. Command too short",
-			preset:           false,
 			command:          []string{"SINTERSTORE", "SinterStoreDestination6"},
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SINTERSTORE, %d", i))
-
-			if test.preset {
+			if test.presetValues != nil {
+				var command []resp.Value
+				var expected string
 				for key, value := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+					switch value.(type) {
+					case string:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(key),
+							resp.StringValue(value.(string)),
+						}
+						expected = "ok"
+					case *set.Set:
+						command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(key)}
+						for _, element := range value.(*set.Set).GetAll() {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(value.(*set.Set).Cardinality())
+					}
+
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, key, value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.KeyUnlock(ctx, key)
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
 				}
 			}
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
+
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, res.Integer())
+			}
+
+			// Check if the resulting set(s) contain the expected members.
+			if test.expectedValue == nil {
+				return
+			}
+
+			if err := client.WriteArray([]resp.Value{
+				resp.StringValue("SMEMBERS"),
+				resp.StringValue(test.destination),
+			}); err != nil {
+				t.Error(err)
+			}
+			res, _, err = client.ReadValue()
 			if err != nil {
 				t.Error(err)
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
+
+			if len(res.Array()) != test.expectedValue.Cardinality() {
+				t.Errorf("expected set at key \"%s\" to have cardinality %d, got %d",
+					test.destination, test.expectedValue.Cardinality(), len(res.Array()))
 			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
-			}
-			if test.expectedValue != nil {
-				if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
-					t.Error(err)
+
+			for _, item := range res.Array() {
+				if !test.expectedValue.Contains(item.String()) {
+					t.Errorf("unexpected memeber \"%s\", in response", item.String())
 				}
-				currSet, ok := mockServer.GetValue(ctx, test.destination).(*set.Set)
-				if !ok {
-					t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
-				}
-				for _, elem := range currSet.GetAll() {
-					if !test.expectedValue.Contains(elem) {
-						t.Errorf("could not find element %s in the expected values", elem)
-					}
-				}
-				mockServer.KeyRUnlock(ctx, test.destination)
 			}
 		})
 	}
 }
 
 func Test_HandleSISMEMBER(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValue      interface{}
 		key              string
 		command          []string
@@ -985,7 +1130,6 @@ func Test_HandleSISMEMBER(t *testing.T) {
 	}{
 		{
 			name:             "1. Return 1 when element is a member of the set",
-			preset:           true,
 			presetValue:      set.NewSet([]string{"one", "two", "three", "four"}),
 			key:              "SIsMemberKey1",
 			command:          []string{"SISMEMBER", "SIsMemberKey1", "three"},
@@ -994,7 +1138,6 @@ func Test_HandleSISMEMBER(t *testing.T) {
 		},
 		{
 			name:             "2. Return 0 when element is not a member of the set",
-			preset:           true,
 			presetValue:      set.NewSet([]string{"one", "two", "three", "four"}),
 			key:              "SIsMemberKey2",
 			command:          []string{"SISMEMBER", "SIsMemberKey2", "five"},
@@ -1003,7 +1146,6 @@ func Test_HandleSISMEMBER(t *testing.T) {
 		},
 		{
 			name:             "3. Throw error when trying to assert membership when the key does not hold a valid set",
-			preset:           true,
 			presetValue:      "Default value",
 			key:              "SIsMemberKey3",
 			command:          []string{"SISMEMBER", "SIsMemberKey3", "one"},
@@ -1012,7 +1154,6 @@ func Test_HandleSISMEMBER(t *testing.T) {
 		},
 		{
 			name:             "4. Command too short",
-			preset:           false,
 			key:              "SIsMemberKey4",
 			command:          []string{"SISMEMBER", "SIsMemberKey4"},
 			expectedResponse: 0,
@@ -1020,7 +1161,6 @@ func Test_HandleSISMEMBER(t *testing.T) {
 		},
 		{
 			name:             "5. Command too long",
-			preset:           false,
 			key:              "SIsMemberKey5",
 			command:          []string{"SISMEMBER", "SIsMemberKey5", "one", "two", "three"},
 			expectedResponse: 0,
@@ -1028,52 +1168,77 @@ func Test_HandleSISMEMBER(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SISMEMBER, %d", i))
+			if test.presetValue != nil {
+				var command []resp.Value
+				var expected string
 
-			if test.preset {
-				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+				switch test.presetValue.(type) {
+				case string:
+					command = []resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(test.key),
+						resp.StringValue(test.presetValue.(string)),
+					}
+					expected = "ok"
+				case *set.Set:
+					command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(test.key)}
+					for _, element := range test.presetValue.(*set.Set).GetAll() {
+						command = append(command, []resp.Value{resp.StringValue(element)}...)
+					}
+					expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+				}
+
+				if err = client.WriteArray(command); err != nil {
 					t.Error(err)
 				}
-				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				res, _, err := client.ReadValue()
+				if err != nil {
 					t.Error(err)
 				}
-				mockServer.KeyUnlock(ctx, test.key)
+
+				if !strings.EqualFold(res.String(), expected) {
+					t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
-			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected integer response %d, got %d", test.expectedResponse, rv.Integer())
+
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, res.Integer())
 			}
 		})
 	}
 }
 
 func Test_HandleSMEMBERS(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		key              string
 		presetValue      interface{}
 		command          []string
@@ -1082,7 +1247,6 @@ func Test_HandleSMEMBERS(t *testing.T) {
 	}{
 		{
 			name:             "1. Return all the members of the set.",
-			preset:           true,
 			key:              "SmembersKey1",
 			presetValue:      set.NewSet([]string{"one", "two", "three", "four", "five"}),
 			command:          []string{"SMEMBERS", "SmembersKey1"},
@@ -1091,16 +1255,14 @@ func Test_HandleSMEMBERS(t *testing.T) {
 		},
 		{
 			name:             "2. If the key does not exist, return an empty array.",
-			preset:           false,
 			key:              "SmembersKey2",
 			presetValue:      nil,
 			command:          []string{"SMEMBERS", "SmembersKey2"},
-			expectedResponse: []string{},
+			expectedResponse: nil,
 			expectedError:    nil,
 		},
 		{
 			name:             "3. Throw error when the provided key is not a set.",
-			preset:           true,
 			key:              "SmembersKey3",
 			presetValue:      "Default value",
 			command:          []string{"SMEMBERS", "SmembersKey3"},
@@ -1109,61 +1271,81 @@ func Test_HandleSMEMBERS(t *testing.T) {
 		},
 		{
 			name:             "4. Command too short",
-			preset:           false,
 			command:          []string{"SMEMBERS"},
 			expectedResponse: []string{},
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{
 			name:             "5. Command too long",
-			preset:           false,
 			command:          []string{"SMEMBERS", "SmembersKey5", "SmembersKey6"},
 			expectedResponse: []string{},
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SMEMBERS, %d", i))
+			if test.presetValue != nil {
+				var command []resp.Value
+				var expected string
 
-			if test.preset {
-				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+				switch test.presetValue.(type) {
+				case string:
+					command = []resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(test.key),
+						resp.StringValue(test.presetValue.(string)),
+					}
+					expected = "ok"
+				case *set.Set:
+					command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(test.key)}
+					for _, element := range test.presetValue.(*set.Set).GetAll() {
+						command = append(command, []resp.Value{resp.StringValue(element)}...)
+					}
+					expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+				}
+
+				if err = client.WriteArray(command); err != nil {
 					t.Error(err)
 				}
-				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				res, _, err := client.ReadValue()
+				if err != nil {
 					t.Error(err)
 				}
-				mockServer.KeyUnlock(ctx, test.key)
+
+				if !strings.EqualFold(res.String(), expected) {
+					t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
+
+			if len(res.Array()) != len(test.expectedResponse) {
+				t.Errorf("expected response array of length \"%d\", got \"%d\"",
+					len(test.expectedResponse), len(res.Array()))
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			if len(rv.Array()) != len(test.expectedResponse) {
-				t.Errorf("expected response array of length %d, got %d", len(test.expectedResponse), len(rv.Array()))
-			}
-			for _, responseElement := range rv.Array() {
-				if !slices.Contains(test.expectedResponse, responseElement.String()) {
-					t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+
+			for _, item := range res.Array() {
+				if !slices.Contains(test.expectedResponse, item.String()) {
+					t.Errorf("unexpected element \"%s\" in response", item.String())
 				}
 			}
 		})
@@ -1171,9 +1353,14 @@ func Test_HandleSMEMBERS(t *testing.T) {
 }
 
 func Test_HandleSMISMEMBER(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValue      interface{}
 		key              string
 		command          []string
@@ -1186,7 +1373,6 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 			// The placement of the membership status flag should me consistent with the order the elements
 			// are in within the original command
 			name:             "1. Return set membership status for multiple elements",
-			preset:           true,
 			presetValue:      set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven"}),
 			key:              "SmismemberKey1",
 			command:          []string{"SMISMEMBER", "SmismemberKey1", "three", "four", "five", "six", "eight", "nine", "seven"},
@@ -1195,7 +1381,6 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 		},
 		{
 			name:             "2. If the set key does not exist, return an array of zeroes as long as the list of members",
-			preset:           false,
 			presetValue:      nil,
 			key:              "SmismemberKey2",
 			command:          []string{"SMISMEMBER", "SmismemberKey2", "one", "two", "three", "four"},
@@ -1204,7 +1389,6 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 		},
 		{
 			name:             "3. Throw error when trying to assert membership when the key does not hold a valid set",
-			preset:           true,
 			presetValue:      "Default value",
 			key:              "SmismemberKey3",
 			command:          []string{"SMISMEMBER", "SmismemberKey3", "one"},
@@ -1213,7 +1397,7 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 		},
 		{
 			name:             "4. Command too short",
-			preset:           false,
+			presetValue:      nil,
 			key:              "SmismemberKey4",
 			command:          []string{"SMISMEMBER", "SmismemberKey4"},
 			expectedResponse: nil,
@@ -1221,45 +1405,69 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SMISMEMBER, %d", i))
+			if test.presetValue != nil {
+				var command []resp.Value
+				var expected string
 
-			if test.preset {
-				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+				switch test.presetValue.(type) {
+				case string:
+					command = []resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(test.key),
+						resp.StringValue(test.presetValue.(string)),
+					}
+					expected = "ok"
+				case *set.Set:
+					command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(test.key)}
+					for _, element := range test.presetValue.(*set.Set).GetAll() {
+						command = append(command, []resp.Value{resp.StringValue(element)}...)
+					}
+					expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+				}
+
+				if err = client.WriteArray(command); err != nil {
 					t.Error(err)
 				}
-				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				res, _, err := client.ReadValue()
+				if err != nil {
 					t.Error(err)
 				}
-				mockServer.KeyUnlock(ctx, test.key)
+
+				if !strings.EqualFold(res.String(), expected) {
+					t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
+
+			if len(res.Array()) != len(test.expectedResponse) {
+				t.Errorf("expected response array of length \"%d\", got \"%d\"",
+					len(test.expectedResponse), len(res.Array()))
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			responseArray := rv.Array()
-			for i := 0; i < len(responseArray); i++ {
-				if responseArray[i].Integer() != test.expectedResponse[i] {
-					t.Errorf("expected integer %d at index %d, got %d", test.expectedResponse[i], i, responseArray[i].Integer())
+
+			for _, item := range res.Array() {
+				if !slices.Contains(test.expectedResponse, item.Integer()) {
+					t.Errorf("unexpected element \"%d\" in response", item.Integer())
 				}
 			}
 		})
@@ -1267,9 +1475,14 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 }
 
 func Test_HandleSMOVE(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedValues   map[string]interface{}
@@ -1277,8 +1490,7 @@ func Test_HandleSMOVE(t *testing.T) {
 		expectedError    error
 	}{
 		{
-			name:   "1. Return 1 after a successful move of a member from source set to destination set",
-			preset: true,
+			name: "1. Return 1 after a successful move of a member from source set to destination set",
 			presetValues: map[string]interface{}{
 				"SmoveSource1":      set.NewSet([]string{"one", "two", "three", "four"}),
 				"SmoveDestination1": set.NewSet([]string{"five", "six", "seven", "eight"}),
@@ -1292,8 +1504,7 @@ func Test_HandleSMOVE(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "2. Return 0 when trying to move a member from source set to destination set when it doesn't exist in source",
-			preset: true,
+			name: "2. Return 0 when trying to move a member from source set to destination set when it doesn't exist in source",
 			presetValues: map[string]interface{}{
 				"SmoveSource2":      set.NewSet([]string{"one", "two", "three", "four", "five"}),
 				"SmoveDestination2": set.NewSet([]string{"five", "six", "seven", "eight"}),
@@ -1307,8 +1518,7 @@ func Test_HandleSMOVE(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "3. Return error when the source key is not a set",
-			preset: true,
+			name: "3. Return error when the source key is not a set",
 			presetValues: map[string]interface{}{
 				"SmoveSource3":      "Default value",
 				"SmoveDestination3": set.NewSet([]string{"five", "six", "seven", "eight"}),
@@ -1322,8 +1532,7 @@ func Test_HandleSMOVE(t *testing.T) {
 			expectedError:    errors.New("source is not a set"),
 		},
 		{
-			name:   "4. Return error when the destination key is not a set",
-			preset: true,
+			name: "4. Return error when the destination key is not a set",
 			presetValues: map[string]interface{}{
 				"SmoveSource4":      set.NewSet([]string{"one", "two", "three", "four", "five"}),
 				"SmoveDestination4": "Default value",
@@ -1338,88 +1547,133 @@ func Test_HandleSMOVE(t *testing.T) {
 		},
 		{
 			name:          "5. Command too short",
-			preset:        false,
+			presetValues:  nil,
 			command:       []string{"SMOVE", "SmoveSource5", "SmoveSource6"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{
 			name:          "6. Command too long",
-			preset:        false,
+			presetValues:  nil,
 			command:       []string{"SMOVE", "SmoveSource5", "SmoveSource6", "member1", "member2"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SMOVE, %d", i))
-
-			if test.preset {
+			if test.presetValues != nil {
+				var command []resp.Value
+				var expected string
 				for key, value := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+					switch value.(type) {
+					case string:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(key),
+							resp.StringValue(value.(string)),
+						}
+						expected = "ok"
+					case *set.Set:
+						command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(key)}
+						for _, element := range value.(*set.Set).GetAll() {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(value.(*set.Set).Cardinality())
+					}
+
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, key, value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.KeyUnlock(ctx, key)
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
+
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, res.Integer())
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
+
+			// Check if the resulting set(s) contain the expected members.
+			if test.expectedValues == nil {
+				return
 			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
-			}
+
 			for key, value := range test.expectedValues {
-				expectedSet, ok := value.(*set.Set)
-				if !ok {
-					t.Errorf("expected value at \"%s\" should be a set", key)
-				}
-				if _, err = mockServer.KeyRLock(ctx, key); err != nil {
-					t.Error(key)
-				}
-				currSet, ok := mockServer.GetValue(ctx, key).(*set.Set)
-				if !ok {
-					t.Errorf("expected set \"%s\" to be a set, got another type", key)
-				}
-				if expectedSet.Cardinality() != currSet.Cardinality() {
-					t.Errorf("expected set to have cardinaltity %d, got %d", expectedSet.Cardinality(), currSet.Cardinality())
-				}
-				for _, element := range expectedSet.GetAll() {
-					if !currSet.Contains(element) {
-						t.Errorf("could not find element \"%s\" in the expected set", element)
+				switch value.(type) {
+				case string:
+					if err := client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
+						t.Error(err)
+					}
+					res, _, err = client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+					if res.String() != value.(string) {
+						t.Errorf("expected value at key \"%s\" to be \"%s\", got \"%s\"", key, value.(string), res.String())
+					}
+				case *set.Set:
+					if err := client.WriteArray([]resp.Value{
+						resp.StringValue("SMEMBERS"),
+						resp.StringValue(key),
+					}); err != nil {
+						t.Error(err)
+					}
+					res, _, err = client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if len(res.Array()) != value.(*set.Set).Cardinality() {
+						t.Errorf("expected set at key \"%s\" to have cardinality %d, got %d",
+							key, value.(*set.Set).Cardinality(), len(res.Array()))
+					}
+
+					for _, item := range res.Array() {
+						if !value.(*set.Set).Contains(item.String()) {
+							t.Errorf("unexpected memeber \"%s\", in response", item.String())
+						}
 					}
 				}
-				mockServer.KeyRUnlock(ctx, key)
 			}
 		})
 	}
 }
 
 func Test_HandleSPOP(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		key              string
 		presetValue      interface{}
 		command          []string
@@ -1429,7 +1683,6 @@ func Test_HandleSPOP(t *testing.T) {
 	}{
 		{
 			name:             "1. Return multiple popped elements and modify the set",
-			preset:           true,
 			key:              "SpopKey1",
 			presetValue:      set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 			command:          []string{"SPOP", "SpopKey1", "3"},
@@ -1439,100 +1692,125 @@ func Test_HandleSPOP(t *testing.T) {
 		},
 		{
 			name:             "2. Return error when the source key is not a set",
-			preset:           true,
 			key:              "SpopKey2",
 			presetValue:      "Default value",
 			command:          []string{"SPOP", "SpopKey2"},
 			expectedValue:    0,
-			expectedResponse: []string{},
+			expectedResponse: nil,
 			expectedError:    errors.New("value at SpopKey2 is not a set"),
 		},
 		{
-			name:          "3. Command too short",
-			preset:        false,
-			command:       []string{"SPOP"},
-			expectedError: errors.New(constants.WrongArgsResponse),
+			name:             "3. Command too short",
+			presetValue:      nil,
+			command:          []string{"SPOP"},
+			expectedValue:    0,
+			expectedResponse: nil,
+			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 		{
 			name:          "4. Command too long",
-			preset:        false,
+			presetValue:   nil,
 			command:       []string{"SPOP", "SpopSource5", "SpopSource6", "member1", "member2"},
+			expectedValue: 0,
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{
 			name:          "5. Throw error when count is not an integer",
-			preset:        false,
+			presetValue:   nil,
 			command:       []string{"SPOP", "SpopKey1", "count"},
+			expectedValue: 0,
 			expectedError: errors.New("count must be an integer"),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SPOP, %d", i))
+			if test.presetValue != nil {
+				var command []resp.Value
+				var expected string
 
-			if test.preset {
-				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+				switch test.presetValue.(type) {
+				case string:
+					command = []resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(test.key),
+						resp.StringValue(test.presetValue.(string)),
+					}
+					expected = "ok"
+				case *set.Set:
+					command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(test.key)}
+					for _, element := range test.presetValue.(*set.Set).GetAll() {
+						command = append(command, []resp.Value{resp.StringValue(element)}...)
+					}
+					expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+				}
+
+				if err = client.WriteArray(command); err != nil {
 					t.Error(err)
 				}
-				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				res, _, err := client.ReadValue()
+				if err != nil {
 					t.Error(err)
 				}
-				mockServer.KeyUnlock(ctx, test.key)
+
+				if !strings.EqualFold(res.String(), expected) {
+					t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
+
+			// Check that each returned element is in the list of expected elements.
+			for _, item := range res.Array() {
+				if !slices.Contains(test.expectedResponse, item.String()) {
+					t.Errorf("unexpected element \"%s\" in response", item.String())
+				}
+			}
+
+			// Check if the resulting set's cardinality is as expected.
+			if err := client.WriteArray([]resp.Value{resp.StringValue("SCARD"), resp.StringValue(test.key)}); err != nil {
+				t.Error(err)
+			}
+			res, _, err = client.ReadValue()
 			if err != nil {
 				t.Error(err)
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			// 1. Check if the response array members are all included in test.expectedResponse.
-			for _, element := range rv.Array() {
-				if !slices.Contains(test.expectedResponse, element.String()) {
-					t.Errorf("expected response array does not contain element \"%s\"", element.String())
-				}
-			}
-			// 2. Fetch the set and check if its cardinality is what we expect.
-			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
-				t.Error(err)
-			}
-			currSet, ok := mockServer.GetValue(ctx, test.key).(*set.Set)
-			if !ok {
-				t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
-			}
-			if currSet.Cardinality() != test.expectedValue {
-				t.Errorf("expected cardinality of final set to be %d, got %d", test.expectedValue, currSet.Cardinality())
-			}
-			// 3. Check if all the popped elements we received are no longer in the set.
-			for _, element := range rv.Array() {
-				if currSet.Contains(element.String()) {
-					t.Errorf("expected element \"%s\" to not be in set but it was found", element.String())
-				}
+
+			if res.Integer() != test.expectedValue {
+				t.Errorf("expected set at key \"%s\" to have cardinality %d, got %d",
+					test.key, test.expectedValue, res.Integer())
 			}
 		})
 	}
 }
 
 func Test_HandleSRANDMEMBER(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		key              string
 		presetValue      interface{}
 		command          []string
@@ -1545,7 +1823,6 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 			// 1. Return multiple random elements without removing them
 			// Count is positive, do not allow repeated elements
 			name:             "1. Return multiple random elements without removing them",
-			preset:           true,
 			key:              "SRandMemberKey1",
 			presetValue:      set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 			command:          []string{"SRANDMEMBER", "SRandMemberKey1", "3"},
@@ -1558,7 +1835,6 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 			// 2. Return multiple random elements without removing them
 			// Count is negative, so allow repeated numbers
 			name:             "2. Return multiple random elements without removing them",
-			preset:           true,
 			key:              "SRandMemberKey2",
 			presetValue:      set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 			command:          []string{"SRANDMEMBER", "SRandMemberKey2", "-5"},
@@ -1569,7 +1845,6 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 		},
 		{
 			name:             "3. Return error when the source key is not a set",
-			preset:           true,
 			key:              "SRandMemberKey3",
 			presetValue:      "Default value",
 			command:          []string{"SRANDMEMBER", "SRandMemberKey3"},
@@ -1579,101 +1854,123 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 		},
 		{
 			name:          "4. Command too short",
-			preset:        false,
 			command:       []string{"SRANDMEMBER"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{
 			name:          "5. Command too long",
-			preset:        false,
 			command:       []string{"SRANDMEMBER", "SRandMemberSource5", "SRandMemberSource6", "member1", "member2"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{
 			name:          "6. Throw error when count is not an integer",
-			preset:        false,
 			command:       []string{"SRANDMEMBER", "SRandMemberKey1", "count"},
 			expectedError: errors.New("count must be an integer"),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SRANDMEMBER, %d", i))
+			if test.presetValue != nil {
+				var command []resp.Value
+				var expected string
 
-			if test.preset {
-				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+				switch test.presetValue.(type) {
+				case string:
+					command = []resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(test.key),
+						resp.StringValue(test.presetValue.(string)),
+					}
+					expected = "ok"
+				case *set.Set:
+					command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(test.key)}
+					for _, element := range test.presetValue.(*set.Set).GetAll() {
+						command = append(command, []resp.Value{resp.StringValue(element)}...)
+					}
+					expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+				}
+
+				if err = client.WriteArray(command); err != nil {
 					t.Error(err)
 				}
-				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				res, _, err := client.ReadValue()
+				if err != nil {
 					t.Error(err)
 				}
-				mockServer.KeyUnlock(ctx, test.key)
+
+				if !strings.EqualFold(res.String(), expected) {
+					t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
-			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			// 1. Check if the response array members are all included in test.expectedResponse.
-			for _, element := range rv.Array() {
-				if !slices.Contains(test.expectedResponse, element.String()) {
-					t.Errorf("expected response array does not contain element \"%s\"", element.String())
+
+			// Check that each returned element is in the list of expected elements.
+			for _, item := range res.Array() {
+				if !slices.Contains(test.expectedResponse, item.String()) {
+					t.Errorf("unexpected element \"%s\" in response", item.String())
 				}
 			}
-			// 2. Fetch the set and check if its cardinality is what we expect.
-			if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
-				t.Error(err)
-			}
-			currSet, ok := mockServer.GetValue(ctx, test.key).(*set.Set)
-			if !ok {
-				t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
-			}
-			if currSet.Cardinality() != test.expectedValue {
-				t.Errorf("expected cardinality of final set to be %d, got %d", test.expectedValue, currSet.Cardinality())
-			}
-			// 3. Check if all the returned elements we received are still in the set.
-			for _, element := range rv.Array() {
-				if !currSet.Contains(element.String()) {
-					t.Errorf("expected element \"%s\" to be in set but it was not found", element.String())
-				}
-			}
-			// 4. If allowRepeat is false, check that all the elements make a valid set
+
+			// If no repeats are allowed, check if the response contains any repeated elements
 			if !test.allowRepeat {
-				var elems []string
-				for _, e := range rv.Array() {
-					elems = append(elems, e.String())
+				s := set.NewSet(func() []string {
+					elements := make([]string, len(res.Array()))
+					for i, item := range res.Array() {
+						elements[i] = item.String()
+					}
+					return elements
+				}())
+				if s.Cardinality() != len(res.Array()) {
+					t.Error("response has repeated elements, expected only unique elements.")
 				}
-				s := set.NewSet(elems)
-				if s.Cardinality() != len(elems) {
-					t.Errorf("expected non-repeating elements for random elements at key \"%s\"", test.key)
-				}
+			}
+
+			// Check if the resulting set's cardinality is as expected.
+			if err := client.WriteArray([]resp.Value{resp.StringValue("SCARD"), resp.StringValue(test.key)}); err != nil {
+				t.Error(err)
+			}
+			res, _, err = client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if res.Integer() != test.expectedValue {
+				t.Errorf("expected set at key \"%s\" to have cardinality %d, got %d",
+					test.key, test.expectedValue, res.Integer())
 			}
 		})
 	}
 }
 
 func Test_HandleSREM(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		key              string
 		presetValue      interface{}
 		command          []string
@@ -1683,7 +1980,6 @@ func Test_HandleSREM(t *testing.T) {
 	}{
 		{
 			name:             "1. Remove multiple elements and return the number of elements removed",
-			preset:           true,
 			key:              "SremKey1",
 			presetValue:      set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 			command:          []string{"SREM", "SremKey1", "one", "two", "three", "nine"},
@@ -1693,7 +1989,6 @@ func Test_HandleSREM(t *testing.T) {
 		},
 		{
 			name:             "2. If key does not exist, return 0",
-			preset:           false,
 			key:              "SremKey2",
 			presetValue:      nil,
 			command:          []string{"SREM", "SremKey1", "one", "two", "three", "nine"},
@@ -1703,7 +1998,6 @@ func Test_HandleSREM(t *testing.T) {
 		},
 		{
 			name:             "3. Return error when the source key is not a set",
-			preset:           true,
 			key:              "SremKey3",
 			presetValue:      "Default value",
 			command:          []string{"SREM", "SremKey3", "one"},
@@ -1713,81 +2007,113 @@ func Test_HandleSREM(t *testing.T) {
 		},
 		{
 			name:          "4. Command too short",
-			preset:        false,
 			command:       []string{"SREM", "SremKey"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SREM, %d", i))
+			if test.presetValue != nil {
+				var command []resp.Value
+				var expected string
 
-			if test.preset {
-				if _, err := mockServer.CreateKeyAndLock(ctx, test.key); err != nil {
+				switch test.presetValue.(type) {
+				case string:
+					command = []resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(test.key),
+						resp.StringValue(test.presetValue.(string)),
+					}
+					expected = "ok"
+				case *set.Set:
+					command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(test.key)}
+					for _, element := range test.presetValue.(*set.Set).GetAll() {
+						command = append(command, []resp.Value{resp.StringValue(element)}...)
+					}
+					expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+				}
+
+				if err = client.WriteArray(command); err != nil {
 					t.Error(err)
 				}
-				if err := mockServer.SetValue(ctx, test.key, test.presetValue); err != nil {
+				res, _, err := client.ReadValue()
+				if err != nil {
 					t.Error(err)
 				}
-				mockServer.KeyUnlock(ctx, test.key)
+
+				if !strings.EqualFold(res.String(), expected) {
+					t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
+
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, res.Integer())
+			}
+
+			// Check if the resulting set(s) contain the expected members.
+			if test.expectedValue == nil {
+				return
+			}
+
+			if err := client.WriteArray([]resp.Value{resp.StringValue("SMEMBERS"), resp.StringValue(test.key)}); err != nil {
+				t.Error(err)
+			}
+			res, _, err = client.ReadValue()
 			if err != nil {
 				t.Error(err)
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
+
+			if len(res.Array()) != test.expectedValue.Cardinality() {
+				t.Errorf("expected set at key \"%s\" to have cardinality %d, got %d",
+					test.key, test.expectedValue.Cardinality(), len(res.Array()))
 			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected integer response %d, got %d", test.expectedResponse, rv.Integer())
-			}
-			if test.expectedValue != nil {
-				if _, err = mockServer.KeyRLock(ctx, test.key); err != nil {
-					t.Error(err)
+
+			for _, item := range res.Array() {
+				if !test.expectedValue.Contains(item.String()) {
+					t.Errorf("unexpected memeber \"%s\", in response", item.String())
 				}
-				currSet, ok := mockServer.GetValue(ctx, test.key).(*set.Set)
-				if !ok {
-					t.Errorf("expected value at key \"%s\" to be a set, got another type", test.key)
-				}
-				for _, element := range currSet.GetAll() {
-					if !test.expectedValue.Contains(element) {
-						t.Errorf("element \"%s\" not found in expected set values but found in set", element)
-					}
-				}
-				mockServer.KeyRUnlock(ctx, test.key)
 			}
 		})
 	}
 }
 
 func Test_HandleSUNION(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValues     map[string]interface{}
 		command          []string
 		expectedResponse []string
 		expectedError    error
 	}{
 		{
-			name:   "1. Get the union between 2 sets.",
-			preset: true,
+			name: "1. Get the union between 2 sets.",
 			presetValues: map[string]interface{}{
 				"SunionKey1": set.NewSet([]string{"one", "two", "three", "four", "five"}),
 				"SunionKey2": set.NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
@@ -1797,8 +2123,7 @@ func Test_HandleSUNION(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "2. Get the union between 3 sets.",
-			preset: true,
+			name: "2. Get the union between 3 sets.",
 			presetValues: map[string]interface{}{
 				"SunionKey3": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SunionKey4": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
@@ -1812,8 +2137,7 @@ func Test_HandleSUNION(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name:   "3. Throw an error if any of the provided keys are not sets",
-			preset: true,
+			name: "3. Throw an error if any of the provided keys are not sets",
 			presetValues: map[string]interface{}{
 				"SunionKey6": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SunionKey7": "Default value",
@@ -1824,8 +2148,7 @@ func Test_HandleSUNION(t *testing.T) {
 			expectedError:    errors.New("value at key SunionKey7 is not a set"),
 		},
 		{
-			name:   "4. Throw error any of the keys does not hold a set.",
-			preset: true,
+			name: "4. Throw error any of the keys does not hold a set.",
 			presetValues: map[string]interface{}{
 				"SunionKey9":  "Default value",
 				"SunionKey10": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
@@ -1837,53 +2160,76 @@ func Test_HandleSUNION(t *testing.T) {
 		},
 		{
 			name:             "6. Command too short",
-			preset:           false,
 			command:          []string{"SUNION"},
 			expectedResponse: []string{},
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SUNION, %d", i))
-
-			if test.preset {
+			if test.presetValues != nil {
+				var command []resp.Value
+				var expected string
 				for key, value := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+					switch value.(type) {
+					case string:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(key),
+							resp.StringValue(value.(string)),
+						}
+						expected = "ok"
+					case *set.Set:
+						command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(key)}
+						for _, element := range value.(*set.Set).GetAll() {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(value.(*set.Set).Cardinality())
+					}
+
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, key, value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.KeyUnlock(ctx, key)
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
-			if err != nil {
-				t.Error(err)
+
+			if len(res.Array()) != len(test.expectedResponse) {
+				t.Errorf("expected response array of length \"%d\", got \"%d\"",
+					len(test.expectedResponse), len(res.Array()))
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
-			}
-			for _, responseElement := range rv.Array() {
-				if !slices.Contains(test.expectedResponse, responseElement.String()) {
-					t.Errorf("could not find response element \"%s\" from expected response array", responseElement.String())
+
+			for _, item := range res.Array() {
+				if !slices.Contains(test.expectedResponse, item.String()) {
+					t.Errorf("unexpected element \"%s\" in response", item.String())
 				}
 			}
 		})
@@ -1891,9 +2237,14 @@ func Test_HandleSUNION(t *testing.T) {
 }
 
 func Test_HandleSUNIONSTORE(t *testing.T) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		t.Error()
+	}
+	client := resp.NewConn(conn)
+
 	tests := []struct {
 		name             string
-		preset           bool
 		presetValues     map[string]interface{}
 		destination      string
 		command          []string
@@ -1902,8 +2253,7 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 		expectedError    error
 	}{
 		{
-			name:   "1. Get the intersection between 2 sets and store it at the destination.",
-			preset: true,
+			name: "1. Get the intersection between 2 sets and store it at the destination.",
 			presetValues: map[string]interface{}{
 				"SunionStoreKey1": set.NewSet([]string{"one", "two", "three", "four", "five"}),
 				"SunionStoreKey2": set.NewSet([]string{"three", "four", "five", "six", "seven", "eight"}),
@@ -1915,8 +2265,7 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "2. Get the intersection between 3 sets and store it at the destination key.",
-			preset: true,
+			name: "2. Get the intersection between 3 sets and store it at the destination key.",
 			presetValues: map[string]interface{}{
 				"SunionStoreKey3": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SunionStoreKey4": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven", "eight"}),
@@ -1932,8 +2281,7 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:   "3. Throw error when any of the keys is not a set",
-			preset: true,
+			name: "3. Throw error when any of the keys is not a set",
 			presetValues: map[string]interface{}{
 				"SunionStoreKey6": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SunionStoreKey7": "Default value",
@@ -1947,67 +2295,97 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 		},
 		{
 			name:             "5. Command too short",
-			preset:           false,
 			command:          []string{"SUNIONSTORE", "SunionStoreDestination6"},
 			expectedResponse: 0,
 			expectedError:    errors.New(constants.WrongArgsResponse),
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "test_name", fmt.Sprintf("SUNIONSTORE, %d", i))
-
-			if test.preset {
+			if test.presetValues != nil {
+				var command []resp.Value
+				var expected string
 				for key, value := range test.presetValues {
-					if _, err := mockServer.CreateKeyAndLock(ctx, key); err != nil {
+					switch value.(type) {
+					case string:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(key),
+							resp.StringValue(value.(string)),
+						}
+						expected = "ok"
+					case *set.Set:
+						command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(key)}
+						for _, element := range value.(*set.Set).GetAll() {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(value.(*set.Set).Cardinality())
+					}
+
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-					if err := mockServer.SetValue(ctx, key, value); err != nil {
+					res, _, err := client.ReadValue()
+					if err != nil {
 						t.Error(err)
 					}
-					mockServer.KeyUnlock(ctx, key)
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
 				}
 			}
 
-			handler := getHandler(test.command[0])
-			if handler == nil {
-				t.Errorf("no handler found for command %s", test.command[0])
-				return
+			command := make([]resp.Value, len(test.command))
+			for i, c := range test.command {
+				command[i] = resp.StringValue(c)
 			}
 
-			res, err := handler(getHandlerFuncParams(ctx, test.command, nil))
+			if err = client.WriteArray(command); err != nil {
+				t.Error(err)
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
 			if test.expectedError != nil {
-				if err.Error() != test.expectedError.Error() {
+				if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 				}
 				return
 			}
+
+			if res.Integer() != test.expectedResponse {
+				t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, res.Integer())
+			}
+
+			// Check if the resulting set(s) contain the expected members.
+			if test.expectedValue == nil {
+				return
+			}
+
+			if err := client.WriteArray([]resp.Value{
+				resp.StringValue("SMEMBERS"),
+				resp.StringValue(test.destination),
+			}); err != nil {
+				t.Error(err)
+			}
+			res, _, err = client.ReadValue()
 			if err != nil {
 				t.Error(err)
 			}
-			rd := resp.NewReader(bytes.NewBuffer(res))
-			rv, _, err := rd.ReadValue()
-			if err != nil {
-				t.Error(err)
+
+			if len(res.Array()) != test.expectedValue.Cardinality() {
+				t.Errorf("expected set at key \"%s\" to have cardinality %d, got %d",
+					test.destination, test.expectedValue.Cardinality(), len(res.Array()))
 			}
-			if rv.Integer() != test.expectedResponse {
-				t.Errorf("expected response integer %d, got %d", test.expectedResponse, rv.Integer())
-			}
-			if test.expectedValue != nil {
-				if _, err = mockServer.KeyRLock(ctx, test.destination); err != nil {
-					t.Error(err)
+
+			for _, item := range res.Array() {
+				if !test.expectedValue.Contains(item.String()) {
+					t.Errorf("unexpected memeber \"%s\", in response", item.String())
 				}
-				currSet, ok := mockServer.GetValue(ctx, test.destination).(*set.Set)
-				if !ok {
-					t.Errorf("expected vaule at key %s to be set, got another type", test.destination)
-				}
-				for _, elem := range currSet.GetAll() {
-					if !test.expectedValue.Contains(elem) {
-						t.Errorf("could not find element %s in the expected values", elem)
-					}
-				}
-				mockServer.KeyRUnlock(ctx, test.destination)
 			}
 		})
 	}
