@@ -36,6 +36,7 @@ import (
 	"github.com/echovault/echovault/internal/modules/pubsub"
 	"github.com/echovault/echovault/internal/modules/set"
 	"github.com/echovault/echovault/internal/modules/sorted_set"
+	str "github.com/echovault/echovault/internal/modules/string"
 	"github.com/echovault/echovault/internal/raft"
 	"github.com/echovault/echovault/internal/snapshot"
 	"io"
@@ -143,7 +144,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			commands = append(commands, pubsub.Commands()...)
 			commands = append(commands, set.Commands()...)
 			commands = append(commands, sorted_set.Commands()...)
-			// commands = append(commands, str.Commands()...)
+			commands = append(commands, str.Commands()...)
 			return commands
 		}(),
 	}
