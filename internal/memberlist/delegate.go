@@ -81,7 +81,7 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 		}
 		err := delegate.options.addVoter(msg.NodeMeta.ServerID, msg.NodeMeta.RaftAddr, 0, 0)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 
 	case "DeleteKey":

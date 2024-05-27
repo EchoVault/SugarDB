@@ -16,19 +16,13 @@ func createEchoVault() *EchoVault {
 }
 
 func presetValue(server *EchoVault, ctx context.Context, key string, value interface{}) error {
-	if _, err := server.CreateKeyAndLock(ctx, key); err != nil {
+	if err := server.setValues(ctx, map[string]interface{}{key: value}); err != nil {
 		return err
 	}
-	if err := server.SetValue(ctx, key, value); err != nil {
-		return err
-	}
-	server.KeyUnlock(ctx, key)
 	return nil
 }
 
 func presetKeyData(server *EchoVault, ctx context.Context, key string, data internal.KeyData) {
-	_, _ = server.CreateKeyAndLock(ctx, key)
-	defer server.KeyUnlock(ctx, key)
-	_ = server.SetValue(ctx, key, data.Value)
-	server.SetExpiry(ctx, key, data.ExpireAt, false)
+	_ = server.setValues(ctx, map[string]interface{}{key: data.Value})
+	server.setExpiry(ctx, key, data.ExpireAt, false)
 }

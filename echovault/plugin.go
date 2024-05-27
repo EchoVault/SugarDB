@@ -102,14 +102,9 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 	handlerFunc, ok := handlerFuncSymbol.(func(
 		ctx context.Context,
 		command []string,
-		keyExists func(ctx context.Context, key string) bool,
-		keyLock func(ctx context.Context, key string) (bool, error),
-		keyUnlock func(ctx context.Context, key string),
-		keyRLock func(ctx context.Context, key string) (bool, error),
-		keyRUnlock func(ctx context.Context, key string),
-		createKeyAndLock func(ctx context.Context, key string) (bool, error),
-		getValue func(ctx context.Context, key string) interface{},
-		setValue func(ctx context.Context, key string, value interface{}) error,
+		keysExist func(key []string) map[string]bool,
+		getValues func(ctx context.Context, key []string) map[string]interface{},
+		setValues func(ctx context.Context, entries map[string]interface{}) error,
 		args ...string,
 	) ([]byte, error))
 	if !ok {
@@ -151,14 +146,9 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 			return handlerFunc(
 				params.Context,
 				params.Command,
-				params.KeyExists,
-				params.KeyLock,
-				params.KeyUnlock,
-				params.KeyRLock,
-				params.KeyRUnlock,
-				params.CreateKeyAndLock,
-				params.GetValue,
-				params.SetValue,
+				params.KeysExist,
+				params.GetValues,
+				params.SetValues,
 				args...,
 			)
 		},

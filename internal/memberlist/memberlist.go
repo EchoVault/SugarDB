@@ -60,7 +60,9 @@ func NewMemberList(opts Opts) *MemberList {
 }
 
 func (m *MemberList) MemberListInit(ctx context.Context) {
-	cfg := memberlist.DefaultLocalConfig()
+	cfg := memberlist.DefaultLANConfig()
+	cfg.RequireNodeNames = true
+	cfg.Name = m.options.Config.ServerID
 	cfg.BindAddr = m.options.Config.BindAddr
 	cfg.BindPort = int(m.options.Config.MemberListBindPort)
 	cfg.Delegate = NewDelegate(DelegateOpts{
@@ -166,5 +168,5 @@ func (m *MemberList) MemberListShutdown() {
 		log.Fatal("Could not gracefully shutdown memberlist background maintenance")
 	}
 
-	fmt.Println("Successfully shutdown memberlist")
+	log.Println("Successfully shutdown memberlist")
 }

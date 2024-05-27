@@ -135,13 +135,11 @@ func zinterstoreKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) 
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
 	endIdx := slices.IndexFunc(cmd[1:], func(s string) bool {
-		if strings.EqualFold(s, "WEIGHTS") ||
+		return strings.EqualFold(s, "WEIGHTS") ||
 			strings.EqualFold(s, "AGGREGATE") ||
-			strings.EqualFold(s, "WITHSCORES") {
-			return true
-		}
-		return false
+			strings.EqualFold(s, "WITHSCORES")
 	})
+
 	if endIdx == -1 {
 		return internal.KeyExtractionFuncResult{
 			Channels:  make([]string, 0),
@@ -149,13 +147,15 @@ func zinterstoreKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) 
 			WriteKeys: cmd[1:2],
 		}, nil
 	}
+
 	if endIdx >= 3 {
 		return internal.KeyExtractionFuncResult{
 			Channels:  make([]string, 0),
-			ReadKeys:  cmd[2:endIdx],
+			ReadKeys:  cmd[2 : endIdx+1],
 			WriteKeys: cmd[1:2],
 		}, nil
 	}
+
 	return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 }
 
@@ -377,7 +377,7 @@ func zunionstoreKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) 
 	if endIdx >= 1 {
 		return internal.KeyExtractionFuncResult{
 			Channels:  make([]string, 0),
-			ReadKeys:  cmd[2:endIdx],
+			ReadKeys:  cmd[2 : endIdx+1],
 			WriteKeys: cmd[1:2],
 		}, nil
 	}

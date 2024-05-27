@@ -40,17 +40,11 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 		Context:               ctx,
 		Command:               cmd,
 		Connection:            conn,
-		KeyExists:             server.KeyExists,
-		CreateKeyAndLock:      server.CreateKeyAndLock,
-		KeyLock:               server.KeyLock,
-		KeyRLock:              server.KeyRLock,
-		KeyUnlock:             server.KeyUnlock,
-		KeyRUnlock:            server.KeyRUnlock,
-		GetValue:              server.GetValue,
-		SetValue:              server.SetValue,
-		GetExpiry:             server.GetExpiry,
-		SetExpiry:             server.SetExpiry,
-		DeleteKey:             server.DeleteKey,
+		KeysExist:             server.keysExist,
+		GetExpiry:             server.getExpiry,
+		GetValues:             server.getValues,
+		SetValues:             server.setValues,
+		SetExpiry:             server.setExpiry,
 		TakeSnapshot:          server.takeSnapshot,
 		GetLatestSnapshotTime: server.getLatestSnapshotTime,
 		RewriteAOF:            server.rewriteAOF,
@@ -61,6 +55,11 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 		GetPubSub:             server.getPubSub,
 		GetACL:                server.getACL,
 		GetAllCommands:        server.getCommands,
+		DeleteKey: func(key string) error {
+			server.storeLock.Lock()
+			defer server.storeLock.Unlock()
+			return server.deleteKey(key)
+		},
 	}
 }
 
@@ -68,6 +67,10 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	cmd, err := internal.Decode(message)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(cmd) == 0 {
+		return nil, errors.New("empty command")
 	}
 
 	command, err := server.getCommand(cmd[0])

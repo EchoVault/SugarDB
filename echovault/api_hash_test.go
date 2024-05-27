@@ -616,13 +616,13 @@ func TestEchoVault_HSET(t *testing.T) {
 			wantErr:         false,
 		},
 		{
-			name:            "HSET returns error when the target key is not a map",
+			name:            "HSET overwrites when the target key is not a map",
 			key:             "key6",
 			presetValue:     "Default preset value",
 			fieldValuePairs: map[string]string{"field1": "value1"},
 			hsetFunc:        server.HSet,
-			want:            0,
-			wantErr:         true,
+			want:            1,
+			wantErr:         false,
 		},
 	}
 	for _, tt := range tests {

@@ -31,18 +31,14 @@ func handleLLen(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		// If key does not exist, return 0
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	if list, ok := params.GetValue(params.Context, key).([]interface{}); ok {
+	if list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{}); ok {
 		return []byte(fmt.Sprintf(":%d\r\n", len(list))), nil
 	}
 
@@ -56,22 +52,18 @@ func handleLIndex(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 	index, ok := internal.AdaptType(params.Command[2]).(int)
 
 	if !ok {
 		return nil, errors.New("index must be an integer")
 	}
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return nil, errors.New("LINDEX command on non-list item")
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	list, ok := params.GetValue(params.Context, key).([]interface{})
-	params.KeyRUnlock(params.Context, key)
-
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
 	if !ok {
 		return nil, errors.New("LINDEX command on non-list item")
 	}
@@ -90,6 +82,7 @@ func handleLRange(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 	start, startOk := internal.AdaptType(params.Command[2]).(int)
 	end, endOk := internal.AdaptType(params.Command[3]).(int)
 
@@ -97,16 +90,11 @@ func handleLRange(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New("start and end indices must be integers")
 	}
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return nil, errors.New("LRANGE command on non-list item")
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	list, ok := params.GetValue(params.Context, key).([]interface{})
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
 	if !ok {
 		return nil, errors.New("LRANGE command on non-list item")
 	}
@@ -169,22 +157,18 @@ func handleLSet(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 
 	index, ok := internal.AdaptType(params.Command[2]).(int)
 	if !ok {
 		return nil, errors.New("index must be an integer")
 	}
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return nil, errors.New("LSET command on non-list item")
 	}
 
-	if _, err = params.KeyLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
-
-	list, ok := params.GetValue(params.Context, key).([]interface{})
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
 	if !ok {
 		return nil, errors.New("LSET command on non-list item")
 	}
@@ -194,7 +178,7 @@ func handleLSet(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	list[index] = internal.AdaptType(params.Command[3])
-	if err = params.SetValue(params.Context, key, list); err != nil {
+	if err = params.SetValues(params.Context, map[string]interface{}{key: list}); err != nil {
 		return nil, err
 	}
 
@@ -208,6 +192,7 @@ func handleLTrim(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 	start, startOk := internal.AdaptType(params.Command[2]).(int)
 	end, endOk := internal.AdaptType(params.Command[3]).(int)
 
@@ -219,16 +204,11 @@ func handleLTrim(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New("end index must be greater than start index or -1")
 	}
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return nil, errors.New("LTRIM command on non-list item")
 	}
 
-	if _, err = params.KeyLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
-
-	list, ok := params.GetValue(params.Context, key).([]interface{})
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
 	if !ok {
 		return nil, errors.New("LTRIM command on non-list item")
 	}
@@ -238,13 +218,13 @@ func handleLTrim(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	if end == -1 || end > len(list) {
-		if err = params.SetValue(params.Context, key, list[start:]); err != nil {
+		if err = params.SetValues(params.Context, map[string]interface{}{key: list[start:]}); err != nil {
 			return nil, err
 		}
 		return []byte(constants.OkResponse), nil
 	}
 
-	if err = params.SetValue(params.Context, key, list[start:end]); err != nil {
+	if err = params.SetValues(params.Context, map[string]interface{}{key: list[start:end]}); err != nil {
 		return nil, err
 	}
 	return []byte(constants.OkResponse), nil
@@ -257,6 +237,7 @@ func handleLRem(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 	value := params.Command[3]
 
 	count, ok := internal.AdaptType(params.Command[2]).(int)
@@ -266,16 +247,11 @@ func handleLRem(params internal.HandlerFuncParams) ([]byte, error) {
 
 	absoluteCount := internal.AbsInt(count)
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return nil, errors.New("LREM command on non-list item")
 	}
 
-	if _, err = params.KeyLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
-
-	list, ok := params.GetValue(params.Context, key).([]interface{})
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
 	if !ok {
 		return nil, errors.New("LREM command on non-list item")
 	}
@@ -311,7 +287,7 @@ func handleLRem(params internal.HandlerFuncParams) ([]byte, error) {
 		return elem == nil
 	})
 
-	if err = params.SetValue(params.Context, key, list); err != nil {
+	if err = params.SetValues(params.Context, map[string]interface{}{key: list}); err != nil {
 		return nil, err
 	}
 
@@ -324,6 +300,7 @@ func handleLMove(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 
+	keysExist := params.KeysExist(keys.WriteKeys)
 	source, destination := keys.WriteKeys[0], keys.WriteKeys[1]
 	whereFrom := strings.ToLower(params.Command[3])
 	whereTo := strings.ToLower(params.Command[4])
@@ -332,23 +309,13 @@ func handleLMove(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New("wherefrom and whereto arguments must be either LEFT or RIGHT")
 	}
 
-	if !params.KeyExists(params.Context, source) || !params.KeyExists(params.Context, destination) {
+	if !keysExist[source] || !keysExist[destination] {
 		return nil, errors.New("both source and destination must be lists")
 	}
 
-	if _, err = params.KeyLock(params.Context, source); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, source)
-
-	_, err = params.KeyLock(params.Context, destination)
-	if err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, destination)
-
-	sourceList, sourceOk := params.GetValue(params.Context, source).([]interface{})
-	destinationList, destinationOk := params.GetValue(params.Context, destination).([]interface{})
+	lists := params.GetValues(params.Context, keys.WriteKeys)
+	sourceList, sourceOk := lists[source].([]interface{})
+	destinationList, destinationOk := lists[destination].([]interface{})
 
 	if !sourceOk || !destinationOk {
 		return nil, errors.New("both source and destination must be lists")
@@ -356,19 +323,27 @@ func handleLMove(params internal.HandlerFuncParams) ([]byte, error) {
 
 	switch whereFrom {
 	case "left":
-		err = params.SetValue(params.Context, source, append([]interface{}{}, sourceList[1:]...))
-		if whereTo == "left" {
-			err = params.SetValue(params.Context, destination, append(sourceList[0:1], destinationList...))
-		} else if whereTo == "right" {
-			err = params.SetValue(params.Context, destination, append(destinationList, sourceList[0]))
-		}
+		err = params.SetValues(params.Context, map[string]interface{}{
+			source: append([]interface{}{}, sourceList[1:]...),
+			destination: func() []interface{} {
+				if whereTo == "left" {
+					return append(sourceList[0:1], destinationList...)
+				}
+				// whereTo == "right"
+				return append(destinationList, sourceList[0])
+			}(),
+		})
 	case "right":
-		err = params.SetValue(params.Context, source, append([]interface{}{}, sourceList[:len(sourceList)-1]...))
-		if whereTo == "left" {
-			err = params.SetValue(params.Context, destination, append(sourceList[len(sourceList)-1:], destinationList...))
-		} else if whereTo == "right" {
-			err = params.SetValue(params.Context, destination, append(destinationList, sourceList[len(sourceList)-1]))
-		}
+		err = params.SetValues(params.Context, map[string]interface{}{
+			source: append([]interface{}{}, sourceList[:len(sourceList)-1]...),
+			destination: func() []interface{} {
+				if whereTo == "left" {
+					return append(sourceList[len(sourceList)-1:], destinationList...)
+				}
+				// whereTo == "right"
+				return append(destinationList, sourceList[len(sourceList)-1])
+			}(),
+		})
 	}
 
 	if err != nil {
@@ -391,36 +366,29 @@ func handleLPush(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		switch strings.ToLower(params.Command[0]) {
 		case "lpushx":
-			return nil, errors.New("LPUSHX command on non-list item")
+			return nil, errors.New("LPUSHX command on non-existent key")
 		default:
-			if _, err = params.CreateKeyAndLock(params.Context, key); err != nil {
+			if err = params.SetValues(params.Context, map[string]interface{}{key: []interface{}{}}); err != nil {
 				return nil, err
 			}
-			if err = params.SetValue(params.Context, key, []interface{}{}); err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		if _, err = params.KeyLock(params.Context, key); err != nil {
-			return nil, err
 		}
 	}
-	defer params.KeyUnlock(params.Context, key)
 
-	currentList := params.GetValue(params.Context, key)
-
+	currentList := params.GetValues(params.Context, []string{key})[key]
 	l, ok := currentList.([]interface{})
 	if !ok {
 		return nil, errors.New("LPUSH command on non-list item")
 	}
 
-	if err = params.SetValue(params.Context, key, append(newElems, l...)); err != nil {
+	if err = params.SetValues(params.Context, map[string]interface{}{key: append(newElems, l...)}); err != nil {
 		return nil, err
 	}
+
 	return []byte(fmt.Sprintf(":%d\r\n", len(l)+len(newElems))), nil
 }
 
@@ -431,6 +399,7 @@ func handleRPush(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 
 	var newElems []interface{}
 
@@ -438,35 +407,24 @@ func handleRPush(params internal.HandlerFuncParams) ([]byte, error) {
 		newElems = append(newElems, internal.AdaptType(elem))
 	}
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		switch strings.ToLower(params.Command[0]) {
 		case "rpushx":
-			return nil, errors.New("RPUSHX command on non-list item")
+			return nil, errors.New("RPUSHX command on non-existent key")
 		default:
-			if _, err = params.CreateKeyAndLock(params.Context, key); err != nil {
-				return nil, err
-			}
-			defer params.KeyUnlock(params.Context, key)
-			if err = params.SetValue(params.Context, key, []interface{}{}); err != nil {
+			if err = params.SetValues(params.Context, map[string]interface{}{key: []interface{}{}}); err != nil {
 				return nil, err
 			}
 		}
-	} else {
-		if _, err = params.KeyLock(params.Context, key); err != nil {
-			return nil, err
-		}
-		defer params.KeyUnlock(params.Context, key)
 	}
 
-	currentList := params.GetValue(params.Context, key)
-
+	currentList := params.GetValues(params.Context, []string{key})[key]
 	l, ok := currentList.([]interface{})
-
 	if !ok {
 		return nil, errors.New("RPUSH command on non-list item")
 	}
 
-	if err = params.SetValue(params.Context, key, append(l, newElems...)); err != nil {
+	if err = params.SetValues(params.Context, map[string]interface{}{key: append(l, newElems...)}); err != nil {
 		return nil, err
 	}
 	return []byte(fmt.Sprintf(":%d\r\n", len(l)+len(newElems))), nil
@@ -479,29 +437,25 @@ func handlePop(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(params.Command[0]))
 	}
 
-	if _, err = params.KeyLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
-
-	list, ok := params.GetValue(params.Context, key).([]interface{})
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(params.Command[0]))
 	}
 
 	switch strings.ToLower(params.Command[0]) {
 	default:
-		if err = params.SetValue(params.Context, key, list[1:]); err != nil {
+		if err = params.SetValues(params.Context, map[string]interface{}{key: list[1:]}); err != nil {
 			return nil, err
 		}
 		return []byte(fmt.Sprintf("+%v\r\n", list[0])), nil
 	case "rpop":
-		if err = params.SetValue(params.Context, key, list[:len(list)-1]); err != nil {
+		if err = params.SetValues(params.Context, map[string]interface{}{key: list[:len(list)-1]}); err != nil {
 			return nil, err
 		}
 		return []byte(fmt.Sprintf("+%v\r\n", list[len(list)-1])), nil

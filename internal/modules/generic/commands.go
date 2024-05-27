@@ -37,6 +37,7 @@ func handleSet(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 	value := params.Command[2]
 	res := []byte(constants.OkResponse)
 	clock := params.GetClock()
@@ -49,41 +50,28 @@ func handleSet(params internal.HandlerFuncParams) ([]byte, error) {
 	// If Get is provided, the response should be the current stored value.
 	// If there's no current value, then the response should be nil.
 	if options.get {
-		if !params.KeyExists(params.Context, key) {
+		if !keyExists {
 			res = []byte("$-1\r\n")
 		} else {
-			res = []byte(fmt.Sprintf("+%v\r\n", params.GetValue(params.Context, key)))
+			res = []byte(fmt.Sprintf("+%v\r\n", params.GetValues(params.Context, []string{key})[key]))
 		}
 	}
 
 	if "xx" == strings.ToLower(options.exists) {
 		// If XX is specified, make sure the key exists.
-		if !params.KeyExists(params.Context, key) {
+		if !keyExists {
 			return nil, fmt.Errorf("key %s does not exist", key)
 		}
-		_, err = params.KeyLock(params.Context, key)
 	} else if "nx" == strings.ToLower(options.exists) {
 		// If NX is specified, make sure that the key does not currently exist.
-		if params.KeyExists(params.Context, key) {
+		if keyExists {
 			return nil, fmt.Errorf("key %s already exists", key)
 		}
-		_, err = params.CreateKeyAndLock(params.Context, key)
-	} else {
-		// Neither XX not NX are specified, lock or create the lock
-		if !params.KeyExists(params.Context, key) {
-			// Key does not exist, create it
-			_, err = params.CreateKeyAndLock(params.Context, key)
-		} else {
-			// Key exists, acquire the lock
-			_, err = params.KeyLock(params.Context, key)
-		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
 
-	if err = params.SetValue(params.Context, key, internal.AdaptType(value)); err != nil {
+	if err = params.SetValues(params.Context, map[string]interface{}{
+		key: internal.AdaptType(value),
+	}); err != nil {
 		return nil, err
 	}
 
@@ -101,52 +89,18 @@ func handleMSet(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 
-	entries := make(map[string]KeyObject)
-
-	// Release all acquired key locks
-	defer func() {
-		for k, v := range entries {
-			if v.locked {
-				params.KeyUnlock(params.Context, k)
-				entries[k] = KeyObject{
-					value:  v.value,
-					locked: false,
-				}
-			}
-		}
-	}()
+	entries := make(map[string]interface{})
 
 	// Extract all the key/value pairs
 	for i, key := range params.Command[1:] {
 		if i%2 == 0 {
-			entries[key] = KeyObject{
-				value:  internal.AdaptType(params.Command[1:][i+1]),
-				locked: false,
-			}
+			entries[key] = internal.AdaptType(params.Command[1:][i+1])
 		}
-	}
-
-	// Acquire all the locks for each key first
-	// If any key cannot be acquired, abandon transaction and release all currently held keys
-	for k, v := range entries {
-		if params.KeyExists(params.Context, k) {
-			if _, err := params.KeyLock(params.Context, k); err != nil {
-				return nil, err
-			}
-			entries[k] = KeyObject{value: v.value, locked: true}
-			continue
-		}
-		if _, err := params.CreateKeyAndLock(params.Context, k); err != nil {
-			return nil, err
-		}
-		entries[k] = KeyObject{value: v.value, locked: true}
 	}
 
 	// Set all the values
-	for k, v := range entries {
-		if err := params.SetValue(params.Context, k, v.value); err != nil {
-			return nil, err
-		}
+	if err = params.SetValues(params.Context, entries); err != nil {
+		return nil, err
 	}
 
 	return []byte(constants.OkResponse), nil
@@ -158,18 +112,13 @@ func handleGet(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist([]string{key})[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte("$-1\r\n"), nil
 	}
 
-	_, err = params.KeyRLock(params.Context, key)
-	if err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	value := params.GetValue(params.Context, key)
+	value := params.GetValues(params.Context, []string{key})[key]
 
 	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
 }
@@ -181,34 +130,12 @@ func handleMGet(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	values := make(map[string]string)
-
-	locks := make(map[string]bool)
-	for _, key := range keys.ReadKeys {
-		if _, ok := values[key]; ok {
-			// Skip if we have already locked this key
+	for key, value := range params.GetValues(params.Context, keys.ReadKeys) {
+		if value == nil {
+			values[key] = ""
 			continue
 		}
-		if params.KeyExists(params.Context, key) {
-			_, err = params.KeyRLock(params.Context, key)
-			if err != nil {
-				return nil, fmt.Errorf("could not obtain lock for %s key", key)
-			}
-			locks[key] = true
-			continue
-		}
-		values[key] = ""
-	}
-	defer func() {
-		for key, locked := range locks {
-			if locked {
-				params.KeyRUnlock(params.Context, key)
-				locks[key] = false
-			}
-		}
-	}()
-
-	for key, _ := range locks {
-		values[key] = fmt.Sprintf("%v", params.GetValue(params.Context, key))
+		values[key] = fmt.Sprintf("%v", value)
 	}
 
 	bytes := []byte(fmt.Sprintf("*%d\r\n", len(params.Command[1:])))
@@ -230,8 +157,11 @@ func handleDel(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	count := 0
-	for _, key := range keys.WriteKeys {
-		err = params.DeleteKey(params.Context, key)
+	for key, exists := range params.KeysExist(keys.WriteKeys) {
+		if !exists {
+			continue
+		}
+		err = params.DeleteKey(key)
 		if err != nil {
 			log.Printf("could not delete key %s due to error: %+v\n", key, err)
 			continue
@@ -248,17 +178,13 @@ func handlePersist(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err = params.KeyLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
-
-	expireAt := params.GetExpiry(params.Context, key)
+	expireAt := params.GetExpiry(key)
 	if expireAt == (time.Time{}) {
 		return []byte(":0\r\n"), nil
 	}
@@ -275,17 +201,13 @@ func handleExpireTime(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte(":-2\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	expireAt := params.GetExpiry(params.Context, key)
+	expireAt := params.GetExpiry(key)
 
 	if expireAt == (time.Time{}) {
 		return []byte(":-1\r\n"), nil
@@ -306,19 +228,15 @@ func handleTTL(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 
 	clock := params.GetClock()
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte(":-2\r\n"), nil
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	expireAt := params.GetExpiry(params.Context, key)
+	expireAt := params.GetExpiry(key)
 
 	if expireAt == (time.Time{}) {
 		return []byte(":-1\r\n"), nil
@@ -343,6 +261,7 @@ func handleExpire(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 
 	// Extract time
 	n, err := strconv.ParseInt(params.Command[2], 10, 64)
@@ -354,21 +273,16 @@ func handleExpire(params internal.HandlerFuncParams) ([]byte, error) {
 		expireAt = params.GetClock().Now().Add(time.Duration(n) * time.Millisecond)
 	}
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte(":0\r\n"), nil
 	}
-
-	if _, err = params.KeyLock(params.Context, key); err != nil {
-		return []byte(":0\r\n"), err
-	}
-	defer params.KeyUnlock(params.Context, key)
 
 	if len(params.Command) == 3 {
 		params.SetExpiry(params.Context, key, expireAt, true)
 		return []byte(":1\r\n"), nil
 	}
 
-	currentExpireAt := params.GetExpiry(params.Context, key)
+	currentExpireAt := params.GetExpiry(key)
 
 	switch strings.ToLower(params.Command[3]) {
 	case "nx":
@@ -411,6 +325,7 @@ func handleExpireAt(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 
 	// Extract time
 	n, err := strconv.ParseInt(params.Command[2], 10, 64)
@@ -422,21 +337,16 @@ func handleExpireAt(params internal.HandlerFuncParams) ([]byte, error) {
 		expireAt = time.UnixMilli(n)
 	}
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte(":0\r\n"), nil
 	}
-
-	if _, err = params.KeyLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
 
 	if len(params.Command) == 3 {
 		params.SetExpiry(params.Context, key, expireAt, true)
 		return []byte(":1\r\n"), nil
 	}
 
-	currentExpireAt := params.GetExpiry(params.Context, key)
+	currentExpireAt := params.GetExpiry(key)
 
 	switch strings.ToLower(params.Command[3]) {
 	case "nx":

@@ -72,7 +72,7 @@ func NewACL(config config.Config) *ACL {
 		} else {
 			defer func() {
 				if err := f.Close(); err != nil {
-					fmt.Println("acl config file close error: ", err)
+					log.Println("acl config file close error: ", err)
 				}
 			}()
 

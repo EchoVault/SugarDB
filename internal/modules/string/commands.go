@@ -28,6 +28,7 @@ func handleSetRange(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
 
 	offset, ok := internal.AdaptType(params.Command[2]).(int)
 	if !ok {
@@ -36,23 +37,11 @@ func handleSetRange(params internal.HandlerFuncParams) ([]byte, error) {
 
 	newStr := params.Command[3]
 
-	if !params.KeyExists(params.Context, key) {
-		if _, err = params.CreateKeyAndLock(params.Context, key); err != nil {
-			return nil, err
-		}
-		if err = params.SetValue(params.Context, key, newStr); err != nil {
-			return nil, err
-		}
-		params.KeyUnlock(params.Context, key)
+	if !keyExists {
 		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
 	}
 
-	if _, err := params.KeyLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyUnlock(params.Context, key)
-
-	str, ok := params.GetValue(params.Context, key).(string)
+	str, ok := params.GetValues(params.Context, []string{key})[key].(string)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a string", key)
 	}
@@ -60,7 +49,7 @@ func handleSetRange(params internal.HandlerFuncParams) ([]byte, error) {
 	// If the offset  >= length of the string, append the new string to the old one.
 	if offset >= len(str) {
 		newStr = str + newStr
-		if err = params.SetValue(params.Context, key, newStr); err != nil {
+		if err = params.SetValues(params.Context, map[string]interface{}{key: newStr}); err != nil {
 			return nil, err
 		}
 		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
@@ -69,7 +58,7 @@ func handleSetRange(params internal.HandlerFuncParams) ([]byte, error) {
 	// If the offset is < 0, prepend the new string to the old one.
 	if offset < 0 {
 		newStr = newStr + str
-		if err = params.SetValue(params.Context, key, newStr); err != nil {
+		if err = params.SetValues(params.Context, map[string]interface{}{key: newStr}); err != nil {
 			return nil, err
 		}
 		return []byte(fmt.Sprintf(":%d\r\n", len(newStr))), nil
@@ -89,7 +78,7 @@ func handleSetRange(params internal.HandlerFuncParams) ([]byte, error) {
 		break
 	}
 
-	if err = params.SetValue(params.Context, key, string(strRunes)); err != nil {
+	if err = params.SetValues(params.Context, map[string]interface{}{key: string(strRunes)}); err != nil {
 		return nil, err
 	}
 
@@ -103,17 +92,13 @@ func handleStrLen(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return []byte(":0\r\n"), nil
 	}
 
-	if _, err := params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	value, ok := params.GetValue(params.Context, key).(string)
+	value, ok := params.GetValues(params.Context, []string{key})[key].(string)
 
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a string", key)
@@ -129,6 +114,7 @@ func handleSubStr(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(keys.ReadKeys)[key]
 
 	start, startOk := internal.AdaptType(params.Command[2]).(int)
 	end, endOk := internal.AdaptType(params.Command[3]).(int)
@@ -138,16 +124,11 @@ func handleSubStr(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New("start and end indices must be integers")
 	}
 
-	if !params.KeyExists(params.Context, key) {
+	if !keyExists {
 		return nil, fmt.Errorf("key %s does not exist", key)
 	}
 
-	if _, err = params.KeyRLock(params.Context, key); err != nil {
-		return nil, err
-	}
-	defer params.KeyRUnlock(params.Context, key)
-
-	value, ok := params.GetValue(params.Context, key).(string)
+	value, ok := params.GetValues(params.Context, []string{key})[key].(string)
 	if !ok {
 		return nil, fmt.Errorf("value at key %s is not a string", key)
 	}
