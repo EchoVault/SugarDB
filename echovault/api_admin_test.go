@@ -300,7 +300,7 @@ func TestEchoVault_RemoveCommand(t *testing.T) {
 
 func TestEchoVault_Plugins(t *testing.T) {
 	t.Cleanup(func() {
-		_ = os.RemoveAll("./testdata")
+		_ = os.RemoveAll("./testdata/modules")
 	})
 
 	server := createEchoVault()

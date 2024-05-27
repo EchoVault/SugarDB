@@ -15,6 +15,13 @@ func createEchoVault() *EchoVault {
 	return ev
 }
 
+func createEchoVaultWithConfig(conf config.Config) *EchoVault {
+	ev, _ := NewEchoVault(
+		WithConfig(conf),
+	)
+	return ev
+}
+
 func presetValue(server *EchoVault, ctx context.Context, key string, value interface{}) error {
 	if err := server.setValues(ctx, map[string]interface{}{key: value}); err != nil {
 		return err

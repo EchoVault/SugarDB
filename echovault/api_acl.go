@@ -303,7 +303,8 @@ func (server *EchoVault) ACLGetUser(username string) (map[string][]string, error
 	}
 
 	arr := v.Array()
-	result := make(map[string][]string, len(arr)/2)
+
+	result := make(map[string][]string)
 
 	for i := 0; i < len(arr); i += 2 {
 		key := arr[i].String()
@@ -312,7 +313,7 @@ func (server *EchoVault) ACLGetUser(username string) (map[string][]string, error
 		result[key] = make([]string, len(value))
 
 		for j := 0; j < len(value); j++ {
-			result[key][i] = value[i].String()
+			result[key][j] = value[j].String()
 		}
 	}
 
