@@ -105,9 +105,18 @@ func Test_ClusterReplication(t *testing.T) {
 			server.Start()
 		}()
 
-		<-time.After(5 * time.Second)
+		<-time.After(500 * time.Millisecond) // Yield to allow server start.
 
-		// Setup client connection
+		if i > 0 {
+			// If the node is a follower, wait until it's joined the raft cluster before moving forward.
+			for {
+				if server.raft.HasJoinedCluster() {
+					break
+				}
+			}
+		}
+
+		// Setup client connection.
 		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 		if err != nil {
 			t.Errorf("could not open tcp connection: %v", err)

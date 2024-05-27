@@ -577,7 +577,7 @@ func TestEchoVault_SINTERSTORE(t *testing.T) {
 				"key12": set.NewSet([]string{"one", "two", "thirty-six", "twelve", "eleven"}),
 				"key13": set.NewSet([]string{"seven", "eight", "nine", "ten", "twelve"}),
 			},
-			keys:    []string{"non-existent", "key7", "key8"},
+			keys:    []string{"non-existent", "key12", "key13"},
 			want:    0,
 			wantErr: false,
 		},
