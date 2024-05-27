@@ -53,15 +53,19 @@ func (server *EchoVault) Subscribe(tag string, channels ...string) ReadPubSubMes
 		connections = make(map[string]conn)
 	}
 
-	// If connection with this name does not exist, create new connection it
 	var readConn net.Conn
 	var writeConn net.Conn
 	if _, ok := connections[tag]; !ok {
+		// If connection with this name does not exist, create new connection
 		readConn, writeConn = net.Pipe()
 		connections[tag] = conn{
 			readConn:  &readConn,
 			writeConn: &writeConn,
 		}
+	} else {
+		// Reuse existing connection
+		readConn = *connections[tag].readConn
+		writeConn = *connections[tag].writeConn
 	}
 
 	// Subscribe connection to the provided channels
@@ -119,15 +123,19 @@ func (server *EchoVault) PSubscribe(tag string, patterns ...string) ReadPubSubMe
 		connections = make(map[string]conn)
 	}
 
-	// If connection with this name does not exist, create new connection it
 	var readConn net.Conn
 	var writeConn net.Conn
 	if _, ok := connections[tag]; !ok {
+		// If connection with this name does not exist, create new connection.
 		readConn, writeConn = net.Pipe()
 		connections[tag] = conn{
 			readConn:  &readConn,
 			writeConn: &writeConn,
 		}
+	} else {
+		// Reuse existing connection.
+		readConn = *connections[tag].readConn
+		writeConn = *connections[tag].writeConn
 	}
 
 	// Subscribe connection to the provided channels
@@ -218,14 +226,14 @@ func (server *EchoVault) PubSubNumPat() (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
-// PubSubNmSub returns the number of subscribers for each of the specified channels.
+// PubSubNumSub returns the number of subscribers for each of the specified channels.
 //
 // Parameters:
 //
 // `channels` - ...string - The list of channels whose number of subscribers is to be checked.
 //
 // Returns: A map of map[string]int where the key is the channel name and the value is the number of subscribers.
-func (server *EchoVault) PubSubNmSub(channels ...string) (map[string]int, error) {
+func (server *EchoVault) PubSubNumSub(channels ...string) (map[string]int, error) {
 	cmd := append([]string{"PUBSUB", "NUMSUB"}, channels...)
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)

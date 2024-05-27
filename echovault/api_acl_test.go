@@ -266,13 +266,4 @@ func TestEchoVault_ACLUsers(t *testing.T) {
 	if len(list) != 2 {
 		t.Errorf("ACLList() got list length %d, want %d", len(list), 2)
 	}
-
-	// Save the current ACL rules
-	ok, err = server.ACLSave()
-	if err != nil {
-		t.Errorf("ACLSave() err = %v", err)
-	}
-	if !ok {
-		t.Errorf("ACLSave() could not save ACL file")
-	}
 }

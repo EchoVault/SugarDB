@@ -172,10 +172,10 @@ func (r *Raft) HasJoinedCluster() bool {
 }
 
 func (r *Raft) AddVoter(
-	id raft.ServerID,
-	address raft.ServerAddress,
-	prevIndex uint64,
-	timeout time.Duration,
+		id raft.ServerID,
+		address raft.ServerAddress,
+		prevIndex uint64,
+		timeout time.Duration,
 ) error {
 	if r.IsRaftLeader() {
 		raftConfig := r.raft.GetConfiguration()
