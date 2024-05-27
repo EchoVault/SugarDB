@@ -222,6 +222,6 @@ func (r *Raft) RaftShutdown() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Leadership transfer successful.")
+		log.Println("Leadership transfer successful.")
 	}
 }

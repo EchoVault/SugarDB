@@ -204,11 +204,20 @@ func Test_HandleAuth(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	for {
+		// Wait until connection is not nil before breaking out.
+		if conn != nil {
+			break
+		}
+	}
+
 	defer func() {
 		if conn != nil {
 			_ = conn.Close()
 		}
 	}()
+
 	r := resp.NewConn(conn)
 
 	tests := []struct {
@@ -423,6 +432,14 @@ func Test_HandleUsers(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	for {
+		// Wait until connection is not nil before continuing.
+		if conn != nil {
+			break
+		}
+	}
+
 	defer func() {
 		if conn != nil {
 			_ = conn.Close()

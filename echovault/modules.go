@@ -69,6 +69,10 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 		return nil, err
 	}
 
+	if len(cmd) == 0 {
+		return nil, errors.New("empty command")
+	}
+
 	command, err := server.getCommand(cmd[0])
 	if err != nil {
 		return nil, err

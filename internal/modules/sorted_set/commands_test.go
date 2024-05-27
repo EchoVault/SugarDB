@@ -1589,7 +1589,7 @@ func Test_HandleZMPOP(t *testing.T) {
 			preset: true,
 			presetValues: map[string]interface{}{
 				"ZmpopKey8": "Default value",
-				"ZmpopKey9": 56,
+				"ZmpopKey9": "56",
 				"ZmpopKey11": sorted_set.NewSortedSet([]sorted_set.MemberParam{
 					{Value: "one", Score: 1}, {Value: "two", Score: 2},
 					{Value: "three", Score: 3}, {Value: "four", Score: 4},

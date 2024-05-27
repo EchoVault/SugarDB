@@ -168,5 +168,5 @@ func (m *MemberList) MemberListShutdown() {
 		log.Fatal("Could not gracefully shutdown memberlist background maintenance")
 	}
 
-	fmt.Println("Successfully shutdown memberlist")
+	log.Println("Successfully shutdown memberlist")
 }

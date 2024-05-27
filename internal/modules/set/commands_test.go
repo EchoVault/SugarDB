@@ -359,7 +359,7 @@ func Test_HandleSDIFF(t *testing.T) {
 			presetValues: map[string]interface{}{
 				"SdiffKey6": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SdiffKey7": "Default value",
-				"SdiffKey8": 123456789,
+				"SdiffKey8": "123456789",
 			},
 			command:          []string{"SDIFF", "SdiffKey6", "SdiffKey7", "SdiffKey8"},
 			expectedResponse: []string{"one", "two", "three", "four", "five", "six", "seven", "eight"},
@@ -510,7 +510,7 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 			presetValues: map[string]interface{}{
 				"SdiffStoreKey6": set.NewSet([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}),
 				"SdiffStoreKey7": "Default value",
-				"SdiffStoreKey8": 123456789,
+				"SdiffStoreKey8": "123456789",
 			},
 			destination:      "SdiffStoreDestination3",
 			command:          []string{"SDIFFSTORE", "SdiffStoreDestination3", "SdiffStoreKey6", "SdiffStoreKey7", "SdiffStoreKey8"},

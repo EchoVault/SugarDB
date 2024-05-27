@@ -243,7 +243,6 @@ func TestEchoVault_ExecuteCommand(t *testing.T) {
 			r := resp.NewReader(bytes.NewReader(b))
 			v, _, _ := r.ReadValue()
 			if v.Integer() != tt.wantRes {
-				fmt.Println("RES: ", string(b))
 				t.Errorf("ExecuteCommand() response = %d, wantRes %d", v.Integer(), tt.wantRes)
 			}
 		})

@@ -185,7 +185,7 @@ func (server *EchoVault) deleteKey(key string) error {
 		server.lruCache.cache.Delete(key)
 	}
 
-	// log.Printf("deleted key %s\n", key) // TODO: Uncomment this
+	log.Printf("deleted key %s\n", key)
 
 	return nil
 }
@@ -466,7 +466,6 @@ func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
 
 	// If sampleSize is 0, there's no need to calculate deleted percentage.
 	if sampleSize == 0 {
-		// log.Println("no keys to sample, skipping eviction") // TODO: Uncomment this
 		return nil
 	}
 
