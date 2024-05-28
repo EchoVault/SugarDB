@@ -2354,7 +2354,7 @@ func TestEchoVault_ZRANK(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:   "Return element's rank from a sorted set",
+			name:   "1. Return element's rank from a sorted set",
 			preset: true,
 			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1}, {Value: "two", Score: 2},
@@ -2368,7 +2368,7 @@ func TestEchoVault_ZRANK(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name:   "Return element's rank from a sorted set with its score",
+			name:   "2. Return element's rank from a sorted set with its score",
 			preset: true,
 			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 100.1}, {Value: "two", Score: 245},
@@ -2382,17 +2382,17 @@ func TestEchoVault_ZRANK(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name:        "If key does not exist, return nil value",
+			name:        "3. If key does not exist, return nil value",
 			preset:      false,
 			presetValue: nil,
 			key:         "key3",
 			member:      "one",
 			withscores:  false,
-			want:        nil,
+			want:        map[int]float64{},
 			wantErr:     false,
 		},
 		{
-			name:   "If key exists and is a sorted set, but the member does not exist, return nil",
+			name:   "4. If key exists and is a sorted set, but the member does not exist, return nil",
 			preset: true,
 			presetValue: ss.NewSortedSet([]ss.MemberParam{
 				{Value: "one", Score: 1.1}, {Value: "two", Score: 245},
@@ -2402,11 +2402,11 @@ func TestEchoVault_ZRANK(t *testing.T) {
 			key:        "key4",
 			member:     "non-existent",
 			withscores: false,
-			want:       nil,
+			want:       map[int]float64{},
 			wantErr:    false,
 		},
 		{
-			name:        "Throw error when trying to find scores from elements that are not sorted sets",
+			name:        "5. Throw error when trying to find scores from elements that are not sorted sets",
 			preset:      true,
 			presetValue: "Default value",
 			key:         "key5",
@@ -3295,6 +3295,295 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("ZUNIONSTORE() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEchoVault_ZRevRank(t *testing.T) {
+	server := createEchoVault()
+
+	tests := []struct {
+		name        string
+		preset      bool
+		presetValue interface{}
+		key         string
+		member      string
+		withscores  bool
+		want        map[int]float64
+		wantErr     bool
+	}{
+		{
+			name:   "1. Return element's rank from a sorted set",
+			preset: true,
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5},
+			}),
+			key:        "key1",
+			member:     "four",
+			withscores: false,
+			want:       map[int]float64{1: 0},
+			wantErr:    false,
+		},
+		{
+			name:   "2. Return element's rank from a sorted set with its score",
+			preset: true,
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "one", Score: 100.1}, {Value: "two", Score: 245},
+				{Value: "three", Score: 305.43}, {Value: "four", Score: 411.055},
+				{Value: "five", Score: 500},
+			}),
+			key:        "key2",
+			member:     "four",
+			withscores: true,
+			want:       map[int]float64{1: 411.055},
+			wantErr:    false,
+		},
+		{
+			name:        "3. If key does not exist, return empty map",
+			preset:      false,
+			presetValue: nil,
+			key:         "key3",
+			member:      "one",
+			withscores:  false,
+			want:        map[int]float64{},
+			wantErr:     false,
+		},
+		{
+			name:   "4. If key exists and is a sorted set, but the member does not exist, return nil",
+			preset: true,
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "one", Score: 1.1}, {Value: "two", Score: 245},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4.055},
+				{Value: "five", Score: 5},
+			}),
+			key:        "key4",
+			member:     "non-existent",
+			withscores: false,
+			want:       map[int]float64{},
+			wantErr:    false,
+		},
+		{
+			name:        "5. Throw error when trying to find scores from elements that are not sorted sets",
+			preset:      true,
+			presetValue: "Default value",
+			key:         "key5",
+			member:      "one",
+			withscores:  false,
+			want:        nil,
+			wantErr:     true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.preset {
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			got, err := server.ZRevRank(tt.key, tt.member, tt.withscores)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ZREVRANK() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ZREVRANK() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEchoVault_ZRemRangeByLex(t *testing.T) {
+	server := createEchoVault()
+	tests := []struct {
+		name        string
+		key         string
+		presetValue interface{}
+		min         string
+		max         string
+		want        int
+		wantErr     bool
+	}{
+		{
+			name: "1. Successfully remove multiple elements with scores inside the provided range",
+			key:  "ZremRangeByLexKey1",
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "a", Score: 1}, {Value: "b", Score: 1},
+				{Value: "c", Score: 1}, {Value: "d", Score: 1},
+				{Value: "e", Score: 1}, {Value: "f", Score: 1},
+				{Value: "g", Score: 1}, {Value: "h", Score: 1},
+				{Value: "i", Score: 1}, {Value: "j", Score: 1},
+			}),
+			min:     "a",
+			max:     "d",
+			want:    4,
+			wantErr: false,
+		},
+		{
+			name: "2. Return 0 if the members do not have the same score",
+			key:  "ZremRangeByLexKey2",
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "a", Score: 1}, {Value: "b", Score: 2},
+				{Value: "c", Score: 3}, {Value: "d", Score: 4},
+				{Value: "e", Score: 5}, {Value: "f", Score: 6},
+				{Value: "g", Score: 7}, {Value: "h", Score: 8},
+				{Value: "i", Score: 9}, {Value: "j", Score: 10},
+			}),
+			min:     "d",
+			max:     "g",
+			want:    0,
+			wantErr: false,
+		},
+		{
+			name:        "3. If key does not exist, return 0",
+			key:         "ZremRangeByLexKey3",
+			presetValue: nil,
+			min:         "2",
+			max:         "4",
+			want:        0,
+			wantErr:     false,
+		},
+		{
+			name:        "4. Return error key is not a sorted set",
+			key:         "ZremRangeByLexKey4",
+			presetValue: "Default value",
+			min:         "a",
+			max:         "d",
+			want:        0,
+			wantErr:     true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValue != nil {
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			got, err := server.ZRemRangeByLex(tt.key, tt.min, tt.max)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ZRemRangeByLex() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ZRemRangeByLex() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEchoVault_ZRemRangeByRank(t *testing.T) {
+	server := createEchoVault()
+	tests := []struct {
+		name        string
+		key         string
+		presetValue interface{}
+		min         int
+		max         int
+		want        int
+		wantErr     bool
+	}{
+		{
+			name: "1. Successfully remove multiple elements within range",
+			key:  "ZremRangeByRankKey1",
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6},
+				{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+				{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+			}),
+			min:     0,
+			max:     5,
+			want:    6,
+			wantErr: false,
+		},
+		{
+			name: "2. Establish boundaries from the end of the set when negative boundaries are provided",
+			key:  "ZremRangeByRankKey2",
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6},
+				{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+				{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+			}),
+			min:     -6,
+			max:     -3,
+			want:    4,
+			wantErr: false,
+		},
+		{
+			name:        "3. If key does not exist, return 0",
+			key:         "ZremRangeByRankKey3",
+			presetValue: nil,
+			min:         2,
+			max:         4,
+			want:        0,
+			wantErr:     false,
+		},
+		{
+			name:        "4. Return error key is not a sorted set",
+			presetValue: "Default value",
+			key:         "ZremRangeByRankKey3",
+			min:         4,
+			max:         4,
+			want:        0,
+			wantErr:     true,
+		},
+		{
+			name: "5. Return error when start index is out of bounds",
+			key:  "ZremRangeByRankKey5",
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6},
+				{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+				{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+			}),
+			min:     -12,
+			max:     5,
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name: "6. Return error when end index is out of bounds",
+			key:  "ZremRangeByRankKey6",
+			presetValue: ss.NewSortedSet([]ss.MemberParam{
+				{Value: "one", Score: 1}, {Value: "two", Score: 2},
+				{Value: "three", Score: 3}, {Value: "four", Score: 4},
+				{Value: "five", Score: 5}, {Value: "six", Score: 6},
+				{Value: "seven", Score: 7}, {Value: "eight", Score: 8},
+				{Value: "nine", Score: 9}, {Value: "ten", Score: 10},
+			}),
+			min:     0,
+			max:     11,
+			want:    0,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValue != nil {
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			got, err := server.ZRemRangeByRank(tt.key, tt.min, tt.max)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ZRemRangeByRank() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ZRemRangeByRank() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
