@@ -28,3 +28,7 @@ test-race:
 	env RACE=true OUT=echovault/testdata make build-modules-test && \
 	go clean -testcache && \
 	CGO_ENABLED=1 go test ./... --race
+
+cover:
+	go tool cover -html=./coverage/coverage.out
+

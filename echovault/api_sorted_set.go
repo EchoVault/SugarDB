@@ -118,25 +118,6 @@ func buildMemberScoreMap(arr [][]string, withscores bool) (map[string]float64, e
 	return result, nil
 }
 
-func buildIntegerScoreMap(arr [][]string, withscores bool) (map[int]float64, error) {
-	result := make(map[int]float64, len(arr))
-	for _, entry := range arr {
-		rank, err := strconv.Atoi(entry[0])
-		if err != nil {
-			return nil, err
-		}
-		result[rank] = 0
-		if withscores {
-			score, err := strconv.ParseFloat(entry[1], 64)
-			if err != nil {
-				return nil, err
-			}
-			result[rank] = score
-		}
-	}
-	return result, nil
-}
-
 // ZAdd adds member(s) to a sorted set. If the sorted set does not exist, a new sorted set is created with the
 // member(s).
 //
@@ -734,7 +715,7 @@ func (server *EchoVault) ZRank(key string, member string, withscores bool) (map[
 	arr, err := internal.ParseStringArrayResponse(b)
 
 	if len(arr) == 0 {
-		return nil, nil
+		return map[int]float64{}, nil
 	}
 
 	s, err := strconv.Atoi(arr[0])
@@ -768,9 +749,28 @@ func (server *EchoVault) ZRevRank(key string, member string, withscores bool) (m
 		return nil, err
 	}
 
-	arr, err := internal.ParseNestedStringArrayResponse(b)
+	arr, err := internal.ParseStringArrayResponse(b)
 
-	return buildIntegerScoreMap(arr, withscores)
+	if len(arr) == 0 {
+		return map[int]float64{}, nil
+	}
+
+	s, err := strconv.Atoi(arr[0])
+	if err != nil {
+		return nil, err
+	}
+
+	res := map[int]float64{s: 0}
+
+	if withscores {
+		f, err := strconv.ParseFloat(arr[1], 64)
+		if err != nil {
+			return nil, err
+		}
+		res[s] = f
+	}
+
+	return res, nil
 }
 
 // ZScore Returns the score of the member in the sorted set.

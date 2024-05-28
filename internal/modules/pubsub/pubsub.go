@@ -73,8 +73,8 @@ func (ps *PubSub) Subscribe(_ context.Context, conn *net.Conn, channels []string
 				}); err != nil {
 					log.Println(err)
 				}
+				ps.channels = append(ps.channels, newChan)
 			}
-			ps.channels = append(ps.channels, newChan)
 		} else {
 			// Subscribe to existing channel
 			if ps.channels[channelIdx].Subscribe(conn) {

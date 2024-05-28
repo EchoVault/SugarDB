@@ -18,13 +18,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
 	"os"
 	"path"
+	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestEchoVault_AddCommand(t *testing.T) {
@@ -300,7 +304,7 @@ func TestEchoVault_RemoveCommand(t *testing.T) {
 
 func TestEchoVault_Plugins(t *testing.T) {
 	t.Cleanup(func() {
-		_ = os.RemoveAll("./testdata")
+		_ = os.RemoveAll("./testdata/modules")
 	})
 
 	server := createEchoVault()
@@ -371,5 +375,194 @@ func TestEchoVault_Plugins(t *testing.T) {
 		if slices.Contains(modules, mod) {
 			t.Errorf("expected modules list to not contain module \"%s\" but found it", mod)
 		}
+	}
+}
+
+func TestEchoVault_CommandList(t *testing.T) {
+	server := createEchoVault()
+
+	tests := []struct {
+		name    string
+		options interface{}
+		want    []string
+		wantErr bool
+	}{
+		{
+			name:    "1. Get all present commands when no options are passed",
+			options: nil,
+			want: func() []string {
+				var commands []string
+				for _, command := range server.commands {
+					if command.SubCommands == nil || len(command.SubCommands) == 0 {
+						commands = append(commands, strings.ToLower(command.Command))
+						continue
+					}
+					for _, subcommand := range command.SubCommands {
+						commands = append(commands, strings.ToLower(fmt.Sprintf("%s %s", command.Command, subcommand.Command)))
+					}
+				}
+				return commands
+			}(),
+			wantErr: false,
+		},
+		{
+			name:    "2. Get commands filtered by hash ACL category",
+			options: CommandListOptions{ACLCAT: constants.HashCategory},
+			want: func() []string {
+				var commands []string
+				for _, command := range server.commands {
+					if slices.Contains(command.Categories, constants.HashCategory) {
+						commands = append(commands, strings.ToLower(command.Command))
+					}
+				}
+				return commands
+			}(),
+			wantErr: false,
+		},
+		{
+			name:    "3. Get commands filtered by pattern",
+			options: CommandListOptions{PATTERN: "z*"},
+			want: func() []string {
+				var commands []string
+				for _, command := range server.commands {
+					if strings.EqualFold(command.Module, constants.SortedSetModule) {
+						commands = append(commands, strings.ToLower(command.Command))
+					}
+				}
+				return commands
+			}(),
+			wantErr: false,
+		},
+		{
+			name:    "4. Get commands filtered by module",
+			options: CommandListOptions{MODULE: constants.ListModule},
+			want: func() []string {
+				var commands []string
+				for _, command := range server.commands {
+					if strings.EqualFold(command.Module, constants.ListModule) {
+						commands = append(commands, strings.ToLower(command.Command))
+					}
+				}
+				return commands
+			}(),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []string
+			var err error
+			if tt.options == nil {
+				got, err = server.CommandList()
+			} else {
+				got, err = server.CommandList(tt.options.(CommandListOptions))
+			}
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CommandList() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("CommandList() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEchoVault_CommandCount(t *testing.T) {
+	server := createEchoVault()
+
+	tests := []struct {
+		name    string
+		want    int
+		wantErr bool
+	}{
+		{
+			name: "1. Get the count of all commands/subcommands on the server",
+			want: func() int {
+				var commands []string
+				for _, command := range server.commands {
+					if command.SubCommands == nil || len(command.SubCommands) == 0 {
+						commands = append(commands, strings.ToLower(command.Command))
+						continue
+					}
+					for _, subcommand := range command.SubCommands {
+						commands = append(commands, strings.ToLower(fmt.Sprintf("%s %s", command.Command, subcommand.Command)))
+					}
+				}
+				return len(commands)
+			}(),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := server.CommandCount()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CommandCount() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("CommandCount() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEchoVault_Save(t *testing.T) {
+	conf := DefaultConfig()
+	conf.DataDir = path.Join(".", "testdata", "data")
+	server := createEchoVaultWithConfig(conf)
+
+	tests := []struct {
+		name    string
+		want    bool
+		wantErr bool
+	}{
+		{
+			name:    "1. Return true response when save process is started",
+			want:    true,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := server.Save()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Save() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Save() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEchoVault_LastSave(t *testing.T) {
+	server := createEchoVault()
+	server.setLatestSnapshot(clock.NewClock().Now().Add(5 * time.Minute).UnixMilli())
+
+	tests := []struct {
+		name    string
+		want    int
+		wantErr bool
+	}{
+		{
+			name:    "1. Get latest snapshot time milliseconds",
+			want:    int(clock.NewClock().Now().Add(5 * time.Minute).UnixMilli()),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := server.LastSave()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("LastSave() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("LastSave() got = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

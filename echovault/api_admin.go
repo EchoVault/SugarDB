@@ -139,16 +139,18 @@ type SubCommandOptions struct {
 // `options` - CommandListOptions.
 //
 // Returns: a string slice of all the loaded commands. SubCommands are represented as "command|subcommand".
-func (server *EchoVault) CommandList(options CommandListOptions) ([]string, error) {
+func (server *EchoVault) CommandList(options ...CommandListOptions) ([]string, error) {
 	cmd := []string{"COMMAND", "LIST"}
 
-	switch {
-	case options.ACLCAT != "":
-		cmd = append(cmd, []string{"FILTERBY", "ACLCAT", options.ACLCAT}...)
-	case options.PATTERN != "":
-		cmd = append(cmd, []string{"FILTERBY", "PATTERN", options.PATTERN}...)
-	case options.MODULE != "":
-		cmd = append(cmd, []string{"FILTERBY", "MODULE", options.MODULE}...)
+	if len(options) > 0 {
+		switch {
+		case options[0].ACLCAT != "":
+			cmd = append(cmd, []string{"FILTERBY", "ACLCAT", options[0].ACLCAT}...)
+		case options[0].PATTERN != "":
+			cmd = append(cmd, []string{"FILTERBY", "PATTERN", options[0].PATTERN}...)
+		case options[0].MODULE != "":
+			cmd = append(cmd, []string{"FILTERBY", "MODULE", options[0].MODULE}...)
+		}
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -171,12 +173,16 @@ func (server *EchoVault) CommandCount() (int, error) {
 }
 
 // Save triggers a new snapshot.
-func (server *EchoVault) Save() (string, error) {
+//
+// Returns: true if the save was started. The OK response does not confirm that the save was successfully synced to
+// file. Only that the background process has started.
+func (server *EchoVault) Save() (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SAVE"}), nil, false, true)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return internal.ParseStringResponse(b)
+	res, err := internal.ParseStringResponse(b)
+	return strings.EqualFold(res, "ok"), err
 }
 
 // LastSave returns the unix epoch milliseconds timestamp of the last save.

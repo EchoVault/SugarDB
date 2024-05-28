@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/tidwall/resp"
+	"math"
 	"net"
 	"strings"
 	"sync"
 	"testing"
-	"time"
 )
 
 type ClientServerPair struct {
@@ -69,8 +69,8 @@ func setupServer(
 	return NewEchoVault(WithConfig(config))
 }
 
-func Test_ClusterReplication(t *testing.T) {
-	pairs := make([]ClientServerPair, 3)
+func MakeCluster(size int) ([]ClientServerPair, error) {
+	pairs := make([]ClientServerPair, size)
 
 	for i := 0; i < len(pairs); i++ {
 		serverId := fmt.Sprintf("SERVER-%d", i)
@@ -82,19 +82,19 @@ func Test_ClusterReplication(t *testing.T) {
 		}
 		port, err := internal.GetFreePort()
 		if err != nil {
-			t.Errorf("could not get free port: %v", err)
+			return nil, fmt.Errorf("could not get free port: %v", err)
 		}
 		raftPort, err := internal.GetFreePort()
 		if err != nil {
-			t.Errorf("could not get free raft port: %v", err)
+			return nil, fmt.Errorf("could not get free raft port: %v", err)
 		}
 		memberlistPort, err := internal.GetFreePort()
 		if err != nil {
-			t.Errorf("could not get free memberlist port: %v", err)
+			return nil, fmt.Errorf("could not get free memberlist port: %v", err)
 		}
 		server, err := setupServer(serverId, bootstrapCluster, bindAddr, joinAddr, port, raftPort, memberlistPort)
 		if err != nil {
-			t.Errorf("could not start server; %v", err)
+			return nil, fmt.Errorf("could not start server; %v", err)
 		}
 
 		// Start the server
@@ -104,10 +104,16 @@ func Test_ClusterReplication(t *testing.T) {
 			wg.Done()
 			server.Start()
 		}()
+		wg.Wait()
 
-		<-time.After(500 * time.Millisecond) // Yield to allow server start.
-
-		if i > 0 {
+		if i == 0 {
+			// If node is a leader, wait until it's established itself as a leader of the raft cluster.
+			for {
+				if server.raft.IsRaftLeader() {
+					break
+				}
+			}
+		} else {
 			// If the node is a follower, wait until it's joined the raft cluster before moving forward.
 			for {
 				if server.raft.HasJoinedCluster() {
@@ -119,7 +125,7 @@ func Test_ClusterReplication(t *testing.T) {
 		// Setup client connection.
 		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", bindAddr, port))
 		if err != nil {
-			t.Errorf("could not open tcp connection: %v", err)
+			return nil, fmt.Errorf("could not open tcp connection: %v", err)
 		}
 		for {
 			// Wait until connection is no longer nil
@@ -139,6 +145,16 @@ func Test_ClusterReplication(t *testing.T) {
 			client:           client,
 			server:           server,
 		}
+	}
+
+	return pairs, nil
+}
+
+func Test_ClusterReplication(t *testing.T) {
+	nodes, err := MakeCluster(5)
+	if err != nil {
+		t.Error(err)
+		return
 	}
 
 	// Prepare the write data for the cluster
@@ -162,7 +178,7 @@ func Test_ClusterReplication(t *testing.T) {
 
 	// Write all the data to the cluster leader
 	for i, test := range tests {
-		node := pairs[0]
+		node := nodes[0]
 		if err := node.client.WriteArray([]resp.Value{
 			resp.StringValue("SET"),
 			resp.StringValue(test.key),
@@ -170,7 +186,7 @@ func Test_ClusterReplication(t *testing.T) {
 		}); err != nil {
 			t.Errorf("could not write data to leader node (test %d): %v", i, err)
 		}
-		// Read response and make sure we received "ok" response
+		// Read response and make sure we received "ok" response.
 		rd, _, err := node.client.ReadValue()
 		if err != nil {
 			t.Errorf("could not read response from leader node (test %d): %v", i, err)
@@ -180,10 +196,12 @@ func Test_ClusterReplication(t *testing.T) {
 		}
 	}
 
-	// On each of the follower nodes, get the values and check if they have been replicated
+	// Check if the data has been replicated on a quorum (majority of the cluster).
+	quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
 	for i, test := range tests {
-		for j := 1; j < len(pairs); j++ {
-			node := pairs[i]
+		count := 0
+		for j := 0; j < len(nodes); j++ {
+			node := nodes[j]
 			if err := node.client.WriteArray([]resp.Value{
 				resp.StringValue("GET"),
 				resp.StringValue(test.key),
@@ -194,9 +212,13 @@ func Test_ClusterReplication(t *testing.T) {
 			if err != nil {
 				t.Errorf("could not read data from follower node %d (test %d): %v", j, i, err)
 			}
-			if rd.String() != test.value {
-				t.Errorf("expected value \"%s\" for follower node %d (test %d), got \"%s\"", test.value, j, i, rd.String())
+			if rd.String() == test.value {
+				count += 1 // If the expected value is found, increment the count.
 			}
+		}
+		// Fail if count is less than quorum.
+		if count < quorum {
+			t.Errorf("could not find value %s at key %s in cluster quorum", test.value, test.key)
 		}
 	}
 }

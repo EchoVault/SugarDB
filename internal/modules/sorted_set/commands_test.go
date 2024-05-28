@@ -91,7 +91,7 @@ func Test_HandleZADD(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name: "Do not add any elements when providing existing members with NX flag",
+			name: "3. Do not add any elements when providing existing members with NX flag",
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
 				{Value: "member2", Score: sorted_set.Score(67.77)},
@@ -103,7 +103,7 @@ func Test_HandleZADD(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name: "Successfully add elements to an existing set when XX flag is provided with existing elements",
+			name: "4. Successfully add elements to an existing set when XX flag is provided with existing elements",
 			presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 				{Value: "member1", Score: sorted_set.Score(5.5)},
 				{Value: "member2", Score: sorted_set.Score(67.77)},
@@ -3002,7 +3002,7 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name:             "2. If key does not exist, return 0",
+			name:             "3. If key does not exist, return 0",
 			presetValues:     nil,
 			command:          []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey3", "2", "4"},
 			expectedValues:   nil,
@@ -3010,17 +3010,12 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name: "3. Return error key is not a sorted set",
+			name: "4. Return error key is not a sorted set",
 			presetValues: map[string]interface{}{
 				"ZremRangeByRankKey3": "Default value",
 			},
 			command:       []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey3", "4", "4"},
 			expectedError: errors.New("value at ZremRangeByRankKey3 is not a sorted set"),
-		},
-		{
-			name:          "4. Command too short",
-			command:       []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey4", "3"},
-			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{
 			name: "5. Return error when start index is out of bounds",
@@ -3055,7 +3050,12 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 			expectedError:    errors.New("indices out of bounds"),
 		},
 		{
-			name:          "7. Command too long",
+			name:          "7. Command too short",
+			command:       []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey4", "3"},
+			expectedError: errors.New(constants.WrongArgsResponse),
+		},
+		{
+			name:          "8. Command too long",
 			command:       []string{"ZREMRANGEBYRANK", "ZremRangeByRankKey7", "4", "5", "8"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
@@ -3238,7 +3238,7 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 			expectedError:    nil,
 		},
 		{
-			name: "3. Return error key is not a sorted set",
+			name: "4. Return error key is not a sorted set",
 			presetValues: map[string]interface{}{
 				"ZremRangeByLexKey3": "Default value",
 			},
@@ -3246,12 +3246,12 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 			expectedError: errors.New("value at ZremRangeByLexKey3 is not a sorted set"),
 		},
 		{
-			name:          "4. Command too short",
+			name:          "5. Command too short",
 			command:       []string{"ZREMRANGEBYLEX", "ZremRangeByLexKey4", "a"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
 		{
-			name:          "5. Command too long",
+			name:          "6. Command too long",
 			command:       []string{"ZREMRANGEBYLEX", "ZremRangeByLexKey5", "a", "b", "c"},
 			expectedError: errors.New(constants.WrongArgsResponse),
 		},
