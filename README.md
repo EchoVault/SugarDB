@@ -80,32 +80,6 @@ func main() {
 	v, _ := server.Get("key")
 	fmt.Println(v) // Hello, world!
 
-	wg := sync.WaitGroup{}
-
-	// Subscribe to multiple EchoVault channels.
-	readMessage := server.Subscribe("subscriber1", "channel_1", "channel_2", "channel_3")
-	wg.Add(1)
-	go func() {
-		wg.Done()
-		for {
-			message := readMessage()
-			fmt.Printf("EVENT: %s, CHANNEL: %s, MESSAGE: %s\n", message[0], message[1], message[2])
-		}
-	}()
-	wg.Wait()
-
-	wg.Add(1)
-	go func() {
-		for i := 1; i <= 3; i++ {
-			// Simulating delay.
-			<-time.After(1 * time.Second)
-			// Publish message to each EchoVault channel.
-			_, _ = server.Publish(fmt.Sprintf("channel_%d", i), "Hello!")
-		}
-		wg.Done()
-	}()
-	wg.Wait()
-
 	// (Optional): Listen for TCP connections on this EchoVault instance.
 	server.Start()
 }
