@@ -16,10 +16,12 @@ package echovault
 
 import (
 	"bytes"
+	"errors"
 	"github.com/echovault/echovault/internal"
 	"github.com/tidwall/resp"
 	"net"
 	"strings"
+	"sync"
 )
 
 type conn struct {
@@ -27,7 +29,7 @@ type conn struct {
 	writeConn *net.Conn
 }
 
-var connections map[string]conn
+var connections sync.Map
 
 // ReadPubSubMessage is returned by the Subscribe and PSubscribe functions.
 //
@@ -36,6 +38,32 @@ var connections map[string]conn
 // Index 0 holds the event type which in this case will be "message". Index 1 holds the channel name.
 // Index 2 holds the actual message.
 type ReadPubSubMessage func() []string
+
+func establishConnections(tag string) (*net.Conn, *net.Conn, error) {
+	var readConn *net.Conn
+	var writeConn *net.Conn
+
+	if _, ok := connections.Load(tag); !ok {
+		// If connection with this name does not exist, create new connection.
+		rc, wc := net.Pipe()
+		readConn = &rc
+		writeConn = &wc
+		connections.Store(tag, conn{
+			readConn:  &rc,
+			writeConn: &wc,
+		})
+	} else {
+		// Reuse existing connection.
+		c, ok := connections.Load(tag)
+		if !ok {
+			return nil, nil, errors.New("could not establish connection")
+		}
+		readConn = c.(conn).readConn
+		writeConn = c.(conn).writeConn
+	}
+
+	return readConn, writeConn, nil
+}
 
 // Subscribe subscribes the caller to the list of provided channels.
 //
@@ -47,35 +75,22 @@ type ReadPubSubMessage func() []string
 //
 // Returns: ReadPubSubMessage function which reads the next message sent to the subscription instance.
 // This function is blocking.
-func (server *EchoVault) Subscribe(tag string, channels ...string) ReadPubSubMessage {
-	// Initialize connection tracker if calling subscribe for the first time
-	if connections == nil {
-		connections = make(map[string]conn)
+func (server *EchoVault) Subscribe(tag string, channels ...string) (ReadPubSubMessage, error) {
+	readConn, writeConn, err := establishConnections(tag)
+	if err != nil {
+		return func() []string {
+			return []string{}
+		}, err
 	}
 
-	var readConn net.Conn
-	var writeConn net.Conn
-	if _, ok := connections[tag]; !ok {
-		// If connection with this name does not exist, create new connection
-		readConn, writeConn = net.Pipe()
-		connections[tag] = conn{
-			readConn:  &readConn,
-			writeConn: &writeConn,
-		}
-	} else {
-		// Reuse existing connection
-		readConn = *connections[tag].readConn
-		writeConn = *connections[tag].writeConn
-	}
-
-	// Subscribe connection to the provided channels
+	// Subscribe connection to the provided channels.
 	cmd := append([]string{"SUBSCRIBE"}, channels...)
 	go func() {
-		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false, true)
+		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), writeConn, false, true)
 	}()
 
 	return func() []string {
-		r := resp.NewConn(readConn)
+		r := resp.NewConn(*readConn)
 		v, _, _ := r.ReadValue()
 
 		res := make([]string, len(v.Array()))
@@ -84,7 +99,7 @@ func (server *EchoVault) Subscribe(tag string, channels ...string) ReadPubSubMes
 		}
 
 		return res
-	}
+	}, nil
 }
 
 // Unsubscribe unsubscribes the caller from the given channels.
@@ -95,16 +110,12 @@ func (server *EchoVault) Subscribe(tag string, channels ...string) ReadPubSubMes
 //
 // `channels` - ...string - The list of channels to unsubscribe from.
 func (server *EchoVault) Unsubscribe(tag string, channels ...string) {
-	if connections == nil {
+	c, ok := connections.Load(tag)
+	if !ok {
 		return
 	}
-
-	if _, ok := connections[tag]; !ok {
-		return
-	}
-
 	cmd := append([]string{"UNSUBSCRIBE"}, channels...)
-	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false, true)
+	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), c.(conn).writeConn, false, true)
 }
 
 // PSubscribe subscribes the caller to the list of provided glob patterns.
@@ -117,35 +128,22 @@ func (server *EchoVault) Unsubscribe(tag string, channels ...string) {
 //
 // Returns: ReadPubSubMessage function which reads the next message sent to the subscription instance.
 // This function is blocking.
-func (server *EchoVault) PSubscribe(tag string, patterns ...string) ReadPubSubMessage {
-	// Initialize connection tracker if calling subscribe for the first time
-	if connections == nil {
-		connections = make(map[string]conn)
-	}
-
-	var readConn net.Conn
-	var writeConn net.Conn
-	if _, ok := connections[tag]; !ok {
-		// If connection with this name does not exist, create new connection.
-		readConn, writeConn = net.Pipe()
-		connections[tag] = conn{
-			readConn:  &readConn,
-			writeConn: &writeConn,
-		}
-	} else {
-		// Reuse existing connection.
-		readConn = *connections[tag].readConn
-		writeConn = *connections[tag].writeConn
+func (server *EchoVault) PSubscribe(tag string, patterns ...string) (ReadPubSubMessage, error) {
+	readConn, writeConn, err := establishConnections(tag)
+	if err != nil {
+		return func() []string {
+			return []string{}
+		}, err
 	}
 
 	// Subscribe connection to the provided channels
 	cmd := append([]string{"PSUBSCRIBE"}, patterns...)
 	go func() {
-		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false, true)
+		_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), writeConn, false, true)
 	}()
 
 	return func() []string {
-		r := resp.NewConn(readConn)
+		r := resp.NewConn(*readConn)
 		v, _, _ := r.ReadValue()
 
 		res := make([]string, len(v.Array()))
@@ -154,7 +152,7 @@ func (server *EchoVault) PSubscribe(tag string, patterns ...string) ReadPubSubMe
 		}
 
 		return res
-	}
+	}, nil
 }
 
 // PUnsubscribe unsubscribes the caller from the given glob patterns.
@@ -165,16 +163,12 @@ func (server *EchoVault) PSubscribe(tag string, patterns ...string) ReadPubSubMe
 //
 // `patterns` - ...string - The list of glob patterns to unsubscribe from.
 func (server *EchoVault) PUnsubscribe(tag string, patterns ...string) {
-	if connections == nil {
+	c, ok := connections.Load(tag)
+	if !ok {
 		return
 	}
-
-	if _, ok := connections[tag]; !ok {
-		return
-	}
-
 	cmd := append([]string{"PUNSUBSCRIBE"}, patterns...)
-	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), connections[tag].writeConn, false, true)
+	_, _ = server.handleCommand(server.context, internal.EncodeCommand(cmd), c.(conn).writeConn, false, true)
 }
 
 // Publish publishes a message to the given channel.

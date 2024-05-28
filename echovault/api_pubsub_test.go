@@ -27,7 +27,11 @@ func Test_Subscribe(t *testing.T) {
 	// Subscribe to channels.
 	tag := "tag"
 	channels := []string{"channel1", "channel2"}
-	readMessage := server.Subscribe(tag, channels...)
+	readMessage, err := server.Subscribe(tag, channels...)
+	if err != nil {
+		t.Errorf("SUBSCRIBE() error = %v", err)
+	}
+
 	for i := 0; i < len(channels); i++ {
 		message := readMessage()
 		// Check that we've received the subscribe messages.
@@ -75,7 +79,11 @@ func TestEchoVault_PSubscribe(t *testing.T) {
 	// Subscribe to channels.
 	tag := "tag"
 	patterns := []string{"channel[12]", "pattern[12]"}
-	readMessage := server.PSubscribe(tag, patterns...)
+	readMessage, err := server.PSubscribe(tag, patterns...)
+	if err != nil {
+		t.Errorf("PSubscribe() error = %v", err)
+	}
+
 	for i := 0; i < len(patterns); i++ {
 		message := readMessage()
 		// Check that we've received the subscribe messages.
@@ -142,12 +150,20 @@ func TestEchoVault_PubSubChannels(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Subscribe to channels
-			readChannelMessages := server.Subscribe(tt.tag, tt.channels...)
+			readChannelMessages, err := server.Subscribe(tt.tag, tt.channels...)
+			if err != nil {
+				t.Errorf("PubSubChannels() error = %v", err)
+			}
+
 			for i := 0; i < len(tt.channels); i++ {
 				readChannelMessages()
 			}
 			// Subscribe to patterns
-			readPatternMessages := server.PSubscribe(tt.tag, tt.patterns...)
+			readPatternMessages, err := server.PSubscribe(tt.tag, tt.patterns...)
+			if err != nil {
+				t.Errorf("PubSubChannels() error = %v", err)
+			}
+
 			for i := 0; i < len(tt.patterns); i++ {
 				readPatternMessages()
 			}
@@ -188,7 +204,10 @@ func TestEchoVault_PubSubNumPat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Subscribe to patterns
-			readPatternMessages := server.PSubscribe(tt.tag, tt.patterns...)
+			readPatternMessages, err := server.PSubscribe(tt.tag, tt.patterns...)
+			if err != nil {
+				t.Errorf("PubSubNumPat() error = %v", err)
+			}
 			for i := 0; i < len(tt.patterns); i++ {
 				readPatternMessages()
 			}
@@ -243,11 +262,17 @@ func TestEchoVault_PubSubNumSub(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for tag, subs := range tt.subscriptions {
-				readPat := server.PSubscribe(tag, subs.patterns...)
+				readPat, err := server.PSubscribe(tag, subs.patterns...)
+				if err != nil {
+					t.Errorf("PubSubNumSub() error = %v", err)
+				}
 				for _, _ = range subs.patterns {
 					readPat()
 				}
-				readChan := server.Subscribe(tag, subs.channels...)
+				readChan, err := server.Subscribe(tag, subs.channels...)
+				if err != nil {
+					t.Errorf("PubSubNumSub() error = %v", err)
+				}
 				for _, _ = range subs.channels {
 					readChan()
 				}

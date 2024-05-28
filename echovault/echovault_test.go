@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/tidwall/resp"
+	"math"
 	"net"
 	"strings"
 	"sync"
 	"testing"
-	"time"
 )
 
 type ClientServerPair struct {
@@ -104,10 +104,16 @@ func MakeCluster(size int) ([]ClientServerPair, error) {
 			wg.Done()
 			server.Start()
 		}()
+		wg.Wait()
 
-		<-time.After(500 * time.Millisecond) // Yield to allow server start.
-
-		if i > 0 {
+		if i == 0 {
+			// If node is a leader, wait until it's established itself as a leader of the raft cluster.
+			for {
+				if server.raft.IsRaftLeader() {
+					break
+				}
+			}
+		} else {
 			// If the node is a follower, wait until it's joined the raft cluster before moving forward.
 			for {
 				if server.raft.HasJoinedCluster() {
@@ -145,9 +151,10 @@ func MakeCluster(size int) ([]ClientServerPair, error) {
 }
 
 func Test_ClusterReplication(t *testing.T) {
-	nodes, err := MakeCluster(3)
+	nodes, err := MakeCluster(5)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 
 	// Prepare the write data for the cluster
@@ -179,7 +186,7 @@ func Test_ClusterReplication(t *testing.T) {
 		}); err != nil {
 			t.Errorf("could not write data to leader node (test %d): %v", i, err)
 		}
-		// Read response and make sure we received "ok" response
+		// Read response and make sure we received "ok" response.
 		rd, _, err := node.client.ReadValue()
 		if err != nil {
 			t.Errorf("could not read response from leader node (test %d): %v", i, err)
@@ -189,10 +196,12 @@ func Test_ClusterReplication(t *testing.T) {
 		}
 	}
 
-	// On each of the follower nodes, get the values and check if they have been replicated
+	// Check if the data has been replicated on a quorum (majority of the cluster).
+	quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
 	for i, test := range tests {
-		for j := 1; j < len(nodes); j++ {
-			node := nodes[i]
+		count := 0
+		for j := 0; j < len(nodes); j++ {
+			node := nodes[j]
 			if err := node.client.WriteArray([]resp.Value{
 				resp.StringValue("GET"),
 				resp.StringValue(test.key),
@@ -203,9 +212,13 @@ func Test_ClusterReplication(t *testing.T) {
 			if err != nil {
 				t.Errorf("could not read data from follower node %d (test %d): %v", j, i, err)
 			}
-			if rd.String() != test.value {
-				t.Errorf("expected value \"%s\" for follower node %d (test %d), got \"%s\"", test.value, j, i, rd.String())
+			if rd.String() == test.value {
+				count += 1 // If the expected value is found, increment the count.
 			}
+		}
+		// Fail if count is less than quorum.
+		if count < quorum {
+			t.Errorf("could not find value %s at key %s in cluster quorum", test.value, test.key)
 		}
 	}
 }

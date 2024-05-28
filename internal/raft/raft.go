@@ -101,7 +101,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 		addr,
 		advertiseAddr,
 		10,
-		500*time.Millisecond,
+		10*time.Second,
 		os.Stdout,
 	)
 
@@ -131,7 +131,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 	)
 
 	if err != nil {
-		log.Fatalf("Could not start node with error; %s", err)
+		log.Fatalf("could not start node with error; %s", err)
 	}
 
 	if conf.BootstrapCluster {
@@ -172,10 +172,10 @@ func (r *Raft) HasJoinedCluster() bool {
 }
 
 func (r *Raft) AddVoter(
-		id raft.ServerID,
-		address raft.ServerAddress,
-		prevIndex uint64,
-		timeout time.Duration,
+	id raft.ServerID,
+	address raft.ServerAddress,
+	prevIndex uint64,
+	timeout time.Duration,
 ) error {
 	if r.IsRaftLeader() {
 		raftConfig := r.raft.GetConfiguration()
@@ -186,7 +186,7 @@ func (r *Raft) AddVoter(
 		for _, s := range raftConfig.Configuration().Servers {
 			// Check if a echovault already exists with the current attributes
 			if s.ID == id && s.Address == address {
-				return fmt.Errorf("echovault with id %s and address %s already exists", id, address)
+				return fmt.Errorf("node with id %s and address %s already exists", id, address)
 			}
 		}
 
@@ -201,7 +201,7 @@ func (r *Raft) AddVoter(
 
 func (r *Raft) RemoveServer(meta memberlist.NodeMeta) error {
 	if !r.IsRaftLeader() {
-		return errors.New("not leader, could not remove echovault")
+		return errors.New("not leader, could not remove node")
 	}
 
 	if err := r.raft.RemoveServer(meta.ServerID, 0, 0).Error(); err != nil {
