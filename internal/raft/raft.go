@@ -101,7 +101,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 		addr,
 		advertiseAddr,
 		10,
-		10*time.Second,
+		5*time.Second,
 		os.Stdout,
 	)
 

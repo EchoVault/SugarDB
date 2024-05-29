@@ -20,13 +20,11 @@ run:
 test:
 	env RACE=false OUT=internal/modules/admin/testdata make build-modules-test && \
 	env RACE=false OUT=echovault/testdata make build-modules-test && \
-	go clean -testcache && \
 	CGO_ENABLED=1 go test ./... -coverprofile coverage/coverage.out
 
 test-race:
 	env RACE=true OUT=internal/modules/admin/testdata make build-modules-test && \
 	env RACE=true OUT=echovault/testdata make build-modules-test && \
-	go clean -testcache && \
 	CGO_ENABLED=1 go test ./... --race
 
 cover:

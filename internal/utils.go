@@ -427,3 +427,17 @@ func GetFreePort() (int, error) {
 
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
+
+func GetConnection(addr string, port int) (net.Conn, error) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		return nil, err
+	}
+	for {
+		// Wait until connection is no longer nil.
+		if conn != nil {
+			break
+		}
+	}
+	return conn, nil
+}
