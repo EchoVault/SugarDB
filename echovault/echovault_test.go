@@ -1,11 +1,17 @@
 package echovault
 
 import (
+	"bufio"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/tidwall/resp"
+	"io"
 	"math"
 	"net"
+	"os"
+	"path"
 	"strings"
 	"sync"
 	"testing"
@@ -58,6 +64,7 @@ func setupServer(
 
 	config := DefaultConfig()
 	config.DataDir = "./testdata"
+	config.ForwardCommand = true
 	config.BindAddr = bindAddr
 	config.JoinAddr = joinAddr
 	config.Port = uint16(port)
@@ -69,7 +76,7 @@ func setupServer(
 	return NewEchoVault(WithConfig(config))
 }
 
-func MakeCluster(size int) ([]ClientServerPair, error) {
+func makeCluster(size int) ([]ClientServerPair, error) {
 	pairs := make([]ClientServerPair, size)
 
 	for i := 0; i < len(pairs); i++ {
@@ -128,7 +135,7 @@ func MakeCluster(size int) ([]ClientServerPair, error) {
 			return nil, fmt.Errorf("could not open tcp connection: %v", err)
 		}
 		for {
-			// Wait until connection is no longer nil
+			// Wait until connection is no longer nil.
 			if conn != nil {
 				break
 			}
@@ -151,7 +158,7 @@ func MakeCluster(size int) ([]ClientServerPair, error) {
 }
 
 func Test_ClusterReplication(t *testing.T) {
-	nodes, err := MakeCluster(5)
+	nodes, err := makeCluster(5)
 	if err != nil {
 		t.Error(err)
 		return
@@ -222,3 +229,105 @@ func Test_ClusterReplication(t *testing.T) {
 		}
 	}
 }
+
+func Test_TLS(t *testing.T) {
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+	}
+
+	conf := DefaultConfig()
+	conf.DataDir = ""
+	conf.BindAddr = "localhost"
+	conf.Port = uint16(port)
+	conf.TLS = true
+	conf.CertKeyPairs = [][]string{
+		{
+			path.Join("..", "openssl", "server", "server1.crt"),
+			path.Join("..", "openssl", "server", "server1.key"),
+		},
+		{
+			path.Join("..", "openssl", "server", "server2.crt"),
+			path.Join("..", "openssl", "server", "server2.key"),
+		},
+	}
+
+	server, err := NewEchoVault(WithConfig(conf))
+	if err != nil {
+		t.Error(err)
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		wg.Done()
+		server.Start()
+	}()
+	wg.Wait()
+
+	// Dial with ServerCAs
+	serverCAs := x509.NewCertPool()
+	f, err := os.Open(path.Join("..", "openssl", "server", "rootCA.crt"))
+	if err != nil {
+		t.Error(err)
+	}
+	cert, err := io.ReadAll(bufio.NewReader(f))
+	if err != nil {
+		t.Error(err)
+	}
+	ok := serverCAs.AppendCertsFromPEM(cert)
+	if !ok {
+		t.Error("could not load server CA")
+	}
+
+	conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), &tls.Config{
+		RootCAs: serverCAs,
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	for {
+		// Break out when the connection is no longer nil.
+		if conn != nil {
+			break
+		}
+	}
+
+	client := resp.NewConn(conn)
+
+	// Test that we can set and get a value from the server.
+	key := "key1"
+	value := "value1"
+	err = client.WriteArray([]resp.Value{
+		resp.StringValue("SET"), resp.StringValue(key), resp.StringValue(value),
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	res, _, err := client.ReadValue()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !strings.EqualFold(res.String(), "ok") {
+		t.Errorf("expected response OK, got \"%s\"", res.String())
+	}
+
+	err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)})
+	if err != nil {
+		t.Error(err)
+	}
+
+	res, _, err = client.ReadValue()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.String() != value {
+		t.Errorf("expected response at key \"%s\" to be \"%s\", got \"%s\"", key, value, res.String())
+	}
+}
+
+func Test_MTLS(t *testing.T) {}
