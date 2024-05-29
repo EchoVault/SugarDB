@@ -330,4 +330,126 @@ func Test_TLS(t *testing.T) {
 	}
 }
 
-func Test_MTLS(t *testing.T) {}
+func Test_MTLS(t *testing.T) {
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+	}
+
+	conf := DefaultConfig()
+	conf.DataDir = ""
+	conf.BindAddr = "localhost"
+	conf.Port = uint16(port)
+	conf.TLS = true
+	conf.MTLS = true
+	conf.ClientCAs = []string{
+		path.Join("..", "openssl", "client", "rootCA.crt"),
+	}
+	conf.CertKeyPairs = [][]string{
+		{
+			path.Join("..", "openssl", "server", "server1.crt"),
+			path.Join("..", "openssl", "server", "server1.key"),
+		},
+		{
+			path.Join("..", "openssl", "server", "server2.crt"),
+			path.Join("..", "openssl", "server", "server2.key"),
+		},
+	}
+
+	server, err := NewEchoVault(WithConfig(conf))
+	if err != nil {
+		t.Error(err)
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		wg.Done()
+		server.Start()
+	}()
+	wg.Wait()
+
+	// Dial with ServerCAs and client certificates
+	clientCertKeyPairs := [][]string{
+		{
+			path.Join("..", "openssl", "client", "client1.crt"),
+			path.Join("..", "openssl", "client", "client1.key"),
+		},
+		{
+			path.Join("..", "openssl", "client", "client2.crt"),
+			path.Join("..", "openssl", "client", "client2.key"),
+		},
+	}
+	var certificates []tls.Certificate
+	for _, pair := range clientCertKeyPairs {
+		c, err := tls.LoadX509KeyPair(pair[0], pair[1])
+		if err != nil {
+			t.Error(err)
+		}
+		certificates = append(certificates, c)
+	}
+
+	serverCAs := x509.NewCertPool()
+	f, err := os.Open(path.Join("..", "openssl", "server", "rootCA.crt"))
+	if err != nil {
+		t.Error(err)
+	}
+	cert, err := io.ReadAll(bufio.NewReader(f))
+	if err != nil {
+		t.Error(err)
+	}
+	ok := serverCAs.AppendCertsFromPEM(cert)
+	if !ok {
+		t.Error("could not load server CA")
+	}
+
+	conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), &tls.Config{
+		RootCAs:      serverCAs,
+		Certificates: certificates,
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	for {
+		// Break out when the connection is no longer nil.
+		if conn != nil {
+			break
+		}
+	}
+
+	client := resp.NewConn(conn)
+
+	// Test that we can set and get a value from the server.
+	key := "key1"
+	value := "value1"
+	err = client.WriteArray([]resp.Value{
+		resp.StringValue("SET"), resp.StringValue(key), resp.StringValue(value),
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	res, _, err := client.ReadValue()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !strings.EqualFold(res.String(), "ok") {
+		t.Errorf("expected response OK, got \"%s\"", res.String())
+	}
+
+	err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)})
+	if err != nil {
+		t.Error(err)
+	}
+
+	res, _, err = client.ReadValue()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.String() != value {
+		t.Errorf("expected response at key \"%s\" to be \"%s\", got \"%s\"", key, value, res.String())
+	}
+}
