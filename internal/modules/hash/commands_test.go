@@ -57,6 +57,7 @@ func Test_HandleHSET(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -236,6 +237,7 @@ func Test_HandleHINCRBY(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -433,6 +435,7 @@ func Test_HandleHGET(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -584,6 +587,7 @@ func Test_HandleHSTRLEN(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -737,6 +741,7 @@ func Test_HandleHVALS(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -874,6 +879,7 @@ func Test_HandleHRANDFIELD(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1078,6 +1084,7 @@ func Test_HandleHLEN(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1199,6 +1206,7 @@ func Test_HandleHKeys(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1322,6 +1330,7 @@ func Test_HandleHGETALL(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1458,6 +1467,7 @@ func Test_HandleHEXISTS(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1580,6 +1590,7 @@ func Test_HandleHDEL(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 

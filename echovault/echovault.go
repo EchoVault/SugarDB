@@ -50,8 +50,7 @@ import (
 
 type EchoVault struct {
 	// clock is an implementation of a time interface that allows mocking of time functions during testing.
-	clock    clock.Clock
-	getClock func() clock.Clock
+	clock clock.Clock
 
 	// config holds the echovault configuration variables.
 	config config.Config
@@ -69,7 +68,7 @@ type EchoVault struct {
 		rwMutex sync.RWMutex // Mutex as only one process should be able to update this list at a time.
 		keys    []string     // string slice of the volatile keys
 	}
-	// LFU cache used when eviction policy is allkeys-lfu or volatile-lfu
+	// LFU cache used when eviction policy is allkeys-lfu or volatile-lfu.
 	lfuCache struct {
 		mutex sync.Mutex        // Mutex as only one goroutine can edit the LFU cache at a time.
 		cache eviction.CacheLFU // LFU cache represented by a min head.
@@ -83,7 +82,6 @@ type EchoVault struct {
 	// Holds the list of all commands supported by the echovault.
 	commandsRWMut sync.RWMutex
 	commands      []internal.Command
-	getCommands   func() []internal.Command
 
 	raft       *raft.Raft             // The raft replication layer for the echovault.
 	memberList *memberlist.MemberList // The memberlist layer for the echovault.
@@ -91,10 +89,7 @@ type EchoVault struct {
 	context context.Context
 
 	acl    *acl.ACL
-	getACL func() interface{}
-
-	pubSub    *pubsub.PubSub
-	getPubSub func() interface{}
+	pubSub *pubsub.PubSub
 
 	snapshotInProgress         atomic.Bool      // Atomic boolean that's true when actively taking a snapshot.
 	rewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
@@ -167,27 +162,11 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		log.Printf("loaded plugin %s\n", path)
 	}
 
-	// Function for server commands retrieval
-	echovault.getCommands = func() []internal.Command {
-		return echovault.commands
-	}
-
-	// Function for clock retrieval
-	echovault.getClock = func() clock.Clock {
-		return echovault.clock
-	}
-
 	// Set up ACL module
 	echovault.acl = acl.NewACL(echovault.config)
-	echovault.getACL = func() interface{} {
-		return echovault.acl
-	}
 
 	// Set up Pub/Sub module
 	echovault.pubSub = pubsub.NewPubSub()
-	echovault.getPubSub = func() interface{} {
-		return echovault.pubSub
-	}
 
 	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{

@@ -154,12 +154,6 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 		if err != nil {
 			return nil, fmt.Errorf("could not open tcp connection: %v", err)
 		}
-		for {
-			// Wait until connection is no longer nil.
-			if conn != nil {
-				break
-			}
-		}
 		client := resp.NewConn(conn)
 
 		pairs[i] = ClientServerPair{
@@ -502,13 +496,6 @@ func Test_TLS(t *testing.T) {
 		t.Error(err)
 	}
 
-	for {
-		// Break out when the connection is no longer nil.
-		if conn != nil {
-			break
-		}
-	}
-
 	client := resp.NewConn(conn)
 
 	// Test that we can set and get a value from the server.
@@ -624,13 +611,7 @@ func Test_MTLS(t *testing.T) {
 	})
 	if err != nil {
 		t.Error(err)
-	}
-
-	for {
-		// Break out when the connection is no longer nil.
-		if conn != nil {
-			break
-		}
+		return
 	}
 
 	client := resp.NewConn(conn)

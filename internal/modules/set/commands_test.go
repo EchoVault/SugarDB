@@ -58,6 +58,7 @@ func Test_HandleSADD(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -201,6 +202,7 @@ func Test_HandleSCARD(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -323,6 +325,7 @@ func Test_HandleSDIFF(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -468,6 +471,7 @@ func Test_HandleSDIFFSTORE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -645,6 +649,7 @@ func Test_HandleSINTER(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -790,6 +795,7 @@ func Test_HandleSINTERCARD(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -940,6 +946,7 @@ func Test_HandleSINTERSTORE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1117,6 +1124,7 @@ func Test_HandleSISMEMBER(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1234,6 +1242,7 @@ func Test_HandleSMEMBERS(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1356,6 +1365,7 @@ func Test_HandleSMISMEMBER(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1478,6 +1488,7 @@ func Test_HandleSMOVE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1669,6 +1680,7 @@ func Test_HandleSPOP(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1806,6 +1818,7 @@ func Test_HandleSRANDMEMBER(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1966,6 +1979,7 @@ func Test_HandleSREM(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -2102,6 +2116,7 @@ func Test_HandleSUNION(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -2240,6 +2255,7 @@ func Test_HandleSUNIONSTORE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 

@@ -57,6 +57,7 @@ func Test_HandleLLEN(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -176,6 +177,7 @@ func Test_HandleLINDEX(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -335,6 +337,7 @@ func Test_HandleLRANGE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -519,6 +522,7 @@ func Test_HandleLSET(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -703,6 +707,7 @@ func Test_HandleLTRIM(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -898,6 +903,7 @@ func Test_HandleLREM(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1058,6 +1064,7 @@ func Test_HandleLMOVE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1284,6 +1291,7 @@ func Test_HandleLPUSH(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1434,6 +1442,7 @@ func Test_HandleRPUSH(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1584,6 +1593,7 @@ func Test_HandlePOP(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 

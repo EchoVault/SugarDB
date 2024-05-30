@@ -64,6 +64,7 @@ func Test_HandleSET(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -464,6 +465,7 @@ func Test_HandleMSET(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -551,6 +553,7 @@ func Test_HandleGET(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -665,6 +668,7 @@ func Test_HandleMGET(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -767,6 +771,7 @@ func Test_HandleDEL(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -874,6 +879,7 @@ func Test_HandlePERSIST(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1026,6 +1032,7 @@ func Test_HandleEXPIRETIME(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1142,6 +1149,7 @@ func Test_HandleTTL(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1258,6 +1266,7 @@ func Test_HandleEXPIRE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1540,6 +1549,7 @@ func Test_HandleEXPIREAT(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 

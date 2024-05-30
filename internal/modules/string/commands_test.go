@@ -56,6 +56,7 @@ func Test_HandleSetRange(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	client := resp.NewConn(conn)
 

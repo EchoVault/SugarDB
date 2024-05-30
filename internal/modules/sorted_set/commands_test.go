@@ -59,6 +59,7 @@ func Test_HandleZADD(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -270,6 +271,7 @@ func Test_HandleZCARD(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -396,6 +398,7 @@ func Test_HandleZCOUNT(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -566,6 +569,7 @@ func Test_HandleZLEXCOUNT(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -712,6 +716,7 @@ func Test_HandleZDIFF(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -927,6 +932,7 @@ func Test_HandleZDIFFSTORE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1165,6 +1171,7 @@ func Test_HandleZINCRBY(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1443,6 +1450,7 @@ func Test_HandleZMPOP(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -1753,6 +1761,7 @@ func Test_HandleZPOP(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -2009,6 +2018,7 @@ func Test_HandleZMSCORE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -2132,6 +2142,7 @@ func Test_HandleZSCORE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -2264,6 +2275,7 @@ func Test_HandleZRANDMEMBER(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -2456,6 +2468,7 @@ func Test_HandleZRANK(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -2608,6 +2621,7 @@ func Test_HandleZREM(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -2776,6 +2790,7 @@ func Test_HandleZREMRANGEBYSCORE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -2947,6 +2962,7 @@ func Test_HandleZREMRANGEBYRANK(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -3172,6 +3188,7 @@ func Test_HandleZREMRANGEBYLEX(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -3368,6 +3385,7 @@ func Test_HandleZRANGE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -3664,6 +3682,7 @@ func Test_HandleZRANGESTORE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -4010,6 +4029,7 @@ func Test_HandleZINTER(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -4373,6 +4393,7 @@ func Test_HandleZINTERSTORE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -4783,6 +4804,7 @@ func Test_HandleZUNION(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
@@ -5171,6 +5193,7 @@ func Test_HandleZUNIONSTORE(t *testing.T) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		t.Error()
+		return
 	}
 	client := resp.NewConn(conn)
 
