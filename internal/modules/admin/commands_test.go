@@ -32,7 +32,6 @@ import (
 	str "github.com/echovault/echovault/internal/modules/string"
 	"github.com/tidwall/resp"
 	"net"
-	"os"
 	"path"
 	"slices"
 	"strings"
@@ -50,38 +49,41 @@ func setupServer(port uint16) (*echovault.EchoVault, error) {
 }
 
 func Test_AdminCommands(t *testing.T) {
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	mockServer, err := setupServer(uint16(port))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		wg.Done()
+		mockServer.Start()
+	}()
+	wg.Wait()
+
 	t.Cleanup(func() {
-		_ = os.RemoveAll("./testdata")
+		mockServer.ShutDown()
 	})
 
 	t.Run("Test COMMANDS command", func(t *testing.T) {
 		t.Parallel()
-
-		port, err := internal.GetFreePort()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		mockServer, err := setupServer(uint16(port))
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			wg.Done()
-			mockServer.Start()
-		}()
-		wg.Wait()
 
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			t.Error(err)
 			return
 		}
+		defer func() {
+			_ = conn.Close()
+		}()
 		client := resp.NewConn(conn)
 
 		if err = client.WriteArray([]resp.Value{resp.StringValue("COMMANDS")}); err != nil {
@@ -128,31 +130,14 @@ func Test_AdminCommands(t *testing.T) {
 	t.Run("Test COMMAND COUNT command", func(t *testing.T) {
 		t.Parallel()
 
-		port, err := internal.GetFreePort()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		mockServer, err := setupServer(uint16(port))
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			wg.Done()
-			mockServer.Start()
-		}()
-		wg.Wait()
-
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			t.Error(err)
 			return
 		}
+		defer func() {
+			_ = conn.Close()
+		}()
 		client := resp.NewConn(conn)
 
 		if err = client.WriteArray([]resp.Value{resp.StringValue("COMMAND"), resp.StringValue("COUNT")}); err != nil {
@@ -199,31 +184,14 @@ func Test_AdminCommands(t *testing.T) {
 	t.Run("Test COMMAND LIST command", func(t *testing.T) {
 		t.Parallel()
 
-		port, err := internal.GetFreePort()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		mockServer, err := setupServer(uint16(port))
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			wg.Done()
-			mockServer.Start()
-		}()
-		wg.Wait()
-
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			t.Error(err)
 			return
 		}
+		defer func() {
+			_ = conn.Close()
+		}()
 		client := resp.NewConn(conn)
 
 		// Get all the commands from the existing modules.
@@ -336,17 +304,6 @@ func Test_AdminCommands(t *testing.T) {
 	})
 
 	t.Run("Test MODULE LOAD command", func(t *testing.T) {
-		port, err := internal.GetFreePort()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		mockServer, err := setupServer(uint16(port))
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
 		tests := []struct {
 			name        string
 			execCommand []resp.Value
@@ -433,20 +390,14 @@ func Test_AdminCommands(t *testing.T) {
 			},
 		}
 
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			wg.Done()
-			mockServer.Start()
-		}()
-		wg.Wait()
-
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			t.Error(err)
 			return
 		}
-
+		defer func() {
+			_ = conn.Close()
+		}()
 		respConn := resp.NewConn(conn)
 
 		for i := 0; i < len(tests); i++ {
@@ -505,31 +456,14 @@ func Test_AdminCommands(t *testing.T) {
 	})
 
 	t.Run("Test MODULE UNLOAD command", func(t *testing.T) {
-		port, err := internal.GetFreePort()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		mockServer, err := setupServer(uint16(port))
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			wg.Done()
-			mockServer.Start()
-		}()
-		wg.Wait()
-
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			t.Error(err)
 			return
 		}
-
+		defer func() {
+			_ = conn.Close()
+		}()
 		respConn := resp.NewConn(conn)
 
 		// Load module.set module
@@ -693,31 +627,14 @@ func Test_AdminCommands(t *testing.T) {
 	})
 
 	t.Run("Test MODULE LIST command", func(t *testing.T) {
-		port, err := internal.GetFreePort()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		mockServer, err := setupServer(uint16(port))
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			wg.Done()
-			mockServer.Start()
-		}()
-		wg.Wait()
-
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			t.Error(err)
 			return
 		}
-
+		defer func() {
+			_ = conn.Close()
+		}()
 		respConn := resp.NewConn(conn)
 
 		// Load module.get module with arg

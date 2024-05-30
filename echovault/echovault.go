@@ -73,7 +73,7 @@ type EchoVault struct {
 		mutex sync.Mutex        // Mutex as only one goroutine can edit the LFU cache at a time.
 		cache eviction.CacheLFU // LFU cache represented by a min head.
 	}
-	// LRU cache used when eviction policy is allkeys-lru or volatile-lru
+	// LRU cache used when eviction policy is allkeys-lru or volatile-lru.
 	lruCache struct {
 		mutex sync.Mutex        // Mutex as only one goroutine can edit the LRU at a time.
 		cache eviction.CacheLRU // LRU cache represented by a max head.
@@ -95,9 +95,12 @@ type EchoVault struct {
 	rewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
 	stateCopyInProgress        atomic.Bool      // Atomic boolean that's true when actively copying state for snapshotting or preamble generation.
 	stateMutationInProgress    atomic.Bool      // Atomic boolean that is set to true when state mutation is in progress.
-	latestSnapshotMilliseconds atomic.Int64     // Unix epoch in milliseconds
-	snapshotEngine             *snapshot.Engine // Snapshot engine for standalone mode
-	aofEngine                  *aof.Engine      // AOF engine for standalone mode
+	latestSnapshotMilliseconds atomic.Int64     // Unix epoch in milliseconds.
+	snapshotEngine             *snapshot.Engine // Snapshot engine for standalone mode.
+	aofEngine                  *aof.Engine      // AOF engine for standalone mode.
+
+	listener net.Listener  // TCP listener.
+	quit     chan struct{} // Channel that signals the closing of all client connections.
 }
 
 // WithContext is an options that for the NewEchoVault function that allows you to
@@ -142,6 +145,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			commands = append(commands, str.Commands()...)
 			return commands
 		}(),
+		quit: make(chan struct{}),
 	}
 
 	for _, option := range options {
@@ -320,30 +324,35 @@ func (server *EchoVault) startTCP() {
 		KeepAlive: 200 * time.Millisecond,
 	}
 
-	listener, err := listenConfig.Listen(server.context, "tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port))
-
+	listener, err := listenConfig.Listen(
+		server.context,
+		"tcp",
+		fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port),
+	)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("listener error: %v", err)
+		return
 	}
 
 	if !conf.TLS {
 		// TCP
-		log.Printf("Starting TCP echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		log.Printf("Starting TCP server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 	}
 
 	if conf.TLS || conf.MTLS {
 		// TLS
 		if conf.TLS {
-			log.Printf("Starting mTLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+			log.Printf("Starting mTLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		} else {
-			log.Printf("Starting TLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+			log.Printf("Starting TLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		}
 
 		var certificates []tls.Certificate
 		for _, certKeyPair := range conf.CertKeyPairs {
 			c, err := tls.LoadX509KeyPair(certKeyPair[0], certKeyPair[1])
 			if err != nil {
-				log.Fatal(err)
+				log.Printf("load cert key pair: %v\n", err)
+				return
 			}
 			certificates = append(certificates, c)
 		}
@@ -356,14 +365,15 @@ func (server *EchoVault) startTCP() {
 			for _, c := range conf.ClientCAs {
 				ca, err := os.Open(c)
 				if err != nil {
-					log.Fatal(err)
+					log.Printf("client cert open: %v\n", err)
+					return
 				}
 				certBytes, err := io.ReadAll(ca)
 				if err != nil {
-					log.Fatal(err)
+					log.Printf("client cert read: %v\n", err)
 				}
 				if ok := clientCerts.AppendCertsFromPEM(certBytes); !ok {
-					log.Fatal(err)
+					log.Printf("client cert append: %v\n", err)
 				}
 			}
 		}
@@ -375,15 +385,22 @@ func (server *EchoVault) startTCP() {
 		})
 	}
 
-	// Listen to connection
+	server.listener = listener
+
+	// Listen to connection.
 	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Println("Could not establish connection")
-			continue
+		select {
+		case <-server.quit:
+			return
+		default:
+			conn, err := server.listener.Accept()
+			if err != nil {
+				log.Printf("listener error: %v\n", err)
+				continue
+			}
+			// Read loop for connection
+			go server.handleConnection(conn)
 		}
-		// Read loop for connection
-		go server.handleConnection(conn)
 	}
 }
 
@@ -536,6 +553,13 @@ func (server *EchoVault) rewriteAOF() error {
 // ShutDown gracefully shuts down the EchoVault instance.
 // This function shuts down the memberlist and raft layers.
 func (server *EchoVault) ShutDown() {
+	if server.listener != nil {
+		go func() { server.quit <- struct{}{} }()
+		log.Println("closing tcp listener...")
+		if err := server.listener.Close(); err != nil {
+			log.Printf("listener close: %v\n", err)
+		}
+	}
 	if server.isInCluster() {
 		server.raft.RaftShutdown()
 		server.memberList.MemberListShutdown()

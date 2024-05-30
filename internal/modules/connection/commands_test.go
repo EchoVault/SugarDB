@@ -28,20 +28,26 @@ import (
 	"testing"
 )
 
-var mockServer *echovault.EchoVault
-var port int
-var addr = "localhost"
+func Test_Connection(t *testing.T) {
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
-func init() {
-	port, _ = internal.GetFreePort()
-	mockServer, _ = echovault.NewEchoVault(
+	mockServer, err := echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
-			BindAddr:       addr,
+			BindAddr:       "localhost",
 			Port:           uint16(port),
 		}),
 	)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -49,62 +55,70 @@ func init() {
 		mockServer.Start()
 	}()
 	wg.Wait()
-}
 
-func Test_HandlePing(t *testing.T) {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	client := resp.NewConn(conn)
+	t.Cleanup(func() {
+		mockServer.ShutDown()
+	})
 
-	tests := []struct {
-		command     []resp.Value
-		expected    string
-		expectedErr error
-	}{
-		{
-			command:     []resp.Value{resp.StringValue("PING")},
-			expected:    "PONG",
-			expectedErr: nil,
-		},
-		{
-			command:     []resp.Value{resp.StringValue("PING"), resp.StringValue("Hello, world!")},
-			expected:    "Hello, world!",
-			expectedErr: nil,
-		},
-		{
-			command: []resp.Value{
-				resp.StringValue("PING"),
-				resp.StringValue("Hello, world!"),
-				resp.StringValue("Once more"),
-			},
-			expected:    "",
-			expectedErr: errors.New(constants.WrongArgsResponse),
-		},
-	}
-
-	for _, test := range tests {
-		if err = client.WriteArray(test.command); err != nil {
+	t.Run("Test_HandlePing", func(t *testing.T) {
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		if err != nil {
 			t.Error(err)
 			return
 		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
 
-		res, _, err := client.ReadValue()
-		if err != nil {
-			t.Error(err)
+		tests := []struct {
+			command     []resp.Value
+			expected    string
+			expectedErr error
+		}{
+			{
+				command:     []resp.Value{resp.StringValue("PING")},
+				expected:    "PONG",
+				expectedErr: nil,
+			},
+			{
+				command:     []resp.Value{resp.StringValue("PING"), resp.StringValue("Hello, world!")},
+				expected:    "Hello, world!",
+				expectedErr: nil,
+			},
+			{
+				command: []resp.Value{
+					resp.StringValue("PING"),
+					resp.StringValue("Hello, world!"),
+					resp.StringValue("Once more"),
+				},
+				expected:    "",
+				expectedErr: errors.New(constants.WrongArgsResponse),
+			},
 		}
 
-		if test.expectedErr != nil {
-			if !strings.Contains(res.Error().Error(), test.expectedErr.Error()) {
-				t.Errorf("expected error \"%s\", got \"%s\"", test.expectedErr.Error(), res.Error().Error())
+		for _, test := range tests {
+			if err = client.WriteArray(test.command); err != nil {
+				t.Error(err)
+				return
 			}
-			continue
-		}
 
-		if res.String() != test.expected {
-			t.Errorf("expected response \"%s\", got \"%s\"", test.expected, res.String())
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if test.expectedErr != nil {
+				if !strings.Contains(res.Error().Error(), test.expectedErr.Error()) {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedErr.Error(), res.Error().Error())
+				}
+				continue
+			}
+
+			if res.String() != test.expected {
+				t.Errorf("expected response \"%s\", got \"%s\"", test.expected, res.String())
+			}
 		}
-	}
+	})
+
 }
