@@ -21,6 +21,7 @@ import (
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/constants"
+	"io"
 	"net"
 	"strings"
 )
@@ -72,6 +73,11 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 
 	if len(cmd) == 0 {
 		return nil, errors.New("empty command")
+	}
+
+	// If quit command is passed, EOF error.
+	if strings.EqualFold(cmd[0], "quit") {
+		return nil, io.EOF
 	}
 
 	command, err := server.getCommand(cmd[0])

@@ -399,6 +399,13 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 	ctx := context.WithValue(server.context, internal.ContextConnID("ConnectionID"),
 		fmt.Sprintf("%s-%d", server.context.Value(internal.ContextServerID("ServerID")), cid))
 
+	defer func() {
+		log.Printf("closing connection %d...", cid)
+		if err := conn.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
+
 	for {
 		message, err := internal.ReadMessage(r)
 
@@ -414,11 +421,9 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 		}
 
 		res, err := server.handleCommand(ctx, message, &conn, false, false)
-
 		if err != nil && errors.Is(err, io.EOF) {
 			break
 		}
-
 		if err != nil {
 			if _, err = w.Write([]byte(fmt.Sprintf("-Error %s\r\n", err.Error()))); err != nil {
 				log.Println(err)
@@ -428,7 +433,7 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 
 		chunkSize := 1024
 
-		// If the length of the response is 0, return nothing to the client
+		// If the length of the response is 0, return nothing to the client.
 		if len(res) == 0 {
 			continue
 		}
@@ -455,10 +460,6 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 			}
 			startIndex += chunkSize
 		}
-	}
-
-	if err := conn.Close(); err != nil {
-		log.Println(err)
 	}
 }
 

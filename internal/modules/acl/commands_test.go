@@ -62,7 +62,7 @@ func setUpServer(bindAddr string, port uint16, requirePass bool, aclConfig strin
 		echovault.WithConfig(conf),
 	)
 
-	// Add the initial test users to the ACL module
+	// Add the initial test users to the ACL module.
 	// a.AddUsers(generateInitialTestUsers())
 
 	return mockServer
