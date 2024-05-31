@@ -241,8 +241,8 @@ func (user *User) UpdateUser(cmd []string) error {
 			user.IncludedCategories = []string{}
 			user.ExcludedCategories = []string{"*"}
 		}
-		// If resetkeys is provided, reset all keys that the user can access
-		if strings.EqualFold(str, "resetkeys") {
+		// If resetkeys or nokeys is provided, reset all keys that the user can access.
+		if slices.Contains([]string{"resetkeys", "nokeys"}, str) {
 			user.IncludedReadKeys = []string{}
 			user.IncludedWriteKeys = []string{}
 			user.NoKeys = true
