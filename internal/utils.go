@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"bytes"
 	"cmp"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal/constants"
@@ -30,6 +31,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/sethvargo/go-retry"
@@ -429,15 +431,51 @@ func GetFreePort() (int, error) {
 }
 
 func GetConnection(addr string, port int) (net.Conn, error) {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
-	if err != nil {
-		return nil, err
-	}
-	for {
-		// Wait until connection is no longer nil.
-		if conn != nil {
+	var conn net.Conn
+	var err error
+	done := make(chan struct{})
+
+	go func() {
+		for {
+			conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
+			if err != nil && errors.Is(err.(*net.OpError), syscall.ECONNREFUSED) {
+				// If we get a "connection refused error, try again."
+				continue
+			}
 			break
 		}
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-time.After(10 * time.Second):
+		return nil, errors.New("connection timeout")
+	case <-done:
+		return conn, err
 	}
-	return conn, nil
+}
+
+func GetTLSConnection(addr string, port int, config *tls.Config) (net.Conn, error) {
+	var conn net.Conn
+	var err error
+	done := make(chan struct{})
+
+	go func() {
+		for {
+			conn, err = tls.Dial("tcp", fmt.Sprintf("%s:%d", addr, port), config)
+			if err != nil && errors.Is(err.(*net.OpError), syscall.ECONNREFUSED) {
+				// If we get a "connection refused error, try again."
+				continue
+			}
+			break
+		}
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-time.After(10 * time.Second):
+		return nil, errors.New("connection timeout")
+	case <-done:
+		return conn, err
+	}
 }

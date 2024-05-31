@@ -16,7 +16,6 @@ package sorted_set_test
 
 import (
 	"errors"
-	"fmt"
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
@@ -24,11 +23,9 @@ import (
 	"github.com/echovault/echovault/internal/modules/sorted_set"
 	"github.com/tidwall/resp"
 	"math"
-	"net"
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -52,13 +49,9 @@ func Test_SortedSet(t *testing.T) {
 		return
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	go func() {
-		wg.Done()
 		mockServer.Start()
 	}()
-	wg.Wait()
 
 	t.Cleanup(func() {
 		mockServer.ShutDown()
@@ -66,7 +59,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZADD", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -282,7 +275,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZCARD", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -413,7 +406,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZCOUNT", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -588,7 +581,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZLEXCOUNT", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -739,7 +732,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZDIFF", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -959,7 +952,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZDIFFSTORE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -1202,7 +1195,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZINCRBY", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -1485,7 +1478,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZMPOP", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -1800,7 +1793,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZPOP", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -2061,7 +2054,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZMSCORE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -2189,7 +2182,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZSCORE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -2326,7 +2319,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZRANDMEMBER", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -2523,7 +2516,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZRANK", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -2680,7 +2673,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZREM", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -2853,7 +2846,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZREMRANGEBYSCORE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -3029,7 +3022,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZREMRANGEBYRANK", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -3259,7 +3252,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZREMRANGEBYLEX", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -3460,7 +3453,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZRANGE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -3761,7 +3754,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZRANGESTORE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -4112,7 +4105,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZINTER", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -4480,7 +4473,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZINTERSTORE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -4895,7 +4888,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZUNION", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return
@@ -5288,7 +5281,7 @@ func Test_SortedSet(t *testing.T) {
 
 	t.Run("Test_HandleZUNIONSTORE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error()
 			return

@@ -16,16 +16,13 @@ package str_test
 
 import (
 	"errors"
-	"fmt"
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
-	"net"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -49,13 +46,9 @@ func Test_String(t *testing.T) {
 		return
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	go func() {
-		wg.Done()
 		mockServer.Start()
 	}()
-	wg.Wait()
 
 	t.Cleanup(func() {
 		mockServer.ShutDown()
@@ -63,7 +56,7 @@ func Test_String(t *testing.T) {
 
 	t.Run("Test_HandleSetRange", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -213,7 +206,7 @@ func Test_String(t *testing.T) {
 
 	t.Run("Test_HandleStrLen", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -314,7 +307,7 @@ func Test_String(t *testing.T) {
 
 	t.Run("Test_HandleSubStr", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return

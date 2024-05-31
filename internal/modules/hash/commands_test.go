@@ -16,17 +16,14 @@ package hash_test
 
 import (
 	"errors"
-	"fmt"
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
-	"net"
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -50,13 +47,9 @@ func Test_Hash(t *testing.T) {
 		return
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	go func() {
-		wg.Done()
 		mockServer.Start()
 	}()
-	wg.Wait()
 
 	t.Cleanup(func() {
 		mockServer.ShutDown()
@@ -64,7 +57,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHSET", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -248,7 +241,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHINCRBY", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -450,7 +443,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHGET", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -606,7 +599,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHSTRLEN", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -764,7 +757,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHVALS", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -906,7 +899,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHRANDFIELD", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1115,7 +1108,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHLEN", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1241,7 +1234,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHKeys", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1369,7 +1362,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHGETALL", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1510,7 +1503,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHEXISTS", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1637,7 +1630,7 @@ func Test_Hash(t *testing.T) {
 
 	t.Run("Test_HandleHDEL", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return

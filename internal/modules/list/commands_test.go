@@ -16,17 +16,14 @@ package list_test
 
 import (
 	"errors"
-	"fmt"
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
-	"net"
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -50,13 +47,9 @@ func Test_List(t *testing.T) {
 		return
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	go func() {
-		wg.Done()
 		mockServer.Start()
 	}()
-	wg.Wait()
 
 	t.Cleanup(func() {
 		mockServer.ShutDown()
@@ -64,7 +57,7 @@ func Test_List(t *testing.T) {
 
 	t.Run("Test_HandleLLEN", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -188,7 +181,7 @@ func Test_List(t *testing.T) {
 
 	t.Run("Test_HandleLINDEX", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -352,7 +345,7 @@ func Test_List(t *testing.T) {
 
 	t.Run("Test_HandleLRANGE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -541,7 +534,7 @@ func Test_List(t *testing.T) {
 
 	t.Run("Test_HandleLSET", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -730,7 +723,7 @@ func Test_List(t *testing.T) {
 
 	t.Run("Test_HandleLTRIM", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -930,7 +923,7 @@ func Test_List(t *testing.T) {
 
 	t.Run("Test_HandleLREM", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1095,7 +1088,7 @@ func Test_List(t *testing.T) {
 
 	t.Run("Test_HandleLMOVE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1326,7 +1319,7 @@ func Test_List(t *testing.T) {
 
 	t.Run("Test_HandleLPUSH", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1481,7 +1474,7 @@ func Test_List(t *testing.T) {
 
 	t.Run("Test_HandleRPUSH", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1636,7 +1629,7 @@ func Test_List(t *testing.T) {
 
 	t.Run("Test_HandlePOP", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return

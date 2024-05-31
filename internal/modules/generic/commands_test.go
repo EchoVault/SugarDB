@@ -23,9 +23,7 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
-	"net"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 )
@@ -56,13 +54,9 @@ func Test_Generic(t *testing.T) {
 		return
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	go func() {
-		wg.Done()
 		mockServer.Start()
 	}()
-	wg.Wait()
 
 	t.Cleanup(func() {
 		mockServer.ShutDown()
@@ -70,7 +64,7 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandleSET", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -475,7 +469,7 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandleMSET", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -567,7 +561,7 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandleGET", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -686,7 +680,7 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandleMGET", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -793,7 +787,7 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandleDEL", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -905,7 +899,7 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandlePERSIST", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1062,7 +1056,7 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandleEXPIRETIME", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1183,7 +1177,7 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandleTTL", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1304,7 +1298,7 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandleEXPIRE", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1591,7 +1585,7 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandleEXPIREAT", func(t *testing.T) {
 		t.Parallel()
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
