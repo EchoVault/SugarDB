@@ -21,6 +21,8 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
 	"io"
 	"math"
@@ -40,6 +42,7 @@ type ClientServerPair struct {
 	raftPort         int
 	mlPort           int
 	bootstrapCluster bool
+	forwardCommand   bool
 	joinAddr         string
 	raw              net.Conn
 	client           *resp.Conn
@@ -69,6 +72,7 @@ func getBindAddr() net.IP {
 func setupServer(
 	serverId string,
 	bootstrapCluster bool,
+	forwardCommand bool,
 	bindAddr,
 	joinAddr string,
 	port,
@@ -77,7 +81,7 @@ func setupServer(
 ) (*EchoVault, error) {
 	config := DefaultConfig()
 	config.DataDir = "./testdata"
-	config.ForwardCommand = true
+	config.ForwardCommand = forwardCommand
 	config.BindAddr = bindAddr
 	config.JoinAddr = joinAddr
 	config.Port = uint16(port)
@@ -97,6 +101,7 @@ func setupNode(node *ClientServerPair, isLeader bool, errChan *chan error) {
 	server, err := setupServer(
 		node.serverId,
 		node.bootstrapCluster,
+		node.forwardCommand,
 		node.bindAddr,
 		node.joinAddr,
 		node.port,
@@ -148,6 +153,7 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 		serverId := fmt.Sprintf("SERVER-%d", i)
 		bindAddr := getBindAddr().String()
 		bootstrapCluster := i == 0
+		forwardCommand := i < len(pairs)-1 // The last node will not forward commands to the cluster leader.
 		joinAddr := ""
 		if !bootstrapCluster {
 			joinAddr = fmt.Sprintf("%s/%s:%d", pairs[0].serverId, pairs[0].bindAddr, pairs[0].mlPort)
@@ -172,6 +178,7 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 			raftPort:         raftPort,
 			mlPort:           memberlistPort,
 			bootstrapCluster: bootstrapCluster,
+			forwardCommand:   forwardCommand,
 			joinAddr:         joinAddr,
 		}
 	}
@@ -536,9 +543,83 @@ func Test_Cluster(t *testing.T) {
 		case <-doneChan:
 		}
 	})
+
+	t.Run("Test_NotLeaderError", func(t *testing.T) {
+		node := nodes[len(nodes)-1]
+		err := node.client.WriteArray([]resp.Value{
+			resp.StringValue("SET"),
+			resp.StringValue("key"),
+			resp.StringValue("value"),
+		})
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		res, _, err := node.client.ReadValue()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		expected := "not cluster leader, cannot carry out command"
+		if !strings.Contains(res.Error().Error(), expected) {
+			t.Errorf("expected response to contain \"%s\", got \"%s\"", expected, res.Error().Error())
+		}
+	})
 }
 
 func Test_Standalone(t *testing.T) {
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	mockServer, err := NewEchoVault(
+		WithConfig(config.Config{
+			BindAddr:       "localhost",
+			Port:           uint16(port),
+			DataDir:        "",
+			EvictionPolicy: constants.NoEviction,
+		}),
+	)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	go func() {
+		mockServer.Start()
+	}()
+
+	t.Cleanup(func() {
+		mockServer.ShutDown()
+	})
+
+	t.Run("Test_EmptyCommand", func(t *testing.T) {
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		if err := client.WriteArray([]resp.Value{}); err != nil {
+			t.Error(err)
+			return
+		}
+		res, _, err := client.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		expected := "empty command"
+		if !strings.Contains(res.Error().Error(), expected) {
+			t.Errorf("expcted response to contain \"%s\", got \"%s\"", expected, res.Error().Error())
+		}
+	})
+
 	t.Run("Test_TLS", func(t *testing.T) {
 		t.Parallel()
 
