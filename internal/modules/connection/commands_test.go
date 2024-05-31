@@ -16,15 +16,12 @@ package connection_test
 
 import (
 	"errors"
-	"fmt"
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
-	"net"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -48,20 +45,16 @@ func Test_Connection(t *testing.T) {
 		return
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	go func() {
-		wg.Done()
 		mockServer.Start()
 	}()
-	wg.Wait()
 
 	t.Cleanup(func() {
 		mockServer.ShutDown()
 	})
 
 	t.Run("Test_HandlePing", func(t *testing.T) {
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return

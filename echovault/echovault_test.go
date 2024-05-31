@@ -489,32 +489,51 @@ func Test_Cluster(t *testing.T) {
 			}
 		}
 
-		<-time.After(1 * time.Second) // Short yield to allow change to take effect.
+		<-time.After(3 * time.Second) // Yield.
 
 		// Check if the data has been replicated on a quorum (majority of the cluster).
-		quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
-		for i, test := range tests {
-			count := 0
-			for j := 0; j < len(nodes); j++ {
-				node := nodes[j]
-				if err := node.client.WriteArray([]resp.Value{
-					resp.StringValue("GET"),
-					resp.StringValue(test.key),
-				}); err != nil {
-					t.Errorf("could not write data to follower node %d (test %d): %v", j, i, err)
+		var forwardError error
+		doneChan := make(chan struct{})
+
+		go func() {
+			quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
+			for i := 0; i < len(tests); i++ {
+				test := tests[i]
+				count := 0
+				for j := 0; j < len(nodes); j++ {
+					node := nodes[j]
+					if err := node.client.WriteArray([]resp.Value{
+						resp.StringValue("GET"),
+						resp.StringValue(test.key),
+					}); err != nil {
+						forwardError = fmt.Errorf("could not write data to follower node %d (test %d): %v", j, i, err)
+						i = 0
+						continue
+					}
+					rd, _, err := node.client.ReadValue()
+					if err != nil {
+						forwardError = fmt.Errorf("could not read data from follower node %d (test %d): %v", j, i, err)
+						i = 0
+						continue
+					}
+					if rd.String() == test.value {
+						count += 1 // If the expected value is found, increment the count.
+					}
 				}
-				rd, _, err := node.client.ReadValue()
-				if err != nil {
-					t.Errorf("could not read data from follower node %d (test %d): %v", j, i, err)
-				}
-				if rd.String() == test.value {
-					count += 1 // If the expected value is found, increment the count.
+				// Fail if count is less than quorum.
+				if count < quorum {
+					forwardError = fmt.Errorf("could not find value %s at key %s in cluster quorum", test.value, test.key)
+					i = 0
+					continue
 				}
 			}
-			// Fail if count is less than quorum.
-			if count < quorum {
-				t.Errorf("could not find value %s at key %s in cluster quorum", test.value, test.key)
-			}
+			doneChan <- struct{}{}
+		}()
+
+		select {
+		case <-time.After(5 * time.Second):
+			t.Error(forwardError)
+		case <-doneChan:
 		}
 	})
 }

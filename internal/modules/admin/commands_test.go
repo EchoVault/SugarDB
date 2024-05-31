@@ -31,11 +31,9 @@ import (
 	"github.com/echovault/echovault/internal/modules/sorted_set"
 	str "github.com/echovault/echovault/internal/modules/string"
 	"github.com/tidwall/resp"
-	"net"
 	"path"
 	"slices"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -61,22 +59,16 @@ func Test_AdminCommands(t *testing.T) {
 		return
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	go func() {
-		wg.Done()
 		mockServer.Start()
 	}()
-	wg.Wait()
 
 	t.Cleanup(func() {
 		mockServer.ShutDown()
 	})
 
 	t.Run("Test COMMANDS command", func(t *testing.T) {
-		t.Parallel()
-
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -128,9 +120,7 @@ func Test_AdminCommands(t *testing.T) {
 	})
 
 	t.Run("Test COMMAND COUNT command", func(t *testing.T) {
-		t.Parallel()
-
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -182,9 +172,7 @@ func Test_AdminCommands(t *testing.T) {
 	})
 
 	t.Run("Test COMMAND LIST command", func(t *testing.T) {
-		t.Parallel()
-
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -390,7 +378,7 @@ func Test_AdminCommands(t *testing.T) {
 			},
 		}
 
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -456,7 +444,7 @@ func Test_AdminCommands(t *testing.T) {
 	})
 
 	t.Run("Test MODULE UNLOAD command", func(t *testing.T) {
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
@@ -627,7 +615,7 @@ func Test_AdminCommands(t *testing.T) {
 	})
 
 	t.Run("Test MODULE LIST command", func(t *testing.T) {
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
 			return
