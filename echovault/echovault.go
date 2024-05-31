@@ -341,7 +341,7 @@ func (server *EchoVault) startTCP() {
 
 	if conf.TLS || conf.MTLS {
 		// TLS
-		if conf.TLS {
+		if conf.MTLS {
 			log.Printf("Starting mTLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		} else {
 			log.Printf("Starting TLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
