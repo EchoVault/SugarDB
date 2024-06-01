@@ -72,7 +72,7 @@ func NewACL(config config.Config) *ACL {
 		} else {
 			defer func() {
 				if err := f.Close(); err != nil {
-					log.Println("acl config file close error: ", err)
+					log.Printf("acl config file close: %v\n", err)
 				}
 			}()
 
@@ -80,13 +80,13 @@ func NewACL(config config.Config) *ACL {
 
 			if ext == ".json" {
 				if err := json.NewDecoder(f).Decode(&users); err != nil {
-					log.Fatal("could not load JSON ACL config: ", err)
+					log.Printf("load ACL config: %v\n", err)
 				}
 			}
 
-			if ext == ".yaml" || ext == ".yml" {
+			if slices.Contains([]string{".yaml", ".yml"}, ext) {
 				if err := yaml.NewDecoder(f).Decode(&users); err != nil {
-					log.Fatal("could not load YAML ACL config: ", err)
+					log.Printf("load ACL config: %v\n", err)
 				}
 			}
 		}
