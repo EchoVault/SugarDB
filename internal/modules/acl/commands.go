@@ -342,7 +342,7 @@ func handleList(params internal.HandlerFuncParams) ([]byte, error) {
 			s += fmt.Sprintf(" %s~%s", "%R", key)
 		}
 		// Included write keys
-		for _, key := range user.IncludedReadKeys {
+		for _, key := range user.IncludedWriteKeys {
 			if !slices.Contains(user.IncludedReadKeys, key) {
 				s += fmt.Sprintf(" %s~%s", "%W", key)
 			}
@@ -375,7 +375,7 @@ func handleLoad(params internal.HandlerFuncParams) ([]byte, error) {
 	acl.LockUsers()
 	defer acl.UnlockUsers()
 
-	f, err := os.Open(acl.Config.AclConfig)
+	f, err := os.OpenFile(acl.Config.AclConfig, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -390,13 +390,13 @@ func handleLoad(params internal.HandlerFuncParams) ([]byte, error) {
 
 	var users []*User
 
-	if ext == ".json" {
+	if strings.ToLower(ext) == ".json" {
 		if err := json.NewDecoder(f).Decode(&users); err != nil {
 			return nil, err
 		}
 	}
 
-	if ext == ".yaml" || ext == ".yml" {
+	if slices.Contains([]string{".yaml", ".yml"}, strings.ToLower(ext)) {
 		if err := yaml.NewDecoder(f).Decode(&users); err != nil {
 			return nil, err
 		}
@@ -420,7 +420,7 @@ func handleLoad(params internal.HandlerFuncParams) ([]byte, error) {
 				break
 			}
 		}
-		// If the no user with current loaded username is already in acl list, then append the user to the list
+		// If there is no user with current loaded username is already in acl list, then append the user to the list
 		if !userFound {
 			acl.Users = append(acl.Users, user)
 		}
@@ -439,8 +439,8 @@ func handleSave(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New("could not load ACL")
 	}
 
-	acl.RLockUsers()
-	acl.RUnlockUsers()
+	acl.LockUsers()
+	acl.UnlockUsers()
 
 	f, err := os.OpenFile(acl.Config.AclConfig, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {

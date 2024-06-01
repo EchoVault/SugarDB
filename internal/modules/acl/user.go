@@ -86,6 +86,15 @@ func (user *User) Normalise() {
 	if slices.Contains(user.ExcludedPubSubChannels, "*") {
 		user.IncludedPubSubChannels = []string{}
 	}
+
+	// Sort passwords
+	slices.SortStableFunc(user.Passwords, func(a, b Password) int {
+		types := map[string]int{
+			PasswordPlainText: 0,
+			PasswordSHA256:    1,
+		}
+		return types[a.PasswordType] - types[b.PasswordType]
+	})
 }
 
 func RemoveDuplicateEntries(entries []string, allAlias string) (res []string) {
@@ -98,11 +107,13 @@ func RemoveDuplicateEntries(entries []string, allAlias string) (res []string) {
 		entriesMap[entry] += 1
 	}
 	for key, _ := range entriesMap {
-		if key == "*" {
+		if key == "*" && len(entriesMap) == 1 {
 			res = []string{"*"}
 			return
 		}
-		res = append(res, key)
+		if key != "*" {
+			res = append(res, key)
+		}
 	}
 	return
 }
@@ -127,19 +138,13 @@ func (user *User) UpdateUser(cmd []string) error {
 		}
 		if str[0] == '<' {
 			user.Passwords = slices.DeleteFunc(user.Passwords, func(password Password) bool {
-				if strings.EqualFold(password.PasswordType, PasswordSHA256) {
-					return false
-				}
-				return password.PasswordValue == str[1:]
+				return strings.EqualFold(password.PasswordType, PasswordPlainText) && password.PasswordValue == str[1:]
 			})
 			continue
 		}
 		if str[0] == '!' {
 			user.Passwords = slices.DeleteFunc(user.Passwords, func(password Password) bool {
-				if strings.EqualFold(password.PasswordType, PasswordPlainText) {
-					return false
-				}
-				return password.PasswordValue == str[1:]
+				return strings.EqualFold(password.PasswordType, PasswordSHA256) && password.PasswordValue == str[1:]
 			})
 			continue
 		}
@@ -253,6 +258,7 @@ func (user *User) UpdateUser(cmd []string) error {
 			user.ExcludedPubSubChannels = []string{"*"}
 		}
 	}
+
 	return nil
 }
 
@@ -260,7 +266,6 @@ func (user *User) Merge(new *User) {
 	user.Enabled = new.Enabled
 	user.NoKeys = new.NoKeys
 	user.NoPassword = new.NoPassword
-	user.Passwords = append(user.Passwords, new.Passwords...)
 	user.IncludedCategories = append(user.IncludedCategories, new.IncludedCategories...)
 	user.ExcludedCategories = append(user.ExcludedCategories, new.ExcludedCategories...)
 	user.IncludedCommands = append(user.IncludedCommands, new.IncludedCommands...)
@@ -269,6 +274,16 @@ func (user *User) Merge(new *User) {
 	user.IncludedWriteKeys = append(user.IncludedWriteKeys, new.IncludedWriteKeys...)
 	user.IncludedPubSubChannels = append(user.IncludedPubSubChannels, new.IncludedPubSubChannels...)
 	user.ExcludedPubSubChannels = append(user.ExcludedPubSubChannels, new.ExcludedPubSubChannels...)
+
+	// Add passwords.
+	for _, password := range new.Passwords {
+		if !slices.ContainsFunc(user.Passwords, func(p Password) bool {
+			return p.PasswordType == password.PasswordType && p.PasswordValue == password.PasswordValue
+		}) {
+			user.Passwords = append(user.Passwords, new.Passwords...)
+		}
+	}
+
 	user.Normalise()
 }
 

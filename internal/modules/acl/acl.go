@@ -17,6 +17,7 @@ package acl
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -57,7 +58,7 @@ func loadUsersFromConfigFile(users []*User, filePath string) {
 			return
 		}
 		// Open the config file. Create it if it does not exist.
-		f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, os.ModePerm)
+		f, err := os.OpenFile(filePath, os.O_RDONLY|os.O_CREATE, os.ModePerm)
 		if err != nil {
 			log.Printf("open ACL config: %v\n", err)
 			return
@@ -231,14 +232,13 @@ func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []
 	var passwords []Password
 	var user *User
 
-	h := sha256.New()
-
 	if len(cmd) == 2 {
 		// Process AUTH <password>
+		h := sha256.New()
 		h.Write([]byte(cmd[1]))
 		passwords = []Password{
-			{PasswordType: "plaintext", PasswordValue: cmd[1]},
-			{PasswordType: "SHA256", PasswordValue: string(h.Sum(nil))},
+			{PasswordType: PasswordPlainText, PasswordValue: cmd[1]},
+			{PasswordType: PasswordSHA256, PasswordValue: hex.EncodeToString(h.Sum(nil))},
 		}
 		// Authenticate with default user
 		idx := slices.IndexFunc(acl.Users, func(user *User) bool {
@@ -249,10 +249,11 @@ func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []
 
 	if len(cmd) == 3 {
 		// Process AUTH <username> <password>
+		h := sha256.New()
 		h.Write([]byte(cmd[2]))
 		passwords = []Password{
-			{PasswordType: "plaintext", PasswordValue: cmd[2]},
-			{PasswordType: "SHA256", PasswordValue: string(h.Sum(nil))},
+			{PasswordType: PasswordPlainText, PasswordValue: cmd[2]},
+			{PasswordType: PasswordSHA256, PasswordValue: hex.EncodeToString(h.Sum(nil))},
 		}
 		// Find user with the specified username
 		userFound := false
@@ -284,7 +285,7 @@ func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []
 
 	for _, userPassword := range user.Passwords {
 		for _, password := range passwords {
-			if strings.EqualFold(userPassword.PasswordType, password.PasswordType) &&
+			if userPassword.PasswordType == password.PasswordType &&
 				userPassword.PasswordValue == password.PasswordValue &&
 				user.Enabled {
 				// Set the current connection to the selected user and set them as authenticated
