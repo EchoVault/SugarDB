@@ -288,7 +288,7 @@ func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []
 			if userPassword.PasswordType == password.PasswordType &&
 				userPassword.PasswordValue == password.PasswordValue &&
 				user.Enabled {
-				// Set the current connection to the selected user and set them as authenticated
+				// Set the current connection to the selected user and set them as authenticated.
 				acl.Connections[conn] = Connection{
 					Authenticated: true,
 					User:          user,

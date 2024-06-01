@@ -79,21 +79,21 @@ func setupServer(
 	raftPort,
 	mlPort int,
 ) (*EchoVault, error) {
-	config := DefaultConfig()
-	config.DataDir = "./testdata"
-	config.ForwardCommand = forwardCommand
-	config.BindAddr = bindAddr
-	config.JoinAddr = joinAddr
-	config.Port = uint16(port)
-	config.InMemory = true
-	config.ServerID = serverId
-	config.RaftBindPort = uint16(raftPort)
-	config.MemberListBindPort = uint16(mlPort)
-	config.BootstrapCluster = bootstrapCluster
+	conf := DefaultConfig()
+	conf.DataDir = "./testdata"
+	conf.ForwardCommand = forwardCommand
+	conf.BindAddr = bindAddr
+	conf.JoinAddr = joinAddr
+	conf.Port = uint16(port)
+	conf.InMemory = true
+	conf.ServerID = serverId
+	conf.RaftBindPort = uint16(raftPort)
+	conf.MemberListBindPort = uint16(mlPort)
+	conf.BootstrapCluster = bootstrapCluster
 
 	return NewEchoVault(
 		WithContext(context.Background()),
-		WithConfig(config),
+		WithConfig(conf),
 	)
 }
 
