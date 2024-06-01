@@ -49,6 +49,45 @@ type ACL struct {
 	GlobPatterns map[string]glob.Glob
 }
 
+func loadUsersFromConfigFile(users []*User, filePath string) {
+	if filePath != "" {
+		// Create the director if it does not exist.
+		if err := os.MkdirAll(path.Dir(filePath), os.ModePerm); err != nil {
+			log.Printf("mkdir ACL config: %v\n", err)
+			return
+		}
+		// Open the config file. Create it if it does not exist.
+		f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, os.ModePerm)
+		if err != nil {
+			log.Printf("open ACL config: %v\n", err)
+			return
+		}
+
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Printf("close ACL config: %v\n", err)
+			}
+		}()
+
+		ext := path.Ext(f.Name())
+
+		if strings.ToLower(ext) == ".json" {
+			if err := json.NewDecoder(f).Decode(&users); err != nil {
+				log.Printf("load ACL config: %v\n", err)
+				return
+			}
+		}
+
+		if slices.Contains([]string{".yaml", ".yml"}, strings.ToLower(ext)) {
+			if err := yaml.NewDecoder(f).Decode(&users); err != nil {
+				log.Printf("load ACL config: %v\n", err)
+				return
+			}
+		}
+
+	}
+}
+
 func NewACL(config config.Config) *ACL {
 	var users []*User
 
@@ -65,32 +104,7 @@ func NewACL(config config.Config) *ACL {
 	}
 
 	// 2. Read and parse the ACL config file
-	if config.AclConfig != "" {
-		// Override acl configurations from file
-		if f, err := os.Open(config.AclConfig); err != nil {
-			panic(err)
-		} else {
-			defer func() {
-				if err := f.Close(); err != nil {
-					log.Printf("acl config file close: %v\n", err)
-				}
-			}()
-
-			ext := path.Ext(f.Name())
-
-			if ext == ".json" {
-				if err := json.NewDecoder(f).Decode(&users); err != nil {
-					log.Printf("load ACL config: %v\n", err)
-				}
-			}
-
-			if slices.Contains([]string{".yaml", ".yml"}, ext) {
-				if err := yaml.NewDecoder(f).Decode(&users); err != nil {
-					log.Printf("load ACL config: %v\n", err)
-				}
-			}
-		}
-	}
+	loadUsersFromConfigFile(users, config.AclConfig)
 
 	// 3. If default user was not loaded from file, add the created one
 	defaultLoaded := false

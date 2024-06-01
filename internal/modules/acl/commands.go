@@ -442,7 +442,7 @@ func handleSave(params internal.HandlerFuncParams) ([]byte, error) {
 	acl.RLockUsers()
 	acl.RUnlockUsers()
 
-	f, err := os.OpenFile(acl.Config.AclConfig, os.O_WRONLY|os.O_CREATE, os.ModeAppend)
+	f, err := os.OpenFile(acl.Config.AclConfig, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -455,32 +455,29 @@ func handleSave(params internal.HandlerFuncParams) ([]byte, error) {
 
 	ext := path.Ext(f.Name())
 
-	if ext == ".json" {
+	if strings.ToLower(ext) == ".json" {
 		// Write to JSON config file
 		out, err := json.Marshal(acl.Users)
 		if err != nil {
 			return nil, err
 		}
-		_, err = f.Write(out)
-		if err != nil {
+		if _, err = f.Write(out); err != nil {
 			return nil, err
 		}
 	}
 
-	if ext == ".yaml" || ext == ".yml" {
+	if slices.Contains([]string{".yaml", ".yml"}, strings.ToLower(ext)) {
 		// Write to yaml file
 		out, err := yaml.Marshal(acl.Users)
 		if err != nil {
 			return nil, err
 		}
-		_, err = f.Write(out)
-		if err != nil {
+		if _, err = f.Write(out); err != nil {
 			return nil, err
 		}
 	}
 
-	err = f.Sync()
-	if err != nil {
+	if err = f.Sync(); err != nil {
 		return nil, err
 	}
 
