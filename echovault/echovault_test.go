@@ -539,7 +539,9 @@ func Test_Cluster(t *testing.T) {
 
 		select {
 		case <-time.After(5 * time.Second):
-			t.Error(forwardError)
+			if forwardError != nil {
+				t.Errorf("timeout error: %v\n", forwardError)
+			}
 			return
 		case <-doneChan:
 		}
