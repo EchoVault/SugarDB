@@ -31,10 +31,13 @@ func Test_CacheLRU(t *testing.T) {
 	}
 
 	access := []string{"key3", "key4", "key1", "key2", "key5"}
+	ticker := time.NewTicker(200 * time.Millisecond)
 	for _, key := range access {
 		cache.Update(key)
-		<-time.After(1 * time.Millisecond)
+		// Yield
+		<-ticker.C
 	}
+	ticker.Stop()
 
 	for i := len(access) - 1; i >= 0; i-- {
 		key := heap.Pop(&cache).(string)

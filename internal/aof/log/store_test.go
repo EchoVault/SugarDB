@@ -35,6 +35,10 @@ func marshalRespCommand(command []string) []byte {
 }
 
 func Test_AppendStore(t *testing.T) {
+	t.Cleanup(func() {
+		_ = os.RemoveAll(path.Join(".", "testdata"))
+	})
+
 	tests := []struct {
 		name             string
 		directory        string
@@ -133,14 +137,16 @@ func Test_AppendStore(t *testing.T) {
 			done <- struct{}{}
 		}()
 
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer func() {
+			ticker.Stop()
+		}()
+
 		select {
 		case <-done:
-			_ = os.RemoveAll(test.directory)
-		case <-time.After(200 * time.Millisecond):
-			_ = os.RemoveAll(test.directory)
+		case <-ticker.C:
 			t.Error("timeout error")
 		}
 	}
 
-	_ = os.RemoveAll("./testdata")
 }

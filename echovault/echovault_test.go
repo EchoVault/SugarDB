@@ -373,14 +373,17 @@ func Test_Cluster(t *testing.T) {
 			t.Error(err)
 			return
 		}
+
 		// 3. Check the delete count is equal to length of tests.
 		if res.Integer() != len(tests) {
 			t.Errorf("expected delete response to be %d, got %d", len(tests), res.Integer())
 		}
 
-		<-time.After(200 * time.Millisecond) // Yield
+		// Yield
+		ticker.Reset(200 * time.Millisecond)
+		<-ticker.C
 
-		// Check if the data is absent in quorum (majority of the cluster).
+		// 4. Check if the data is absent in quorum (majority of the cluster).
 		for i, test := range tests {
 			count := 0
 			for j := 0; j < len(nodes); j++ {
@@ -399,7 +402,7 @@ func Test_Cluster(t *testing.T) {
 					count += 1 // If the expected value is found, increment the count.
 				}
 			}
-			// Fail if count is less than quorum.
+			// 5. Fail if count is less than quorum.
 			if count < quorum {
 				t.Errorf("could not find value %s at key %s in cluster quorum", test.value, test.key)
 			}
@@ -461,7 +464,9 @@ func Test_Cluster(t *testing.T) {
 			}
 		}
 
-		<-time.After(200 * time.Millisecond) // Yield to give key deletion time to take effect across cluster.
+		// Yield to give key deletion time to take effect across cluster.
+		ticker.Reset(200 * time.Millisecond)
+		<-ticker.C
 
 		// Check if the data is absent in quorum (majority of the cluster).
 		for i, test := range tests {
@@ -557,8 +562,10 @@ func Test_Cluster(t *testing.T) {
 			doneChan <- struct{}{}
 		}()
 
+		ticker.Reset(5 * time.Second)
+
 		select {
-		case <-time.After(5 * time.Second):
+		case <-ticker.C:
 			if forwardError != nil {
 				t.Errorf("timeout error: %v\n", forwardError)
 			}
