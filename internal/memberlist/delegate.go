@@ -66,9 +66,8 @@ func (delegate *Delegate) NodeMeta(limit int) []byte {
 // NotifyMsg implements Delegate interface
 func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 	var msg BroadcastMessage
-
 	if err := json.Unmarshal(msgBytes, &msg); err != nil {
-		fmt.Print(err)
+		log.Printf("notifymsg: %v", err)
 		return
 	}
 

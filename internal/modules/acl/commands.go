@@ -36,10 +36,73 @@ func handleAuth(params internal.HandlerFuncParams) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
+	acl.LockUsers()
+	defer acl.UnlockUsers()
+
 	if err := acl.AuthenticateConnection(params.Context, params.Connection, params.Command); err != nil {
 		return nil, err
 	}
 	return []byte(constants.OkResponse), nil
+}
+
+func handleCat(params internal.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) > 3 {
+		return nil, errors.New(constants.WrongArgsResponse)
+	}
+
+	categories := make(map[string][]string)
+
+	commands := params.GetAllCommands()
+
+	for _, command := range commands {
+		if len(command.SubCommands) == 0 {
+			for _, category := range command.Categories {
+				categories[category] = append(categories[category], command.Command)
+			}
+			continue
+		}
+		for _, subcommand := range command.SubCommands {
+			for _, category := range subcommand.Categories {
+				categories[category] = append(categories[category],
+					fmt.Sprintf("%s|%s", command.Command, subcommand.Command))
+			}
+		}
+	}
+
+	if len(params.Command) == 2 {
+		var cats []string
+		length := 0
+		for key, _ := range categories {
+			cats = append(cats, key)
+			length += 1
+		}
+		res := fmt.Sprintf("*%d", length)
+		for i, cat := range cats {
+			res = fmt.Sprintf("%s\r\n+%s", res, cat)
+			if i == len(cats)-1 {
+				res = res + "\r\n"
+			}
+		}
+		return []byte(res), nil
+	}
+
+	if len(params.Command) == 3 {
+		var res string
+		for category, commands := range categories {
+			if strings.EqualFold(category, params.Command[2]) {
+				res = fmt.Sprintf("*%d", len(commands))
+				for i, command := range commands {
+					res = fmt.Sprintf("%s\r\n+%s", res, command)
+					if i == len(commands)-1 {
+						res = res + "\r\n"
+					}
+				}
+				return []byte(res), nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("category %s not found", strings.ToUpper(params.Command[2]))
 }
 
 func handleGetUser(params internal.HandlerFuncParams) ([]byte, error) {
@@ -51,6 +114,8 @@ func handleGetUser(params internal.HandlerFuncParams) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
+	acl.RLockUsers()
+	defer acl.RUnlockUsers()
 
 	var user *User
 	userFound := false
@@ -159,71 +224,12 @@ func handleGetUser(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
-func handleCat(params internal.HandlerFuncParams) ([]byte, error) {
-	if len(params.Command) > 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
-	}
-
-	categories := make(map[string][]string)
-
-	commands := params.GetAllCommands()
-
-	for _, command := range commands {
-		if len(command.SubCommands) == 0 {
-			for _, category := range command.Categories {
-				categories[category] = append(categories[category], command.Command)
-			}
-			continue
-		}
-		for _, subcommand := range command.SubCommands {
-			for _, category := range subcommand.Categories {
-				categories[category] = append(categories[category],
-					fmt.Sprintf("%s|%s", command.Command, subcommand.Command))
-			}
-		}
-	}
-
-	if len(params.Command) == 2 {
-		var cats []string
-		length := 0
-		for key, _ := range categories {
-			cats = append(cats, key)
-			length += 1
-		}
-		res := fmt.Sprintf("*%d", length)
-		for i, cat := range cats {
-			res = fmt.Sprintf("%s\r\n+%s", res, cat)
-			if i == len(cats)-1 {
-				res = res + "\r\n"
-			}
-		}
-		return []byte(res), nil
-	}
-
-	if len(params.Command) == 3 {
-		var res string
-		for category, commands := range categories {
-			if strings.EqualFold(category, params.Command[2]) {
-				res = fmt.Sprintf("*%d", len(commands))
-				for i, command := range commands {
-					res = fmt.Sprintf("%s\r\n+%s", res, command)
-					if i == len(commands)-1 {
-						res = res + "\r\n"
-					}
-				}
-				return []byte(res), nil
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("category %s not found", strings.ToUpper(params.Command[2]))
-}
-
 func handleUsers(params internal.HandlerFuncParams) ([]byte, error) {
 	acl, ok := params.GetACL().(*ACL)
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
+
 	res := fmt.Sprintf("*%d", len(acl.Users))
 	for _, user := range acl.Users {
 		res += fmt.Sprintf("\r\n$%d\r\n%s", len(user.Username), user.Username)
@@ -262,6 +268,9 @@ func handleWhoAmI(params internal.HandlerFuncParams) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
+	acl.RLockUsers()
+	defer acl.RUnlockUsers()
+
 	connectionInfo := acl.Connections[params.Connection]
 	return []byte(fmt.Sprintf("+%s\r\n", connectionInfo.User.Username)), nil
 }
@@ -274,6 +283,9 @@ func handleList(params internal.HandlerFuncParams) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
+	acl.RLockUsers()
+	defer acl.RUnlockUsers()
+
 	res := fmt.Sprintf("*%d", len(acl.Users))
 	s := ""
 	for _, user := range acl.Users {
@@ -342,7 +354,7 @@ func handleList(params internal.HandlerFuncParams) ([]byte, error) {
 			s += fmt.Sprintf(" %s~%s", "%R", key)
 		}
 		// Included write keys
-		for _, key := range user.IncludedReadKeys {
+		for _, key := range user.IncludedWriteKeys {
 			if !slices.Contains(user.IncludedReadKeys, key) {
 				s += fmt.Sprintf(" %s~%s", "%W", key)
 			}
@@ -371,11 +383,10 @@ func handleLoad(params internal.HandlerFuncParams) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
-
 	acl.LockUsers()
 	defer acl.UnlockUsers()
 
-	f, err := os.Open(acl.Config.AclConfig)
+	f, err := os.OpenFile(acl.Config.AclConfig, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -390,13 +401,13 @@ func handleLoad(params internal.HandlerFuncParams) ([]byte, error) {
 
 	var users []*User
 
-	if ext == ".json" {
+	if strings.ToLower(ext) == ".json" {
 		if err := json.NewDecoder(f).Decode(&users); err != nil {
 			return nil, err
 		}
 	}
 
-	if ext == ".yaml" || ext == ".yml" {
+	if slices.Contains([]string{".yaml", ".yml"}, strings.ToLower(ext)) {
 		if err := yaml.NewDecoder(f).Decode(&users); err != nil {
 			return nil, err
 		}
@@ -420,7 +431,7 @@ func handleLoad(params internal.HandlerFuncParams) ([]byte, error) {
 				break
 			}
 		}
-		// If the no user with current loaded username is already in acl list, then append the user to the list
+		// If there is no user with current loaded username is already in acl list, then append the user to the list
 		if !userFound {
 			acl.Users = append(acl.Users, user)
 		}
@@ -438,11 +449,10 @@ func handleSave(params internal.HandlerFuncParams) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("could not load ACL")
 	}
-
 	acl.RLockUsers()
-	acl.RUnlockUsers()
+	defer acl.RUnlockUsers()
 
-	f, err := os.OpenFile(acl.Config.AclConfig, os.O_WRONLY|os.O_CREATE, os.ModeAppend)
+	f, err := os.OpenFile(acl.Config.AclConfig, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -455,32 +465,29 @@ func handleSave(params internal.HandlerFuncParams) ([]byte, error) {
 
 	ext := path.Ext(f.Name())
 
-	if ext == ".json" {
+	if strings.ToLower(ext) == ".json" {
 		// Write to JSON config file
 		out, err := json.Marshal(acl.Users)
 		if err != nil {
 			return nil, err
 		}
-		_, err = f.Write(out)
-		if err != nil {
+		if _, err = f.Write(out); err != nil {
 			return nil, err
 		}
 	}
 
-	if ext == ".yaml" || ext == ".yml" {
+	if slices.Contains([]string{".yaml", ".yml"}, strings.ToLower(ext)) {
 		// Write to yaml file
 		out, err := yaml.Marshal(acl.Users)
 		if err != nil {
 			return nil, err
 		}
-		_, err = f.Write(out)
-		if err != nil {
+		if _, err = f.Write(out); err != nil {
 			return nil, err
 		}
 	}
 
-	err = f.Sync()
-	if err != nil {
+	if err = f.Sync(); err != nil {
 		return nil, err
 	}
 

@@ -118,7 +118,12 @@ func Test_AOFEngine(t *testing.T) {
 		state[command[1]] = internal.KeyData{Value: command[2], ExpireAt: time.Time{}}
 		engine.QueueCommand(marshalRespCommand(command))
 	}
-	<-time.After(100 * time.Millisecond)
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer func() {
+		ticker.Stop()
+	}()
+
+	<-ticker.C
 
 	// Trigger log rewrite
 	if err = engine.RewriteLog(); err != nil {
@@ -136,7 +141,9 @@ func Test_AOFEngine(t *testing.T) {
 		state[command[1]] = internal.KeyData{Value: command[2], ExpireAt: time.Time{}}
 		engine.QueueCommand(marshalRespCommand(command))
 	}
-	<-time.After(100 * time.Millisecond)
+
+	ticker.Reset(100 * time.Millisecond)
+	<-ticker.C
 
 	// Restore logs
 	if err = engine.Restore(); err != nil {

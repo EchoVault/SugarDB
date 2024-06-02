@@ -4,12 +4,14 @@ import (
 	"context"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/internal/constants"
 )
 
 func createEchoVault() *EchoVault {
 	ev, _ := NewEchoVault(
 		WithConfig(config.Config{
-			DataDir: "",
+			DataDir:        "",
+			EvictionPolicy: constants.NoEviction,
 		}),
 	)
 	return ev

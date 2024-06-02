@@ -60,7 +60,7 @@ func NewMemberList(opts Opts) *MemberList {
 }
 
 func (m *MemberList) MemberListInit(ctx context.Context) {
-	cfg := memberlist.DefaultLANConfig()
+	cfg := memberlist.DefaultWANConfig()
 	cfg.RequireNodeNames = true
 	cfg.Name = m.options.Config.ServerID
 	cfg.BindAddr = m.options.Config.BindAddr
@@ -160,13 +160,15 @@ func (m *MemberList) MemberListShutdown() {
 	// Gracefully leave memberlist cluster
 	err := m.memberList.Leave(500 * time.Millisecond)
 	if err != nil {
-		log.Fatal("Could not gracefully leave memberlist cluster")
+		log.Printf("memberlist leave: %v\n", err)
+		return
 	}
 
 	err = m.memberList.Shutdown()
 	if err != nil {
-		log.Fatal("Could not gracefully shutdown memberlist background maintenance")
+		log.Printf("memberlist shutdown: %v\n", err)
+		return
 	}
 
-	log.Println("Successfully shutdown memberlist")
+	log.Println("successfully shutdown memberlist")
 }

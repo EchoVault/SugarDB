@@ -15,110 +15,103 @@
 package connection_test
 
 import (
-	"bytes"
-	"context"
 	"errors"
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
-	"net"
-	"reflect"
 	"strings"
 	"testing"
-	"unsafe"
 )
 
-var mockServer *echovault.EchoVault
+func Test_Connection(t *testing.T) {
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
-func init() {
-	mockServer, _ = echovault.NewEchoVault(
+	mockServer, err := echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
+			BindAddr:       "localhost",
+			Port:           uint16(port),
 		}),
 	)
-}
-
-func getUnexportedField(field reflect.Value) interface{} {
-	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
-}
-
-func getHandler(commands ...string) internal.HandlerFunc {
-	if len(commands) == 0 {
-		return nil
+	if err != nil {
+		t.Error(err)
+		return
 	}
-	getCommands :=
-		getUnexportedField(reflect.ValueOf(mockServer).Elem().FieldByName("getCommands")).(func() []internal.Command)
-	for _, c := range getCommands() {
-		if strings.EqualFold(commands[0], c.Command) && len(commands) == 1 {
-			// Get command handler
-			return c.HandlerFunc
+
+	go func() {
+		mockServer.Start()
+	}()
+
+	t.Cleanup(func() {
+		mockServer.ShutDown()
+	})
+
+	t.Run("Test_HandlePing", func(t *testing.T) {
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
 		}
-		if strings.EqualFold(commands[0], c.Command) {
-			// Get sub-command handler
-			for _, sc := range c.SubCommands {
-				if strings.EqualFold(commands[1], sc.Command) {
-					return sc.HandlerFunc
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			command     []resp.Value
+			expected    string
+			expectedErr error
+		}{
+			{
+				command:     []resp.Value{resp.StringValue("PING")},
+				expected:    "PONG",
+				expectedErr: nil,
+			},
+			{
+				command:     []resp.Value{resp.StringValue("PING"), resp.StringValue("Hello, world!")},
+				expected:    "Hello, world!",
+				expectedErr: nil,
+			},
+			{
+				command: []resp.Value{
+					resp.StringValue("PING"),
+					resp.StringValue("Hello, world!"),
+					resp.StringValue("Once more"),
+				},
+				expected:    "",
+				expectedErr: errors.New(constants.WrongArgsResponse),
+			},
+		}
+
+		for _, test := range tests {
+			if err = client.WriteArray(test.command); err != nil {
+				t.Error(err)
+				return
+			}
+
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if test.expectedErr != nil {
+				if !strings.Contains(res.Error().Error(), test.expectedErr.Error()) {
+					t.Errorf("expected error \"%s\", got \"%s\"", test.expectedErr.Error(), res.Error().Error())
 				}
+				continue
+			}
+
+			if res.String() != test.expected {
+				t.Errorf("expected response \"%s\", got \"%s\"", test.expected, res.String())
 			}
 		}
-	}
-	return nil
-}
+	})
 
-func getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) internal.HandlerFuncParams {
-	return internal.HandlerFuncParams{
-		Context:    ctx,
-		Command:    cmd,
-		Connection: conn,
-	}
-}
-
-func Test_HandlePing(t *testing.T) {
-	ctx := context.Background()
-
-	tests := []struct {
-		command     []string
-		expected    string
-		expectedErr error
-	}{
-		{
-			command:     []string{"PING"},
-			expected:    "PONG",
-			expectedErr: nil,
-		},
-		{
-			command:     []string{"PING", "Hello, world!"},
-			expected:    "Hello, world!",
-			expectedErr: nil,
-		},
-		{
-			command:     []string{"PING", "Hello, world!", "Once more"},
-			expected:    "",
-			expectedErr: errors.New(constants.WrongArgsResponse),
-		},
-	}
-
-	for _, test := range tests {
-		res, err := getHandler("PING")(getHandlerFuncParams(ctx, test.command, nil))
-		if test.expectedErr != nil && err != nil {
-			if err.Error() != test.expectedErr.Error() {
-				t.Errorf("expected error %s, got: %s", test.expectedErr.Error(), err.Error())
-			}
-			continue
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		rd := resp.NewReader(bytes.NewBuffer(res))
-		v, _, err := rd.ReadValue()
-		if err != nil {
-			t.Error(err)
-		}
-		if v.String() != test.expected {
-			t.Errorf("expected %s, got: %s", test.expected, v.String())
-		}
-	}
 }

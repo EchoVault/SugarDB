@@ -19,7 +19,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/constants"
+	"io"
 	"net"
 	"strings"
 )
@@ -51,10 +53,10 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 		LoadModule:            server.LoadModule,
 		UnloadModule:          server.UnloadModule,
 		ListModules:           server.ListModules,
-		GetClock:              server.getClock,
 		GetPubSub:             server.getPubSub,
 		GetACL:                server.getACL,
 		GetAllCommands:        server.getCommands,
+		GetClock:              server.getClock,
 		DeleteKey: func(key string) error {
 			server.storeLock.Lock()
 			defer server.storeLock.Unlock()
@@ -71,6 +73,11 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 
 	if len(cmd) == 0 {
 		return nil, errors.New("empty command")
+	}
+
+	// If quit command is passed, EOF error.
+	if strings.EqualFold(cmd[0], "quit") {
+		return nil, io.EOF
 	}
 
 	command, err := server.getCommand(cmd[0])
@@ -141,4 +148,20 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	}
 
 	return nil, errors.New("not cluster leader, cannot carry out command")
+}
+
+func (server *EchoVault) getCommands() []internal.Command {
+	return server.commands
+}
+
+func (server *EchoVault) getACL() interface{} {
+	return server.acl
+}
+
+func (server *EchoVault) getPubSub() interface{} {
+	return server.pubSub
+}
+
+func (server *EchoVault) getClock() clock.Clock {
+	return server.clock
 }

@@ -17,6 +17,7 @@ package acl
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,6 +50,45 @@ type ACL struct {
 	GlobPatterns map[string]glob.Glob
 }
 
+func loadUsersFromConfigFile(users []*User, filePath string) {
+	if filePath != "" {
+		// Create the director if it does not exist.
+		if err := os.MkdirAll(path.Dir(filePath), os.ModePerm); err != nil {
+			log.Printf("mkdir ACL config: %v\n", err)
+			return
+		}
+		// Open the config file. Create it if it does not exist.
+		f, err := os.OpenFile(filePath, os.O_RDONLY|os.O_CREATE, os.ModePerm)
+		if err != nil {
+			log.Printf("open ACL config: %v\n", err)
+			return
+		}
+
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Printf("close ACL config: %v\n", err)
+			}
+		}()
+
+		ext := path.Ext(f.Name())
+
+		if strings.ToLower(ext) == ".json" {
+			if err := json.NewDecoder(f).Decode(&users); err != nil {
+				log.Printf("load ACL config: %v\n", err)
+				return
+			}
+		}
+
+		if slices.Contains([]string{".yaml", ".yml"}, strings.ToLower(ext)) {
+			if err := yaml.NewDecoder(f).Decode(&users); err != nil {
+				log.Printf("load ACL config: %v\n", err)
+				return
+			}
+		}
+
+	}
+}
+
 func NewACL(config config.Config) *ACL {
 	var users []*User
 
@@ -65,32 +105,7 @@ func NewACL(config config.Config) *ACL {
 	}
 
 	// 2. Read and parse the ACL config file
-	if config.AclConfig != "" {
-		// Override acl configurations from file
-		if f, err := os.Open(config.AclConfig); err != nil {
-			panic(err)
-		} else {
-			defer func() {
-				if err := f.Close(); err != nil {
-					log.Println("acl config file close error: ", err)
-				}
-			}()
-
-			ext := path.Ext(f.Name())
-
-			if ext == ".json" {
-				if err := json.NewDecoder(f).Decode(&users); err != nil {
-					log.Fatal("could not load JSON ACL config: ", err)
-				}
-			}
-
-			if ext == ".yaml" || ext == ".yml" {
-				if err := yaml.NewDecoder(f).Decode(&users); err != nil {
-					log.Fatal("could not load YAML ACL config: ", err)
-				}
-			}
-		}
-	}
+	loadUsersFromConfigFile(users, config.AclConfig)
 
 	// 3. If default user was not loaded from file, add the created one
 	defaultLoaded := false
@@ -169,13 +184,6 @@ func (acl *ACL) SetUser(cmd []string) error {
 	return nil
 }
 
-func (acl *ACL) AddUsers(users []*User) {
-	acl.LockUsers()
-	defer acl.UnlockUsers()
-
-	acl.Users = append(acl.Users, users...)
-}
-
 func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
 	acl.LockUsers()
 	defer acl.UnlockUsers()
@@ -211,20 +219,16 @@ func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
 }
 
 func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []string) error {
-	acl.RLockUsers()
-	defer acl.RUnlockUsers()
-
 	var passwords []Password
 	var user *User
 
-	h := sha256.New()
-
 	if len(cmd) == 2 {
 		// Process AUTH <password>
+		h := sha256.New()
 		h.Write([]byte(cmd[1]))
 		passwords = []Password{
-			{PasswordType: "plaintext", PasswordValue: cmd[1]},
-			{PasswordType: "SHA256", PasswordValue: string(h.Sum(nil))},
+			{PasswordType: PasswordPlainText, PasswordValue: cmd[1]},
+			{PasswordType: PasswordSHA256, PasswordValue: hex.EncodeToString(h.Sum(nil))},
 		}
 		// Authenticate with default user
 		idx := slices.IndexFunc(acl.Users, func(user *User) bool {
@@ -235,10 +239,11 @@ func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []
 
 	if len(cmd) == 3 {
 		// Process AUTH <username> <password>
+		h := sha256.New()
 		h.Write([]byte(cmd[2]))
 		passwords = []Password{
-			{PasswordType: "plaintext", PasswordValue: cmd[2]},
-			{PasswordType: "SHA256", PasswordValue: string(h.Sum(nil))},
+			{PasswordType: PasswordPlainText, PasswordValue: cmd[2]},
+			{PasswordType: PasswordSHA256, PasswordValue: hex.EncodeToString(h.Sum(nil))},
 		}
 		// Find user with the specified username
 		userFound := false
@@ -270,10 +275,10 @@ func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []
 
 	for _, userPassword := range user.Passwords {
 		for _, password := range passwords {
-			if strings.EqualFold(userPassword.PasswordType, password.PasswordType) &&
+			if userPassword.PasswordType == password.PasswordType &&
 				userPassword.PasswordValue == password.PasswordValue &&
 				user.Enabled {
-				// Set the current connection to the selected user and set them as authenticated
+				// Set the current connection to the selected user and set them as authenticated.
 				acl.Connections[conn] = Connection{
 					Authenticated: true,
 					User:          user,
@@ -317,8 +322,8 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 		return nil
 	}
 
-	// Skip connection
-	if strings.EqualFold(comm, "connection") {
+	// Skip PING
+	if strings.EqualFold(comm, "ping") {
 		return nil
 	}
 
@@ -340,21 +345,23 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 		return errors.New("user must be authenticated")
 	}
 
-	// 2. Check if all categories are in IncludedCategories
 	var notAllowed []string
-	if !slices.ContainsFunc(categories, func(category string) bool {
-		return slices.ContainsFunc(connection.User.IncludedCategories, func(includedCategory string) bool {
-			if includedCategory == "*" || includedCategory == category {
-				return true
-			}
-			notAllowed = append(notAllowed, fmt.Sprintf("@%s", category))
-			return false
-		})
-	}) {
-		if len(notAllowed) == 0 {
-			notAllowed = []string{"@all"}
+
+	// 2. Check if all categories are in IncludedCategories
+	count := make(map[string]int, len(categories))
+	if !slices.Contains(connection.User.IncludedCategories, "*") {
+		for _, category := range categories {
+			count[category] = 0
 		}
-		return fmt.Errorf("unauthorized access to the following categories: %+v", notAllowed)
+		for _, category := range connection.User.IncludedCategories {
+			if _, ok := count[category]; ok {
+				count[category] += 1
+			}
+		}
+		notAllowed = getUnauthorized(count, "@")
+		if len(notAllowed) > 0 {
+			return fmt.Errorf("unauthorized access to the following categories: %+v", notAllowed)
+		}
 	}
 
 	// 3. Check if commands category is in ExcludedCategories
@@ -374,14 +381,14 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 	if !slices.ContainsFunc(connection.User.IncludedCommands, func(includedCommand string) bool {
 		return includedCommand == "*" || includedCommand == comm
 	}) {
-		return fmt.Errorf("not authorised to run %s command", comm)
+		return fmt.Errorf("not authorised to run %s command", strings.ToUpper(comm))
 	}
 
 	// 5. Check if command are in ExcludedCommands
 	if slices.ContainsFunc(connection.User.ExcludedCommands, func(excludedCommand string) bool {
 		return excludedCommand == "*" || excludedCommand == comm
 	}) {
-		return fmt.Errorf("not authorised to run %s command", comm)
+		return fmt.Errorf("not authorised to run %s command", strings.ToUpper(comm))
 	}
 
 	// 6. PUBSUB authorisation.
@@ -416,24 +423,32 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 				if acl.GlobPatterns[readKeyGlob].Match(key) {
 					return true
 				}
-				notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%R", key))
+				if !slices.Contains(notAllowed, fmt.Sprintf("%s~%s", "%R", key)) {
+					notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%R", key))
+				}
 				return false
 			})
 		}) {
-			return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
+			if len(notAllowed) > 0 {
+				return fmt.Errorf("not authorised to access the following keys: %+v", notAllowed)
+			}
 		}
 
-		// 9. Check if keys are in IncludedWriteKeys
+		// 9. Check if write keys are in IncludedWriteKeys
+		fmt.Println("KEYS: ", writeKeys)
+		fmt.Println("ALLOWED KEYS: ", connection.User.IncludedWriteKeys)
 		if !slices.ContainsFunc(writeKeys, func(key string) bool {
 			return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKeyGlob string) bool {
 				if acl.GlobPatterns[writeKeyGlob].Match(key) {
 					return true
 				}
-				notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%W", key))
+				if !slices.Contains(notAllowed, fmt.Sprintf("%s~%s", "%W", key)) {
+					notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%W", key))
+				}
 				return false
 			})
 		}) {
-			return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
+			return fmt.Errorf("not authorised to access the following keys: %+v", notAllowed)
 		}
 	}
 
@@ -478,4 +493,18 @@ func (acl *ACL) RLockUsers() {
 
 func (acl *ACL) RUnlockUsers() {
 	acl.UsersMutex.RUnlock()
+}
+
+func getUnauthorized(count map[string]int, prefix string) []string {
+	var notAllowed []string
+	for member, c := range count {
+		if c == 0 {
+			notAllowed = append(notAllowed, fmt.Sprintf("%s%s", prefix, member))
+		}
+	}
+	// Sort the members in alphabetical order.
+	slices.SortStableFunc(notAllowed, func(a, b string) int {
+		return internal.CompareLex(a, b)
+	})
+	return notAllowed
 }

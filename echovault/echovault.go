@@ -50,8 +50,7 @@ import (
 
 type EchoVault struct {
 	// clock is an implementation of a time interface that allows mocking of time functions during testing.
-	clock    clock.Clock
-	getClock func() clock.Clock
+	clock clock.Clock
 
 	// config holds the echovault configuration variables.
 	config config.Config
@@ -69,12 +68,12 @@ type EchoVault struct {
 		rwMutex sync.RWMutex // Mutex as only one process should be able to update this list at a time.
 		keys    []string     // string slice of the volatile keys
 	}
-	// LFU cache used when eviction policy is allkeys-lfu or volatile-lfu
+	// LFU cache used when eviction policy is allkeys-lfu or volatile-lfu.
 	lfuCache struct {
 		mutex sync.Mutex        // Mutex as only one goroutine can edit the LFU cache at a time.
 		cache eviction.CacheLFU // LFU cache represented by a min head.
 	}
-	// LRU cache used when eviction policy is allkeys-lru or volatile-lru
+	// LRU cache used when eviction policy is allkeys-lru or volatile-lru.
 	lruCache struct {
 		mutex sync.Mutex        // Mutex as only one goroutine can edit the LRU at a time.
 		cache eviction.CacheLRU // LRU cache represented by a max head.
@@ -83,7 +82,6 @@ type EchoVault struct {
 	// Holds the list of all commands supported by the echovault.
 	commandsRWMut sync.RWMutex
 	commands      []internal.Command
-	getCommands   func() []internal.Command
 
 	raft       *raft.Raft             // The raft replication layer for the echovault.
 	memberList *memberlist.MemberList // The memberlist layer for the echovault.
@@ -91,18 +89,18 @@ type EchoVault struct {
 	context context.Context
 
 	acl    *acl.ACL
-	getACL func() interface{}
-
-	pubSub    *pubsub.PubSub
-	getPubSub func() interface{}
+	pubSub *pubsub.PubSub
 
 	snapshotInProgress         atomic.Bool      // Atomic boolean that's true when actively taking a snapshot.
 	rewriteAOFInProgress       atomic.Bool      // Atomic boolean that's true when actively rewriting AOF file is in progress.
 	stateCopyInProgress        atomic.Bool      // Atomic boolean that's true when actively copying state for snapshotting or preamble generation.
 	stateMutationInProgress    atomic.Bool      // Atomic boolean that is set to true when state mutation is in progress.
-	latestSnapshotMilliseconds atomic.Int64     // Unix epoch in milliseconds
-	snapshotEngine             *snapshot.Engine // Snapshot engine for standalone mode
-	aofEngine                  *aof.Engine      // AOF engine for standalone mode
+	latestSnapshotMilliseconds atomic.Int64     // Unix epoch in milliseconds.
+	snapshotEngine             *snapshot.Engine // Snapshot engine for standalone mode.
+	aofEngine                  *aof.Engine      // AOF engine for standalone mode.
+
+	listener atomic.Value  // Holds the TCP listener.
+	quit     chan struct{} // Channel that signals the closing of all client connections.
 }
 
 // WithContext is an options that for the NewEchoVault function that allows you to
@@ -147,6 +145,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			commands = append(commands, str.Commands()...)
 			return commands
 		}(),
+		quit: make(chan struct{}),
 	}
 
 	for _, option := range options {
@@ -167,27 +166,11 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		log.Printf("loaded plugin %s\n", path)
 	}
 
-	// Function for server commands retrieval
-	echovault.getCommands = func() []internal.Command {
-		return echovault.commands
-	}
-
-	// Function for clock retrieval
-	echovault.getClock = func() clock.Clock {
-		return echovault.clock
-	}
-
 	// Set up ACL module
 	echovault.acl = acl.NewACL(echovault.config)
-	echovault.getACL = func() interface{} {
-		return echovault.acl
-	}
 
 	// Set up Pub/Sub module
 	echovault.pubSub = pubsub.NewPubSub()
-	echovault.getPubSub = func() interface{} {
-		return echovault.pubSub
-	}
 
 	if echovault.isInCluster() {
 		echovault.raft = raft.NewRaft(raft.Opts{
@@ -290,10 +273,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
 	if echovault.config.EvictionPolicy != constants.NoEviction {
 		go func() {
-			for {
-				<-echovault.clock.After(echovault.config.EvictionInterval)
+			ticker := time.NewTicker(echovault.config.EvictionInterval)
+			for _ = range ticker.C {
 				if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
-					log.Println(err)
+					log.Printf("evict with ttl: %v\n", err)
 				}
 			}
 		}()
@@ -341,30 +324,35 @@ func (server *EchoVault) startTCP() {
 		KeepAlive: 200 * time.Millisecond,
 	}
 
-	listener, err := listenConfig.Listen(server.context, "tcp", fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port))
-
+	listener, err := listenConfig.Listen(
+		server.context,
+		"tcp",
+		fmt.Sprintf("%s:%d", conf.BindAddr, conf.Port),
+	)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("listener error: %v", err)
+		return
 	}
 
 	if !conf.TLS {
 		// TCP
-		log.Printf("Starting TCP echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		log.Printf("Starting TCP server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 	}
 
 	if conf.TLS || conf.MTLS {
 		// TLS
-		if conf.TLS {
-			log.Printf("Starting mTLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+		if conf.MTLS {
+			log.Printf("Starting mTLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		} else {
-			log.Printf("Starting TLS echovault at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
+			log.Printf("Starting TLS server at Address %s, Port %d...\n", conf.BindAddr, conf.Port)
 		}
 
 		var certificates []tls.Certificate
 		for _, certKeyPair := range conf.CertKeyPairs {
 			c, err := tls.LoadX509KeyPair(certKeyPair[0], certKeyPair[1])
 			if err != nil {
-				log.Fatal(err)
+				log.Printf("load cert key pair: %v\n", err)
+				return
 			}
 			certificates = append(certificates, c)
 		}
@@ -377,14 +365,15 @@ func (server *EchoVault) startTCP() {
 			for _, c := range conf.ClientCAs {
 				ca, err := os.Open(c)
 				if err != nil {
-					log.Fatal(err)
+					log.Printf("client cert open: %v\n", err)
+					return
 				}
 				certBytes, err := io.ReadAll(ca)
 				if err != nil {
-					log.Fatal(err)
+					log.Printf("client cert read: %v\n", err)
 				}
 				if ok := clientCerts.AppendCertsFromPEM(certBytes); !ok {
-					log.Fatal(err)
+					log.Printf("client cert append: %v\n", err)
 				}
 			}
 		}
@@ -396,15 +385,22 @@ func (server *EchoVault) startTCP() {
 		})
 	}
 
-	// Listen to connection
+	server.listener.Store(listener)
+
+	// Listen to connection.
 	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Println("Could not establish connection")
-			continue
+		select {
+		case <-server.quit:
+			return
+		default:
+			conn, err := listener.Accept()
+			if err != nil {
+				log.Printf("listener error: %v\n", err)
+				return
+			}
+			// Read loop for connection
+			go server.handleConnection(conn)
 		}
-		// Read loop for connection
-		go server.handleConnection(conn)
 	}
 }
 
@@ -419,6 +415,13 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 	cid := server.connId.Add(1)
 	ctx := context.WithValue(server.context, internal.ContextConnID("ConnectionID"),
 		fmt.Sprintf("%s-%d", server.context.Value(internal.ContextServerID("ServerID")), cid))
+
+	defer func() {
+		log.Printf("closing connection %d...", cid)
+		if err := conn.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	for {
 		message, err := internal.ReadMessage(r)
@@ -435,11 +438,9 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 		}
 
 		res, err := server.handleCommand(ctx, message, &conn, false, false)
-
 		if err != nil && errors.Is(err, io.EOF) {
 			break
 		}
-
 		if err != nil {
 			if _, err = w.Write([]byte(fmt.Sprintf("-Error %s\r\n", err.Error()))); err != nil {
 				log.Println(err)
@@ -449,7 +450,7 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 
 		chunkSize := 1024
 
-		// If the length of the response is 0, return nothing to the client
+		// If the length of the response is 0, return nothing to the client.
 		if len(res) == 0 {
 			continue
 		}
@@ -476,10 +477,6 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 			}
 			startIndex += chunkSize
 		}
-	}
-
-	if err := conn.Close(); err != nil {
-		log.Println(err)
 	}
 }
 
@@ -556,6 +553,13 @@ func (server *EchoVault) rewriteAOF() error {
 // ShutDown gracefully shuts down the EchoVault instance.
 // This function shuts down the memberlist and raft layers.
 func (server *EchoVault) ShutDown() {
+	if server.listener.Load() != nil {
+		go func() { server.quit <- struct{}{} }()
+		log.Println("closing tcp listener...")
+		if err := server.listener.Load().(net.Listener).Close(); err != nil {
+			log.Printf("listener close: %v\n", err)
+		}
+	}
 	if server.isInCluster() {
 		server.raft.RaftShutdown()
 		server.memberList.MemberListShutdown()
