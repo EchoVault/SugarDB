@@ -447,8 +447,13 @@ func GetConnection(addr string, port int) (net.Conn, error) {
 		done <- struct{}{}
 	}()
 
+	ticker := time.NewTicker(10 * time.Second)
+	defer func() {
+		ticker.Stop()
+	}()
+
 	select {
-	case <-time.After(10 * time.Second):
+	case <-ticker.C:
 		return nil, errors.New("connection timeout")
 	case <-done:
 		return conn, err
@@ -472,8 +477,13 @@ func GetTLSConnection(addr string, port int, config *tls.Config) (net.Conn, erro
 		done <- struct{}{}
 	}()
 
+	ticker := time.NewTicker(10 * time.Second)
+	defer func() {
+		ticker.Stop()
+	}()
+
 	select {
-	case <-time.After(10 * time.Second):
+	case <-ticker.C:
 		return nil, errors.New("connection timeout")
 	case <-done:
 		return conn, err

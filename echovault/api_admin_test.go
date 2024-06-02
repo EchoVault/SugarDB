@@ -511,6 +511,7 @@ func TestEchoVault_CommandCount(t *testing.T) {
 func TestEchoVault_Save(t *testing.T) {
 	conf := DefaultConfig()
 	conf.DataDir = path.Join(".", "testdata", "data")
+	conf.EvictionPolicy = constants.NoEviction
 	server := createEchoVaultWithConfig(conf)
 
 	tests := []struct {

@@ -273,10 +273,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
 	if echovault.config.EvictionPolicy != constants.NoEviction {
 		go func() {
-			for {
-				<-time.After(echovault.config.EvictionInterval)
+			ticker := time.NewTicker(echovault.config.EvictionInterval)
+			for _ = range ticker.C {
 				if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
-					log.Println(err)
+					log.Printf("evict with ttl: %v\n", err)
 				}
 			}
 		}()

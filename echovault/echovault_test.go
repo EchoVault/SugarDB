@@ -275,7 +275,12 @@ func Test_Cluster(t *testing.T) {
 			}
 		}
 
-		// <-time.After(3 * time.Second) // Yield
+		// Yield
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer func() {
+			ticker.Stop()
+		}()
+		<-ticker.C
 
 		// Check if the data has been replicated on a quorum (majority of the cluster).
 		quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
@@ -318,7 +323,12 @@ func Test_Cluster(t *testing.T) {
 			}
 		}
 
-		// <-time.After(3 * time.Second) // Yield
+		// Yield
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer func() {
+			ticker.Stop()
+		}()
+		<-ticker.C
 
 		// Check if the data has been replicated on a quorum (majority of the cluster).
 		quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
@@ -410,7 +420,12 @@ func Test_Cluster(t *testing.T) {
 			}
 		}
 
-		// <-time.After(3 * time.Second) // Yield
+		// Yield
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer func() {
+			ticker.Stop()
+		}()
+		<-ticker.C
 
 		// Check if the data has been replicated on a quorum (majority of the cluster).
 		quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
@@ -497,7 +512,11 @@ func Test_Cluster(t *testing.T) {
 			}
 		}
 
-		<-time.After(3 * time.Second) // Yield.
+		ticker := time.NewTicker(1 * time.Second)
+		defer func() {
+			ticker.Stop()
+		}()
+		<-ticker.C
 
 		// Check if the data has been replicated on a quorum (majority of the cluster).
 		var forwardError error
