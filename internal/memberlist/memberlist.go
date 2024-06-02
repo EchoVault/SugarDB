@@ -60,7 +60,7 @@ func NewMemberList(opts Opts) *MemberList {
 }
 
 func (m *MemberList) MemberListInit(ctx context.Context) {
-	cfg := memberlist.DefaultLANConfig()
+	cfg := memberlist.DefaultWANConfig()
 	cfg.RequireNodeNames = true
 	cfg.Name = m.options.Config.ServerID
 	cfg.BindAddr = m.options.Config.BindAddr

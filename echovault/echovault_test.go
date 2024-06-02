@@ -275,7 +275,7 @@ func Test_Cluster(t *testing.T) {
 			}
 		}
 
-		<-time.After(1 * time.Second) // Yield
+		// <-time.After(3 * time.Second) // Yield
 
 		// Check if the data has been replicated on a quorum (majority of the cluster).
 		quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
@@ -318,7 +318,7 @@ func Test_Cluster(t *testing.T) {
 			}
 		}
 
-		<-time.After(1 * time.Second) // Yield
+		// <-time.After(3 * time.Second) // Yield
 
 		// Check if the data has been replicated on a quorum (majority of the cluster).
 		quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
@@ -410,7 +410,7 @@ func Test_Cluster(t *testing.T) {
 			}
 		}
 
-		<-time.After(1 * time.Second) // Yield
+		// <-time.After(3 * time.Second) // Yield
 
 		// Check if the data has been replicated on a quorum (majority of the cluster).
 		quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
