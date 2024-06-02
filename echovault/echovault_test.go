@@ -90,6 +90,7 @@ func setupServer(
 	conf.RaftBindPort = uint16(raftPort)
 	conf.MemberListBindPort = uint16(mlPort)
 	conf.BootstrapCluster = bootstrapCluster
+	conf.EvictionPolicy = constants.NoEviction
 
 	return NewEchoVault(
 		WithContext(context.Background()),

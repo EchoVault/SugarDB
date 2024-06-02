@@ -274,7 +274,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	if echovault.config.EvictionPolicy != constants.NoEviction {
 		go func() {
 			for {
-				<-echovault.clock.After(echovault.config.EvictionInterval)
+				<-time.After(echovault.config.EvictionInterval)
 				if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
 					log.Println(err)
 				}
