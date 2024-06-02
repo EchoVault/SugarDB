@@ -226,9 +226,6 @@ func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
 }
 
 func (acl *ACL) AuthenticateConnection(_ context.Context, conn *net.Conn, cmd []string) error {
-	acl.RLockUsers()
-	defer acl.RUnlockUsers()
-
 	var passwords []Password
 	var user *User
 

@@ -99,7 +99,7 @@ type EchoVault struct {
 	snapshotEngine             *snapshot.Engine // Snapshot engine for standalone mode.
 	aofEngine                  *aof.Engine      // AOF engine for standalone mode.
 
-	listener net.Listener  // TCP listener.
+	listener atomic.Value  // Holds the TCP listener.
 	quit     chan struct{} // Channel that signals the closing of all client connections.
 }
 
@@ -385,7 +385,7 @@ func (server *EchoVault) startTCP() {
 		})
 	}
 
-	server.listener = listener
+	server.listener.Store(listener)
 
 	// Listen to connection.
 	for {
@@ -393,7 +393,7 @@ func (server *EchoVault) startTCP() {
 		case <-server.quit:
 			return
 		default:
-			conn, err := server.listener.Accept()
+			conn, err := listener.Accept()
 			if err != nil {
 				log.Printf("listener error: %v\n", err)
 				continue
@@ -553,10 +553,10 @@ func (server *EchoVault) rewriteAOF() error {
 // ShutDown gracefully shuts down the EchoVault instance.
 // This function shuts down the memberlist and raft layers.
 func (server *EchoVault) ShutDown() {
-	if server.listener != nil {
+	if server.listener.Load() != nil {
 		go func() { server.quit <- struct{}{} }()
 		log.Println("closing tcp listener...")
-		if err := server.listener.Close(); err != nil {
+		if err := server.listener.Load().(net.Listener).Close(); err != nil {
 			log.Printf("listener close: %v\n", err)
 		}
 	}

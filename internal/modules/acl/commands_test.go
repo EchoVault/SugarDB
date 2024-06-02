@@ -27,6 +27,7 @@ import (
 	"path"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -167,7 +168,6 @@ func Test_ACL(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
 	go func() {
 		mockServer.Start()
 	}()
@@ -710,8 +710,8 @@ func Test_ACL(t *testing.T) {
 				},
 			},
 			{
-				name: `10. Create user that can access some read keys and some write keys. 
-Provide keys that are RW, W-Only and R-Only`,
+				name: `10. Create user that can access some read keys and some write keys.
+	Provide keys that are RW, W-Only and R-Only`,
 				presetUser: nil,
 				cmd: []resp.Value{
 					resp.StringValue("ACL"),
@@ -853,7 +853,7 @@ Provide keys that are RW, W-Only and R-Only`,
 			},
 			{
 				name: `16. Create new user with no password using 'nopass'.
-When nopass is provided, ignore any passwords that may have been provided in the command.`,
+	When nopass is provided, ignore any passwords that may have been provided in the command.`,
 				presetUser: nil,
 				cmd: []resp.Value{
 					resp.StringValue("ACL"),
@@ -1566,10 +1566,6 @@ When nopass is provided, ignore any passwords that may have been provided in the
 
 		baseDir := path.Join(".", "testdata", "save")
 
-		t.Cleanup(func() {
-			_ = os.RemoveAll(baseDir)
-		})
-
 		tests := []struct {
 			name string
 			path string
@@ -1610,10 +1606,22 @@ When nopass is provided, ignore any passwords that may have been provided in the
 			},
 		}
 
-		for _, test := range tests {
+		servers := make([]*echovault.EchoVault, len(tests))
+		mut := sync.Mutex{}
+		t.Cleanup(func() {
+			_ = os.RemoveAll(baseDir)
+			for _, server := range servers {
+				if server != nil {
+					server.ShutDown()
+				}
+			}
+		})
+
+		for i, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
 				t.Parallel()
-
+				mut.Lock()
+				defer mut.Unlock()
 				// Get free port.
 				port, err := internal.GetFreePort()
 				if err != nil {
@@ -1627,7 +1635,7 @@ When nopass is provided, ignore any passwords that may have been provided in the
 					t.Error(err)
 					return
 				}
-
+				servers[i] = mockServer
 				go func() {
 					mockServer.Start()
 				}()
@@ -1635,34 +1643,29 @@ When nopass is provided, ignore any passwords that may have been provided in the
 				conn, err := internal.GetConnection("localhost", port)
 				if err != nil {
 					t.Error(err)
-					mockServer.ShutDown()
 					return
 				}
 				client := resp.NewConn(conn)
 
 				if err = client.WriteArray([]resp.Value{resp.StringValue("ACL"), resp.StringValue("SAVE")}); err != nil {
 					t.Error(err)
-					mockServer.ShutDown()
 					return
 				}
 
 				res, _, err := client.ReadValue()
 				if err != nil {
 					t.Error(err)
-					mockServer.ShutDown()
 					return
 				}
 
 				if !strings.EqualFold(res.String(), "ok") {
 					t.Errorf("expected OK response, got \"%s\"", res.String())
-					mockServer.ShutDown()
 					return
 				}
 
 				// Close client connection
 				if err = conn.Close(); err != nil {
 					t.Error(err)
-					mockServer.ShutDown()
 					return
 				}
 
@@ -1687,21 +1690,18 @@ When nopass is provided, ignore any passwords that may have been provided in the
 				conn, err = internal.GetConnection("localhost", port)
 				if err != nil {
 					t.Error(err)
-					mockServer.ShutDown()
 					return
 				}
 				client = resp.NewConn(conn)
 
 				if err = client.WriteArray([]resp.Value{resp.StringValue("ACL"), resp.StringValue("LIST")}); err != nil {
 					t.Error(err)
-					mockServer.ShutDown()
 					return
 				}
 
 				res, _, err = client.ReadValue()
 				if err != nil {
 					t.Error(err)
-					mockServer.ShutDown()
 					return
 				}
 
@@ -1709,7 +1709,6 @@ When nopass is provided, ignore any passwords that may have been provided in the
 				resArr := res.Array()
 				if len(resArr) != len(test.want) {
 					t.Errorf("expected response of lenght %d, got lenght %d", len(test.want), len(resArr))
-					mockServer.ShutDown()
 					return
 				}
 
@@ -1721,12 +1720,9 @@ When nopass is provided, ignore any passwords that may have been provided in the
 						return compareSlices(resStr, expectedUserSlice) == nil
 					}) {
 						t.Errorf("could not find the following user in expected slice: %+v", resStr)
-						mockServer.ShutDown()
 						return
 					}
 				}
-
-				mockServer.ShutDown()
 			})
 		}
 	})
@@ -1735,19 +1731,6 @@ When nopass is provided, ignore any passwords that may have been provided in the
 		t.Parallel()
 
 		baseDir := path.Join(".", "testdata", "load")
-
-		t.Cleanup(func() {
-			_ = os.RemoveAll(baseDir)
-		})
-
-		servers := make([]*echovault.EchoVault, 5)
-		defer func() {
-			for _, server := range servers {
-				if server != nil {
-					server.ShutDown()
-				}
-			}
-		}()
 
 		tests := []struct {
 			name  string
@@ -1862,8 +1845,22 @@ When nopass is provided, ignore any passwords that may have been provided in the
 			},
 		}
 
+		servers := make([]*echovault.EchoVault, len(tests))
+		mut := sync.Mutex{}
+		t.Cleanup(func() {
+			_ = os.RemoveAll(baseDir)
+			for _, server := range servers {
+				if server != nil {
+					server.ShutDown()
+				}
+			}
+		})
+
 		for i, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+				mut.Lock()
+				defer mut.Unlock()
 				// Create server with pre-generated users.
 				port, err := internal.GetFreePort()
 				if err != nil {
@@ -1907,7 +1904,6 @@ When nopass is provided, ignore any passwords that may have been provided in the
 					t.Error(err)
 					return
 				}
-				fmt.Println("COMMAND WRITTEN")
 
 				res, _, err := client.ReadValue()
 				if err != nil {
