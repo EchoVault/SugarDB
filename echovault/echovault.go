@@ -396,7 +396,7 @@ func (server *EchoVault) startTCP() {
 			conn, err := listener.Accept()
 			if err != nil {
 				log.Printf("listener error: %v\n", err)
-				continue
+				return
 			}
 			// Read loop for connection
 			go server.handleConnection(conn)

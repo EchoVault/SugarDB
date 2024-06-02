@@ -221,12 +221,12 @@ func Test_Cluster(t *testing.T) {
 		return
 	}
 
-	defer func() {
-		for _, node := range nodes {
-			_ = node.raw.Close()
-			node.server.ShutDown()
+	t.Cleanup(func() {
+		for i := len(nodes) - 1; i > -1; i-- {
+			_ = nodes[i].raw.Close()
+			nodes[i].server.ShutDown()
 		}
-	}()
+	})
 
 	// Prepare the write data for the cluster.
 	tests := map[string][]struct {
