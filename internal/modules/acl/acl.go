@@ -184,13 +184,6 @@ func (acl *ACL) SetUser(cmd []string) error {
 	return nil
 }
 
-func (acl *ACL) AddUsers(users []*User) {
-	acl.LockUsers()
-	defer acl.UnlockUsers()
-
-	acl.Users = append(acl.Users, users...)
-}
-
 func (acl *ACL) DeleteUser(_ context.Context, usernames []string) error {
 	acl.LockUsers()
 	defer acl.UnlockUsers()
@@ -329,8 +322,8 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 		return nil
 	}
 
-	// Skip connection
-	if strings.EqualFold(comm, "connection") {
+	// Skip PING
+	if strings.EqualFold(comm, "ping") {
 		return nil
 	}
 
@@ -352,21 +345,23 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 		return errors.New("user must be authenticated")
 	}
 
-	// 2. Check if all categories are in IncludedCategories
 	var notAllowed []string
-	if !slices.ContainsFunc(categories, func(category string) bool {
-		return slices.ContainsFunc(connection.User.IncludedCategories, func(includedCategory string) bool {
-			if includedCategory == "*" || includedCategory == category {
-				return true
-			}
-			notAllowed = append(notAllowed, fmt.Sprintf("@%s", category))
-			return false
-		})
-	}) {
-		if len(notAllowed) == 0 {
-			notAllowed = []string{"@all"}
+
+	// 2. Check if all categories are in IncludedCategories
+	count := make(map[string]int, len(categories))
+	if !slices.Contains(connection.User.IncludedCategories, "*") {
+		for _, category := range categories {
+			count[category] = 0
 		}
-		return fmt.Errorf("unauthorized access to the following categories: %+v", notAllowed)
+		for _, category := range connection.User.IncludedCategories {
+			if _, ok := count[category]; ok {
+				count[category] += 1
+			}
+		}
+		notAllowed = getUnauthorized(count, "@")
+		if len(notAllowed) > 0 {
+			return fmt.Errorf("unauthorized access to the following categories: %+v", notAllowed)
+		}
 	}
 
 	// 3. Check if commands category is in ExcludedCategories
@@ -386,14 +381,14 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 	if !slices.ContainsFunc(connection.User.IncludedCommands, func(includedCommand string) bool {
 		return includedCommand == "*" || includedCommand == comm
 	}) {
-		return fmt.Errorf("not authorised to run %s command", comm)
+		return fmt.Errorf("not authorised to run %s command", strings.ToUpper(comm))
 	}
 
 	// 5. Check if command are in ExcludedCommands
 	if slices.ContainsFunc(connection.User.ExcludedCommands, func(excludedCommand string) bool {
 		return excludedCommand == "*" || excludedCommand == comm
 	}) {
-		return fmt.Errorf("not authorised to run %s command", comm)
+		return fmt.Errorf("not authorised to run %s command", strings.ToUpper(comm))
 	}
 
 	// 6. PUBSUB authorisation.
@@ -428,24 +423,32 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 				if acl.GlobPatterns[readKeyGlob].Match(key) {
 					return true
 				}
-				notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%R", key))
+				if !slices.Contains(notAllowed, fmt.Sprintf("%s~%s", "%R", key)) {
+					notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%R", key))
+				}
 				return false
 			})
 		}) {
-			return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
+			if len(notAllowed) > 0 {
+				return fmt.Errorf("not authorised to access the following keys: %+v", notAllowed)
+			}
 		}
 
-		// 9. Check if keys are in IncludedWriteKeys
+		// 9. Check if write keys are in IncludedWriteKeys
+		fmt.Println("KEYS: ", writeKeys)
+		fmt.Println("ALLOWED KEYS: ", connection.User.IncludedWriteKeys)
 		if !slices.ContainsFunc(writeKeys, func(key string) bool {
 			return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKeyGlob string) bool {
 				if acl.GlobPatterns[writeKeyGlob].Match(key) {
 					return true
 				}
-				notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%W", key))
+				if !slices.Contains(notAllowed, fmt.Sprintf("%s~%s", "%W", key)) {
+					notAllowed = append(notAllowed, fmt.Sprintf("%s~%s", "%W", key))
+				}
 				return false
 			})
 		}) {
-			return fmt.Errorf("not authorised to access the following keys %+v", notAllowed)
+			return fmt.Errorf("not authorised to access the following keys: %+v", notAllowed)
 		}
 	}
 
@@ -490,4 +493,18 @@ func (acl *ACL) RLockUsers() {
 
 func (acl *ACL) RUnlockUsers() {
 	acl.UsersMutex.RUnlock()
+}
+
+func getUnauthorized(count map[string]int, prefix string) []string {
+	var notAllowed []string
+	for member, c := range count {
+		if c == 0 {
+			notAllowed = append(notAllowed, fmt.Sprintf("%s%s", prefix, member))
+		}
+	}
+	// Sort the members in alphabetical order.
+	slices.SortStableFunc(notAllowed, func(a, b string) int {
+		return internal.CompareLex(a, b)
+	})
+	return notAllowed
 }
