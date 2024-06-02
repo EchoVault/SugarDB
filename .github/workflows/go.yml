@@ -15,9 +15,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Tune GitHub-hosted runner network
-      uses: smorimoto/tune-github-hosted-runner-network@v1
-
     - name: Checkout tree
       uses: actions/checkout@v4
 
