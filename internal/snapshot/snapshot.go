@@ -156,8 +156,7 @@ func (engine *Engine) TakeSnapshot() error {
 	defer engine.finishSnapshotFunc()
 
 	// Extract current time
-	now := engine.clock.Now()
-	msec := now.UnixNano() / int64(time.Millisecond)
+	msec := engine.clock.Now().UnixMilli()
 
 	// Update manifest file to indicate the latest snapshot.
 	// If manifest file does not exist, create it.

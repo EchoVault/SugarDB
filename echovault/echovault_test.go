@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
@@ -874,5 +875,180 @@ func Test_Standalone(t *testing.T) {
 		if res.String() != value {
 			t.Errorf("expected response at key \"%s\" to be \"%s\", got \"%s\"", key, value, res.String())
 		}
+	})
+
+	t.Run("Test_SnapshotRestore", func(t *testing.T) {
+		t.Parallel()
+
+		dataDir := path.Join(".", "testdata", "test_snapshot")
+		t.Cleanup(func() {
+			_ = os.RemoveAll(dataDir)
+		})
+
+		tests := []struct {
+			name         string
+			dataDir      string
+			values       map[string]string
+			snapshotFunc func(mockServer *EchoVault) error
+			lastSaveFunc func(mockServer *EchoVault) (int, error)
+			wantLastSave int
+		}{
+			{
+				name:    "1. Snapshot with TCP connection",
+				dataDir: path.Join(dataDir, "with_tcp_connection"),
+				values: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
+					"key4": "value4",
+				},
+				snapshotFunc: func(mockServer *EchoVault) error {
+					// Start the server's TCP listener
+					go func() {
+						mockServer.Start()
+					}()
+					conn, err := internal.GetConnection("localhost", int(mockServer.config.Port))
+					if err != nil {
+						return err
+					}
+					defer func() {
+						_ = conn.Close()
+					}()
+					client := resp.NewConn(conn)
+					if err = client.WriteArray([]resp.Value{resp.StringValue("SAVE")}); err != nil {
+						return err
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						return err
+					}
+					if !strings.EqualFold(res.String(), "ok") {
+						return fmt.Errorf("expected save response to be \"OK\", got \"%s\"", res.String())
+					}
+					return nil
+				},
+				lastSaveFunc: func(mockServer *EchoVault) (int, error) {
+					conn, err := internal.GetConnection("localhost", int(mockServer.config.Port))
+					if err != nil {
+						return 0, err
+					}
+					defer func() {
+						_ = conn.Close()
+					}()
+					client := resp.NewConn(conn)
+					if err = client.WriteArray([]resp.Value{resp.StringValue("LASTSAVE")}); err != nil {
+						return 0, err
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						return 0, err
+					}
+					return res.Integer(), nil
+				},
+				wantLastSave: int(clock.NewClock().Now().UnixMilli()),
+			},
+			{
+				name:    "2. Snapshot in embedded instance",
+				dataDir: path.Join(dataDir, "embedded_instance"),
+				values: map[string]string{
+					"key5": "value5",
+					"key6": "value6",
+					"key7": "value7",
+					"key8": "value8",
+				},
+				snapshotFunc: func(mockServer *EchoVault) error {
+					if _, err := mockServer.Save(); err != nil {
+						return err
+					}
+					return nil
+				},
+				lastSaveFunc: func(mockServer *EchoVault) (int, error) {
+					return mockServer.LastSave()
+				},
+				wantLastSave: int(clock.NewClock().Now().UnixMilli()),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+
+				port, err := internal.GetFreePort()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+
+				conf := DefaultConfig()
+				conf.DataDir = test.dataDir
+				conf.BindAddr = "localhost"
+				conf.Port = uint16(port)
+				conf.RestoreSnapshot = true
+
+				mockServer, err := NewEchoVault(WithConfig(conf))
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				defer func() {
+					// Shutdown
+					mockServer.ShutDown()
+				}()
+
+				// Trigger some write commands
+				for key, value := range test.values {
+					if _, _, err = mockServer.Set(key, value, SetOptions{}); err != nil {
+						t.Error(err)
+						return
+					}
+				}
+
+				// Function to trigger snapshot save
+				if err = test.snapshotFunc(mockServer); err != nil {
+					t.Error(err)
+				}
+
+				// Yield to allow snapshot to complete sync.
+				ticker := time.NewTicker(20 * time.Millisecond)
+				<-ticker.C
+				ticker.Stop()
+
+				// Restart server with the same config. This should restore the snapshot
+				mockServer, err = NewEchoVault(WithConfig(conf))
+				if err != nil {
+					t.Error(err)
+					return
+				}
+
+				// Check that all the key/value pairs have been restored into the store.
+				for key, value := range test.values {
+					res, err := mockServer.Get(key)
+					if err != nil {
+						t.Error(err)
+						return
+					}
+					if res != value {
+						t.Errorf("expected value at key \"%s\" to be \"%s\", got \"%s\"", key, value, res)
+						return
+					}
+				}
+
+				// Check that the lastsave is the time the last snapshot was taken.
+				lastSave, err := test.lastSaveFunc(mockServer)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+
+				if lastSave != test.wantLastSave {
+					t.Errorf("expected lastsave to be %d, got %d", test.wantLastSave, lastSave)
+				}
+			})
+		}
+	})
+
+	t.Run("Test_AOF", func(t *testing.T) {
+		t.Parallel()
+		// TODO: Implemented AOF persistence and restore.
 	})
 }
