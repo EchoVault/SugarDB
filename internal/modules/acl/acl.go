@@ -435,8 +435,6 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 		}
 
 		// 9. Check if write keys are in IncludedWriteKeys
-		fmt.Println("KEYS: ", writeKeys)
-		fmt.Println("ALLOWED KEYS: ", connection.User.IncludedWriteKeys)
 		if !slices.ContainsFunc(writeKeys, func(key string) bool {
 			return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKeyGlob string) bool {
 				if acl.GlobPatterns[writeKeyGlob].Match(key) {

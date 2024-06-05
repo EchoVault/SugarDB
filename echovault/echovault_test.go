@@ -70,14 +70,14 @@ func getBindAddr() net.IP {
 }
 
 func setupServer(
-	serverId string,
-	bootstrapCluster bool,
-	forwardCommand bool,
-	bindAddr,
-	joinAddr string,
-	port,
-	raftPort,
-	mlPort int,
+		serverId string,
+		bootstrapCluster bool,
+		forwardCommand bool,
+		bindAddr,
+		joinAddr string,
+		port,
+		raftPort,
+		mlPort int,
 ) (*EchoVault, error) {
 	conf := DefaultConfig()
 	conf.DataDir = "./testdata"

@@ -101,6 +101,7 @@ type EchoVault struct {
 
 	listener atomic.Value  // Holds the TCP listener.
 	quit     chan struct{} // Channel that signals the closing of all client connections.
+	stopTTL  chan struct{} // Channel that signals the TTL sampling goroutine to stop execution.
 }
 
 // WithContext is an options that for the NewEchoVault function that allows you to
@@ -145,7 +146,8 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			commands = append(commands, str.Commands()...)
 			return commands
 		}(),
-		quit: make(chan struct{}),
+		quit:    make(chan struct{}),
+		stopTTL: make(chan struct{}),
 	}
 
 	for _, option := range options {
@@ -274,9 +276,14 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	if echovault.config.EvictionPolicy != constants.NoEviction {
 		go func() {
 			ticker := time.NewTicker(echovault.config.EvictionInterval)
-			for _ = range ticker.C {
-				if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
-					log.Printf("evict with ttl: %v\n", err)
+			for {
+				select {
+				case <-ticker.C:
+					if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
+						log.Printf("evict with ttl: %v\n", err)
+					}
+				case <-echovault.stopTTL:
+					break
 				}
 			}
 		}()
@@ -555,6 +562,7 @@ func (server *EchoVault) rewriteAOF() error {
 func (server *EchoVault) ShutDown() {
 	if server.listener.Load() != nil {
 		go func() { server.quit <- struct{}{} }()
+		go func() { server.stopTTL <- struct{}{} }()
 		log.Println("closing tcp listener...")
 		if err := server.listener.Load().(net.Listener).Close(); err != nil {
 			log.Printf("listener close: %v\n", err)
