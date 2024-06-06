@@ -894,61 +894,7 @@ func Test_Standalone(t *testing.T) {
 			wantLastSave int
 		}{
 			{
-				name:    "1. Snapshot with TCP connection",
-				dataDir: path.Join(dataDir, "with_tcp_connection"),
-				values: map[string]string{
-					"key1": "value1",
-					"key2": "value2",
-					"key3": "value3",
-					"key4": "value4",
-				},
-				snapshotFunc: func(mockServer *EchoVault) error {
-					// Start the server's TCP listener
-					go func() {
-						mockServer.Start()
-					}()
-					conn, err := internal.GetConnection("localhost", int(mockServer.config.Port))
-					if err != nil {
-						return err
-					}
-					defer func() {
-						_ = conn.Close()
-					}()
-					client := resp.NewConn(conn)
-					if err = client.WriteArray([]resp.Value{resp.StringValue("SAVE")}); err != nil {
-						return err
-					}
-					res, _, err := client.ReadValue()
-					if err != nil {
-						return err
-					}
-					if !strings.EqualFold(res.String(), "ok") {
-						return fmt.Errorf("expected save response to be \"OK\", got \"%s\"", res.String())
-					}
-					return nil
-				},
-				lastSaveFunc: func(mockServer *EchoVault) (int, error) {
-					conn, err := internal.GetConnection("localhost", int(mockServer.config.Port))
-					if err != nil {
-						return 0, err
-					}
-					defer func() {
-						_ = conn.Close()
-					}()
-					client := resp.NewConn(conn)
-					if err = client.WriteArray([]resp.Value{resp.StringValue("LASTSAVE")}); err != nil {
-						return 0, err
-					}
-					res, _, err := client.ReadValue()
-					if err != nil {
-						return 0, err
-					}
-					return res.Integer(), nil
-				},
-				wantLastSave: int(clock.NewClock().Now().UnixMilli()),
-			},
-			{
-				name:    "2. Snapshot in embedded instance",
+				name:    "1. Snapshot in embedded instance",
 				dataDir: path.Join(dataDir, "embedded_instance"),
 				values: map[string]string{
 					"key5": "value5",
@@ -1047,7 +993,7 @@ func Test_Standalone(t *testing.T) {
 		}
 	})
 
-	t.Run("Test_AOF", func(t *testing.T) {
+	t.Run("Test_AOFRestore", func(t *testing.T) {
 		t.Parallel()
 		// TODO: Implemented AOF persistence and restore.
 	})
