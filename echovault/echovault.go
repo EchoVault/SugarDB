@@ -276,6 +276,9 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	if echovault.config.EvictionPolicy != constants.NoEviction {
 		go func() {
 			ticker := time.NewTicker(echovault.config.EvictionInterval)
+			defer func() {
+				ticker.Stop()
+			}()
 			for {
 				select {
 				case <-ticker.C:
