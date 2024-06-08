@@ -137,8 +137,12 @@ func NewSnapshotEngine(options ...func(engine *Engine)) *Engine {
 
 	if engine.snapshotInterval != 0 {
 		go func() {
+			ticker := time.NewTicker(engine.snapshotInterval)
+			defer func() {
+				ticker.Stop()
+			}()
 			for {
-				<-engine.clock.After(engine.snapshotInterval)
+				<-ticker.C
 				if engine.changeCount.Load() == engine.snapshotThreshold {
 					if err := engine.TakeSnapshot(); err != nil {
 						log.Println(err)

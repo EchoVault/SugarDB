@@ -275,24 +275,6 @@ type SortedSetParam struct {
 	Weight int
 }
 
-func (set *SortedSet) Equals(other *SortedSet) bool {
-	if set.Cardinality() != other.Cardinality() {
-		return false
-	}
-	if set.Cardinality() == 0 {
-		return true
-	}
-	for _, member := range set.members {
-		if !other.Contains(member.Value) {
-			return false
-		}
-		if member.Score != other.Get(member.Value).Score {
-			return false
-		}
-	}
-	return true
-}
-
 // Union uses divided & conquer to calculate the union of multiple sets
 func Union(aggregate string, setParams ...SortedSetParam) *SortedSet {
 	switch len(setParams) {
