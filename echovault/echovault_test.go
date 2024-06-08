@@ -995,6 +995,99 @@ func Test_Standalone(t *testing.T) {
 
 	t.Run("Test_AOFRestore", func(t *testing.T) {
 		t.Parallel()
-		// TODO: Implemented AOF persistence and restore.
+
+		ticker := time.NewTicker(50 * time.Millisecond)
+
+		dataDir := path.Join(".", "testdata", "test_aof")
+		t.Cleanup(func() {
+			_ = os.RemoveAll(dataDir)
+			ticker.Stop()
+		})
+
+		// Prepare data for testing.
+		data := map[string]map[string]string{
+			"before-rewrite": {
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3",
+				"key4": "value4",
+			},
+			"after-rewrite": {
+				"key3": "value3-updated",
+				"key4": "value4-updated",
+				"key5": "value5",
+				"key6": "value6",
+			},
+			"expected-values": {
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3-updated",
+				"key4": "value4-updated",
+				"key5": "value5",
+				"key6": "value6",
+			},
+		}
+
+		conf := DefaultConfig()
+		conf.RestoreAOF = true
+		conf.DataDir = dataDir
+		conf.AOFSyncStrategy = "always"
+
+		mockServer, err := NewEchoVault(WithConfig(conf))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		// Perform write commands from "before-rewrite"
+		for key, value := range data["before-rewrite"] {
+			if _, _, err := mockServer.Set(key, value, SetOptions{}); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+
+		// Yield
+		<-ticker.C
+
+		// Rewrite AOF
+		if _, err := mockServer.RewriteAOF(); err != nil {
+			t.Error(err)
+			return
+		}
+
+		// Perform write commands from "after-rewrite"
+		for key, value := range data["after-rewrite"] {
+			if _, _, err := mockServer.Set(key, value, SetOptions{}); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+
+		// Yield
+		<-ticker.C
+
+		// Shutdown the EchoVault instance
+		mockServer.ShutDown()
+
+		// Start another instance of EchoVault
+		mockServer, err = NewEchoVault(WithConfig(conf))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		// Check if the servers contains the keys and values from "expected-values"
+		for key, value := range data["expected-values"] {
+			res, err := mockServer.Get(key)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if res != value {
+				t.Errorf("expected value at key \"%s\" to be \"%s\", got \"%s\"", key, value, res)
+				return
+			}
+		}
 	})
 }

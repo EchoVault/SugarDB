@@ -552,11 +552,9 @@ func (server *EchoVault) rewriteAOF() error {
 	if server.rewriteAOFInProgress.Load() {
 		return errors.New("aof rewrite in progress")
 	}
-	go func() {
-		if err := server.aofEngine.RewriteLog(); err != nil {
-			log.Println(err)
-		}
-	}()
+	if err := server.aofEngine.RewriteLog(); err != nil {
+		return err
+	}
 	return nil
 }
 

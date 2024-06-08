@@ -134,9 +134,7 @@ func (store *AppendStore) Write(command []byte) error {
 	store.mut.Lock()
 	defer store.mut.Unlock()
 
-	// Add new line before writing to AOF file.
-	out := append(command, []byte("\r\n")...)
-	if _, err := store.rw.Write(out); err != nil {
+	if _, err := store.rw.Write(command); err != nil {
 		return err
 	}
 

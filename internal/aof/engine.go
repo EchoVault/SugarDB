@@ -179,7 +179,7 @@ func (engine *Engine) RewriteLog() error {
 	engine.startRewriteFunc()
 	defer engine.finishRewriteFunc()
 
-	// Create AOF preamble
+	// Create AOF preamble.
 	if err := engine.preambleStore.CreatePreamble(); err != nil {
 		return fmt.Errorf("rewrite log -> create preamble error: %+v", err)
 	}

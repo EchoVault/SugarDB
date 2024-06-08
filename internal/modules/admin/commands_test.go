@@ -825,4 +825,174 @@ func Test_AdminCommands(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Test REWRITEAOF command", func(t *testing.T) {
+		t.Parallel()
+
+		ticker := time.NewTicker(100 * time.Millisecond)
+
+		dataDir := path.Join(".", "testdata", "test_aof")
+		t.Cleanup(func() {
+			_ = os.RemoveAll(dataDir)
+			ticker.Stop()
+		})
+
+		// Prepare data for testing.
+		data := map[string]map[string]string{
+			"before-rewrite": {
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3",
+				"key4": "value4",
+			},
+			"after-rewrite": {
+				"key3": "value3-updated",
+				"key4": "value4-updated",
+				"key5": "value5",
+				"key6": "value6",
+			},
+			"expected-values": {
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3-updated",
+				"key4": "value4-updated",
+				"key5": "value5",
+				"key6": "value6",
+			},
+		}
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		conf := echovault.DefaultConfig()
+		conf.BindAddr = "localhost"
+		conf.Port = uint16(port)
+		conf.RestoreAOF = true
+		conf.DataDir = dataDir
+		conf.AOFSyncStrategy = "always"
+
+		// Start new server
+		mockServer, err := echovault.NewEchoVault(echovault.WithConfig(conf))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		go func() {
+			mockServer.Start()
+		}()
+
+		// Get client connection
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		client := resp.NewConn(conn)
+
+		// Perform write commands from "before-rewrite"
+		for key, value := range data["before-rewrite"] {
+			if err := client.WriteArray([]resp.Value{
+				resp.StringValue("SET"),
+				resp.StringValue(key),
+				resp.StringValue(value),
+			}); err != nil {
+				t.Error(err)
+				return
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if !strings.EqualFold(res.String(), "ok") {
+				t.Errorf("expected response OK, got \"%s\"", res.String())
+			}
+		}
+
+		// Yield
+		<-ticker.C
+
+		// Rewrite AOF
+		if err := client.WriteArray([]resp.Value{resp.StringValue("REWRITEAOF")}); err != nil {
+			t.Error(err)
+			return
+		}
+		res, _, err := client.ReadValue()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if !strings.EqualFold(res.String(), "ok") {
+			t.Errorf("expected response OK, got \"%s\"", res.String())
+		}
+
+		// Perform write commands from "after-rewrite"
+		for key, value := range data["after-rewrite"] {
+			if err := client.WriteArray([]resp.Value{
+				resp.StringValue("SET"),
+				resp.StringValue(key),
+				resp.StringValue(value),
+			}); err != nil {
+				t.Error(err)
+				return
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if !strings.EqualFold(res.String(), "ok") {
+				t.Errorf("expected response OK, got \"%s\"", res.String())
+			}
+		}
+
+		// Yield
+		<-ticker.C
+
+		// Shutdown the EchoVault instance and close current client connection
+		mockServer.ShutDown()
+		_ = conn.Close()
+
+		// Start another instance of EchoVault
+		mockServer, err = echovault.NewEchoVault(echovault.WithConfig(conf))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		go func() {
+			mockServer.Start()
+		}()
+
+		// Get a new client connection
+		conn, err = internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		client = resp.NewConn(conn)
+
+		// Check if the servers contains the keys and values from "expected-values"
+		for key, value := range data["expected-values"] {
+			if err := client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
+				t.Error(err)
+				return
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if res.String() != value {
+				t.Errorf("expected value at key \"%s\" to be \"%s\", got \"%s\"", key, value, res)
+				return
+			}
+		}
+
+		// Shutdown server and close client connection
+		_ = conn.Close()
+		mockServer.ShutDown()
+	})
 }

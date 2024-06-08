@@ -29,7 +29,7 @@ import (
 
 func marshalRespCommand(command []string) []byte {
 	return []byte(fmt.Sprintf(
-		"*%d\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n$%d\r\n%s", len(command),
+		"*%d\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", len(command),
 		len(command[0]), command[0],
 		len(command[1]), command[1],
 		len(command[2]), command[2],
@@ -151,11 +151,11 @@ func Test_AOFEngine(t *testing.T) {
 	}
 
 	if len(wantRestoredState) != len(restoredState) {
-		t.Errorf("expected restored state to be lenght %d, got %d", len(wantRestoredState), len(restoredState))
+		t.Errorf("expected restored state to be length %d, got %d", len(wantRestoredState), len(restoredState))
 		for key, data := range restoredState {
 			want, ok := wantRestoredState[key]
 			if !ok {
-				t.Errorf("could not find key %s in expected state state", key)
+				t.Errorf("could not find key %s in expected state", key)
 			}
 			if want.Value != data.Value {
 				t.Errorf("expected value %v for key %s, got %v", want.Value, key, data.Value)
