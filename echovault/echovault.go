@@ -276,6 +276,9 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	if echovault.config.EvictionPolicy != constants.NoEviction {
 		go func() {
 			ticker := time.NewTicker(echovault.config.EvictionInterval)
+			defer func() {
+				ticker.Stop()
+			}()
 			for {
 				select {
 				case <-ticker.C:
@@ -549,11 +552,9 @@ func (server *EchoVault) rewriteAOF() error {
 	if server.rewriteAOFInProgress.Load() {
 		return errors.New("aof rewrite in progress")
 	}
-	go func() {
-		if err := server.aofEngine.RewriteLog(); err != nil {
-			log.Println(err)
-		}
-	}()
+	if err := server.aofEngine.RewriteLog(); err != nil {
+		return err
+	}
 	return nil
 }
 

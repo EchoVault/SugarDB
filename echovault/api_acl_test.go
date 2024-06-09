@@ -16,12 +16,113 @@ package echovault
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"github.com/echovault/echovault/internal/constants"
+	"os"
+	"path"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
+
+func generateInitialTestUsers() []User {
+	return []User{
+		{
+			// User with both hash password and plaintext password.
+			Username:          "with_password_user",
+			Enabled:           true,
+			IncludeCategories: []string{"*"},
+			IncludeCommands:   []string{"*"},
+			AddPlainPasswords: []string{"password2"},
+			AddHashPasswords:  []string{generateSHA256Password("password3")},
+		},
+		{
+			// User with NoPassword option.
+			Username:          "no_password_user",
+			Enabled:           true,
+			NoPassword:        true,
+			AddPlainPasswords: []string{"password4"},
+		},
+		{
+			// Disabled user.
+			Username:          "disabled_user",
+			Enabled:           false,
+			AddPlainPasswords: []string{"password5"},
+		},
+	}
+}
+
+// compareSlices compare the elements in 2 slices, it checks if every element is s1 is contained in s2
+// and vice versa. It essentially does a deep equality comparison.
+// This is done manually rather than using slices.Equal because it would be ideal to throw an error
+// specifying exactly which items are missing in either slice.
+func compareSlices[T comparable](res, expected []T) error {
+	if len(res) != len(expected) {
+		return fmt.Errorf("expected slice of length %d, got slice of length %d", len(expected), len(res))
+	}
+	// Check whether all elements in res are contained in expected
+	for _, r := range res {
+		if !slices.Contains(expected, r) {
+			return fmt.Errorf("got response item %+v, but it's not contained in expected slices", r)
+		}
+	}
+	// Check whether all elements in expected are contained in res
+	for _, e := range expected {
+		if !slices.Contains(res, e) {
+			return fmt.Errorf("expected element %+v, not found in res slice", e)
+		}
+	}
+	return nil
+}
+
+// compareUsers compares 2 users and checks if all their fields are equal
+func compareUsers(user1, user2 map[string][]string) error {
+	// Compare flags
+	if user1["username"][0] != user2["username"][0] {
+		return fmt.Errorf("mismatched usernames \"%s\", and \"%s\"", user1["username"][0], user2["username"][0])
+	}
+
+	// Check if both users are enabled.
+	if slices.Contains(user1["flags"], "on") != slices.Contains(user2["flags"], "on") {
+		return fmt.Errorf("mismatched enabled flag \"%+v\", and \"%+v\"",
+			slices.Contains(user1["flags"], "on"), slices.Contains(user2["flags"], "on"))
+	}
+
+	// Check if "nokeys" is present
+	if slices.Contains(user1["flags"], "nokeys") != slices.Contains(user2["flags"], "nokeys") {
+		return fmt.Errorf("mismatched nokeys flag \"%+v\", and \"%+v\"",
+			slices.Contains(user1["flags"], "nokeys"), slices.Contains(user2["flags"], "nokeys"))
+	}
+
+	// Check if "nopass" is present
+	if slices.Contains(user1["flags"], "nopass") != slices.Contains(user1["flags"], "nopass") {
+		return fmt.Errorf("mismatched nopassword flag \"%+v\", and \"%+v\"",
+			slices.Contains(user1["flags"], "nopass"), slices.Contains(user1["flags"], "nopass"))
+	}
+
+	// Compare permissions
+	permissions := [][][]string{
+		{user1["categories"], user2["categories"]},
+		{user1["commands"], user2["commands"]},
+		{user1["keys"], user2["keys"]},
+		{user1["channels"], user2["channels"]},
+	}
+	for _, p := range permissions {
+		if err := compareSlices(p[0], p[1]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func generateSHA256Password(plain string) string {
+	h := sha256.New()
+	h.Write([]byte(plain))
+	return hex.EncodeToString(h.Sum(nil))
+}
 
 func TestEchoVault_ACLCat(t *testing.T) {
 	server := createEchoVault()
@@ -266,4 +367,300 @@ func TestEchoVault_ACLUsers(t *testing.T) {
 	if len(list) != 2 {
 		t.Errorf("ACLList() got list length %d, want %d", len(list), 2)
 	}
+}
+
+func TestEchoVault_ACLConfig(t *testing.T) {
+	t.Run("Test_HandleSave", func(t *testing.T) {
+		baseDir := path.Join(".", "testdata", "save")
+		t.Cleanup(func() {
+			_ = os.RemoveAll(baseDir)
+		})
+
+		tests := []struct {
+			name string
+			path string
+			want []string // Response from ACL List command.
+		}{
+			{
+				name: "1. Save ACL config to .json file",
+				path: path.Join(baseDir, "json_test.json"),
+				want: []string{
+					"default on +@all +all %RW~* +&*",
+					fmt.Sprintf("with_password_user on >password2 #%s +@all +all %s~* +&*",
+						generateSHA256Password("password3"), "%RW"),
+					"no_password_user on nopass +@all +all %RW~* +&*",
+					"disabled_user off >password5 +@all +all %RW~* +&*",
+				},
+			},
+			{
+				name: "2. Save ACL config to .yaml file",
+				path: path.Join(baseDir, "yaml_test.yaml"),
+				want: []string{
+					"default on +@all +all %RW~* +&*",
+					fmt.Sprintf("with_password_user on >password2 #%s +@all +all %s~* +&*",
+						generateSHA256Password("password3"), "%RW"),
+					"no_password_user on nopass +@all +all %RW~* +&*",
+					"disabled_user off >password5 +@all +all %RW~* +&*",
+				},
+			},
+			{
+				name: "3. Save ACL config to .yml file",
+				path: path.Join(baseDir, "yml_test.yml"),
+				want: []string{
+					"default on +@all +all %RW~* +&*",
+					fmt.Sprintf("with_password_user on >password2 #%s +@all +all %s~* +&*",
+						generateSHA256Password("password3"), "%RW"),
+					"no_password_user on nopass +@all +all %RW~* +&*",
+					"disabled_user off >password5 +@all +all %RW~* +&*",
+				},
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+
+				// Create new server instance
+				conf := DefaultConfig()
+				conf.DataDir = ""
+				conf.AclConfig = test.path
+				server := createEchoVaultWithConfig(conf)
+				// Add the initial test users to the ACL module.
+				for _, user := range generateInitialTestUsers() {
+					if _, err := server.ACLSetUser(user); err != nil {
+						t.Error(err)
+						return
+					}
+				}
+
+				ok, err := server.ACLSave()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if !ok {
+					t.Errorf("expected ok to be true, got false")
+				}
+
+				// Shutdown the mock server
+				server.ShutDown()
+
+				// Restart server
+				server = createEchoVaultWithConfig(conf)
+
+				// Get users rules list.
+				list, err := server.ACLList()
+
+				// Check if ACL LIST returns the expected list of users.
+				var resStr []string
+				for i := 0; i < len(list); i++ {
+					resStr = strings.Split(list[i], " ")
+					if !slices.ContainsFunc(test.want, func(s string) bool {
+						expectedUserSlice := strings.Split(s, " ")
+						return compareSlices(resStr, expectedUserSlice) == nil
+					}) {
+						t.Errorf("could not find the following user in expected slice: %+v", resStr)
+						return
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("Test_HandleLoad", func(t *testing.T) {
+		baseDir := path.Join(".", "testdata", "load")
+		t.Cleanup(func() {
+			_ = os.RemoveAll(baseDir)
+		})
+
+		tests := []struct {
+			name     string
+			path     string
+			users    []User                                // Add users after server startup.
+			loadFunc func(server *EchoVault) (bool, error) // Function to load users from ACL config.
+			want     []string
+		}{
+			{
+				name: "1. Load config from the .json file",
+				path: path.Join(baseDir, "json_test.json"),
+				users: []User{
+					{Username: "user1", Enabled: true},
+				},
+				loadFunc: func(server *EchoVault) (bool, error) {
+					return server.ACLLoad(ACLLoadOptions{})
+				},
+				want: []string{
+					"default on +@all +all %RW~* +&*",
+					fmt.Sprintf("with_password_user on >password2 #%s +@all +all %s~* +&*",
+						generateSHA256Password("password3"), "%RW"),
+					"no_password_user on nopass +@all +all %RW~* +&*",
+					"disabled_user off >password5 +@all +all %RW~* +&*",
+					"user1 on +@all +all %RW~* +&*",
+				},
+			},
+			{
+				name: "2. Load users from the .yaml file",
+				path: path.Join(baseDir, "yaml_test.yaml"),
+				users: []User{
+					{Username: "user1", Enabled: true},
+				},
+				loadFunc: func(server *EchoVault) (bool, error) {
+					return server.ACLLoad(ACLLoadOptions{})
+				},
+				want: []string{
+					"default on +@all +all %RW~* +&*",
+					fmt.Sprintf("with_password_user on >password2 #%s +@all +all %s~* +&*",
+						generateSHA256Password("password3"), "%RW"),
+					"no_password_user on nopass +@all +all %RW~* +&*",
+					"disabled_user off >password5 +@all +all %RW~* +&*",
+					"user1 on +@all +all %RW~* +&*",
+				},
+			},
+			{
+				name: "3. Load users from the .yml file",
+				path: path.Join(baseDir, "yml_test.yml"),
+				users: []User{
+					{Username: "user1", Enabled: true},
+				},
+				loadFunc: func(server *EchoVault) (bool, error) {
+					return server.ACLLoad(ACLLoadOptions{})
+				},
+				want: []string{
+					"default on +@all +all %RW~* +&*",
+					fmt.Sprintf("with_password_user on >password2 #%s +@all +all %s~* +&*",
+						generateSHA256Password("password3"), "%RW"),
+					"no_password_user on nopass +@all +all %RW~* +&*",
+					"disabled_user off >password5 +@all +all %RW~* +&*",
+					"user1 on +@all +all %RW~* +&*",
+				},
+			},
+			{
+				name: "4. Merge loaded users",
+				path: path.Join(baseDir, "merge.yml"),
+				users: []User{
+					{ // Disable user1.
+						Username: "user1",
+						Enabled:  false,
+					},
+					{ // Update with_password_user. This should be merged with the existing user.
+						Username:             "with_password_user",
+						AddPlainPasswords:    []string{"password3", "password4"},
+						IncludeReadWriteKeys: []string{"key1", "key2"},
+						IncludeWriteKeys:     []string{"key3", "key4"},
+						IncludeReadKeys:      []string{"key5", "key6"},
+						IncludeChannels:      []string{"channel[12]"},
+						ExcludeChannels:      []string{"channel[34]"},
+					},
+				},
+				loadFunc: func(server *EchoVault) (bool, error) {
+					return server.ACLLoad(ACLLoadOptions{Merge: true, Replace: false})
+				},
+				want: []string{
+					"default on +@all +all %RW~* +&*",
+					fmt.Sprintf(`with_password_user on >password2 >password3 >password4 #%s +@all +all %s~key1 %s~key2 %s~key5 %s~key6 %s~key3 %s~key4 +&channel[12] -&channel[34]`,
+						generateSHA256Password("password3"), "%RW", "%RW", "%R", "%R", "%W", "%W"),
+					"no_password_user on nopass +@all +all %RW~* +&*",
+					"disabled_user off >password5 +@all +all %RW~* +&*",
+					"user1 off +@all +all %RW~* +&*",
+				},
+			},
+			{
+				name: "5. Replace loaded users",
+				path: path.Join(baseDir, "replace.yml"),
+				users: []User{
+					{ // Disable user1.
+						Username: "user1",
+						Enabled:  false,
+					},
+					{ // Update with_password_user. This should be merged with the existing user.
+						Username:             "with_password_user",
+						AddPlainPasswords:    []string{"password3", "password4"},
+						IncludeReadWriteKeys: []string{"key1", "key2"},
+						IncludeWriteKeys:     []string{"key3", "key4"},
+						IncludeReadKeys:      []string{"key5", "key6"},
+						IncludeChannels:      []string{"channel[12]"},
+						ExcludeChannels:      []string{"channel[34]"},
+					},
+				},
+				loadFunc: func(server *EchoVault) (bool, error) {
+					return server.ACLLoad(ACLLoadOptions{Replace: true, Merge: false})
+				},
+				want: []string{
+					"default on +@all +all %RW~* +&*",
+					fmt.Sprintf("with_password_user on >password2 #%s +@all +all %s~* +&*",
+						generateSHA256Password("password3"), "%RW"),
+					"no_password_user on nopass +@all +all %RW~* +&*",
+					"disabled_user off >password5 +@all +all %RW~* +&*",
+					"user1 off +@all +all %RW~* +&*",
+				},
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+
+				// Create server.
+				conf := DefaultConfig()
+				conf.DataDir = ""
+				conf.AclConfig = test.path
+				server := createEchoVaultWithConfig(conf)
+				// Add the initial test users to the ACL module.
+				for _, user := range generateInitialTestUsers() {
+					if _, err := server.ACLSetUser(user); err != nil {
+						t.Error(err)
+						return
+					}
+				}
+
+				// Save the current users to the ACL config file.
+				if _, err := server.ACLSave(); err != nil {
+					t.Error(err)
+					return
+				}
+
+				ticker := time.NewTicker(200 * time.Millisecond)
+				<-ticker.C
+
+				// Add some users to the ACL.
+				for _, user := range test.users {
+					if _, err := server.ACLSetUser(user); err != nil {
+						t.Error(err)
+						return
+					}
+				}
+
+				// Load the users from the ACL config file.
+				ok, err := test.loadFunc(server)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if !ok {
+					t.Errorf("expected ok to be true, got false")
+					return
+				}
+
+				// Get ACL List
+				list, err := server.ACLList()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+
+				// Check if ACL LIST returns the expected list of users.
+				var resStr []string
+				for i := 0; i < len(list); i++ {
+					resStr = strings.Split(list[i], " ")
+					if !slices.ContainsFunc(test.want, func(s string) bool {
+						expectedUserSlice := strings.Split(s, " ")
+						return compareSlices(resStr, expectedUserSlice) == nil
+					}) {
+						t.Errorf("could not find the following user in expected slice: %+v", resStr)
+						return
+					}
+				}
+			})
+		}
+	})
 }

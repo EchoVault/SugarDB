@@ -27,7 +27,7 @@ import (
 
 func marshalRespCommand(command []string) []byte {
 	return []byte(fmt.Sprintf(
-		"*%d\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n$%d\r\n%s", len(command),
+		"*%d\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", len(command),
 		len(command[0]), command[0],
 		len(command[1]), command[1],
 		len(command[2]), command[2],
@@ -138,9 +138,6 @@ func Test_AppendStore(t *testing.T) {
 		}()
 
 		ticker := time.NewTicker(200 * time.Millisecond)
-		defer func() {
-			ticker.Stop()
-		}()
 
 		select {
 		case <-done:

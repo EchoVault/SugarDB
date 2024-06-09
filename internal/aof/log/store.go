@@ -105,6 +105,10 @@ func NewAppendStore(options ...func(store *AppendStore)) (*AppendStore, error) {
 	// No need to start this goroutine if sync strategy is anything other than 'everysec'.
 	if strings.EqualFold(store.strategy, "everysec") {
 		go func() {
+			ticker := time.NewTicker(1 * time.Second)
+			defer func() {
+				ticker.Stop()
+			}()
 			for {
 				store.mut.Lock()
 				if err := store.Sync(); err != nil {
@@ -113,7 +117,7 @@ func NewAppendStore(options ...func(store *AppendStore)) (*AppendStore, error) {
 					break
 				}
 				store.mut.Unlock()
-				<-store.clock.After(1 * time.Second)
+				<-ticker.C
 			}
 		}()
 	}
@@ -130,9 +134,7 @@ func (store *AppendStore) Write(command []byte) error {
 	store.mut.Lock()
 	defer store.mut.Unlock()
 
-	// Add new line before writing to AOF file.
-	out := append(command, []byte("\r\n")...)
-	if _, err := store.rw.Write(out); err != nil {
+	if _, err := store.rw.Write(command); err != nil {
 		return err
 	}
 

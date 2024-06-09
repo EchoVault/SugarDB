@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/echovault/echovault/internal/modules/acl"
 	"github.com/echovault/echovault/internal/modules/admin"
@@ -31,10 +32,12 @@ import (
 	"github.com/echovault/echovault/internal/modules/sorted_set"
 	str "github.com/echovault/echovault/internal/modules/string"
 	"github.com/tidwall/resp"
+	"os"
 	"path"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 func setupServer(port uint16) (*echovault.EchoVault, error) {
@@ -671,5 +674,325 @@ func Test_AdminCommands(t *testing.T) {
 				t.Errorf("could not file module \"%s\" in the loaded server modules \"%s\"", resModule, serverModules)
 			}
 		}
+	})
+
+	t.Run("Test SAVE/LASTSAVE commands", func(t *testing.T) {
+		t.Parallel()
+
+		dataDir := path.Join(".", "testdata", "test_snapshot")
+		t.Cleanup(func() {
+			_ = os.RemoveAll(dataDir)
+		})
+
+		tests := []struct {
+			name         string
+			dataDir      string
+			values       map[string]string
+			snapshotFunc func(mockServer *echovault.EchoVault, port int) error
+			lastSaveFunc func(mockServer *echovault.EchoVault, port int) (int, error)
+			wantLastSave int
+		}{
+			{
+				name:    "1. Snapshot with TCP connection",
+				dataDir: path.Join(dataDir, "with_tcp_connection"),
+				values: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
+					"key4": "value4",
+				},
+				snapshotFunc: func(mockServer *echovault.EchoVault, port int) error {
+					// Start the server's TCP listener
+					go func() {
+						mockServer.Start()
+					}()
+					conn, err := internal.GetConnection("localhost", port)
+					if err != nil {
+						return err
+					}
+					defer func() {
+						_ = conn.Close()
+					}()
+					client := resp.NewConn(conn)
+					if err = client.WriteArray([]resp.Value{resp.StringValue("SAVE")}); err != nil {
+						return err
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						return err
+					}
+					if !strings.EqualFold(res.String(), "ok") {
+						return fmt.Errorf("expected save response to be \"OK\", got \"%s\"", res.String())
+					}
+					return nil
+				},
+				lastSaveFunc: func(mockServer *echovault.EchoVault, port int) (int, error) {
+					conn, err := internal.GetConnection("localhost", port)
+					if err != nil {
+						return 0, err
+					}
+					defer func() {
+						_ = conn.Close()
+					}()
+					client := resp.NewConn(conn)
+					if err = client.WriteArray([]resp.Value{resp.StringValue("LASTSAVE")}); err != nil {
+						return 0, err
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						return 0, err
+					}
+					return res.Integer(), nil
+				},
+				wantLastSave: int(clock.NewClock().Now().UnixMilli()),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+
+				port, err := internal.GetFreePort()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+
+				conf := echovault.DefaultConfig()
+				conf.DataDir = test.dataDir
+				conf.BindAddr = "localhost"
+				conf.Port = uint16(port)
+				conf.RestoreSnapshot = true
+
+				mockServer, err := echovault.NewEchoVault(echovault.WithConfig(conf))
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				defer func() {
+					// Shutdown
+					mockServer.ShutDown()
+				}()
+
+				// Trigger some write commands
+				for key, value := range test.values {
+					if _, _, err = mockServer.Set(key, value, echovault.SetOptions{}); err != nil {
+						t.Error(err)
+						return
+					}
+				}
+
+				// Function to trigger snapshot save
+				if err = test.snapshotFunc(mockServer, port); err != nil {
+					t.Error(err)
+				}
+
+				// Yield to allow snapshot to complete sync.
+				ticker := time.NewTicker(20 * time.Millisecond)
+				<-ticker.C
+				ticker.Stop()
+
+				// Restart server with the same config. This should restore the snapshot
+				mockServer, err = echovault.NewEchoVault(echovault.WithConfig(conf))
+				if err != nil {
+					t.Error(err)
+					return
+				}
+
+				// Check that all the key/value pairs have been restored into the store.
+				for key, value := range test.values {
+					res, err := mockServer.Get(key)
+					if err != nil {
+						t.Error(err)
+						return
+					}
+					if res != value {
+						t.Errorf("expected value at key \"%s\" to be \"%s\", got \"%s\"", key, value, res)
+						return
+					}
+				}
+
+				// Check that the lastsave is the time the last snapshot was taken.
+				lastSave, err := test.lastSaveFunc(mockServer, port)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+
+				if lastSave != test.wantLastSave {
+					t.Errorf("expected lastsave to be %d, got %d", test.wantLastSave, lastSave)
+				}
+			})
+		}
+	})
+
+	t.Run("Test REWRITEAOF command", func(t *testing.T) {
+		t.Parallel()
+
+		ticker := time.NewTicker(100 * time.Millisecond)
+
+		dataDir := path.Join(".", "testdata", "test_aof")
+		t.Cleanup(func() {
+			_ = os.RemoveAll(dataDir)
+			ticker.Stop()
+		})
+
+		// Prepare data for testing.
+		data := map[string]map[string]string{
+			"before-rewrite": {
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3",
+				"key4": "value4",
+			},
+			"after-rewrite": {
+				"key3": "value3-updated",
+				"key4": "value4-updated",
+				"key5": "value5",
+				"key6": "value6",
+			},
+			"expected-values": {
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3-updated",
+				"key4": "value4-updated",
+				"key5": "value5",
+				"key6": "value6",
+			},
+		}
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		conf := echovault.DefaultConfig()
+		conf.BindAddr = "localhost"
+		conf.Port = uint16(port)
+		conf.RestoreAOF = true
+		conf.DataDir = dataDir
+		conf.AOFSyncStrategy = "always"
+
+		// Start new server
+		mockServer, err := echovault.NewEchoVault(echovault.WithConfig(conf))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		go func() {
+			mockServer.Start()
+		}()
+
+		// Get client connection
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		client := resp.NewConn(conn)
+
+		// Perform write commands from "before-rewrite"
+		for key, value := range data["before-rewrite"] {
+			if err := client.WriteArray([]resp.Value{
+				resp.StringValue("SET"),
+				resp.StringValue(key),
+				resp.StringValue(value),
+			}); err != nil {
+				t.Error(err)
+				return
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if !strings.EqualFold(res.String(), "ok") {
+				t.Errorf("expected response OK, got \"%s\"", res.String())
+			}
+		}
+
+		// Yield
+		<-ticker.C
+
+		// Rewrite AOF
+		if err := client.WriteArray([]resp.Value{resp.StringValue("REWRITEAOF")}); err != nil {
+			t.Error(err)
+			return
+		}
+		res, _, err := client.ReadValue()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if !strings.EqualFold(res.String(), "ok") {
+			t.Errorf("expected response OK, got \"%s\"", res.String())
+		}
+
+		// Perform write commands from "after-rewrite"
+		for key, value := range data["after-rewrite"] {
+			if err := client.WriteArray([]resp.Value{
+				resp.StringValue("SET"),
+				resp.StringValue(key),
+				resp.StringValue(value),
+			}); err != nil {
+				t.Error(err)
+				return
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if !strings.EqualFold(res.String(), "ok") {
+				t.Errorf("expected response OK, got \"%s\"", res.String())
+			}
+		}
+
+		// Yield
+		<-ticker.C
+
+		// Shutdown the EchoVault instance and close current client connection
+		mockServer.ShutDown()
+		_ = conn.Close()
+
+		// Start another instance of EchoVault
+		mockServer, err = echovault.NewEchoVault(echovault.WithConfig(conf))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		go func() {
+			mockServer.Start()
+		}()
+
+		// Get a new client connection
+		conn, err = internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		client = resp.NewConn(conn)
+
+		// Check if the servers contains the keys and values from "expected-values"
+		for key, value := range data["expected-values"] {
+			if err := client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
+				t.Error(err)
+				return
+			}
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if res.String() != value {
+				t.Errorf("expected value at key \"%s\" to be \"%s\", got \"%s\"", key, value, res)
+				return
+			}
+		}
+
+		// Shutdown server and close client connection
+		_ = conn.Close()
+		mockServer.ShutDown()
 	})
 }

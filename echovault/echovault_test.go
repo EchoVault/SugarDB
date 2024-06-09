@@ -894,61 +894,7 @@ func Test_Standalone(t *testing.T) {
 			wantLastSave int
 		}{
 			{
-				name:    "1. Snapshot with TCP connection",
-				dataDir: path.Join(dataDir, "with_tcp_connection"),
-				values: map[string]string{
-					"key1": "value1",
-					"key2": "value2",
-					"key3": "value3",
-					"key4": "value4",
-				},
-				snapshotFunc: func(mockServer *EchoVault) error {
-					// Start the server's TCP listener
-					go func() {
-						mockServer.Start()
-					}()
-					conn, err := internal.GetConnection("localhost", int(mockServer.config.Port))
-					if err != nil {
-						return err
-					}
-					defer func() {
-						_ = conn.Close()
-					}()
-					client := resp.NewConn(conn)
-					if err = client.WriteArray([]resp.Value{resp.StringValue("SAVE")}); err != nil {
-						return err
-					}
-					res, _, err := client.ReadValue()
-					if err != nil {
-						return err
-					}
-					if !strings.EqualFold(res.String(), "ok") {
-						return fmt.Errorf("expected save response to be \"OK\", got \"%s\"", res.String())
-					}
-					return nil
-				},
-				lastSaveFunc: func(mockServer *EchoVault) (int, error) {
-					conn, err := internal.GetConnection("localhost", int(mockServer.config.Port))
-					if err != nil {
-						return 0, err
-					}
-					defer func() {
-						_ = conn.Close()
-					}()
-					client := resp.NewConn(conn)
-					if err = client.WriteArray([]resp.Value{resp.StringValue("LASTSAVE")}); err != nil {
-						return 0, err
-					}
-					res, _, err := client.ReadValue()
-					if err != nil {
-						return 0, err
-					}
-					return res.Integer(), nil
-				},
-				wantLastSave: int(clock.NewClock().Now().UnixMilli()),
-			},
-			{
-				name:    "2. Snapshot in embedded instance",
+				name:    "1. Snapshot in embedded instance",
 				dataDir: path.Join(dataDir, "embedded_instance"),
 				values: map[string]string{
 					"key5": "value5",
@@ -1047,8 +993,101 @@ func Test_Standalone(t *testing.T) {
 		}
 	})
 
-	t.Run("Test_AOF", func(t *testing.T) {
+	t.Run("Test_AOFRestore", func(t *testing.T) {
 		t.Parallel()
-		// TODO: Implemented AOF persistence and restore.
+
+		ticker := time.NewTicker(50 * time.Millisecond)
+
+		dataDir := path.Join(".", "testdata", "test_aof")
+		t.Cleanup(func() {
+			_ = os.RemoveAll(dataDir)
+			ticker.Stop()
+		})
+
+		// Prepare data for testing.
+		data := map[string]map[string]string{
+			"before-rewrite": {
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3",
+				"key4": "value4",
+			},
+			"after-rewrite": {
+				"key3": "value3-updated",
+				"key4": "value4-updated",
+				"key5": "value5",
+				"key6": "value6",
+			},
+			"expected-values": {
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3-updated",
+				"key4": "value4-updated",
+				"key5": "value5",
+				"key6": "value6",
+			},
+		}
+
+		conf := DefaultConfig()
+		conf.RestoreAOF = true
+		conf.DataDir = dataDir
+		conf.AOFSyncStrategy = "always"
+
+		mockServer, err := NewEchoVault(WithConfig(conf))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		// Perform write commands from "before-rewrite"
+		for key, value := range data["before-rewrite"] {
+			if _, _, err := mockServer.Set(key, value, SetOptions{}); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+
+		// Yield
+		<-ticker.C
+
+		// Rewrite AOF
+		if _, err := mockServer.RewriteAOF(); err != nil {
+			t.Error(err)
+			return
+		}
+
+		// Perform write commands from "after-rewrite"
+		for key, value := range data["after-rewrite"] {
+			if _, _, err := mockServer.Set(key, value, SetOptions{}); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+
+		// Yield
+		<-ticker.C
+
+		// Shutdown the EchoVault instance
+		mockServer.ShutDown()
+
+		// Start another instance of EchoVault
+		mockServer, err = NewEchoVault(WithConfig(conf))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		// Check if the servers contains the keys and values from "expected-values"
+		for key, value := range data["expected-values"] {
+			res, err := mockServer.Get(key)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if res != value {
+				t.Errorf("expected value at key \"%s\" to be \"%s\", got \"%s\"", key, value, res)
+				return
+			}
+		}
 	})
 }
