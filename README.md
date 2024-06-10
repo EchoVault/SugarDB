@@ -1,3 +1,4 @@
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go) 
 [![Go](https://github.com/EchoVault/EchoVault/workflows/Go/badge.svg)]() 
 [![Go Report Card](https://goreportcard.com/badge/github.com/echovault/echovault)](https://goreportcard.com/report/github.com/echovault/echovault)
 [![codecov](https://codecov.io/gh/EchoVault/EchoVault/graph/badge.svg?token=CHWTW0IUNV)](https://codecov.io/gh/EchoVault/EchoVault)
@@ -39,7 +40,7 @@ Features offered by EchoVault include:
 1) TLS and mTLS support for multiple server and client RootCAs.
 2) Replication cluster support using the RAFT algorithm.
 3) ACL Layer for user Authentication and Authorization.
-4) Distributed Pub/Sub functionality with consumer groups.
+4) Distributed Pub/Sub functionality.
 5) Sets, Sorted Sets, Hashes, Lists and more.
 6) Persistence layer with Snapshots and Append-Only files.
 7) Key Eviction Policies.
