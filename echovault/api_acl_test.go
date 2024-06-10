@@ -598,8 +598,6 @@ func TestEchoVault_ACLConfig(t *testing.T) {
 
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				t.Parallel()
-
 				// Create server.
 				conf := DefaultConfig()
 				conf.DataDir = ""

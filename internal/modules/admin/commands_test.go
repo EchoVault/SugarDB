@@ -788,7 +788,7 @@ func Test_AdminCommands(t *testing.T) {
 				}
 
 				// Yield to allow snapshot to complete sync.
-				ticker := time.NewTicker(20 * time.Millisecond)
+				ticker := time.NewTicker(200 * time.Millisecond)
 				<-ticker.C
 				ticker.Stop()
 
@@ -829,7 +829,7 @@ func Test_AdminCommands(t *testing.T) {
 	t.Run("Test REWRITEAOF command", func(t *testing.T) {
 		t.Parallel()
 
-		ticker := time.NewTicker(100 * time.Millisecond)
+		ticker := time.NewTicker(200 * time.Millisecond)
 
 		dataDir := path.Join(".", "testdata", "test_aof")
 		t.Cleanup(func() {
