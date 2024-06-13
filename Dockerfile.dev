@@ -1,20 +1,30 @@
 FROM --platform=linux/amd64 golang:alpine as build
 
-RUN apk add --no-cache musl-dev
+RUN apk add --no-cache gcc musl-dev
+
 WORKDIR /build
 COPY . ./
-ENV CGO_ENABLED=1 CC=x86_64-linux-musl-gcc GOOS=linux GOARCH=amd64 
+
+ENV CGO_ENABLED=1 CC=gcc GOOS=linux GOARCH=amd64 
+
 ENV DEST=volumes/modules
 RUN  CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_set/module_set.so ./volumes/modules/module_set/module_set.go 
+RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_get/module_get.so ./volumes/modules/module_get/module_get.go
 
-FROM --platform=linux/amd64 build
+ENV DEST=bin/linux/x86_64
+RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -o $DEST/server ./cmd/main.go
+
+
+
+FROM --platform=linux/amd64 alpine:latest as server
 
 RUN mkdir -p /usr/local/lib/echovault
 RUN mkdir -p /opt/echovault/bin
 RUN mkdir -p /etc/ssl/certs/echovault/echovault
 RUN mkdir -p /etc/ssl/certs/echovault/client
 
-COPY ./bin/linux/x86_64/server /opt/echovault/bin
+COPY --from=build /build/bin/linux/x86_64/server /opt/echovault/bin
+
 COPY ./openssl/server /etc/ssl/certs/echovault/server
 COPY ./openssl/client /etc/ssl/certs/echovault/client
 
