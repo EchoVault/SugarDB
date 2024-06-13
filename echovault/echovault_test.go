@@ -86,7 +86,6 @@ func setupServer(
 	conf.BindAddr = bindAddr
 	conf.JoinAddr = joinAddr
 	conf.Port = uint16(port)
-	conf.InMemory = true
 	conf.ServerID = serverId
 	conf.RaftBindPort = uint16(raftPort)
 	conf.MemberListBindPort = uint16(mlPort)
