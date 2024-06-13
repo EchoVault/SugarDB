@@ -1,4 +1,13 @@
-FROM --platform=linux/amd64 alpine:latest
+FROM --platform=linux/amd64 golang:alpine as build
+
+RUN apk add --no-cache musl-dev
+WORKDIR /build
+COPY . ./
+ENV CGO_ENABLED=1 CC=x86_64-linux-musl-gcc GOOS=linux GOARCH=amd64 
+ENV DEST=volumes/modules
+RUN  CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_set/module_set.so ./volumes/modules/module_set/module_set.go 
+
+FROM --platform=linux/amd64 build
 
 RUN mkdir -p /usr/local/lib/echovault
 RUN mkdir -p /opt/echovault/bin
