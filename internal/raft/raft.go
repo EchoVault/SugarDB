@@ -67,7 +67,8 @@ func (r *Raft) RaftInit(ctx context.Context) {
 	var stableStore raft.StableStore
 	var snapshotStore raft.SnapshotStore
 
-	if conf.InMemory {
+	if conf.DataDir == "" {
+		// No data directory provided, use in memory stores.
 		logStore = raft.NewInmemStore()
 		stableStore = raft.NewInmemStore()
 		snapshotStore = raft.NewInmemSnapshotStore()

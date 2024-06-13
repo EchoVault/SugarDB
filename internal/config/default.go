@@ -17,7 +17,6 @@ func DefaultConfig() Config {
 		BindAddr:           "localhost",
 		RaftBindPort:       7481,
 		MemberListBindPort: 7946,
-		InMemory:           false,
 		DataDir:            ".",
 		BootstrapCluster:   false,
 		AclConfig:          "",

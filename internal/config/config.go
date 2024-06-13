@@ -42,7 +42,6 @@ type Config struct {
 	BindAddr           string        `json:"BindAddr" yaml:"BindAddr"`
 	RaftBindPort       uint16        `json:"RaftPort" yaml:"RaftPort"`
 	MemberListBindPort uint16        `json:"MlPort" yaml:"MlPort"`
-	InMemory           bool          `json:"InMemory" yaml:"InMemory"`
 	DataDir            string        `json:"DataDir" yaml:"DataDir"`
 	BootstrapCluster   bool          `json:"BootstrapCluster" yaml:"BootstrapCluster"`
 	AclConfig          string        `json:"AclConfig" yaml:"AclConfig"`
@@ -152,8 +151,7 @@ There is no limit by default.`, func(memory string) error {
 	bindAddr := flag.String("bind-addr", "", "Address to bind the echovault to.")
 	raftBindPort := flag.Uint("raft-port", 7481, "Port to use for intra-cluster communication. Leave on the client.")
 	mlBindPort := flag.Uint("memberlist-port", 7946, "Port to use for memberlist communication.")
-	inMemory := flag.Bool("in-memory", false, "Whether to use memory or persistent storage for raft logs and snapshots.")
-	dataDir := flag.String("data-dir", "/var/lib/echovault", "Directory to store snapshots and logs.")
+	dataDir := flag.String("data-dir", ".", "Directory to store snapshots and logs.")
 	bootstrapCluster := flag.Bool("bootstrap-cluster", false, "Whether this instance should bootstrap a new cluster.")
 	aclConfig := flag.String("acl-config", "", "ACL config file path.")
 	snapshotThreshold := flag.Uint64("snapshot-threshold", 1000, "The number of entries that trigger a snapshot. Default is 1000.")
@@ -197,7 +195,6 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		BindAddr:           *bindAddr,
 		RaftBindPort:       uint16(*raftBindPort),
 		MemberListBindPort: uint16(*mlBindPort),
-		InMemory:           *inMemory,
 		DataDir:            *dataDir,
 		BootstrapCluster:   *bootstrapCluster,
 		AclConfig:          *aclConfig,
