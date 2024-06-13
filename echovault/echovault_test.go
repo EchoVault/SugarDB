@@ -37,6 +37,7 @@ import (
 )
 
 type ClientServerPair struct {
+	dataDir          string
 	serverId         string
 	bindAddr         string
 	port             int
@@ -71,6 +72,7 @@ func getBindAddr() net.IP {
 }
 
 func setupServer(
+	dataDir string,
 	serverId string,
 	bootstrapCluster bool,
 	forwardCommand bool,
@@ -81,7 +83,7 @@ func setupServer(
 	mlPort int,
 ) (*EchoVault, error) {
 	conf := DefaultConfig()
-	conf.DataDir = "./testdata"
+	conf.DataDir = dataDir
 	conf.ForwardCommand = forwardCommand
 	conf.BindAddr = bindAddr
 	conf.JoinAddr = joinAddr
@@ -100,6 +102,7 @@ func setupServer(
 
 func setupNode(node *ClientServerPair, isLeader bool, errChan *chan error) {
 	server, err := setupServer(
+		node.dataDir,
 		node.serverId,
 		node.bootstrapCluster,
 		node.forwardCommand,
@@ -151,6 +154,7 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 
 	// Set up node metadata.
 	for i := 0; i < len(pairs); i++ {
+		dataDir := ""
 		serverId := fmt.Sprintf("SERVER-%d", i)
 		bindAddr := getBindAddr().String()
 		bootstrapCluster := i == 0
@@ -173,6 +177,7 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 		}
 
 		pairs[i] = ClientServerPair{
+			dataDir:          dataDir,
 			serverId:         serverId,
 			bindAddr:         bindAddr,
 			port:             port,
