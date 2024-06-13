@@ -46,7 +46,6 @@ CMD "./server" \
   "--eviction-interval" "${EVICTION_INTERVAL}" \
   "--tls=${TLS}" \
   "--mtls=${MTLS}" \
-  "--in-memory=${IN_MEMORY}" \
   "--bootstrap-cluster=${BOOTSTRAP_CLUSTER}" \
   "--acl-config=${ACL_CONFIG}" \
   "--require-pass=${REQUIRE_PASS}" \
