@@ -1,13 +1,15 @@
-[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go) 
 [![Go](https://github.com/EchoVault/EchoVault/workflows/Go/badge.svg)]() 
 [![Go Report Card](https://goreportcard.com/badge/github.com/echovault/echovault)](https://goreportcard.com/report/github.com/echovault/echovault)
 [![codecov](https://codecov.io/gh/EchoVault/EchoVault/graph/badge.svg?token=CHWTW0IUNV)](https://codecov.io/gh/EchoVault/EchoVault)
 <br/>
+[![Go Reference](https://pkg.go.dev/badge/github.com/echovault/echovault.svg)](https://pkg.go.dev/github.com/echovault/echovault)
 [![GitHub Release](https://img.shields.io/github/v/release/EchoVault/EchoVault)]()
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 <br/>
-[![Go Reference](https://pkg.go.dev/badge/github.com/echovault/echovault.svg)](https://pkg.go.dev/github.com/echovault/echovault)
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go) 
+[![Discord](https://img.shields.io/discord/1211815152291414037)](https://discord.com/invite/JrG4kPrF8v)
 <br/>
+
 <hr/>
 
 <img alt="echovault_logo" src="./images/EchoVault GitHub Cover.png" width="5062" />
