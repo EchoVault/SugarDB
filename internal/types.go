@@ -47,55 +47,96 @@ type SnapshotObject struct {
 	LatestSnapshotMilliseconds int64
 }
 
+// KeyExtractionFuncResult is the return type of the KeyExtractionFunc for the command/subcommand.
 type KeyExtractionFuncResult struct {
-	Channels  []string
-	ReadKeys  []string
-	WriteKeys []string
+	Channels  []string // The pubsub channels the command accesses. For non pubsub commands, this should be an empty slice.
+	ReadKeys  []string // The keys the command reads from. If no keys are read, this should be an empty slice.
+	WriteKeys []string // The keys the command writes to. If no keys are written to, this should be an empty slice.
 }
 
+// KeyExtractionFunc is included with every command/subcommand. This function returns a KeyExtractionFuncResult object.
+// The return value of this function is used in the ACL layer to determine whether the connection is allowed to
+// execute this command.
+// The cmd parameter is a string slice of the command. All the keys are extracted from this command.
 type KeyExtractionFunc func(cmd []string) (KeyExtractionFuncResult, error)
 
+// HandlerFuncParams is the object passed to a command handler when a command is triggered.
+// These params are provided to commands by the EchoVault engine to help the command hook into functions from the
+// echovault package.
 type HandlerFuncParams struct {
-	Context               context.Context
-	Command               []string
-	Connection            *net.Conn
-	KeysExist             func(keys []string) map[string]bool
-	GetExpiry             func(key string) time.Time
-	DeleteKey             func(key string) error
-	GetValues             func(ctx context.Context, keys []string) map[string]interface{}
-	SetValues             func(ctx context.Context, entries map[string]interface{}) error
-	SetExpiry             func(ctx context.Context, key string, expire time.Time, touch bool)
-	GetClock              func() clock.Clock
-	GetAllCommands        func() []Command
-	GetACL                func() interface{}
-	GetPubSub             func() interface{}
-	TakeSnapshot          func() error
-	RewriteAOF            func() error
+	// Context is the context passed from the EchoVault instance.
+	Context context.Context
+	// Command is the string slice contains the command (e.g []string{"SET", "key", "value"})
+	Command []string
+	// Connection is the connection that triggered this command.
+	// Do not write the response directly to the connection, return it from the function.
+	Connection *net.Conn
+	// KeysExist returns a map that specifies which keys exist in the keyspace.
+	KeysExist func(keys []string) map[string]bool
+	// GetExpiry returns the expiry time of a key.
+	GetExpiry func(key string) time.Time
+	// DeleteKey deletes the specified key. Returns an error if the deletion was unsuccessful.
+	DeleteKey func(key string) error
+	// GetValues retrieves the values from the specified keys.
+	// Non-existent keys will be nil.
+	GetValues func(ctx context.Context, keys []string) map[string]interface{}
+	// SetValues sets each of the keys with their corresponding values in the provided map.
+	SetValues func(ctx context.Context, entries map[string]interface{}) error
+	// Set expiry sets the expiry time of the key.
+	SetExpiry func(ctx context.Context, key string, expire time.Time, touch bool)
+	// GetClock gets the clock used by the server.
+	// Use this when making use of time methods like .Now and .After.
+	// This inversion of control is a helper for testing as the clock is automatically mocked in tests.
+	GetClock func() clock.Clock
+	// GetAllCommands returns all the commands loaded in the EchoVault instance.
+	GetAllCommands func() []Command
+	// GetACL returns the EchoVault instance's ACL engine.
+	// There's no need to use this outside of the acl package,
+	// ACL authorizations for all commands will be handled automatically by the EchoVault instance as long as the
+	// commands KeyExtractionFunc returns the correct keys.
+	GetACL func() interface{}
+	// GetPubSub returns the EchoVault instance's PubSub engine.
+	// There's no need to use this outside of the pubsub package.
+	GetPubSub func() interface{}
+	// TakeSnapshot triggers a snapshot by the EchoVault instance.
+	TakeSnapshot func() error
+	// RewriteAOF triggers a compaction of the commands logs by the EchoVault instance.
+	RewriteAOF func() error
+	// GetLatestSnapshotTime returns the latest snapshot timestamp
 	GetLatestSnapshotTime func() int64
-	LoadModule            func(path string, args ...string) error
-	UnloadModule          func(module string)
-	ListModules           func() []string
+	// LoadModule loads the provided module with the given args passed to the module's
+	// key extraction and handler functions.
+	LoadModule func(path string, args ...string) error
+	// UnloadModule removes the specified module.
+	// This unloads both custom modules and internal modules.
+	UnloadModule func(module string)
+	// ListModules returns the list of modules loaded in the EchoVault instance.
+	ListModules func() []string
 }
 
+// HandlerFunc is a functions described by a command where the bulk of the command handling is done.
+// This function returns a byte slice which contains a RESP2 response. The response from this function
+// is forwarded directly to the client connection that triggered the command.
+// In embedded mode, the response is parsed and a native Go type is returned to the caller.
 type HandlerFunc func(params HandlerFuncParams) ([]byte, error)
 
 type Command struct {
-	Command     string
-	Module      string
-	Categories  []string
-	Description string
-	SubCommands []SubCommand
-	Sync        bool // Specifies if command should be synced across replication cluster
+	Command     string       // The command keyword (e.g. "set", "get", "hset").
+	Module      string       // The module this command belongs to. All the available modules are in the `constants` package.
+	Categories  []string     // The ACL categories this command belongs to. All the available categories are in the `constants` package.
+	Description string       // The description of the command. Includes the command syntax.
+	SubCommands []SubCommand // The list of subcommands for this command. Empty if the command has no subcommands.
+	Sync        bool         // Specifies if command should be synced across replication cluster
 	KeyExtractionFunc
 	HandlerFunc
 }
 
 type SubCommand struct {
-	Command     string
-	Module      string
-	Categories  []string
-	Description string
-	Sync        bool // Specifies if sub-command should be synced across replication cluster
+	Command     string   // The keyword for this subcommand. (Check the acl module for an example of subcommands within a command).
+	Module      string   // The module this subcommand belongs to. Should be the same as the parent command.
+	Categories  []string // The ACL categories the subcommand belongs to.
+	Description string   // The description of the subcommand. Includes syntax.
+	Sync        bool     // Specifies if sub-command should be synced across replication cluster
 	KeyExtractionFunc
 	HandlerFunc
 }
