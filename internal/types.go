@@ -30,11 +30,13 @@ type ContextServerID string
 type ContextConnID string
 
 type ApplyRequest struct {
-	Type         string   `json:"Type"` // command | delete-key
-	ServerID     string   `json:"ServerID"`
-	ConnectionID string   `json:"ConnectionID"`
-	CMD          []string `json:"CMD"`
-	Key          string   `json:"Key"`
+	Type         string `json:"Type"` // command | delete-key
+	ServerID     string `json:"ServerID"`
+	ConnectionID string `json:"ConnectionID"`
+	// TODO: Add protocol version
+	// TODO: Add database index
+	CMD []string `json:"CMD"`
+	Key string   `json:"Key"` // Optional: Used with delete-key type to specify which key to delete.
 }
 
 type ApplyResponse struct {
@@ -72,11 +74,11 @@ type HandlerFuncParams struct {
 	// Do not write the response directly to the connection, return it from the function.
 	Connection *net.Conn
 	// KeysExist returns a map that specifies which keys exist in the keyspace.
-	KeysExist func(keys []string) map[string]bool
+	KeysExist func(ctx context.Context, keys []string) map[string]bool
 	// GetExpiry returns the expiry time of a key.
-	GetExpiry func(key string) time.Time
+	GetExpiry func(ctx context.Context, key string) time.Time
 	// DeleteKey deletes the specified key. Returns an error if the deletion was unsuccessful.
-	DeleteKey func(key string) error
+	DeleteKey func(ctx context.Context, key string) error
 	// GetValues retrieves the values from the specified keys.
 	// Non-existent keys will be nil.
 	GetValues func(ctx context.Context, keys []string) map[string]interface{}

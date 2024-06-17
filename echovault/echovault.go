@@ -48,6 +48,13 @@ import (
 	"time"
 )
 
+// connectionInfo tracks the RESP version and database currently used by the connection.
+type connectionInfo struct {
+	name     string // Alias name for this connection.
+	protocol int    // The RESP protocol used by the client. Can be either 2 or 3.
+	database int    // Database index currently being used by the connection.
+}
+
 type EchoVault struct {
 	// clock is an implementation of a time interface that allows mocking of time functions during testing.
 	clock clock.Clock
@@ -59,9 +66,17 @@ type EchoVault struct {
 	// This number is incremented everytime there's a new connection and
 	// the new number is the new connection's ID.
 	connId atomic.Uint64
+	// RWMutex for the connInfo object.
+	connInfoMut *sync.RWMutex
+	// Map that holds connection information for each client.
+	connInfo map[*net.Conn]connectionInfo
 
-	storeLock *sync.RWMutex               // Global read-write mutex for entire store.
-	store     map[string]internal.KeyData // Data store to hold the keys and their associated data, expiry time, etc.
+	// Global read-write mutex for entire store.
+	storeLock *sync.RWMutex
+	// Data store to hold the keys and their associated data, expiry time, etc.
+	// The int key on the outer map represents the database index.
+	// Each database has a map that has a string key and the key data (value and expiry time).
+	store map[int]map[string]internal.KeyData
 
 	// Holds all the keys that are currently associated with an expiry.
 	keysWithExpiry struct {
@@ -129,8 +144,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		clock:         clock.NewClock(),
 		context:       context.Background(),
 		config:        config.DefaultConfig(),
+		connInfoMut:   &sync.RWMutex{},
+		connInfo:      make(map[*net.Conn]connectionInfo),
 		storeLock:     &sync.RWMutex{},
-		store:         make(map[string]internal.KeyData),
+		store:         make(map[int]map[string]internal.KeyData),
 		commandsRWMut: sync.RWMutex{},
 		commands: func() []internal.Command {
 			var commands []internal.Command
@@ -184,10 +201,10 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			FinishSnapshot:        echovault.finishSnapshot,
 			SetLatestSnapshotTime: echovault.setLatestSnapshot,
 			GetHandlerFuncParams:  echovault.getHandlerFuncParams,
-			DeleteKey: func(key string) error {
+			DeleteKey: func(ctx context.Context, key string) error {
 				echovault.storeLock.Lock()
 				defer echovault.storeLock.Unlock()
-				return echovault.deleteKey(key)
+				return echovault.deleteKey(ctx, key)
 			},
 			GetState: func() map[string]internal.KeyData {
 				state := make(map[string]internal.KeyData)
@@ -422,9 +439,15 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 
 	w, r := io.Writer(conn), io.Reader(conn)
 
+	// Generate connection ID
 	cid := server.connId.Add(1)
 	ctx := context.WithValue(server.context, internal.ContextConnID("ConnectionID"),
 		fmt.Sprintf("%s-%d", server.context.Value(internal.ContextServerID("ServerID")), cid))
+
+	// Set the default connection information
+	server.connInfoMut.Lock()
+	server.connInfo[&conn] = connectionInfo{name: "", protocol: 2, database: 0}
+	server.connInfoMut.Unlock()
 
 	defer func() {
 		log.Printf("closing connection %d...", cid)
@@ -446,6 +469,13 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 			log.Println(err)
 			break
 		}
+
+		// Add connection info to the context of the request.
+		server.connInfoMut.RLock()
+		ctx = context.WithValue(ctx, "ConnectionName", server.connInfo[&conn].name)
+		ctx = context.WithValue(ctx, "Protocol", server.connInfo[&conn].protocol)
+		ctx = context.WithValue(ctx, "Database", server.connInfo[&conn].database)
+		server.connInfoMut.RUnlock()
 
 		res, err := server.handleCommand(ctx, message, &conn, false, false)
 		if err != nil && errors.Is(err, io.EOF) {

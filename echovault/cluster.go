@@ -68,7 +68,9 @@ func (server *EchoVault) raftApplyCommand(ctx context.Context, cmd []string) ([]
 		Type:         "command",
 		ServerID:     serverId,
 		ConnectionID: connectionId,
-		CMD:          cmd,
+		// TODO: Add database index
+		// TODO: Add protocol version
+		CMD: cmd,
 	}
 
 	b, err := json.Marshal(applyRequest)

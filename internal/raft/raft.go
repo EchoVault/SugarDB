@@ -37,7 +37,7 @@ type Opts struct {
 	SetExpiry             func(ctx context.Context, key string, expire time.Time, touch bool)
 	GetState              func() map[string]internal.KeyData
 	GetCommand            func(command string) (internal.Command, error)
-	DeleteKey             func(key string) error
+	DeleteKey             func(ctx context.Context, key string) error
 	StartSnapshot         func()
 	FinishSnapshot        func()
 	SetLatestSnapshotTime func(msec int64)

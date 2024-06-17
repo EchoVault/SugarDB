@@ -29,7 +29,7 @@ import (
 	"time"
 )
 
-func (server *EchoVault) keysExist(keys []string) map[string]bool {
+func (server *EchoVault) keysExist(ctx context.Context, keys []string) map[string]bool {
 	server.storeLock.RLock()
 	defer server.storeLock.RUnlock()
 
@@ -43,7 +43,7 @@ func (server *EchoVault) keysExist(keys []string) map[string]bool {
 	return exists
 }
 
-func (server *EchoVault) getExpiry(key string) time.Time {
+func (server *EchoVault) getExpiry(ctx context.Context, key string) time.Time {
 	server.storeLock.RLock()
 	defer server.storeLock.RUnlock()
 
@@ -166,7 +166,7 @@ func (server *EchoVault) setExpiry(ctx context.Context, key string, expireAt tim
 	}
 }
 
-func (server *EchoVault) deleteKey(key string) error {
+func (server *EchoVault) deleteKey(ctx context.Context, key string) error {
 	// Delete the key from keyLocks and store.
 	delete(server.store, key)
 

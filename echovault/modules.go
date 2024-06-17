@@ -57,10 +57,10 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 		GetACL:                server.getACL,
 		GetAllCommands:        server.getCommands,
 		GetClock:              server.getClock,
-		DeleteKey: func(key string) error {
+		DeleteKey: func(ctx context.Context, key string) error {
 			server.storeLock.Lock()
 			defer server.storeLock.Unlock()
-			return server.deleteKey(key)
+			return server.deleteKey(ctx, key)
 		},
 	}
 }
