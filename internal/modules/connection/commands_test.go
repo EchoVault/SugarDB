@@ -16,13 +16,14 @@ package connection_test
 
 import (
 	"errors"
+	"strings"
+	"testing"
+
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
-	"strings"
-	"testing"
 )
 
 func Test_Connection(t *testing.T) {
@@ -113,5 +114,67 @@ func Test_Connection(t *testing.T) {
 			}
 		}
 	})
+
+
+	t.Run("Test_HandleEcho", func(t *testing.T) {
+			conn, err := internal.GetConnection("localhost", port)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			defer func() {
+				_ = conn.Close()
+			}()
+			client := resp.NewConn(conn)
+
+			tests := []struct {
+				command     []resp.Value
+				expected    string
+				expectedErr error
+			}{
+				{
+					command:     []resp.Value{resp.StringValue("ECHO"), resp.StringValue("Hello, EchoVault!")},
+					expected:    "Hello, EchoVault!",
+					expectedErr: nil,
+				},
+				{
+					command:     []resp.Value{resp.StringValue("ECHO")},
+					expected:    "",
+					expectedErr: errors.New(constants.WrongArgsResponse),
+				},
+				{
+					command: []resp.Value{
+						resp.StringValue("ECHO"),
+						resp.StringValue("Hello, EchoVault!"),
+						resp.StringValue("Once more"),
+					},
+					expected:    "",
+					expectedErr: errors.New(constants.WrongArgsResponse),
+				},
+			}
+
+			for _, test := range tests {
+				if err = client.WriteArray(test.command); err != nil {
+					t.Error(err)
+					return
+				}
+
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedErr != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedErr.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedErr.Error(), res.Error().Error())
+					}
+					continue
+				}
+
+				if res.String() != test.expected {
+					t.Errorf("expected response \"%s\", got \"%s\"", test.expected, res.String())
+				}
+			}
+		})
 
 }

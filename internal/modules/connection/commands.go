@@ -17,6 +17,7 @@ package connection
 import (
 	"errors"
 	"fmt"
+
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/constants"
 )
@@ -32,13 +33,20 @@ func handlePing(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 }
 
+func handleEcho(params internal.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) != 2 {
+		return nil, errors.New(constants.WrongArgsResponse)
+	}
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(params.Command[1]), params.Command[1])), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
 			Command:    "ping",
 			Module:     constants.ConnectionModule,
 			Categories: []string{constants.ConnectionCategory, constants.FastCategory},
-			Description: `(PING [message]) 
+			Description: `(PING [message])
 Ping the echovault server. If a message is provided, the message will be echoed back to the client.
 Otherwise, the server will return "PONG".`,
 			Sync: false,
@@ -50,6 +58,22 @@ Otherwise, the server will return "PONG".`,
 				}, nil
 			},
 			HandlerFunc: handlePing,
+		},
+		{
+			Command:    "echo",
+			Module:     constants.ConnectionModule,
+			Categories: []string{constants.ConnectionCategory, constants.FastCategory},
+			Description: `(ECHO message)
+Echo the message back to the client.`,
+			Sync: false,
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
+			},
+			HandlerFunc: handleEcho,
 		},
 	}
 }
