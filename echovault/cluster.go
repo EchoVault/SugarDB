@@ -28,11 +28,15 @@ func (server *EchoVault) isInCluster() bool {
 
 func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) error {
 	serverId, _ := ctx.Value(internal.ContextServerID("ServerID")).(string)
+	protocol, _ := ctx.Value("Protocol").(int)
+	database, _ := ctx.Value("Database").(int)
 
 	deleteKeyRequest := internal.ApplyRequest{
 		Type:         "delete-key",
 		ServerID:     serverId,
 		ConnectionID: "nil",
+		Protocol:     protocol,
+		Database:     database,
 		Key:          key,
 	}
 
@@ -63,14 +67,16 @@ func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) err
 func (server *EchoVault) raftApplyCommand(ctx context.Context, cmd []string) ([]byte, error) {
 	serverId, _ := ctx.Value(internal.ContextServerID("ServerID")).(string)
 	connectionId, _ := ctx.Value(internal.ContextConnID("ConnectionID")).(string)
+	protocol, _ := ctx.Value("Protocol").(int)
+	database, _ := ctx.Value("Database").(int)
 
 	applyRequest := internal.ApplyRequest{
 		Type:         "command",
 		ServerID:     serverId,
 		ConnectionID: connectionId,
-		// TODO: Add database index
-		// TODO: Add protocol version
-		CMD: cmd,
+		Protocol:     protocol,
+		Database:     database,
+		CMD:          cmd,
 	}
 
 	b, err := json.Marshal(applyRequest)

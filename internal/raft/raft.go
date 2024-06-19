@@ -35,7 +35,7 @@ type Opts struct {
 	Config                config.Config
 	SetValues             func(ctx context.Context, entries map[string]interface{}) error
 	SetExpiry             func(ctx context.Context, key string, expire time.Time, touch bool)
-	GetState              func() map[string]internal.KeyData
+	GetState              func() map[int]map[string]internal.KeyData
 	GetCommand            func(command string) (internal.Command, error)
 	DeleteKey             func(ctx context.Context, key string) error
 	StartSnapshot         func()

@@ -24,7 +24,6 @@ import (
 	"github.com/echovault/echovault/internal/aof"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/constants"
 	"github.com/echovault/echovault/internal/eviction"
 	"github.com/echovault/echovault/internal/memberlist"
 	"github.com/echovault/echovault/internal/modules/acl"
@@ -206,11 +205,13 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 				defer echovault.storeLock.Unlock()
 				return echovault.deleteKey(ctx, key)
 			},
-			GetState: func() map[string]internal.KeyData {
-				state := make(map[string]internal.KeyData)
-				for k, v := range echovault.getState() {
-					if data, ok := v.(internal.KeyData); ok {
-						state[k] = data
+			GetState: func() map[int]map[string]internal.KeyData {
+				state := make(map[int]map[string]internal.KeyData)
+				for database, store := range echovault.getState() {
+					for k, v := range store {
+						if data, ok := v.(internal.KeyData); ok {
+							state[database][k] = data
+						}
 					}
 				}
 				return state
@@ -227,87 +228,88 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		})
 	} else {
 		// Set up standalone snapshot engine
-		echovault.snapshotEngine = snapshot.NewSnapshotEngine(
-			snapshot.WithClock(echovault.clock),
-			snapshot.WithDirectory(echovault.config.DataDir),
-			snapshot.WithThreshold(echovault.config.SnapShotThreshold),
-			snapshot.WithInterval(echovault.config.SnapshotInterval),
-			snapshot.WithStartSnapshotFunc(echovault.startSnapshot),
-			snapshot.WithFinishSnapshotFunc(echovault.finishSnapshot),
-			snapshot.WithSetLatestSnapshotTimeFunc(echovault.setLatestSnapshot),
-			snapshot.WithGetLatestSnapshotTimeFunc(echovault.getLatestSnapshotTime),
-			snapshot.WithGetStateFunc(func() map[string]internal.KeyData {
-				state := make(map[string]internal.KeyData)
-				for k, v := range echovault.getState() {
-					if data, ok := v.(internal.KeyData); ok {
-						state[k] = data
-					}
-				}
-				return state
-			}),
-			snapshot.WithSetKeyDataFunc(func(key string, data internal.KeyData) {
-				ctx := context.Background()
-				if err := echovault.setValues(ctx, map[string]interface{}{key: data.Value}); err != nil {
-					log.Println(err)
-				}
-				echovault.setExpiry(ctx, key, data.ExpireAt, false)
-			}),
-		)
+		//echovault.snapshotEngine = snapshot.NewSnapshotEngine(
+		//	snapshot.WithClock(echovault.clock),
+		//	snapshot.WithDirectory(echovault.config.DataDir),
+		//	snapshot.WithThreshold(echovault.config.SnapShotThreshold),
+		//	snapshot.WithInterval(echovault.config.SnapshotInterval),
+		//	snapshot.WithStartSnapshotFunc(echovault.startSnapshot),
+		//	snapshot.WithFinishSnapshotFunc(echovault.finishSnapshot),
+		//	snapshot.WithSetLatestSnapshotTimeFunc(echovault.setLatestSnapshot),
+		//	snapshot.WithGetLatestSnapshotTimeFunc(echovault.getLatestSnapshotTime),
+		//	snapshot.WithGetStateFunc(func() map[string]internal.KeyData {
+		//		state := make(map[string]internal.KeyData)
+		//		for k, v := range echovault.getState() {
+		//			if data, ok := v.(internal.KeyData); ok {
+		//				state[k] = data
+		//			}
+		//		}
+		//		return state
+		//	}),
+		//	snapshot.WithSetKeyDataFunc(func(key string, data internal.KeyData) {
+		//		ctx := context.Background()
+		//		if err := echovault.setValues(ctx, map[string]interface{}{key: data.Value}); err != nil {
+		//			log.Println(err)
+		//		}
+		//		echovault.setExpiry(ctx, key, data.ExpireAt, false)
+		//	}),
+		//)
+
 		// Set up standalone AOF engine
-		aofEngine, err := aof.NewAOFEngine(
-			aof.WithClock(echovault.clock),
-			aof.WithDirectory(echovault.config.DataDir),
-			aof.WithStrategy(echovault.config.AOFSyncStrategy),
-			aof.WithStartRewriteFunc(echovault.startRewriteAOF),
-			aof.WithFinishRewriteFunc(echovault.finishRewriteAOF),
-			aof.WithGetStateFunc(func() map[string]internal.KeyData {
-				state := make(map[string]internal.KeyData)
-				for k, v := range echovault.getState() {
-					if data, ok := v.(internal.KeyData); ok {
-						state[k] = data
-					}
-				}
-				return state
-			}),
-			aof.WithSetKeyDataFunc(func(key string, value internal.KeyData) {
-				ctx := context.Background()
-				if err := echovault.setValues(ctx, map[string]interface{}{key: value.Value}); err != nil {
-					log.Println(err)
-				}
-				echovault.setExpiry(ctx, key, value.ExpireAt, false)
-			}),
-			aof.WithHandleCommandFunc(func(command []byte) {
-				_, err := echovault.handleCommand(context.Background(), command, nil, true, false)
-				if err != nil {
-					log.Println(err)
-				}
-			}),
-		)
-		if err != nil {
-			return nil, err
-		}
-		echovault.aofEngine = aofEngine
+		//aofEngine, err := aof.NewAOFEngine(
+		//	aof.WithClock(echovault.clock),
+		//	aof.WithDirectory(echovault.config.DataDir),
+		//	aof.WithStrategy(echovault.config.AOFSyncStrategy),
+		//	aof.WithStartRewriteFunc(echovault.startRewriteAOF),
+		//	aof.WithFinishRewriteFunc(echovault.finishRewriteAOF),
+		//	aof.WithGetStateFunc(func() map[string]internal.KeyData {
+		//		state := make(map[string]internal.KeyData)
+		//		for k, v := range echovault.getState() {
+		//			if data, ok := v.(internal.KeyData); ok {
+		//				state[k] = data
+		//			}
+		//		}
+		//		return state
+		//	}),
+		//	aof.WithSetKeyDataFunc(func(key string, value internal.KeyData) {
+		//		ctx := context.Background()
+		//		if err := echovault.setValues(ctx, map[string]interface{}{key: value.Value}); err != nil {
+		//			log.Println(err)
+		//		}
+		//		echovault.setExpiry(ctx, key, value.ExpireAt, false)
+		//	}),
+		//	aof.WithHandleCommandFunc(func(command []byte) {
+		//		_, err := echovault.handleCommand(context.Background(), command, nil, true, false)
+		//		if err != nil {
+		//			log.Println(err)
+		//		}
+		//	}),
+		//)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//echovault.aofEngine = aofEngine
 	}
 
 	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
-	if echovault.config.EvictionPolicy != constants.NoEviction {
-		go func() {
-			ticker := time.NewTicker(echovault.config.EvictionInterval)
-			defer func() {
-				ticker.Stop()
-			}()
-			for {
-				select {
-				case <-ticker.C:
-					if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
-						log.Printf("evict with ttl: %v\n", err)
-					}
-				case <-echovault.stopTTL:
-					break
-				}
-			}
-		}()
-	}
+	//if echovault.config.EvictionPolicy != constants.NoEviction {
+	//	go func() {
+	//		ticker := time.NewTicker(echovault.config.EvictionInterval)
+	//		defer func() {
+	//			ticker.Stop()
+	//		}()
+	//		for {
+	//			select {
+	//			case <-ticker.C:
+	//				if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
+	//					log.Printf("evict with ttl: %v\n", err)
+	//				}
+	//			case <-echovault.stopTTL:
+	//				break
+	//			}
+	//		}
+	//	}()
+	//}
 
 	if echovault.config.TLS && len(echovault.config.CertKeyPairs) <= 0 {
 		return nil, errors.New("must provide certificate and key file paths for TLS mode")

@@ -30,7 +30,7 @@ import (
 
 type FSMOpts struct {
 	Config                config.Config
-	GetState              func() map[string]internal.KeyData
+	GetState              func() map[int]map[string]internal.KeyData
 	GetCommand            func(command string) (internal.Command, error)
 	SetValues             func(ctx context.Context, entries map[string]interface{}) error
 	SetExpiry             func(ctx context.Context, key string, expire time.Time, touch bool)
@@ -152,7 +152,7 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 	}
 
 	data := internal.SnapshotObject{
-		State:                      make(map[string]internal.KeyData),
+		State:                      make(map[int]map[string]internal.KeyData),
 		LatestSnapshotMilliseconds: 0,
 	}
 
@@ -163,13 +163,16 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 
 	// Set state
 	ctx := context.Background()
-	for k, v := range internal.FilterExpiredKeys(time.Now(), data.State) {
-		if err = fsm.options.SetValues(ctx, map[string]interface{}{k: v.Value}); err != nil {
-			log.Fatal(err)
+	for _, data := range internal.FilterExpiredKeys(time.Now(), data.State) {
+		for k, v := range data {
+			// TODO: Set values according to database.
+			if err = fsm.options.SetValues(ctx, map[string]interface{}{k: v.Value}); err != nil {
+				log.Fatal(err)
+			}
+			fsm.options.SetExpiry(ctx, k, v.ExpireAt, false)
 		}
-		fsm.options.SetExpiry(ctx, k, v.ExpireAt, false)
 	}
-	// Set latest snapshot milliseconds
+	// Set latest snapshot milliseconds.
 	fsm.options.SetLatestSnapshotTime(data.LatestSnapshotMilliseconds)
 
 	return nil

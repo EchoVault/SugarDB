@@ -30,13 +30,13 @@ type ContextServerID string
 type ContextConnID string
 
 type ApplyRequest struct {
-	Type         string `json:"Type"` // command | delete-key
-	ServerID     string `json:"ServerID"`
-	ConnectionID string `json:"ConnectionID"`
-	// TODO: Add protocol version
-	// TODO: Add database index
-	CMD []string `json:"CMD"`
-	Key string   `json:"Key"` // Optional: Used with delete-key type to specify which key to delete.
+	Type         string   `json:"Type"` // command | delete-key
+	ServerID     string   `json:"ServerID"`
+	ConnectionID string   `json:"ConnectionID"`
+	Protocol     int      `json:"Protocol"`
+	Database     int      `json:"Database"`
+	CMD          []string `json:"CMD"`
+	Key          string   `json:"Key"` // Optional: Used with delete-key type to specify which key to delete.
 }
 
 type ApplyResponse struct {
@@ -45,7 +45,7 @@ type ApplyResponse struct {
 }
 
 type SnapshotObject struct {
-	State                      map[string]KeyData
+	State                      map[int]map[string]KeyData
 	LatestSnapshotMilliseconds int64
 }
 
