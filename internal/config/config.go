@@ -32,32 +32,33 @@ import (
 )
 
 type Config struct {
-	TLS                bool          `json:"TLS" yaml:"TLS"`
-	MTLS               bool          `json:"MTLS" yaml:"MTLS"`
-	CertKeyPairs       [][]string    `json:"CertKeyPairs" yaml:"CertKeyPairs"`
-	ClientCAs          []string      `json:"ClientCAs" yaml:"ClientCAs"`
-	Port               uint16        `json:"Port" yaml:"Port"`
-	ServerID           string        `json:"ServerId" yaml:"ServerId"`
-	JoinAddr           string        `json:"JoinAddr" yaml:"JoinAddr"`
-	BindAddr           string        `json:"BindAddr" yaml:"BindAddr"`
-	RaftBindPort       uint16        `json:"RaftPort" yaml:"RaftPort"`
-	MemberListBindPort uint16        `json:"MlPort" yaml:"MlPort"`
-	DataDir            string        `json:"DataDir" yaml:"DataDir"`
-	BootstrapCluster   bool          `json:"BootstrapCluster" yaml:"BootstrapCluster"`
-	AclConfig          string        `json:"AclConfig" yaml:"AclConfig"`
-	ForwardCommand     bool          `json:"ForwardCommand" yaml:"ForwardCommand"`
-	RequirePass        bool          `json:"RequirePass" yaml:"RequirePass"`
-	Password           string        `json:"Password" yaml:"Password"`
-	SnapShotThreshold  uint64        `json:"SnapshotThreshold" yaml:"SnapshotThreshold"`
-	SnapshotInterval   time.Duration `json:"SnapshotInterval" yaml:"SnapshotInterval"`
-	RestoreSnapshot    bool          `json:"RestoreSnapshot" yaml:"RestoreSnapshot"`
-	RestoreAOF         bool          `json:"RestoreAOF" yaml:"RestoreAOF"`
-	AOFSyncStrategy    string        `json:"AOFSyncStrategy" yaml:"AOFSyncStrategy"`
-	MaxMemory          uint64        `json:"MaxMemory" yaml:"MaxMemory"`
-	EvictionPolicy     string        `json:"EvictionPolicy" yaml:"EvictionPolicy"`
-	EvictionSample     uint          `json:"EvictionSample" yaml:"EvictionSample"`
-	EvictionInterval   time.Duration `json:"EvictionInterval" yaml:"EvictionInterval"`
-	Modules            []string      `json:"Plugins" yaml:"Plugins"`
+	TLS               bool          `json:"TLS" yaml:"TLS"`
+	MTLS              bool          `json:"MTLS" yaml:"MTLS"`
+	CertKeyPairs      [][]string    `json:"CertKeyPairs" yaml:"CertKeyPairs"`
+	ClientCAs         []string      `json:"ClientCAs" yaml:"ClientCAs"`
+	Port              uint16        `json:"Port" yaml:"Port"`
+	ServerID          string        `json:"ServerId" yaml:"ServerId"`
+	JoinAddr          string        `json:"JoinAddr" yaml:"JoinAddr"`
+	BindAddr          string        `json:"BindAddr" yaml:"BindAddr"`
+	DataDir           string        `json:"DataDir" yaml:"DataDir"`
+	BootstrapCluster  bool          `json:"BootstrapCluster" yaml:"BootstrapCluster"`
+	AclConfig         string        `json:"AclConfig" yaml:"AclConfig"`
+	ForwardCommand    bool          `json:"ForwardCommand" yaml:"ForwardCommand"`
+	RequirePass       bool          `json:"RequirePass" yaml:"RequirePass"`
+	Password          string        `json:"Password" yaml:"Password"`
+	SnapShotThreshold uint64        `json:"SnapshotThreshold" yaml:"SnapshotThreshold"`
+	SnapshotInterval  time.Duration `json:"SnapshotInterval" yaml:"SnapshotInterval"`
+	RestoreSnapshot   bool          `json:"RestoreSnapshot" yaml:"RestoreSnapshot"`
+	RestoreAOF        bool          `json:"RestoreAOF" yaml:"RestoreAOF"`
+	AOFSyncStrategy   string        `json:"AOFSyncStrategy" yaml:"AOFSyncStrategy"`
+	MaxMemory         uint64        `json:"MaxMemory" yaml:"MaxMemory"`
+	EvictionPolicy    string        `json:"EvictionPolicy" yaml:"EvictionPolicy"`
+	EvictionSample    uint          `json:"EvictionSample" yaml:"EvictionSample"`
+	EvictionInterval  time.Duration `json:"EvictionInterval" yaml:"EvictionInterval"`
+	Modules           []string      `json:"Plugins" yaml:"Plugins"`
+	DiscoveryPort     uint16        `json:"DiscoveryPort" yaml:"DiscoveryPort"`
+	RaftBindAddr      string
+	RaftBindPort      uint16
 }
 
 func GetConfig() (Config, error) {
@@ -148,9 +149,8 @@ There is no limit by default.`, func(memory string) error {
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
 	serverId := flag.String("server-id", "1", "EchoVault ID in raft cluster. Leave empty for client.")
 	joinAddr := flag.String("join-addr", "", "Address of cluster member in a cluster to you want to join.")
-	bindAddr := flag.String("bind-addr", "", "Address to bind the echovault to.")
-	raftBindPort := flag.Uint("raft-port", 7481, "Port to use for intra-cluster communication. Leave on the client.")
-	mlBindPort := flag.Uint("memberlist-port", 7946, "Port to use for memberlist communication.")
+	bindAddr := flag.String("bind-addr", "127.0.0.1", "Address to bind the echovault to.")
+	discoveryPort := flag.Uint("discovery-port", 7946, "Port to use for memberlist cluster discovery.")
 	dataDir := flag.String("data-dir", ".", "Directory to store snapshots and logs.")
 	bootstrapCluster := flag.Bool("bootstrap-cluster", false, "Whether this instance should bootstrap a new cluster.")
 	aclConfig := flag.String("acl-config", "", "ACL config file path.")
@@ -184,33 +184,43 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 
 	flag.Parse()
 
+	raftBindAddr, e := internal.GetIPAddress()
+	if e != nil {
+		return Config{}, e
+	}
+	raftBindPort, e := internal.GetFreePort()
+	if e != nil {
+		return Config{}, e
+	}
+
 	conf := Config{
-		CertKeyPairs:       certKeyPairs,
-		ClientCAs:          clientCAs,
-		TLS:                *tls,
-		MTLS:               *mtls,
-		Port:               uint16(*port),
-		ServerID:           *serverId,
-		JoinAddr:           *joinAddr,
-		BindAddr:           *bindAddr,
-		RaftBindPort:       uint16(*raftBindPort),
-		MemberListBindPort: uint16(*mlBindPort),
-		DataDir:            *dataDir,
-		BootstrapCluster:   *bootstrapCluster,
-		AclConfig:          *aclConfig,
-		ForwardCommand:     *forwardCommand,
-		RequirePass:        *requirePass,
-		Password:           *password,
-		SnapShotThreshold:  *snapshotThreshold,
-		SnapshotInterval:   *snapshotInterval,
-		RestoreSnapshot:    *restoreSnapshot,
-		RestoreAOF:         *restoreAOF,
-		AOFSyncStrategy:    aofSyncStrategy,
-		MaxMemory:          maxMemory,
-		EvictionPolicy:     evictionPolicy,
-		EvictionSample:     *evictionSample,
-		EvictionInterval:   *evictionInterval,
-		Modules:            modules,
+		CertKeyPairs:      certKeyPairs,
+		ClientCAs:         clientCAs,
+		TLS:               *tls,
+		MTLS:              *mtls,
+		Port:              uint16(*port),
+		ServerID:          *serverId,
+		JoinAddr:          *joinAddr,
+		BindAddr:          *bindAddr,
+		DataDir:           *dataDir,
+		BootstrapCluster:  *bootstrapCluster,
+		AclConfig:         *aclConfig,
+		ForwardCommand:    *forwardCommand,
+		RequirePass:       *requirePass,
+		Password:          *password,
+		SnapShotThreshold: *snapshotThreshold,
+		SnapshotInterval:  *snapshotInterval,
+		RestoreSnapshot:   *restoreSnapshot,
+		RestoreAOF:        *restoreAOF,
+		AOFSyncStrategy:   aofSyncStrategy,
+		MaxMemory:         maxMemory,
+		EvictionPolicy:    evictionPolicy,
+		EvictionSample:    *evictionSample,
+		EvictionInterval:  *evictionInterval,
+		Modules:           modules,
+		DiscoveryPort:     uint16(*discoveryPort),
+		RaftBindAddr:      raftBindAddr,
+		RaftBindPort:      uint16(raftBindPort),
 	}
 
 	if len(*config) > 0 {

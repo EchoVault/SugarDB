@@ -41,8 +41,7 @@ type ClientServerPair struct {
 	serverId         string
 	bindAddr         string
 	port             int
-	raftPort         int
-	mlPort           int
+	discoveryPort    int
 	bootstrapCluster bool
 	forwardCommand   bool
 	joinAddr         string
@@ -79,8 +78,7 @@ func setupServer(
 	bindAddr,
 	joinAddr string,
 	port,
-	raftPort,
-	mlPort int,
+	discoveryPort int,
 ) (*EchoVault, error) {
 	conf := DefaultConfig()
 	conf.DataDir = dataDir
@@ -89,8 +87,7 @@ func setupServer(
 	conf.JoinAddr = joinAddr
 	conf.Port = uint16(port)
 	conf.ServerID = serverId
-	conf.RaftBindPort = uint16(raftPort)
-	conf.MemberListBindPort = uint16(mlPort)
+	conf.DiscoveryPort = uint16(discoveryPort)
 	conf.BootstrapCluster = bootstrapCluster
 	conf.EvictionPolicy = constants.NoEviction
 
@@ -109,8 +106,7 @@ func setupNode(node *ClientServerPair, isLeader bool, errChan *chan error) {
 		node.bindAddr,
 		node.joinAddr,
 		node.port,
-		node.raftPort,
-		node.mlPort,
+		node.discoveryPort,
 	)
 	if err != nil {
 		*errChan <- fmt.Errorf("could not start server; %v", err)
@@ -161,17 +157,13 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 		forwardCommand := i < len(pairs)-1 // The last node will not forward commands to the cluster leader.
 		joinAddr := ""
 		if !bootstrapCluster {
-			joinAddr = fmt.Sprintf("%s/%s:%d", pairs[0].serverId, pairs[0].bindAddr, pairs[0].mlPort)
+			joinAddr = fmt.Sprintf("%s/%s:%d", pairs[0].serverId, pairs[0].bindAddr, pairs[0].discoveryPort)
 		}
 		port, err := internal.GetFreePort()
 		if err != nil {
 			return nil, fmt.Errorf("could not get free port: %v", err)
 		}
-		raftPort, err := internal.GetFreePort()
-		if err != nil {
-			return nil, fmt.Errorf("could not get free raft port: %v", err)
-		}
-		memberlistPort, err := internal.GetFreePort()
+		discoveryPort, err := internal.GetFreePort()
 		if err != nil {
 			return nil, fmt.Errorf("could not get free memberlist port: %v", err)
 		}
@@ -181,8 +173,7 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 			serverId:         serverId,
 			bindAddr:         bindAddr,
 			port:             port,
-			raftPort:         raftPort,
-			mlPort:           memberlistPort,
+			discoveryPort:    discoveryPort,
 			bootstrapCluster: bootstrapCluster,
 			forwardCommand:   forwardCommand,
 			joinAddr:         joinAddr,

@@ -91,15 +91,14 @@ func (r *Raft) RaftInit(ctx context.Context) {
 		}
 	}
 
-	addr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.RaftBindPort)
-
-	advertiseAddr, err := net.ResolveTCPAddr("tcp", addr)
+	bindAddr := fmt.Sprintf("%s:%d", conf.RaftBindAddr, conf.RaftBindPort)
+	advertiseAddr, err := net.ResolveTCPAddr("tcp", bindAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	raftTransport, err := raft.NewTCPTransport(
-		addr,
+		bindAddr,
 		advertiseAddr,
 		10,
 		5*time.Second,
@@ -142,7 +141,7 @@ func (r *Raft) RaftInit(ctx context.Context) {
 				{
 					Suffrage: raft.Voter,
 					ID:       raft.ServerID(conf.ServerID),
-					Address:  raft.ServerAddress(addr),
+					Address:  raft.ServerAddress(conf.RaftBindAddr),
 				},
 			},
 		}).Error()
@@ -185,7 +184,7 @@ func (r *Raft) AddVoter(
 		}
 
 		for _, s := range raftConfig.Configuration().Servers {
-			// Check if a echovault already exists with the current attributes
+			// Check if a node already exists with the current attributes.
 			if s.ID == id && s.Address == address {
 				return fmt.Errorf("node with id %s and address %s already exists", id, address)
 			}

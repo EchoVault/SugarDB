@@ -11,9 +11,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     environment:
+      - BIND_ADDR=0.0.0.0
       - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
+      - DISCOVERY_PORT=7946
       - SERVER_ID=1
       - PLUGIN_DIR=/usr/local/lib/echovault
       - DATA_DIR=/var/lib/echovault
@@ -44,7 +44,6 @@ services:
     ports:
       - "7480:7480"
       - "7946:7946"
-      - "7999:8000"
     volumes:
       - ./volumes/config:/etc/echovault/config
       - ./volumes/modules:/lib/echovault/modules
@@ -58,9 +57,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     environment:
+      - BIND_ADDR=0.0.0.0
       - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
+      - DISCOVERY_PORT=7946
       - SERVER_ID=1
       - JOIN_ADDR=2/cluster_node_2:7946
       - DATA_DIR=/var/lib/echovault
@@ -90,7 +89,6 @@ services:
     ports:
       - "7481:7480"
       - "7945:7946"
-      - "8000:8000"
     volumes:
       - ./volumes/config:/etc/echovault/config
       - ./volumes/plugins:/lib/echovault/plugins
@@ -104,9 +102,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     environment:
+      - BIND_ADDR=0.0.0.0
       - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
+      - DISCOVERY_PORT=7946
       - SERVER_ID=2
       - JOIN_ADDR=3/cluster_node_3:7946
       - DATA_DIR=/var/lib/echovault
@@ -136,7 +134,6 @@ services:
     ports:
       - "7482:7480"
       - "7947:7946"
-      - "8001:8000"
     volumes:
       - ./volumes/config:/etc/echovault/config
       - ./volumes/plugins:/lib/echovault/plugins
@@ -150,9 +147,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     environment:
+      - BIND_ADDR=0.0.0.0
       - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
+      - DISCOVERY_PORT=7946
       - SERVER_ID=3
       - JOIN_ADDR=4/cluster_node_4:7946
       - DATA_DIR=/var/lib/echovault
@@ -182,7 +179,6 @@ services:
     ports:
       - "7483:7480"
       - "7948:7946"
-      - "8002:8000"
     volumes:
       - ./volumes/config:/etc/echovault/config
       - ./volumes/plugins:/lib/echovault/plugins
@@ -196,9 +192,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     environment:
+      - BIND_ADDR=0.0.0.0
       - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
+      - DISCOVERY_PORT=7946
       - SERVER_ID=4
       - JOIN_ADDR=5/cluster_node_5:7946
       - DATA_DIR=/var/lib/echovault
@@ -228,7 +224,6 @@ services:
     ports:
       - "7484:7480"
       - "7949:7946"
-      - "8003:8000"
     volumes:
       - ./volumes/config:/etc/echovault/config
       - ./volumes/plugins:/lib/echovault/plugins
@@ -242,9 +237,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     environment:
+      - BIND_ADDR=0.0.0.0
       - PORT=7480
-      - RAFT_PORT=8000
-      - ML_PORT=7946
+      - DISCOVERY_PORT=7946
       - SERVER_ID=5
       - JOIN_ADDR=1/cluster_node_1:7946
       - DATA_DIR=/var/lib/echovault
@@ -274,7 +269,6 @@ services:
     ports:
       - "7485:7480"
       - "7950:7946"
-      - "8004:8000"
     volumes:
       - ./volumes/config:/etc/echovault/config
       - ./volumes/plugins:/lib/echovault/plugins
