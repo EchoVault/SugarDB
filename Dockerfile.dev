@@ -33,8 +33,7 @@ WORKDIR /opt/echovault/bin
 CMD "./server" \
   "--bind-addr" "${BIND_ADDR}" \
   "--port" "${PORT}" \
-  "--memberlist-port" "${ML_PORT}" \
-  "--raft-port" "${RAFT_PORT}" \
+  "--discovery-port" "${DISCOVERY_PORT}" \
   "--server-id" "${SERVER_ID}" \
   "--join-addr" "${JOIN_ADDR}" \
   "--data-dir" "${DATA_DIR}" \
