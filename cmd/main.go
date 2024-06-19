@@ -33,15 +33,6 @@ func main() {
 
 	ctx := context.WithValue(context.Background(), internal.ContextServerID("ServerID"), conf.ServerID)
 
-	// Default BindAddr if it's not specified
-	if conf.BindAddr == "" {
-		if addr, err := internal.GetIPAddress(); err != nil {
-			log.Fatal(err)
-		} else {
-			conf.BindAddr = addr
-		}
-	}
-
 	cancelCh := make(chan os.Signal, 1)
 	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 

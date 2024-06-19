@@ -64,7 +64,7 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 	cfg.RequireNodeNames = true
 	cfg.Name = m.options.Config.ServerID
 	cfg.BindAddr = m.options.Config.BindAddr
-	cfg.BindPort = int(m.options.Config.MemberListBindPort)
+	cfg.BindPort = int(m.options.Config.DiscoveryPort)
 	cfg.Delegate = NewDelegate(DelegateOpts{
 		config:         m.options.Config,
 		broadcastQueue: m.broadcastQueue,
@@ -116,7 +116,7 @@ func (m *MemberList) broadcastRaftAddress() {
 		NodeMeta: NodeMeta{
 			ServerID: raft.ServerID(m.options.Config.ServerID),
 			RaftAddr: raft.ServerAddress(fmt.Sprintf("%s:%d",
-				m.options.Config.BindAddr, m.options.Config.RaftBindPort)),
+				m.options.Config.RaftBindAddr, m.options.Config.RaftBindPort)),
 		},
 	}
 	m.broadcastQueue.QueueBroadcast(&msg)

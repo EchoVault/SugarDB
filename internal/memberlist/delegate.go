@@ -50,8 +50,8 @@ func (delegate *Delegate) NodeMeta(limit int) []byte {
 	meta := NodeMeta{
 		ServerID: raft.ServerID(delegate.options.config.ServerID),
 		RaftAddr: raft.ServerAddress(
-			fmt.Sprintf("%s:%d", delegate.options.config.BindAddr, delegate.options.config.RaftBindPort)),
-		MemberlistAddr: fmt.Sprintf("%s:%d", delegate.options.config.BindAddr, delegate.options.config.MemberListBindPort),
+			fmt.Sprintf("%s:%d", delegate.options.config.RaftBindAddr, delegate.options.config.RaftBindPort)),
+		MemberlistAddr: fmt.Sprintf("%s:%d", delegate.options.config.BindAddr, delegate.options.config.DiscoveryPort),
 	}
 
 	b, err := json.Marshal(&meta)
@@ -73,7 +73,7 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 
 	switch msg.Action {
 	case "RaftJoin":
-		// If the current node is not the cluster leader, re-broadcast the message
+		// If the current node is not the cluster leader, re-broadcast the message.
 		if !delegate.options.isRaftLeader() {
 			delegate.options.broadcastQueue.QueueBroadcast(&msg)
 			return
@@ -84,12 +84,12 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 		}
 
 	case "DeleteKey":
-		// If the current node is not a cluster leader, re-broadcast the message
+		// If the current node is not a cluster leader, re-broadcast the message.
 		if !delegate.options.isRaftLeader() {
 			delegate.options.broadcastQueue.QueueBroadcast(&msg)
 			return
 		}
-		// Current node is the cluster leader, handle the key deletion
+		// Current node is the cluster leader, handle the key deletion.
 		ctx := context.WithValue(
 			context.WithValue(context.Background(), internal.ContextServerID("ServerID"), string(msg.ServerID)),
 			internal.ContextConnID("ConnectionID"), msg.ConnId)
@@ -101,7 +101,7 @@ func (delegate *Delegate) NotifyMsg(msgBytes []byte) {
 		}
 
 	case "MutateData":
-		// If the current node is not a cluster leader, re-broadcast the message
+		// If the current node is not a cluster leader, re-broadcast the message.
 		if !delegate.options.isRaftLeader() {
 			delegate.options.broadcastQueue.QueueBroadcast(&msg)
 			return
