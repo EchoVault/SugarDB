@@ -56,7 +56,7 @@ type Config struct {
 	EvictionSample    uint          `json:"EvictionSample" yaml:"EvictionSample"`
 	EvictionInterval  time.Duration `json:"EvictionInterval" yaml:"EvictionInterval"`
 	Modules           []string      `json:"Plugins" yaml:"Plugins"`
-	DiscoveryPort     uint16
+	DiscoveryPort     uint16        `json:"DiscoveryPort" yaml:"DiscoveryPort"`
 	RaftBindAddr      string
 	RaftBindPort      uint16
 }
