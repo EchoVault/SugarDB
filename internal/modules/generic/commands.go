@@ -17,12 +17,13 @@ package generic
 import (
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/constants"
 	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/constants"
 )
 
 type KeyObject struct {
@@ -382,6 +383,50 @@ func handleExpireAt(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(":1\r\n"), nil
 }
 
+func handleIncr(params internal.HandlerFuncParams) ([]byte, error) {
+	// Extract key from command
+	keys, err := incrKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys.WriteKeys[0]
+	currentValue, ok := params.GetValues(params.Context, []string{key})[key]
+
+	var newValue int64
+	var currentValueInt int64
+
+	// Check if the key exists and its current value
+	if !ok {
+		// If key does not exist, initialize it with 1
+		newValue = 1
+	} else {
+		// Use type switch to handle different types of currentValue
+		switch v := currentValue.(type) {
+		case string:
+			var err error
+			currentValueInt, err = strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return nil, errors.New("value is not an integer or out of range")
+			}
+		case int:
+			currentValueInt = int64(v)
+		case int64:
+			currentValueInt = v
+		default:
+			return nil, errors.New("unexpected type for currentValue")
+		}
+		newValue = currentValueInt + 1
+	}
+
+	// Set the new incremented value
+	if err := params.SetValues(params.Context, map[string]interface{}{key: fmt.Sprintf("%d", newValue)}); err != nil {
+		return nil, err
+	}
+
+	// Prepare response with the actual new value
+	return []byte(fmt.Sprintf(":%d\r\n", newValue)), nil
+}
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -389,7 +434,7 @@ func Commands() []internal.Command {
 			Module:     constants.GenericModule,
 			Categories: []string{constants.WriteCategory, constants.SlowCategory},
 			Description: `
-(SET key value [NX | XX] [GET] [EX seconds | PX milliseconds | EXAT unix-time-seconds | PXAT unix-time-milliseconds]) 
+(SET key value [NX | XX] [GET] [EX seconds | PX milliseconds | EXAT unix-time-seconds | PXAT unix-time-milliseconds])
 Set the value of a key, considering the value's type.
 NX - Only set if the key does not exist.
 XX - Only set if the key exists.
@@ -442,7 +487,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 			Command:    "persist",
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
-			Description: `(PERSIST key) Removes the TTl associated with a key, 
+			Description: `(PERSIST key) Removes the TTl associated with a key,
 turning it from a volatile key to a persistent key.`,
 			Sync:              true,
 			KeyExtractionFunc: persistKeyFunc,
@@ -525,7 +570,7 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
 			Description: `(EXPIREAT key unix-time-seconds [NX | XX | GT | LT])
-Expire the key in at the exact unix time in seconds. 
+Expire the key in at the exact unix time in seconds.
 This commands turns a key into a volatile one.
 NX - Only set the expiry time if the key has no associated expiry.
 XX - Only set the expiry time if the key already has an expiry time.
@@ -540,7 +585,7 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
 			Description: `(PEXPIREAT key unix-time-milliseconds [NX | XX | GT | LT])
-Expire the key in at the exact unix time in milliseconds. 
+Expire the key in at the exact unix time in milliseconds.
 This commands turns a key into a volatile one.
 NX - Only set the expiry time if the key has no associated expiry.
 XX - Only set the expiry time if the key already has an expiry time.
@@ -549,6 +594,15 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 			Sync:              true,
 			KeyExtractionFunc: expireAtKeyFunc,
 			HandlerFunc:       handleExpireAt,
+		},
+		{
+			Command:           "incr",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Description:       `(INCR key) Increments the number stored at key by one. If the key does not exist, it is set to 0 before performing the operation. An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer. This operation is limited to 64 bit signed integers.`,
+			Sync:              true,
+			KeyExtractionFunc: incrKeyFunc,
+			HandlerFunc:       handleIncr,
 		},
 	}
 }

@@ -16,13 +16,14 @@ package echovault
 
 import (
 	"context"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/clock"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/clock"
 )
 
 func TestEchoVault_DEL(t *testing.T) {

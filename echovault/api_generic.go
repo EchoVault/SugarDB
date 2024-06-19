@@ -15,9 +15,10 @@
 package echovault
 
 import (
-	"github.com/echovault/echovault/internal"
 	"strconv"
 	"strings"
+
+	"github.com/echovault/echovault/internal"
 )
 
 // SetOptions modifies the behaviour for the Set command
@@ -415,4 +416,18 @@ func (server *EchoVault) PExpireAt(key string, unixMilliseconds int, options PEx
 	}
 
 	return internal.ParseIntegerResponse(b)
+}
+
+func (server *EchoVault) Incr(key string) (int, error) {
+    // Construct the command
+    cmd := []string{"INCR", key}
+
+    // Execute the command
+    b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+    if err != nil {
+        return 0, err
+    }
+
+    // Parse the integer response
+    return internal.ParseIntegerResponse(b)
 }
