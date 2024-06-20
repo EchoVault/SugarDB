@@ -79,18 +79,24 @@ type EchoVault struct {
 
 	// Holds all the keys that are currently associated with an expiry.
 	keysWithExpiry struct {
-		rwMutex sync.RWMutex // Mutex as only one process should be able to update this list at a time.
-		keys    []string     // string slice of the volatile keys
+		// Mutex as only one process should be able to update this list at a time.
+		rwMutex sync.RWMutex
+		// A map holding a string slice of the volatile keys for each database.
+		keys map[int][]string
 	}
 	// LFU cache used when eviction policy is allkeys-lfu or volatile-lfu.
 	lfuCache struct {
-		mutex sync.Mutex        // Mutex as only one goroutine can edit the LFU cache at a time.
-		cache eviction.CacheLFU // LFU cache represented by a min head.
+		// Mutex as only one goroutine can edit the LFU cache at a time.
+		mutex sync.Mutex
+		// LFU cache for each database represented by a min heap.
+		cache map[int]eviction.CacheLFU
 	}
 	// LRU cache used when eviction policy is allkeys-lru or volatile-lru.
 	lruCache struct {
-		mutex sync.Mutex        // Mutex as only one goroutine can edit the LRU at a time.
-		cache eviction.CacheLRU // LRU cache represented by a max head.
+		// Mutex as only one goroutine can edit the LRU at a time.
+		mutex sync.Mutex
+		// LRU cache represented by a max heap.
+		cache map[int]eviction.CacheLRU
 	}
 
 	// Holds the list of all commands supported by the echovault.
@@ -611,17 +617,22 @@ func (server *EchoVault) initialiseCaches() {
 	// Set up LFU cache
 	server.lfuCache = struct {
 		mutex sync.Mutex
-		cache eviction.CacheLFU
+		cache map[int]eviction.CacheLFU
 	}{
 		mutex: sync.Mutex{},
-		cache: eviction.NewCacheLFU(),
+		cache: make(map[int]eviction.CacheLFU),
 	}
 	// set up LRU cache
 	server.lruCache = struct {
 		mutex sync.Mutex
-		cache eviction.CacheLRU
+		cache map[int]eviction.CacheLRU
 	}{
 		mutex: sync.Mutex{},
-		cache: eviction.NewCacheLRU(),
+		cache: make(map[int]eviction.CacheLRU),
+	}
+	// Initialise caches for each pre-loaded database.
+	for database, _ := range server.store {
+		server.lfuCache.cache[database] = eviction.NewCacheLFU()
+		server.lruCache.cache[database] = eviction.NewCacheLRU()
 	}
 }
