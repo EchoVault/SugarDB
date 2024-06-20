@@ -364,15 +364,15 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) e
 	}
 
 	// TODO: Adjust memory by taking all databases into account (largest database?).
-	// if err := server.adjustMemoryUsage(ctx); err != nil {
+	//if err := server.adjustMemoryUsage(ctx); err != nil {
 	//	return fmt.Errorf("updateKeysInCache: %+v", err)
-	// }
+	//}
 	return nil
 }
 
 // TODO: Implement support for multiple databases.
 // adjustMemoryUsage should only be called from standalone echovault or from raft cluster leader.
-// func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
+//func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 //	// If max memory is 0, there's no need to adjust memory usage.
 //	if server.config.MaxMemory == 0 {
 //		return nil

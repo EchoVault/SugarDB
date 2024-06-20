@@ -1600,7 +1600,7 @@ github.com/echovault/echovault/internal/eviction/lfu.go:101.73,103.3 1 0
 github.com/echovault/echovault/internal/eviction/lfu.go:104.2,104.19 1 0
 github.com/echovault/echovault/internal/eviction/lfu.go:104.19,106.3 1 0
 github.com/echovault/echovault/internal/eviction/lfu.go:109.50,112.2 2 1
-github.com/echovault/echovault/internal/eviction/lru.go:34.29,41.2 3 1
+github.com/echovault/echovault/internal/eviction/lru.go:34.30,41.2 3 1
 github.com/echovault/echovault/internal/eviction/lru.go:43.34,45.2 1 1
 github.com/echovault/echovault/internal/eviction/lru.go:47.44,49.2 1 1
 github.com/echovault/echovault/internal/eviction/lru.go:51.39,55.2 3 1
