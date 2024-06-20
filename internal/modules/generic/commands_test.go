@@ -1897,7 +1897,6 @@ func Test_Generic(t *testing.T) {
 	})
 
 	t.Run("Test_HandlerINCR", func(t *testing.T) {
-
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
@@ -1913,6 +1912,7 @@ func Test_Generic(t *testing.T) {
 			name             string
 			key              string
 			presetValue      interface{}
+			command          []resp.Value
 			expectedResponse int64
 			expectedError    error
 		}{
@@ -1920,6 +1920,7 @@ func Test_Generic(t *testing.T) {
 				name:             "1. Increment non-existent key",
 				key:              "IncrKey1",
 				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("INCR"), resp.StringValue("IncrKey1")},
 				expectedResponse: 1,
 				expectedError:    nil,
 			},
@@ -1927,22 +1928,45 @@ func Test_Generic(t *testing.T) {
 				name:             "2. Increment existing key with integer value",
 				key:              "IncrKey2",
 				presetValue:      "5",
+				command:          []resp.Value{resp.StringValue("INCR"), resp.StringValue("IncrKey2")},
 				expectedResponse: 6,
 				expectedError:    nil,
 			},
-			// {
-			// 	name:             "3. Increment existing key with non-integer value",
-			// 	key:              "IncrKey3",
-			// 	presetValue:      "not_an_int",
-			// 	expectedResponse: 0,
-			// 	expectedError:    errors.New("value is not an integer or out of range"),
-			// },
+			{
+				name:             "3. Increment existing key with non-integer value",
+				key:              "IncrKey3",
+				presetValue:      "not_an_int",
+				command:          []resp.Value{resp.StringValue("INCR"), resp.StringValue("IncrKey3")},
+				expectedResponse: 0,
+				expectedError:    errors.New("value is not an integer or out of range"),
+			},
 			{
 				name:             "4. Increment existing key with int64 value",
 				key:              "IncrKey4",
 				presetValue:      int64(10),
+				command:          []resp.Value{resp.StringValue("INCR"), resp.StringValue("IncrKey4")},
 				expectedResponse: 11,
 				expectedError:    nil,
+			},
+			{
+				name:             "5. Command too short",
+				key:              "IncrKey5",
+				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("INCR")},
+				expectedResponse: 0,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:        "6. Command too long",
+				key:         "IncrKey6",
+				presetValue: nil,
+				command: []resp.Value{
+					resp.StringValue("INCR"),
+					resp.StringValue("IncrKey6"),
+					resp.StringValue("IncrKey6"),
+				},
+				expectedResponse: 0,
+				expectedError:    errors.New(constants.WrongArgsResponse),
 			},
 		}
 
@@ -1962,15 +1986,17 @@ func Test_Generic(t *testing.T) {
 					}
 				}
 
-				command := []resp.Value{resp.StringValue("INCR"), resp.StringValue(test.key)}
-
-				if err = client.WriteArray(command); err != nil {
+				if err = client.WriteArray(test.command); err != nil {
 					t.Error(err)
 				}
 
 				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
 				if test.expectedError != nil {
-					if err == nil || !strings.Contains(err.Error(), test.expectedError.Error()) {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
 						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
 					}
 					return
