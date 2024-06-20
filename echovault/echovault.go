@@ -24,6 +24,7 @@ import (
 	"github.com/echovault/echovault/internal/aof"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/internal/constants"
 	"github.com/echovault/echovault/internal/eviction"
 	"github.com/echovault/echovault/internal/memberlist"
 	"github.com/echovault/echovault/internal/modules/acl"
@@ -89,14 +90,14 @@ type EchoVault struct {
 		// Mutex as only one goroutine can edit the LFU cache at a time.
 		mutex sync.Mutex
 		// LFU cache for each database represented by a min heap.
-		cache map[int]eviction.CacheLFU
+		cache map[int]*eviction.CacheLFU
 	}
 	// LRU cache used when eviction policy is allkeys-lru or volatile-lru.
 	lruCache struct {
 		// Mutex as only one goroutine can edit the LRU at a time.
 		mutex sync.Mutex
 		// LRU cache represented by a max heap.
-		cache map[int]eviction.CacheLRU
+		cache map[int]*eviction.CacheLRU
 	}
 
 	// Holds the list of all commands supported by the echovault.
@@ -298,24 +299,34 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	}
 
 	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
-	//if echovault.config.EvictionPolicy != constants.NoEviction {
-	//	go func() {
-	//		ticker := time.NewTicker(echovault.config.EvictionInterval)
-	//		defer func() {
-	//			ticker.Stop()
-	//		}()
-	//		for {
-	//			select {
-	//			case <-ticker.C:
-	//				if err := echovault.evictKeysWithExpiredTTL(context.Background()); err != nil {
-	//					log.Printf("evict with ttl: %v\n", err)
-	//				}
-	//			case <-echovault.stopTTL:
-	//				break
-	//			}
-	//		}
-	//	}()
-	//}
+	if echovault.config.EvictionPolicy != constants.NoEviction {
+		go func() {
+			ticker := time.NewTicker(echovault.config.EvictionInterval)
+			defer func() {
+				ticker.Stop()
+			}()
+			for {
+				select {
+				case <-ticker.C:
+					// Run key eviction for each database that has volatile keys.
+					wg := sync.WaitGroup{}
+					for database, _ := range echovault.keysWithExpiry.keys {
+						wg.Add(1)
+						ctx := context.WithValue(context.Background(), "Database", database)
+						go func(ctx context.Context, wg *sync.WaitGroup) {
+							if err := echovault.evictKeysWithExpiredTTL(ctx); err != nil {
+								log.Printf("evict with ttl: %v\n", err)
+							}
+							wg.Done()
+						}(ctx, &wg)
+					}
+					wg.Wait()
+				case <-echovault.stopTTL:
+					break
+				}
+			}
+		}()
+	}
 
 	if echovault.config.TLS && len(echovault.config.CertKeyPairs) <= 0 {
 		return nil, errors.New("must provide certificate and key file paths for TLS mode")
@@ -614,23 +625,23 @@ func (server *EchoVault) ShutDown() {
 }
 
 func (server *EchoVault) initialiseCaches() {
-	// Set up LFU cache
+	// Set up LFU cache.
 	server.lfuCache = struct {
 		mutex sync.Mutex
-		cache map[int]eviction.CacheLFU
+		cache map[int]*eviction.CacheLFU
 	}{
 		mutex: sync.Mutex{},
-		cache: make(map[int]eviction.CacheLFU),
+		cache: make(map[int]*eviction.CacheLFU),
 	}
-	// set up LRU cache
+	// set up LRU cache.
 	server.lruCache = struct {
 		mutex sync.Mutex
-		cache map[int]eviction.CacheLRU
+		cache map[int]*eviction.CacheLRU
 	}{
 		mutex: sync.Mutex{},
-		cache: make(map[int]eviction.CacheLRU),
+		cache: make(map[int]*eviction.CacheLRU),
 	}
-	// Initialise caches for each pre-loaded database.
+	// Initialise caches for each preloaded database.
 	for database, _ := range server.store {
 		server.lfuCache.cache[database] = eviction.NewCacheLFU()
 		server.lruCache.cache[database] = eviction.NewCacheLRU()
