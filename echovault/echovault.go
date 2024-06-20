@@ -234,6 +234,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			ApplyDeleteKey:   echovault.raftApplyDeleteKey,
 		})
 	} else {
+		// TODO: Update snapshot engine to support multiple databases.
 		// Set up standalone snapshot engine
 		//echovault.snapshotEngine = snapshot.NewSnapshotEngine(
 		//	snapshot.WithClock(echovault.clock),
@@ -262,6 +263,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		//	}),
 		//)
 
+		// TODO: Update AOF engine to support multiple databases.
 		// Set up standalone AOF engine
 		//aofEngine, err := aof.NewAOFEngine(
 		//	aof.WithClock(echovault.clock),

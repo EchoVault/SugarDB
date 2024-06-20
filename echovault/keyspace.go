@@ -15,6 +15,7 @@
 package echovault
 
 import (
+	"container/heap"
 	"context"
 	"errors"
 	"fmt"
@@ -22,7 +23,9 @@ import (
 	"github.com/echovault/echovault/internal/constants"
 	"log"
 	"math/rand"
+	"runtime"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -97,13 +100,12 @@ func (server *EchoVault) getValues(ctx context.Context, keys []string) map[strin
 		values[key] = entry.Value
 	}
 
-	// TODO: Update caches for all the databases.
 	// Asynchronously update the keys in the cache.
-	//go func(ctx context.Context, keys []string) {
-	//	if err := server.updateKeysInCache(ctx, keys); err != nil {
-	//		log.Printf("getValues error: %+v\n", err)
-	//	}
-	//}(ctx, keys)
+	go func(ctx context.Context, keys []string) {
+		if err := server.updateKeysInCache(ctx, keys); err != nil {
+			log.Printf("getValues error: %+v\n", err)
+		}
+	}(ctx, keys)
 
 	return values
 }
@@ -132,16 +134,15 @@ func (server *EchoVault) setValues(ctx context.Context, entries map[string]inter
 		}
 	}
 
-	// TODO: Update caches for all the databases.
 	// Asynchronously update the keys in the cache.
-	//go func(ctx context.Context, entries map[string]interface{}) {
-	//	for key, _ := range entries {
-	//		err := server.updateKeysInCache(ctx, []string{key})
-	//		if err != nil {
-	//			log.Printf("setValues error: %+v\n", err)
-	//		}
-	//	}
-	//}(ctx, entries)
+	go func(ctx context.Context, entries map[string]interface{}) {
+		for key, _ := range entries {
+			err := server.updateKeysInCache(ctx, []string{key})
+			if err != nil {
+				log.Printf("setValues error: %+v\n", err)
+			}
+		}
+	}(ctx, entries)
 
 	return nil
 }
@@ -164,16 +165,15 @@ func (server *EchoVault) setExpiry(ctx context.Context, key string, expireAt tim
 	}
 	server.keysWithExpiry.rwMutex.Unlock()
 
-	// TODO: Update caches for all the databases.
 	// If touch is true, update the keys status in the cache.
-	//if touch {
-	//	go func(ctx context.Context, key string) {
-	//		err := server.updateKeysInCache(ctx, []string{key})
-	//		if err != nil {
-	//			log.Printf("SetKeyExpiry error: %+v\n", err)
-	//		}
-	//	}(ctx, key)
-	//}
+	if touch {
+		go func(ctx context.Context, key string) {
+			err := server.updateKeysInCache(ctx, []string{key})
+			if err != nil {
+				log.Printf("setExpiry error: %+v\n", err)
+			}
+		}(ctx, key)
+	}
 }
 
 func (server *EchoVault) deleteKey(ctx context.Context, key string) error {
@@ -222,205 +222,208 @@ func (server *EchoVault) getState() map[int]map[string]interface{} {
 
 // updateKeysInCache updates either the key access count or the most recent access time in the cache
 // depending on whether an LFU or LRU strategy was used.
-//func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) error {
-//	for _, key := range keys {
-//		// Only update cache when in standalone mode or when raft leader.
-//		if server.isInCluster() || (server.isInCluster() && !server.raft.IsRaftLeader()) {
-//			return nil
-//		}
-//		// If max memory is 0, there's no max so no need to update caches.
-//		if server.config.MaxMemory == 0 {
-//			return nil
-//		}
-//		switch strings.ToLower(server.config.EvictionPolicy) {
-//		case constants.AllKeysLFU:
-//			server.lfuCache.mutex.Lock()
-//			server.lfuCache.cache.Update(key)
-//			server.lfuCache.mutex.Unlock()
-//		case constants.AllKeysLRU:
-//			server.lruCache.mutex.Lock()
-//			server.lruCache.cache.Update(key)
-//			server.lruCache.mutex.Unlock()
-//		case constants.VolatileLFU:
-//			server.lfuCache.mutex.Lock()
-//			if server.store[key].ExpireAt != (time.Time{}) {
-//				server.lfuCache.cache.Update(key)
-//			}
-//			server.lfuCache.mutex.Unlock()
-//		case constants.VolatileLRU:
-//			server.lruCache.mutex.Lock()
-//			if server.store[key].ExpireAt != (time.Time{}) {
-//				server.lruCache.cache.Update(key)
-//			}
-//			server.lruCache.mutex.Unlock()
-//		}
-//		if err := server.adjustMemoryUsage(ctx); err != nil {
-//			return fmt.Errorf("updateKeysInCache: %+v", err)
-//		}
-//	}
-//	return nil
-//}
+func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) error {
+	database := ctx.Value("Database").(int)
+	for _, key := range keys {
+		// Only update cache when in standalone mode or when raft leader.
+		if server.isInCluster() || (server.isInCluster() && !server.raft.IsRaftLeader()) {
+			return nil
+		}
+		// If max memory is 0, there's no max so no need to update caches.
+		if server.config.MaxMemory == 0 {
+			return nil
+		}
+		switch strings.ToLower(server.config.EvictionPolicy) {
+		case constants.AllKeysLFU:
+			server.lfuCache.mutex.Lock()
+			server.lfuCache.cache[database].Update(key)
+			server.lfuCache.mutex.Unlock()
+		case constants.AllKeysLRU:
+			server.lruCache.mutex.Lock()
+			server.lruCache.cache[database].Update(key)
+			server.lruCache.mutex.Unlock()
+		case constants.VolatileLFU:
+			server.lfuCache.mutex.Lock()
+			if server.store[database][key].ExpireAt != (time.Time{}) {
+				server.lfuCache.cache[database].Update(key)
+			}
+			server.lfuCache.mutex.Unlock()
+		case constants.VolatileLRU:
+			server.lruCache.mutex.Lock()
+			if server.store[database][key].ExpireAt != (time.Time{}) {
+				server.lruCache.cache[database].Update(key)
+			}
+			server.lruCache.mutex.Unlock()
+		}
+	}
+
+	// TODO: Adjust memory by taking all databases into account.
+	if err := server.adjustMemoryUsage(ctx); err != nil {
+		return fmt.Errorf("updateKeysInCache: %+v", err)
+	}
+	return nil
+}
 
 // adjustMemoryUsage should only be called from standalone echovault or from raft cluster leader.
-//func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
-//	// If max memory is 0, there's no need to adjust memory usage.
-//	if server.config.MaxMemory == 0 {
-//		return nil
-//	}
-//	// Check if memory usage is above max-memory.
-//	// If it is, pop items from the cache until we get under the limit.
-//	var memStats runtime.MemStats
-//	runtime.ReadMemStats(&memStats)
-//	// If we're using less memory than the max-memory, there's no need to evict.
-//	if memStats.HeapInuse < server.config.MaxMemory {
-//		return nil
-//	}
-//	// Force a garbage collection first before we start evicting key.
-//	runtime.GC()
-//	runtime.ReadMemStats(&memStats)
-//	if memStats.HeapInuse < server.config.MaxMemory {
-//		return nil
-//	}
-//	// We've done a GC, but we're still at or above the max memory limit.
-//	// Start a loop that evicts keys until either the heap is empty or
-//	// we're below the max memory limit.
-//	server.storeLock.Lock()
-//	defer server.storeLock.Unlock()
-//	switch {
-//	case slices.Contains([]string{constants.AllKeysLFU, constants.VolatileLFU}, strings.ToLower(server.config.EvictionPolicy)):
-//		// Remove keys from LFU cache until we're below the max memory limit or
-//		// until the LFU cache is empty.
-//		server.lfuCache.mutex.Lock()
-//		defer server.lfuCache.mutex.Unlock()
-//		for {
-//			// Return if cache is empty
-//			if server.lfuCache.cache.Len() == 0 {
-//				return fmt.Errorf("adjsutMemoryUsage -> LFU cache empty")
-//			}
-//
-//			key := heap.Pop(&server.lfuCache.cache).(string)
-//			if !server.isInCluster() {
-//				// If in standalone mode, directly delete the key
-//				if err := server.deleteKey(key); err != nil {
-//					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
-//				}
-//			} else if server.isInCluster() && server.raft.IsRaftLeader() {
-//				// If in raft cluster, send command to delete key from cluster
-//				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
-//					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
-//				}
-//			}
-//
-//			// Run garbage collection
-//			runtime.GC()
-//			// Return if we're below max memory
-//			runtime.ReadMemStats(&memStats)
-//			if memStats.HeapInuse < server.config.MaxMemory {
-//				return nil
-//			}
-//		}
-//	case slices.Contains([]string{constants.AllKeysLRU, constants.VolatileLRU}, strings.ToLower(server.config.EvictionPolicy)):
-//		// Remove keys from th LRU cache until we're below the max memory limit or
-//		// until the LRU cache is empty.
-//		server.lruCache.mutex.Lock()
-//		defer server.lruCache.mutex.Unlock()
-//		for {
-//			// Return if cache is empty
-//			if server.lruCache.cache.Len() == 0 {
-//				return fmt.Errorf("adjsutMemoryUsage -> LRU cache empty")
-//			}
-//
-//			key := heap.Pop(&server.lruCache.cache).(string)
-//			if !server.isInCluster() {
-//				// If in standalone mode, directly delete the key.
-//				if err := server.deleteKey(key); err != nil {
-//					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
-//				}
-//			} else if server.isInCluster() && server.raft.IsRaftLeader() {
-//				// If in cluster mode and the node is a cluster leader,
-//				// send command to delete the key from the cluster.
-//				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
-//					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
-//				}
-//			}
-//
-//			// Run garbage collection
-//			runtime.GC()
-//			// Return if we're below max memory
-//			runtime.ReadMemStats(&memStats)
-//			if memStats.HeapInuse < server.config.MaxMemory {
-//				return nil
-//			}
-//		}
-//	case slices.Contains([]string{constants.AllKeysRandom}, strings.ToLower(server.config.EvictionPolicy)):
-//		// Remove random keys until we're below the max memory limit
-//		// or there are no more keys remaining.
-//		for {
-//			server.storeLock.Lock()
-//			// If there are no keys, return error
-//			if len(server.store) == 0 {
-//				err := errors.New("no keys to evict")
-//				server.storeLock.Unlock()
-//				return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
-//			}
-//			// Get random key
-//			idx := rand.Intn(len(server.store))
-//			for key, _ := range server.store {
-//				if idx == 0 {
-//					if !server.isInCluster() {
-//						// If in standalone mode, directly delete the key
-//						if err := server.deleteKey(key); err != nil {
-//							return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
-//						}
-//					} else if server.isInCluster() && server.raft.IsRaftLeader() {
-//						if err := server.raftApplyDeleteKey(ctx, key); err != nil {
-//							return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
-//						}
-//					}
-//					// Run garbage collection
-//					runtime.GC()
-//					// Return if we're below max memory
-//					runtime.ReadMemStats(&memStats)
-//					if memStats.HeapInuse < server.config.MaxMemory {
-//						return nil
-//					}
-//				}
-//				idx--
-//			}
-//		}
-//	case slices.Contains([]string{constants.VolatileRandom}, strings.ToLower(server.config.EvictionPolicy)):
-//		// Remove random keys with an associated expiry time until we're below the max memory limit
-//		// or there are no more keys with expiry time.
-//		for {
-//			// Get random volatile key
-//			server.keysWithExpiry.rwMutex.RLock()
-//			idx := rand.Intn(len(server.keysWithExpiry.keys))
-//			key := server.keysWithExpiry.keys[idx]
-//			server.keysWithExpiry.rwMutex.RUnlock()
-//
-//			if !server.isInCluster() {
-//				// If in standalone mode, directly delete the key
-//				if err := server.deleteKey(key); err != nil {
-//					return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
-//				}
-//			} else if server.isInCluster() && server.raft.IsRaftLeader() {
-//				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
-//					return fmt.Errorf("adjustMemoryUsage -> volatile keys randome: %+v", err)
-//				}
-//			}
-//
-//			// Run garbage collection
-//			runtime.GC()
-//			// Return if we're below max memory
-//			runtime.ReadMemStats(&memStats)
-//			if memStats.HeapInuse < server.config.MaxMemory {
-//				return nil
-//			}
-//		}
-//	default:
-//		return nil
-//	}
-//}
+func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
+	// If max memory is 0, there's no need to adjust memory usage.
+	if server.config.MaxMemory == 0 {
+		return nil
+	}
+	// Check if memory usage is above max-memory.
+	// If it is, pop items from the cache until we get under the limit.
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	// If we're using less memory than the max-memory, there's no need to evict.
+	if memStats.HeapInuse < server.config.MaxMemory {
+		return nil
+	}
+	// Force a garbage collection first before we start evicting key.
+	runtime.GC()
+	runtime.ReadMemStats(&memStats)
+	if memStats.HeapInuse < server.config.MaxMemory {
+		return nil
+	}
+	// We've done a GC, but we're still at or above the max memory limit.
+	// Start a loop that evicts keys until either the heap is empty or
+	// we're below the max memory limit.
+	server.storeLock.Lock()
+	defer server.storeLock.Unlock()
+	switch {
+	case slices.Contains([]string{constants.AllKeysLFU, constants.VolatileLFU}, strings.ToLower(server.config.EvictionPolicy)):
+		// Remove keys from LFU cache until we're below the max memory limit or
+		// until the LFU cache is empty.
+		server.lfuCache.mutex.Lock()
+		defer server.lfuCache.mutex.Unlock()
+		for {
+			// Return if cache is empty
+			if server.lfuCache.cache.Len() == 0 {
+				return fmt.Errorf("adjsutMemoryUsage -> LFU cache empty")
+			}
+
+			key := heap.Pop(&server.lfuCache.cache).(string)
+			if !server.isInCluster() {
+				// If in standalone mode, directly delete the key
+				if err := server.deleteKey(key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
+				}
+			} else if server.isInCluster() && server.raft.IsRaftLeader() {
+				// If in raft cluster, send command to delete key from cluster
+				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
+				}
+			}
+
+			// Run garbage collection
+			runtime.GC()
+			// Return if we're below max memory
+			runtime.ReadMemStats(&memStats)
+			if memStats.HeapInuse < server.config.MaxMemory {
+				return nil
+			}
+		}
+	case slices.Contains([]string{constants.AllKeysLRU, constants.VolatileLRU}, strings.ToLower(server.config.EvictionPolicy)):
+		// Remove keys from th LRU cache until we're below the max memory limit or
+		// until the LRU cache is empty.
+		server.lruCache.mutex.Lock()
+		defer server.lruCache.mutex.Unlock()
+		for {
+			// Return if cache is empty
+			if server.lruCache.cache.Len() == 0 {
+				return fmt.Errorf("adjsutMemoryUsage -> LRU cache empty")
+			}
+
+			key := heap.Pop(&server.lruCache.cache).(string)
+			if !server.isInCluster() {
+				// If in standalone mode, directly delete the key.
+				if err := server.deleteKey(key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
+				}
+			} else if server.isInCluster() && server.raft.IsRaftLeader() {
+				// If in cluster mode and the node is a cluster leader,
+				// send command to delete the key from the cluster.
+				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
+				}
+			}
+
+			// Run garbage collection
+			runtime.GC()
+			// Return if we're below max memory
+			runtime.ReadMemStats(&memStats)
+			if memStats.HeapInuse < server.config.MaxMemory {
+				return nil
+			}
+		}
+	case slices.Contains([]string{constants.AllKeysRandom}, strings.ToLower(server.config.EvictionPolicy)):
+		// Remove random keys until we're below the max memory limit
+		// or there are no more keys remaining.
+		for {
+			server.storeLock.Lock()
+			// If there are no keys, return error
+			if len(server.store) == 0 {
+				err := errors.New("no keys to evict")
+				server.storeLock.Unlock()
+				return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
+			}
+			// Get random key
+			idx := rand.Intn(len(server.store))
+			for key, _ := range server.store {
+				if idx == 0 {
+					if !server.isInCluster() {
+						// If in standalone mode, directly delete the key
+						if err := server.deleteKey(key); err != nil {
+							return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
+						}
+					} else if server.isInCluster() && server.raft.IsRaftLeader() {
+						if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+							return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
+						}
+					}
+					// Run garbage collection
+					runtime.GC()
+					// Return if we're below max memory
+					runtime.ReadMemStats(&memStats)
+					if memStats.HeapInuse < server.config.MaxMemory {
+						return nil
+					}
+				}
+				idx--
+			}
+		}
+	case slices.Contains([]string{constants.VolatileRandom}, strings.ToLower(server.config.EvictionPolicy)):
+		// Remove random keys with an associated expiry time until we're below the max memory limit
+		// or there are no more keys with expiry time.
+		for {
+			// Get random volatile key
+			server.keysWithExpiry.rwMutex.RLock()
+			idx := rand.Intn(len(server.keysWithExpiry.keys))
+			key := server.keysWithExpiry.keys[idx]
+			server.keysWithExpiry.rwMutex.RUnlock()
+
+			if !server.isInCluster() {
+				// If in standalone mode, directly delete the key
+				if err := server.deleteKey(key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
+				}
+			} else if server.isInCluster() && server.raft.IsRaftLeader() {
+				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+					return fmt.Errorf("adjustMemoryUsage -> volatile keys randome: %+v", err)
+				}
+			}
+
+			// Run garbage collection
+			runtime.GC()
+			// Return if we're below max memory
+			runtime.ReadMemStats(&memStats)
+			if memStats.HeapInuse < server.config.MaxMemory {
+				return nil
+			}
+		}
+	default:
+		return nil
+	}
+}
 
 // evictKeysWithExpiredTTL is a function that samples keys with an associated TTL
 // and evicts keys that are currently expired.
