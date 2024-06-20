@@ -38,7 +38,7 @@ func handleSet(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
-	keyExists := params.KeysExist(keys.WriteKeys)[key]
+	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
 	value := params.Command[2]
 	res := []byte(constants.OkResponse)
 	clock := params.GetClock()
@@ -113,7 +113,7 @@ func handleGet(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	key := keys.ReadKeys[0]
-	keyExists := params.KeysExist([]string{key})[key]
+	keyExists := params.KeysExist(params.Context, []string{key})[key]
 
 	if !keyExists {
 		return []byte("$-1\r\n"), nil
@@ -158,11 +158,11 @@ func handleDel(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	count := 0
-	for key, exists := range params.KeysExist(keys.WriteKeys) {
+	for key, exists := range params.KeysExist(params.Context, keys.WriteKeys) {
 		if !exists {
 			continue
 		}
-		err = params.DeleteKey(key)
+		err = params.DeleteKey(params.Context, key)
 		if err != nil {
 			log.Printf("could not delete key %s due to error: %+v\n", key, err)
 			continue
@@ -179,13 +179,13 @@ func handlePersist(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
-	keyExists := params.KeysExist(keys.WriteKeys)[key]
+	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
 
 	if !keyExists {
 		return []byte(":0\r\n"), nil
 	}
 
-	expireAt := params.GetExpiry(key)
+	expireAt := params.GetExpiry(params.Context, key)
 	if expireAt == (time.Time{}) {
 		return []byte(":0\r\n"), nil
 	}
@@ -202,13 +202,13 @@ func handleExpireTime(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
-	keyExists := params.KeysExist(keys.ReadKeys)[key]
+	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
 
 	if !keyExists {
 		return []byte(":-2\r\n"), nil
 	}
 
-	expireAt := params.GetExpiry(key)
+	expireAt := params.GetExpiry(params.Context, key)
 
 	if expireAt == (time.Time{}) {
 		return []byte(":-1\r\n"), nil
@@ -229,7 +229,7 @@ func handleTTL(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.ReadKeys[0]
-	keyExists := params.KeysExist(keys.ReadKeys)[key]
+	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
 
 	clock := params.GetClock()
 
@@ -237,7 +237,7 @@ func handleTTL(params internal.HandlerFuncParams) ([]byte, error) {
 		return []byte(":-2\r\n"), nil
 	}
 
-	expireAt := params.GetExpiry(key)
+	expireAt := params.GetExpiry(params.Context, key)
 
 	if expireAt == (time.Time{}) {
 		return []byte(":-1\r\n"), nil
@@ -262,7 +262,7 @@ func handleExpire(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
-	keyExists := params.KeysExist(keys.WriteKeys)[key]
+	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
 
 	// Extract time
 	n, err := strconv.ParseInt(params.Command[2], 10, 64)
@@ -283,7 +283,7 @@ func handleExpire(params internal.HandlerFuncParams) ([]byte, error) {
 		return []byte(":1\r\n"), nil
 	}
 
-	currentExpireAt := params.GetExpiry(key)
+	currentExpireAt := params.GetExpiry(params.Context, key)
 
 	switch strings.ToLower(params.Command[3]) {
 	case "nx":
@@ -326,7 +326,7 @@ func handleExpireAt(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
-	keyExists := params.KeysExist(keys.WriteKeys)[key]
+	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
 
 	// Extract time
 	n, err := strconv.ParseInt(params.Command[2], 10, 64)
@@ -347,7 +347,7 @@ func handleExpireAt(params internal.HandlerFuncParams) ([]byte, error) {
 		return []byte(":1\r\n"), nil
 	}
 
-	currentExpireAt := params.GetExpiry(key)
+	currentExpireAt := params.GetExpiry(params.Context, key)
 
 	switch strings.ToLower(params.Command[3]) {
 	case "nx":
