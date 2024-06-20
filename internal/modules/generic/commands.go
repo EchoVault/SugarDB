@@ -391,13 +391,14 @@ func handleIncr(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
-	currentValue, ok := params.GetValues(params.Context, []string{key})[key]
+	values := params.GetValues(params.Context, []string{key}) // Get the current values for the specified keys
+	currentValue, ok := values[key]                           // Check if the key exists
 
 	var newValue int64
 	var currentValueInt int64
 
 	// Check if the key exists and its current value
-	if !ok {
+	if !ok || currentValue == nil {
 		// If key does not exist, initialize it with 1
 		newValue = 1
 	} else {
@@ -405,18 +406,19 @@ func handleIncr(params internal.HandlerFuncParams) ([]byte, error) {
 		switch v := currentValue.(type) {
 		case string:
 			var err error
-			currentValueInt, err = strconv.ParseInt(v, 10, 64)
+			currentValueInt, err = strconv.ParseInt(v, 10, 64) // Parse the string to int64
 			if err != nil {
 				return nil, errors.New("value is not an integer or out of range")
 			}
 		case int:
-			currentValueInt = int64(v)
+			currentValueInt = int64(v) // Convert int to int64
 		case int64:
-			currentValueInt = v
+			currentValueInt = v // Use int64 value directly
 		default:
-			return nil, errors.New("unexpected type for currentValue")
+			fmt.Printf("unexpected type for currentValue: %T\n", currentValue)
+			return nil, errors.New("unexpected type for currentValue") // Handle unexpected types
 		}
-		newValue = currentValueInt + 1
+		newValue = currentValueInt + 1 // Increment the value
 	}
 
 	// Set the new incremented value
@@ -427,6 +429,7 @@ func handleIncr(params internal.HandlerFuncParams) ([]byte, error) {
 	// Prepare response with the actual new value
 	return []byte(fmt.Sprintf(":%d\r\n", newValue)), nil
 }
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
