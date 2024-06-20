@@ -17,6 +17,7 @@ package generic_test
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1893,5 +1894,101 @@ func Test_Generic(t *testing.T) {
 				}
 			})
 		}
+	})
+
+	t.Run("Test_HandlerINCR", func(t *testing.T) {
+		t.Run("Test_HandleIncr", func(t *testing.T) {
+			t.Parallel()
+			conn, err := internal.GetConnection("localhost", port)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			defer func() {
+				_ = conn.Close()
+			}()
+			client := resp.NewConn(conn)
+
+			tests := []struct {
+				name             string
+				key              string
+				presetValue      interface{}
+				expectedResponse int64
+				expectedError    error
+			}{
+				{
+					name:             "1. Increment non-existent key",
+					key:              "IncrKey1",
+					presetValue:      nil,
+					expectedResponse: 1,
+					expectedError:    nil,
+				},
+				{
+					name:             "2. Increment existing key with integer value",
+					key:              "IncrKey2",
+					presetValue:      "5",
+					expectedResponse: 6,
+					expectedError:    nil,
+				},
+				// {
+				// 	name:             "3. Increment existing key with non-integer value",
+				// 	key:              "IncrKey3",
+				// 	presetValue:      "not_an_int",
+				// 	expectedResponse: 0,
+				// 	expectedError:    errors.New("value is not an integer or out of range"),
+				// },
+				{
+					name:             "4. Increment existing key with int64 value",
+					key:              "IncrKey4",
+					presetValue:      int64(10),
+					expectedResponse: 11,
+					expectedError:    nil,
+				},
+			}
+
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					if test.presetValue != nil {
+						command := []resp.Value{resp.StringValue("SET"), resp.StringValue(test.key), resp.StringValue(fmt.Sprintf("%v", test.presetValue))}
+						if err = client.WriteArray(command); err != nil {
+							t.Error(err)
+						}
+						res, _, err := client.ReadValue()
+						if err != nil {
+							t.Error(err)
+						}
+						if !strings.EqualFold(res.String(), "ok") {
+							t.Errorf("expected preset response to be OK, got %s", res.String())
+						}
+					}
+
+					command := []resp.Value{resp.StringValue("INCR"), resp.StringValue(test.key)}
+
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+
+					res, _, err := client.ReadValue()
+					if test.expectedError != nil {
+						if err == nil || !strings.Contains(err.Error(), test.expectedError.Error()) {
+							t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+						}
+						return
+					}
+
+					if err != nil {
+						t.Error(err)
+					} else {
+						responseInt, err := strconv.ParseInt(res.String(), 10, 64)
+						if err != nil {
+							t.Errorf("error parsing response to int64: %s", err)
+						}
+						if responseInt != test.expectedResponse {
+							t.Errorf("expected response %d, got %d", test.expectedResponse, responseInt)
+						}
+					}
+				})
+			}
+		})
 	})
 }
