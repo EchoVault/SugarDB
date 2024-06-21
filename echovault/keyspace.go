@@ -296,7 +296,7 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) e
 //		for {
 //			// Return if cache is empty
 //			if server.lfuCache.cache.Len() == 0 {
-//				return fmt.Errorf("adjsutMemoryUsage -> LFU cache empty")
+//				return fmt.Errorf("adjustMemoryUsage -> LFU cache empty")
 //			}
 //
 //			key := heap.Pop(&server.lfuCache.cache).(string)
