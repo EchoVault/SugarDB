@@ -66,10 +66,14 @@ type EchoVault struct {
 	// This number is incremented everytime there's a new connection and
 	// the new number is the new connection's ID.
 	connId atomic.Uint64
-	// RWMutex for the connInfo object.
-	connInfoMut *sync.RWMutex
-	// Map that holds connection information for each client.
-	connInfo map[*net.Conn]connectionInfo
+
+	// connInfo holds the connection information for embedded and TCP clients.
+	// It keeps track of the protocol and database that each client is operating on.
+	connInfo struct {
+		mut        *sync.RWMutex                // RWMutex for the connInfo object.
+		tcpClients map[*net.Conn]connectionInfo // Map that holds connection information for each TCP client.
+		embedded   connectionInfo               // Information for the embedded connection.
+	}
 
 	// Global read-write mutex for entire store.
 	storeLock *sync.RWMutex
@@ -147,13 +151,24 @@ func WithConfig(config config.Config) func(echovault *EchoVault) {
 // This functions accepts the WithContext, WithConfig and WithCommands options.
 func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	echovault := &EchoVault{
-		clock:       clock.NewClock(),
-		context:     context.Background(),
-		config:      config.DefaultConfig(),
-		connInfoMut: &sync.RWMutex{},
-		connInfo:    make(map[*net.Conn]connectionInfo),
-		storeLock:   &sync.RWMutex{},
-		store:       make(map[int]map[string]internal.KeyData),
+		clock:   clock.NewClock(),
+		context: context.Background(),
+		config:  config.DefaultConfig(),
+		connInfo: struct {
+			mut        *sync.RWMutex
+			tcpClients map[*net.Conn]connectionInfo
+			embedded   connectionInfo
+		}{
+			mut:        &sync.RWMutex{},
+			tcpClients: make(map[*net.Conn]connectionInfo),
+			embedded: connectionInfo{
+				name:     "embedded",
+				protocol: 2,
+				database: 0,
+			},
+		},
+		storeLock: &sync.RWMutex{},
+		store:     make(map[int]map[string]internal.KeyData),
 		keysWithExpiry: struct {
 			rwMutex sync.RWMutex
 			keys    map[int][]string
@@ -473,9 +488,9 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 		fmt.Sprintf("%s-%d", server.context.Value(internal.ContextServerID("ServerID")), cid))
 
 	// Set the default connection information
-	server.connInfoMut.Lock()
-	server.connInfo[&conn] = connectionInfo{name: "", protocol: 2, database: 0}
-	server.connInfoMut.Unlock()
+	server.connInfo.mut.Lock()
+	server.connInfo.tcpClients[&conn] = connectionInfo{name: "", protocol: 2, database: 0}
+	server.connInfo.mut.Unlock()
 
 	defer func() {
 		log.Printf("closing connection %d...", cid)
@@ -497,13 +512,6 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 			log.Println(err)
 			break
 		}
-
-		// Add connection info to the context of the request.
-		server.connInfoMut.RLock()
-		ctx = context.WithValue(ctx, "ConnectionName", server.connInfo[&conn].name)
-		ctx = context.WithValue(ctx, "Protocol", server.connInfo[&conn].protocol)
-		ctx = context.WithValue(ctx, "Database", server.connInfo[&conn].database)
-		server.connInfoMut.RUnlock()
 
 		res, err := server.handleCommand(ctx, message, &conn, false, false)
 		if err != nil && errors.Is(err, io.EOF) {

@@ -66,6 +66,23 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 }
 
 func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool, embedded bool) ([]byte, error) {
+	// Prepare context before processing the command.
+	server.connInfo.mut.RLock()
+	if embedded {
+		// The call is triggered via the embedded API.
+		// Add embedded connection info to the context of the request.
+		ctx = context.WithValue(ctx, "ConnectionName", server.connInfo.embedded.name)
+		ctx = context.WithValue(ctx, "Protocol", server.connInfo.embedded.protocol)
+		ctx = context.WithValue(ctx, "Database", server.connInfo.embedded.database)
+	} else {
+		// The call is triggered by a TCP connection.
+		// Add TCP connection info to the context of the request.
+		ctx = context.WithValue(ctx, "ConnectionName", server.connInfo.tcpClients[conn].name)
+		ctx = context.WithValue(ctx, "Protocol", server.connInfo.tcpClients[conn].protocol)
+		ctx = context.WithValue(ctx, "Database", server.connInfo.tcpClients[conn].database)
+	}
+	server.connInfo.mut.RUnlock()
+
 	cmd, err := internal.Decode(message)
 	if err != nil {
 		return nil, err
