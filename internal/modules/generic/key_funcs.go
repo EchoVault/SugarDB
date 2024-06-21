@@ -16,6 +16,7 @@ package generic
 
 import (
 	"errors"
+
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/constants"
 )
@@ -132,6 +133,15 @@ func expireAtKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:2],
+	}, nil
+}
+
+func incrKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 2 {
+		return internal.KeyExtractionFuncResult{}, errors.New("wrong number of arguments for INCR")
+	}
+	return internal.KeyExtractionFuncResult{
 		WriteKeys: cmd[1:2],
 	}, nil
 }

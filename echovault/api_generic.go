@@ -15,9 +15,10 @@
 package echovault
 
 import (
-	"github.com/echovault/echovault/internal"
 	"strconv"
 	"strings"
+
+	"github.com/echovault/echovault/internal"
 )
 
 // SetOptions modifies the behaviour for the Set command
@@ -349,7 +350,7 @@ func (server *EchoVault) PExpire(key string, milliseconds int, options PExpireOp
 	return internal.ParseBooleanResponse(b)
 }
 
-// ExpireAt set the given key's expiry in unix epoch seconds.
+// ExpireAt sets the given key's expiry in unix epoch seconds.
 // This command turns a persistent key into a volatile one.
 //
 // Parameters:
@@ -414,5 +415,27 @@ func (server *EchoVault) PExpireAt(key string, unixMilliseconds int, options PEx
 		return 0, err
 	}
 
+	return internal.ParseIntegerResponse(b)
+}
+
+// Incr increments the value at the given key if it's an integer.
+// If the key does not exist, it's created with an initial value of 0 before incrementing.
+//
+// Parameters:
+//
+// `key` - string
+//
+// Returns: The new value as an integer.
+func (server *EchoVault) Incr(key string) (int, error) {
+	// Construct the command
+	cmd := []string{"INCR", key}
+
+	// Execute the command
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return 0, err
+	}
+
+	// Parse the integer response
 	return internal.ParseIntegerResponse(b)
 }

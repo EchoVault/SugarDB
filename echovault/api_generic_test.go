@@ -16,13 +16,14 @@ package echovault
 
 import (
 	"context"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/clock"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/clock"
 )
 
 func TestEchoVault_DEL(t *testing.T) {
@@ -908,6 +909,70 @@ func TestEchoVault_TTL(t *testing.T) {
 				}
 			}
 			got, err := tt.ttlFunc(tt.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("TTL() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("TTL() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEchoVault_INCR(t *testing.T) {
+	server := createEchoVault()
+
+	tests := []struct {
+		name         string
+		key          string
+		presetValues map[string]internal.KeyData
+		want         int
+		wantErr      bool
+	}{
+		{
+			name:         "1. Increment non-existent key",
+			key:          "IncrKey1",
+			presetValues: nil,
+			want:         1,
+			wantErr:      false,
+		},
+		{
+			name: "2. Increment existing key with integer value",
+			key:  "IncrKey2",
+			presetValues: map[string]internal.KeyData{
+				"IncrKey2": {Value: "5"},
+			},
+			want:    6,
+			wantErr: false,
+		},
+		{
+			name: "3. Increment existing key with non-integer value",
+			key:  "IncrKey3",
+			presetValues: map[string]internal.KeyData{
+				"IncrKey3": {Value: "not_an_int"},
+			},
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name: "4. Increment existing key with int64 value",
+			key:  "IncrKey4",
+			presetValues: map[string]internal.KeyData{
+				"IncrKey4": {Value: int64(10)},
+			},
+			want:    11,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValues != nil {
+				for k, d := range tt.presetValues {
+					presetKeyData(server, context.Background(), k, d)
+				}
+			}
+			got, err := server.Incr(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TTL() error = %v, wantErr %v", err, tt.wantErr)
 				return
