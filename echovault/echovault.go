@@ -147,13 +147,20 @@ func WithConfig(config config.Config) func(echovault *EchoVault) {
 // This functions accepts the WithContext, WithConfig and WithCommands options.
 func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	echovault := &EchoVault{
-		clock:         clock.NewClock(),
-		context:       context.Background(),
-		config:        config.DefaultConfig(),
-		connInfoMut:   &sync.RWMutex{},
-		connInfo:      make(map[*net.Conn]connectionInfo),
-		storeLock:     &sync.RWMutex{},
-		store:         make(map[int]map[string]internal.KeyData),
+		clock:       clock.NewClock(),
+		context:     context.Background(),
+		config:      config.DefaultConfig(),
+		connInfoMut: &sync.RWMutex{},
+		connInfo:    make(map[*net.Conn]connectionInfo),
+		storeLock:   &sync.RWMutex{},
+		store:       make(map[int]map[string]internal.KeyData),
+		keysWithExpiry: struct {
+			rwMutex sync.RWMutex
+			keys    map[int][]string
+		}{
+			rwMutex: sync.RWMutex{},
+			keys:    make(map[int][]string),
+		},
 		commandsRWMut: sync.RWMutex{},
 		commands: func() []internal.Command {
 			var commands []internal.Command
@@ -236,7 +243,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	} else {
 		// TODO: Update snapshot engine to support multiple databases.
 		// Set up standalone snapshot engine
-		//echovault.snapshotEngine = snapshot.NewSnapshotEngine(
+		// echovault.snapshotEngine = snapshot.NewSnapshotEngine(
 		//	snapshot.WithClock(echovault.clock),
 		//	snapshot.WithDirectory(echovault.config.DataDir),
 		//	snapshot.WithThreshold(echovault.config.SnapShotThreshold),
@@ -261,11 +268,11 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		//		}
 		//		echovault.setExpiry(ctx, key, data.ExpireAt, false)
 		//	}),
-		//)
+		// )
 
 		// TODO: Update AOF engine to support multiple databases.
 		// Set up standalone AOF engine
-		//aofEngine, err := aof.NewAOFEngine(
+		// aofEngine, err := aof.NewAOFEngine(
 		//	aof.WithClock(echovault.clock),
 		//	aof.WithDirectory(echovault.config.DataDir),
 		//	aof.WithStrategy(echovault.config.AOFSyncStrategy),
@@ -293,11 +300,11 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		//			log.Println(err)
 		//		}
 		//	}),
-		//)
-		//if err != nil {
+		// )
+		// if err != nil {
 		//	return nil, err
-		//}
-		//echovault.aofEngine = aofEngine
+		// }
+		// echovault.aofEngine = aofEngine
 	}
 
 	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.

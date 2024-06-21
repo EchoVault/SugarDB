@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/echovault/internal/eviction"
 	"log"
 	"math/rand"
 	"slices"
@@ -118,6 +119,11 @@ func (server *EchoVault) setValues(ctx context.Context, entries map[string]inter
 
 	database := ctx.Value("Database").(int)
 
+	// If database does not exist, create it.
+	if server.store[database] == nil {
+		server.createDatabase(database)
+	}
+
 	for key, value := range entries {
 		expireAt := time.Time{}
 		if _, ok := server.store[database][key]; ok {
@@ -128,7 +134,8 @@ func (server *EchoVault) setValues(ctx context.Context, entries map[string]inter
 			ExpireAt: expireAt,
 		}
 		if !server.isInCluster() {
-			server.snapshotEngine.IncrementChangeCount()
+			// TODO: Enable this when snapshot engine has support for multiple databases.
+			// server.snapshotEngine.IncrementChangeCount()
 		}
 	}
 
@@ -200,6 +207,26 @@ func (server *EchoVault) deleteKey(ctx context.Context, key string) error {
 	return nil
 }
 
+func (server *EchoVault) createDatabase(database int) {
+	// Create database store.
+	server.store[database] = make(map[string]internal.KeyData)
+
+	// Set volatile keys tracker for database.
+	server.keysWithExpiry.rwMutex.Lock()
+	defer server.keysWithExpiry.rwMutex.Unlock()
+	server.keysWithExpiry.keys[database] = make([]string, 0)
+
+	// Create database LFU cache.
+	server.lfuCache.mutex.Lock()
+	defer server.lfuCache.mutex.Unlock()
+	server.lfuCache.cache[database] = eviction.NewCacheLFU()
+
+	// Create database LRU cache.
+	server.lruCache.mutex.Lock()
+	defer server.lruCache.mutex.Unlock()
+	server.lruCache.cache[database] = eviction.NewCacheLRU()
+}
+
 func (server *EchoVault) getState() map[int]map[string]interface{} {
 	// Wait unit there's no state mutation or copy in progress before starting a new copy process.
 	for {
@@ -256,14 +283,15 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) e
 	}
 
 	// TODO: Adjust memory by taking all databases into account (largest database?).
-	//if err := server.adjustMemoryUsage(ctx); err != nil {
+	// if err := server.adjustMemoryUsage(ctx); err != nil {
 	//	return fmt.Errorf("updateKeysInCache: %+v", err)
-	//}
+	// }
 	return nil
 }
 
+// TODO: Implement support for multiple databases.
 // adjustMemoryUsage should only be called from standalone echovault or from raft cluster leader.
-//func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
+// func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 //	// If max memory is 0, there's no need to adjust memory usage.
 //	if server.config.MaxMemory == 0 {
 //		return nil
@@ -421,7 +449,7 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) e
 //	default:
 //		return nil
 //	}
-//}
+// }
 
 // evictKeysWithExpiredTTL is a function that samples keys with an associated TTL
 // and evicts keys that are currently expired.

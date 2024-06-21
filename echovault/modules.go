@@ -123,7 +123,8 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 		}
 
 		if internal.IsWriteCommand(command, subCommand) && !replay {
-			go server.aofEngine.QueueCommand(message)
+			// TODO: Enable this when AOF engine has support for multiple databases.
+			// go server.aofEngine.QueueCommand(message)
 		}
 
 		server.stateMutationInProgress.Store(false)
