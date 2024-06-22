@@ -1,2 +1,34 @@
-FROM --platform=linux/amd64 homebrew/brew:latest
-ENTRYPOINT ["bash"]
+FROM homebrew/brew:latest
+
+RUN brew tap echovault/echovault
+RUN brew install echovault/echovault/echovault
+
+ENV PORT=7480
+ENV RAFT_PORT=8000
+ENV ML_PORT=7946
+ENV SERVER_ID=1
+ENV PLUGIN_DIR=/usr/local/lib/echovault
+ENV DATA_DIR=/var/lib/echovault
+ENV TLS=false
+ENV MTLS=false
+ENV BOOTSTRAP_CLUSTER=false
+ENV ACL_CONFIG=/etc/echovault/config/acl.yml
+ENV REQUIRE_PASS=false
+ENV PASSWORD=password1
+ENV FORWARD_COMMAND=false
+ENV SNAPSHOT_THRESHOLD=1000
+ENV SNAPSHOT_INTERVAL=5m30s
+ENV RESTORE_SNAPSHOT=true
+ENV RESTORE_AOF=false
+ENV AOF_SYNC_STRATEGY=everysec
+ENV MAX_MEMORY=2000kb
+ENV EVICTION_POLICY=noeviction
+ENV EVICTION_SAMPLE=20
+ENV EVICTION_INTERVAL=100ms
+# List of echovault cert/key pairs
+ENV CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
+ENV CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
+# List of client certificate authorities
+ENV CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+
+ENTRYPOINT ["EchoVault"]
