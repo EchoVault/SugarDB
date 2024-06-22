@@ -17,6 +17,9 @@ package connection
 import (
 	"errors"
 	"fmt"
+	"github.com/echovault/echovault/internal/modules/acl"
+	"slices"
+	"strconv"
 
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/constants"
@@ -40,6 +43,73 @@ func handleEcho(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(params.Command[1]), params.Command[1])), nil
 }
 
+func handleHello(params internal.HandlerFuncParams) ([]byte, error) {
+	if !slices.Contains([]int{1, 2, 4, 5, 7}, len(params.Command)) {
+		return nil, errors.New(constants.WrongArgsResponse)
+	}
+
+	if len(params.Command) == 1 {
+		serverInfo := params.GetServerInfo()
+		connectionInfo := params.GetConnectionInfo(params.Connection)
+		return buildHelloResponse(serverInfo, connectionInfo), nil
+	}
+
+	options, err := getHelloOptions(
+		params.Command[2:],
+		helloOptions{
+			protocol:   2,
+			clientname: "",
+			auth: struct {
+				authenticate bool
+				username     string
+				password     string
+			}{
+				authenticate: false,
+				username:     "",
+				password:     "",
+			},
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Get protocol version
+	protocol, err := strconv.Atoi(params.Command[1])
+	if err != nil {
+		return nil, err
+	}
+	if !slices.Contains([]int{2, 3}, protocol) {
+		return nil, errors.New("protocol must be 2 or 3")
+	}
+	options.protocol = protocol
+
+	// If AUTH option is provided, authenticate the connection.
+	if options.auth.authenticate {
+		accessControlList, ok := params.GetACL().(*acl.ACL)
+		if !ok {
+			return nil, errors.New("could not load ACL")
+		}
+		accessControlList.LockUsers()
+		defer accessControlList.UnlockUsers()
+		if err = accessControlList.AuthenticateConnection(
+			params.Context,
+			params.Connection,
+			[]string{"AUTH", options.auth.username, options.auth.password},
+		); err != nil {
+			return nil, err
+		}
+	}
+
+	// Set the connection details.
+	params.SetConnectionInfo(params.Connection, options.protocol, options.clientname)
+
+	// Get the new connection details and server info to return to the client.
+	serverInfo := params.GetServerInfo()
+	connectionInfo := params.GetConnectionInfo(params.Connection)
+	return buildHelloResponse(serverInfo, connectionInfo), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -60,12 +130,11 @@ Otherwise, the server will return "PONG".`,
 			HandlerFunc: handlePing,
 		},
 		{
-			Command:    "echo",
-			Module:     constants.ConnectionModule,
-			Categories: []string{constants.ConnectionCategory, constants.FastCategory},
-			Description: `(ECHO message)
-Echo the message back to the client.`,
-			Sync: false,
+			Command:     "echo",
+			Module:      constants.ConnectionModule,
+			Categories:  []string{constants.ConnectionCategory, constants.FastCategory},
+			Description: `(ECHO message) Echo the message back to the client.`,
+			Sync:        false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
@@ -74,6 +143,21 @@ Echo the message back to the client.`,
 				}, nil
 			},
 			HandlerFunc: handleEcho,
+		},
+		{
+			Command:     "hello",
+			Module:      constants.ConnectionModule,
+			Categories:  []string{constants.FastCategory, constants.ConnectionCategory},
+			Description: `(HELLO [protover [AUTH username password] [SETNAME clientname]])`,
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
+			},
+			HandlerFunc: handleHello,
 		},
 	}
 }

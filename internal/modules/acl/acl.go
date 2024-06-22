@@ -50,18 +50,20 @@ type ACL struct {
 	GlobPatterns map[string]glob.Glob
 }
 
-func loadUsersFromConfigFile(users []*User, filePath string) {
+func loadUsersFromConfigFile(filePath string) []*User {
+	var users []*User
+
 	if filePath != "" {
-		// Create the director if it does not exist.
+		// Create the directory if it does not exist.
 		if err := os.MkdirAll(path.Dir(filePath), os.ModePerm); err != nil {
 			log.Printf("mkdir ACL config: %v\n", err)
-			return
+			return users
 		}
 		// Open the config file. Create it if it does not exist.
 		f, err := os.OpenFile(filePath, os.O_RDONLY|os.O_CREATE, os.ModePerm)
 		if err != nil {
 			log.Printf("open ACL config: %v\n", err)
-			return
+			return users
 		}
 
 		defer func() {
@@ -75,18 +77,19 @@ func loadUsersFromConfigFile(users []*User, filePath string) {
 		if strings.ToLower(ext) == ".json" {
 			if err := json.NewDecoder(f).Decode(&users); err != nil {
 				log.Printf("load ACL config: %v\n", err)
-				return
+				return users
 			}
 		}
 
 		if slices.Contains([]string{".yaml", ".yml"}, strings.ToLower(ext)) {
 			if err := yaml.NewDecoder(f).Decode(&users); err != nil {
 				log.Printf("load ACL config: %v\n", err)
-				return
+				return users
 			}
 		}
-
 	}
+
+	return users
 }
 
 func NewACL(config config.Config) *ACL {
@@ -105,7 +108,7 @@ func NewACL(config config.Config) *ACL {
 	}
 
 	// 2. Read and parse the ACL config file
-	loadUsersFromConfigFile(users, config.AclConfig)
+	users = loadUsersFromConfigFile(config.AclConfig)
 
 	// 3. If default user was not loaded from file, add the created one
 	defaultLoaded := false

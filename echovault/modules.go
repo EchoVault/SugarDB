@@ -62,6 +62,44 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 			defer server.storeLock.Unlock()
 			return server.deleteKey(ctx, key)
 		},
+		GetConnectionInfo: func(conn *net.Conn) internal.ConnectionInfo {
+			server.connInfo.mut.RLock()
+			defer server.connInfo.mut.RUnlock()
+			return server.connInfo.tcpClients[conn]
+		},
+		SetConnectionInfo: func(conn *net.Conn, protocol int, clientname string) {
+			server.connInfo.mut.Lock()
+			defer server.connInfo.mut.Unlock()
+			info := server.connInfo.tcpClients[conn]
+			info.Protocol = protocol
+			if clientname != "" {
+				info.Name = clientname
+			}
+			server.connInfo.tcpClients[conn] = info
+		},
+		GetServerInfo: func() internal.ServerInfo {
+			return internal.ServerInfo{
+				Server:  "echovault",
+				Version: constants.Version,
+				Id:      server.config.ServerID,
+				Mode: func() string {
+					if server.isInCluster() {
+						return "cluster"
+					}
+					return "standalone"
+				}(),
+				Role: func() string {
+					if !server.isInCluster() {
+						return "master"
+					}
+					if server.raft.IsRaftLeader() {
+						return "master"
+					}
+					return "replica"
+				}(),
+				Modules: server.ListModules(),
+			}
+		},
 	}
 }
 
@@ -71,15 +109,15 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	if embedded {
 		// The call is triggered via the embedded API.
 		// Add embedded connection info to the context of the request.
-		ctx = context.WithValue(ctx, "ConnectionName", server.connInfo.embedded.name)
-		ctx = context.WithValue(ctx, "Protocol", server.connInfo.embedded.protocol)
-		ctx = context.WithValue(ctx, "Database", server.connInfo.embedded.database)
+		ctx = context.WithValue(ctx, "ConnectionName", server.connInfo.embedded.Name)
+		ctx = context.WithValue(ctx, "Protocol", server.connInfo.embedded.Protocol)
+		ctx = context.WithValue(ctx, "Database", server.connInfo.embedded.Database)
 	} else {
 		// The call is triggered by a TCP connection.
 		// Add TCP connection info to the context of the request.
-		ctx = context.WithValue(ctx, "ConnectionName", server.connInfo.tcpClients[conn].name)
-		ctx = context.WithValue(ctx, "Protocol", server.connInfo.tcpClients[conn].protocol)
-		ctx = context.WithValue(ctx, "Database", server.connInfo.tcpClients[conn].database)
+		ctx = context.WithValue(ctx, "ConnectionName", server.connInfo.tcpClients[conn].Name)
+		ctx = context.WithValue(ctx, "Protocol", server.connInfo.tcpClients[conn].Protocol)
+		ctx = context.WithValue(ctx, "Database", server.connInfo.tcpClients[conn].Database)
 	}
 	server.connInfo.mut.RUnlock()
 

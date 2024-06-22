@@ -48,13 +48,6 @@ import (
 	"time"
 )
 
-// connectionInfo tracks the RESP version and database currently used by the connection.
-type connectionInfo struct {
-	name     string // Alias name for this connection.
-	protocol int    // The RESP protocol used by the client. Can be either 2 or 3.
-	database int    // Database index currently being used by the connection.
-}
-
 type EchoVault struct {
 	// clock is an implementation of a time interface that allows mocking of time functions during testing.
 	clock clock.Clock
@@ -70,9 +63,9 @@ type EchoVault struct {
 	// connInfo holds the connection information for embedded and TCP clients.
 	// It keeps track of the protocol and database that each client is operating on.
 	connInfo struct {
-		mut        *sync.RWMutex                // RWMutex for the connInfo object.
-		tcpClients map[*net.Conn]connectionInfo // Map that holds connection information for each TCP client.
-		embedded   connectionInfo               // Information for the embedded connection.
+		mut        *sync.RWMutex                         // RWMutex for the connInfo object.
+		tcpClients map[*net.Conn]internal.ConnectionInfo // Map that holds connection information for each TCP client.
+		embedded   internal.ConnectionInfo               // Information for the embedded connection.
 	}
 
 	// Global read-write mutex for entire store.
@@ -156,15 +149,16 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		config:  config.DefaultConfig(),
 		connInfo: struct {
 			mut        *sync.RWMutex
-			tcpClients map[*net.Conn]connectionInfo
-			embedded   connectionInfo
+			tcpClients map[*net.Conn]internal.ConnectionInfo
+			embedded   internal.ConnectionInfo
 		}{
 			mut:        &sync.RWMutex{},
-			tcpClients: make(map[*net.Conn]connectionInfo),
-			embedded: connectionInfo{
-				name:     "embedded",
-				protocol: 2,
-				database: 0,
+			tcpClients: make(map[*net.Conn]internal.ConnectionInfo),
+			embedded: internal.ConnectionInfo{
+				Id:       0,
+				Name:     "embedded",
+				Protocol: 2,
+				Database: 0,
 			},
 		},
 		storeLock: &sync.RWMutex{},
@@ -489,7 +483,12 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 
 	// Set the default connection information
 	server.connInfo.mut.Lock()
-	server.connInfo.tcpClients[&conn] = connectionInfo{name: "", protocol: 2, database: 0}
+	server.connInfo.tcpClients[&conn] = internal.ConnectionInfo{
+		Id:       cid,
+		Name:     "",
+		Protocol: 2,
+		Database: 0,
+	}
 	server.connInfo.mut.Unlock()
 
 	defer func() {

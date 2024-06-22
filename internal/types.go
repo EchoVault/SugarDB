@@ -49,6 +49,24 @@ type SnapshotObject struct {
 	LatestSnapshotMilliseconds int64
 }
 
+// ServerInfo holds information about the server/node.
+type ServerInfo struct {
+	Server  string
+	Version string
+	Id      string
+	Mode    string
+	Role    string
+	Modules []string
+}
+
+// ConnectionInfo holds information about the connection
+type ConnectionInfo struct {
+	Id       uint64 // Connection id.
+	Name     string // Alias name for this connection.
+	Protocol int    // The RESP protocol used by the client. Can be either 2 or 3.
+	Database int    // Database index currently being used by the connection.
+}
+
 // KeyExtractionFuncResult is the return type of the KeyExtractionFunc for the command/subcommand.
 type KeyExtractionFuncResult struct {
 	Channels  []string // The pubsub channels the command accesses. For non pubsub commands, this should be an empty slice.
@@ -104,7 +122,7 @@ type HandlerFuncParams struct {
 	TakeSnapshot func() error
 	// RewriteAOF triggers a compaction of the commands logs by the EchoVault instance.
 	RewriteAOF func() error
-	// GetLatestSnapshotTime returns the latest snapshot timestamp
+	// GetLatestSnapshotTime returns the latest snapshot timestamp.
 	GetLatestSnapshotTime func() int64
 	// LoadModule loads the provided module with the given args passed to the module's
 	// key extraction and handler functions.
@@ -114,6 +132,12 @@ type HandlerFuncParams struct {
 	UnloadModule func(module string)
 	// ListModules returns the list of modules loaded in the EchoVault instance.
 	ListModules func() []string
+	// SetConnectionInfo sets the connection's protocol and clientname.
+	SetConnectionInfo func(conn *net.Conn, protocol int, clientname string)
+	// GetConnectionInfo returns information about the current connection.
+	GetConnectionInfo func(conn *net.Conn) ConnectionInfo
+	// GetServerInfo returns information about the server when requested by commands such as HELLO.
+	GetServerInfo func() ServerInfo
 }
 
 // HandlerFunc is a functions described by a command where the bulk of the command handling is done.
