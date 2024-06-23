@@ -2066,7 +2066,7 @@ func Test_Generic(t *testing.T) {
 				key:              "DecrKey4",
 				presetValue:      int64(10),
 				command:          []resp.Value{resp.StringValue("DECR"), resp.StringValue("DecrKey4")},
-				expectedResponse: 11,
+				expectedResponse: 9,
 				expectedError:    nil,
 			},
 			{
