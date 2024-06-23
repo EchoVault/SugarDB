@@ -439,3 +439,25 @@ func (server *EchoVault) Incr(key string) (int, error) {
 	// Parse the integer response
 	return internal.ParseIntegerResponse(b)
 }
+
+// Decr decrements the value at the given key if it's an integer.
+// If the key does not exist, it's created with an initial value of 0 before incrementing.
+//
+// Parameters:
+//
+// `key` - string
+//
+// Returns: The new value as an integer.
+func (server *EchoVault) Decr(key string) (int, error) {
+	// Construct the command
+	cmd := []string{"DECR", key}
+
+	// Execute the command
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return 0, err
+	}
+
+	// Parse the integer response
+	return internal.ParseIntegerResponse(b)
+}
