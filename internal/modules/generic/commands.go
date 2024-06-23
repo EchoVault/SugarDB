@@ -646,19 +646,26 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 			HandlerFunc:       handleExpireAt,
 		},
 		{
-			Command:           "incr",
-			Module:            constants.GenericModule,
-			Categories:        []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
-			Description:       `(INCR key) Increments the number stored at key by one. If the key does not exist, it is set to 0 before performing the operation. An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer. This operation is limited to 64 bit signed integers.`,
+			Command:    "incr",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(INCR key) 
+Increments the number stored at key by one. If the key does not exist, it is set to 0 before performing the operation. 
+An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer. 
+This operation is limited to 64 bit signed integers.`,
 			Sync:              true,
 			KeyExtractionFunc: incrKeyFunc,
 			HandlerFunc:       handleIncr,
 		},
 		{
-			Command:           "decr",
-			Module:            constants.GenericModule,
-			Categories:        []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
-			Description:       `(DECR key) Decrements the number stored at key by one. If the key does not exist, it is set to 0 before performing the operation. An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer. This operation is limited to 64 bit signed integers.`,
+			Command:    "decr",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(DECR key) 
+Decrements the number stored at key by one. 
+If the key does not exist, it is set to 0 before performing the operation. 
+An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer. 
+This operation is limited to 64 bit signed integers.`,
 			Sync:              true,
 			KeyExtractionFunc: decrKeyFunc,
 			HandlerFunc:       handleDecr,
