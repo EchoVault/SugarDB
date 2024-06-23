@@ -430,6 +430,53 @@ func handleIncr(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", newValue)), nil
 }
 
+func handleDecr(params internal.HandlerFuncParams) ([]byte, error) {
+	// Extract key from command
+	keys, err := decrKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys.WriteKeys[0]
+	values := params.GetValues(params.Context, []string{key}) // Get the current values for the specified keys
+	currentValue, ok := values[key]                           // Check if the key exists
+
+	var newValue int64
+	var currentValueInt int64
+
+	// Check if the key exists and its current value
+	if !ok || currentValue == nil {
+		// If key does not exist, initialize it with 0
+		newValue = -1
+	} else {
+		// Use type switch to handle different types of currentValue
+		switch v := currentValue.(type) {
+		case string:
+			var err error
+			currentValueInt, err = strconv.ParseInt(v, 10, 64) // Parse the string to int64
+			if err != nil {
+				return nil, errors.New("value is not an integer or out of range")
+			}
+		case int:
+			currentValueInt = int64(v) // Convert int to int64
+		case int64:
+			currentValueInt = v // Use int64 value directly
+		default:
+			fmt.Printf("unexpected type for currentValue: %T\n", currentValue)
+			return nil, errors.New("unexpected type for currentValue") // Handle unexpected types
+		}
+		newValue = currentValueInt - 1 // Decrement the value
+	}
+
+	// Set the new incremented value
+	if err := params.SetValues(params.Context, map[string]interface{}{key: fmt.Sprintf("%d", newValue)}); err != nil {
+		return nil, err
+	}
+
+	// Prepare response with the actual new value
+	return []byte(fmt.Sprintf(":%d\r\n", newValue)), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -606,6 +653,15 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 			Sync:              true,
 			KeyExtractionFunc: incrKeyFunc,
 			HandlerFunc:       handleIncr,
+		},
+		{
+			Command:           "decr",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Description:       `(DECR key) Decrements the number stored at key by one. If the key does not exist, it is set to 0 before performing the operation. An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer. This operation is limited to 64 bit signed integers.`,
+			Sync:              true,
+			KeyExtractionFunc: decrKeyFunc,
+			HandlerFunc:       handleDecr,
 		},
 	}
 }

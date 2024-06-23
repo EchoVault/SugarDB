@@ -983,3 +983,67 @@ func TestEchoVault_INCR(t *testing.T) {
 		})
 	}
 }
+
+func TestEchoVault_DECR(t *testing.T) {
+	server := createEchoVault()
+
+	tests := []struct {
+		name         string
+		key          string
+		presetValues map[string]internal.KeyData
+		want         int
+		wantErr      bool
+	}{
+		{
+			name:         "1. Decrement non-existent key",
+			key:          "DecrKey1",
+			presetValues: nil,
+			want:         0,
+			wantErr:      false,
+		},
+		{
+			name: "2. Decrement existing key with integer value",
+			key:  "DecrKey2",
+			presetValues: map[string]internal.KeyData{
+				"DecrKey2": {Value: "5"},
+			},
+			want:    4,
+			wantErr: false,
+		},
+		{
+			name: "3. Decrement existing key with non-integer value",
+			key:  "DecrKey3",
+			presetValues: map[string]internal.KeyData{
+				"DecrKey3": {Value: "not_an_int"},
+			},
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name: "4. Decrement existing key with int64 value",
+			key:  "DecrKey4",
+			presetValues: map[string]internal.KeyData{
+				"DecrKey4": {Value: int64(10)},
+			},
+			want:    9,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValues != nil {
+				for k, d := range tt.presetValues {
+					presetKeyData(server, context.Background(), k, d)
+				}
+			}
+			got, err := server.Incr(tt.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("TTL() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("TTL() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

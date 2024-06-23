@@ -2016,4 +2016,125 @@ func Test_Generic(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Test_HandlerDECR", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			key              string
+			presetValue      interface{}
+			command          []resp.Value
+			expectedResponse int64
+			expectedError    error
+		}{
+			{
+				name:             "1. Increment non-existent key",
+				key:              "DecrKey1",
+				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("DECR"), resp.StringValue("DecrKey1")},
+				expectedResponse: -1,
+				expectedError:    nil,
+			},
+			{
+				name:             "2. Decrement existing key with integer value",
+				key:              "DecrKey2",
+				presetValue:      "5",
+				command:          []resp.Value{resp.StringValue("DECR"), resp.StringValue("DecrKey2")},
+				expectedResponse: 4,
+				expectedError:    nil,
+			},
+			{
+				name:             "3. Decrement existing key with non-integer value",
+				key:              "DecrKey3",
+				presetValue:      "not_an_int",
+				command:          []resp.Value{resp.StringValue("DECR"), resp.StringValue("DecrKey3")},
+				expectedResponse: 0,
+				expectedError:    errors.New("value is not an integer or out of range"),
+			},
+			{
+				name:             "4. Decrement existing key with int64 value",
+				key:              "DecrKey4",
+				presetValue:      int64(10),
+				command:          []resp.Value{resp.StringValue("DECR"), resp.StringValue("DecrKey4")},
+				expectedResponse: 11,
+				expectedError:    nil,
+			},
+			{
+				name:             "5. Command too short",
+				key:              "DencrKey5",
+				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("DECR")},
+				expectedResponse: 0,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:        "6. Command too long",
+				key:         "DecrKey6",
+				presetValue: nil,
+				command: []resp.Value{
+					resp.StringValue("DECR"),
+					resp.StringValue("DecrKey6"),
+					resp.StringValue("DecrKey6"),
+				},
+				expectedResponse: 0,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				if test.presetValue != nil {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(test.key), resp.StringValue(fmt.Sprintf("%v", test.presetValue))}
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
+				}
+
+				if err = client.WriteArray(test.command); err != nil {
+					t.Error(err)
+				}
+
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					}
+					return
+				}
+
+				if err != nil {
+					t.Error(err)
+				} else {
+					responseInt, err := strconv.ParseInt(res.String(), 10, 64)
+					if err != nil {
+						t.Errorf("error parsing response to int64: %s", err)
+					}
+					if responseInt != test.expectedResponse {
+						t.Errorf("expected response %d, got %d", test.expectedResponse, responseInt)
+					}
+				}
+			})
+		}
+	})
 }
