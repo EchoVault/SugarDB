@@ -325,8 +325,8 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 		return nil
 	}
 
-	// Skip PING
-	if strings.EqualFold(comm, "ping") {
+	// Skip certain commands from authorization
+	if slices.Contains([]string{"ping", "echo"}, strings.ToLower(comm)) {
 		return nil
 	}
 

@@ -25,6 +25,23 @@ import (
 	"github.com/echovault/echovault/internal/constants"
 )
 
+func handleAuth(params internal.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) < 2 || len(params.Command) > 3 {
+		return nil, errors.New(constants.WrongArgsResponse)
+	}
+	accessControlList, ok := params.GetACL().(*acl.ACL)
+	if !ok {
+		return nil, errors.New("could not load ACL")
+	}
+	accessControlList.LockUsers()
+	defer accessControlList.UnlockUsers()
+
+	if err := accessControlList.AuthenticateConnection(params.Context, params.Connection, params.Command); err != nil {
+		return nil, err
+	}
+	return []byte(constants.OkResponse), nil
+}
+
 func handlePing(params internal.HandlerFuncParams) ([]byte, error) {
 	switch len(params.Command) {
 	default:
@@ -112,6 +129,23 @@ func handleHello(params internal.HandlerFuncParams) ([]byte, error) {
 
 func Commands() []internal.Command {
 	return []internal.Command{
+		{
+			Command:    "auth",
+			Module:     constants.ConnectionModule,
+			Categories: []string{constants.ConnectionCategory, constants.SlowCategory},
+			Description: `(AUTH [username] password) 
+Authenticates the connection. If the username is not provided, the connection will be authenticated against the
+default ACL user. Otherwise, it is authenticated against the ACL user with the provided username.`,
+			Sync: false,
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
+			},
+			HandlerFunc: handleAuth,
+		},
 		{
 			Command:    "ping",
 			Module:     constants.ConnectionModule,
