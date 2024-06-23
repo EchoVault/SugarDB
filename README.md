@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 <br/>
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go) 
-[![Discord](https://img.shields.io/discord/1211815152291414037)](https://discord.com/invite/JrG4kPrF8v)
+[![Discord](https://img.shields.io/discord/1211815152291414037?label=Discord&labelColor=%237289da)](https://discord.com/invite/JrG4kPrF8v)
 <br/>
 
 <hr/>
