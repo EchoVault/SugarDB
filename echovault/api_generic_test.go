@@ -1036,7 +1036,7 @@ func TestEchoVault_DECR(t *testing.T) {
 					presetKeyData(server, context.Background(), k, d)
 				}
 			}
-			got, err := server.Incr(tt.key)
+			got, err := server.Decr(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TTL() error = %v, wantErr %v", err, tt.wantErr)
 				return
