@@ -998,7 +998,7 @@ func TestEchoVault_DECR(t *testing.T) {
 			name:         "1. Decrement non-existent key",
 			key:          "DecrKey1",
 			presetValues: nil,
-			want:         0,
+			want:         -1,
 			wantErr:      false,
 		},
 		{
