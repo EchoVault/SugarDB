@@ -439,3 +439,17 @@ func (server *EchoVault) Incr(key string) (int, error) {
 	// Parse the integer response
 	return internal.ParseIntegerResponse(b)
 }
+
+func (server *EchoVault) Decr(key string) (int, error) {
+	// Construct the command
+	cmd := []string{"DECR", key}
+
+	// Execute the command
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return 0, err
+	}
+
+	// Parse the integer response
+	return internal.ParseIntegerResponse(b)
+}
