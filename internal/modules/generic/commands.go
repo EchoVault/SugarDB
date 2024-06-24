@@ -477,6 +477,63 @@ func handleDecr(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", newValue)), nil
 }
 
+func handleIncrBy(params internal.HandlerFuncParams) ([]byte, error) {
+	// Ensure command has the correct number of arguments
+	if len(params.Command) != 3 {
+		return nil, errors.New("wrong number of arguments for INCRBY")
+	}
+
+	// Extract key from command
+	keys, err := incrKeyByFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse increment value
+	incrValue, err := strconv.ParseInt(params.Command[2], 10, 64)
+	if err != nil {
+		return nil, errors.New("increment value is not an integer or out of range")
+	}
+
+	key := keys.WriteKeys[0]
+	values := params.GetValues(params.Context, []string{key}) // Get the current values for the specified keys
+	currentValue, ok := values[key]                           // Check if the key exists
+
+	var newValue int64
+	var currentValueInt int64
+
+	// Check if the key exists and its current value
+	if !ok || currentValue == nil {
+		// If key does not exist, initialize it with the increment value
+		newValue = incrValue
+	} else {
+		// Use type switch to handle different types of currentValue
+		switch v := currentValue.(type) {
+		case string:
+			currentValueInt, err = strconv.ParseInt(v, 10, 64) // Parse the string to int64
+			if err != nil {
+				return nil, errors.New("value is not an integer or out of range")
+			}
+		case int:
+			currentValueInt = int64(v) // Convert int to int64
+		case int64:
+			currentValueInt = v // Use int64 value directly
+		default:
+			fmt.Printf("unexpected type for currentValue: %T\n", currentValue)
+			return nil, errors.New("unexpected type for currentValue") // Handle unexpected types
+		}
+		newValue = currentValueInt + incrValue // Increment the value by the specified amount
+	}
+
+	// Set the new incremented value
+	if err := params.SetValues(params.Context, map[string]interface{}{key: fmt.Sprintf("%d", newValue)}); err != nil {
+		return nil, err
+	}
+
+	// Prepare response with the actual new value
+	return []byte(fmt.Sprintf(":%d\r\n", newValue)), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -649,9 +706,9 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 			Command:    "incr",
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
-			Description: `(INCR key) 
-Increments the number stored at key by one. If the key does not exist, it is set to 0 before performing the operation. 
-An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer. 
+			Description: `(INCR key)
+Increments the number stored at key by one. If the key does not exist, it is set to 0 before performing the operation.
+An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer.
 This operation is limited to 64 bit signed integers.`,
 			Sync:              true,
 			KeyExtractionFunc: incrKeyFunc,
@@ -661,14 +718,23 @@ This operation is limited to 64 bit signed integers.`,
 			Command:    "decr",
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
-			Description: `(DECR key) 
-Decrements the number stored at key by one. 
-If the key does not exist, it is set to 0 before performing the operation. 
-An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer. 
+			Description: `(DECR key)
+Decrements the number stored at key by one.
+If the key does not exist, it is set to 0 before performing the operation.
+An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer.
 This operation is limited to 64 bit signed integers.`,
 			Sync:              true,
 			KeyExtractionFunc: decrKeyFunc,
 			HandlerFunc:       handleDecr,
+		},
+		{
+			Command:           "incrby",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Description:       `(INCRBY key increment) Increments the number stored at key by increment. If the key does not exist, it is set to 0 before performing the operation. An error is returned if the key contains a value of the wrong type or contains a string that can not be represented as integer.`,
+			Sync:              true,
+			KeyExtractionFunc: incrKeyByFunc,
+			HandlerFunc:       handleIncrBy,
 		},
 	}
 }

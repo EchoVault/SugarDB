@@ -154,3 +154,12 @@ func decrKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 		WriteKeys: cmd[1:2],
 	}, nil
 }
+
+func incrKeyByFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) < 3 {
+		return internal.KeyExtractionFuncResult{}, errors.New("wrong number of arguments for INCRBY")
+	}
+	return internal.KeyExtractionFuncResult{
+		WriteKeys: []string{cmd[1]},
+	}, nil
+}
