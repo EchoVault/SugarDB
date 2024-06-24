@@ -21,6 +21,7 @@ import (
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/echovault/internal/eviction"
 	"io"
 	"net"
 	"strings"
@@ -67,14 +68,43 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 			defer server.connInfo.mut.RUnlock()
 			return server.connInfo.tcpClients[conn]
 		},
-		SetConnectionInfo: func(conn *net.Conn, protocol int, clientname string) {
+		SetConnectionInfo: func(conn *net.Conn, clientname string, protocol int, database int) {
 			server.connInfo.mut.Lock()
 			defer server.connInfo.mut.Unlock()
+
 			info := server.connInfo.tcpClients[conn]
+
+			// Set protocol.
 			info.Protocol = protocol
+
+			// Set connection name.
 			if clientname != "" {
 				info.Name = clientname
 			}
+
+			// If the database index does not exist, create the new database.
+			server.storeLock.Lock()
+			if server.store[database] == nil {
+				// Database does not exist.
+				server.store[database] = make(map[string]internal.KeyData)
+				// Create volatile key tracker for the database.
+				server.keysWithExpiry.rwMutex.Lock()
+				server.keysWithExpiry.keys[database] = make([]string, 0)
+				server.keysWithExpiry.rwMutex.Unlock()
+				// Create LFU cache for the database.
+				server.lfuCache.mutex.Lock()
+				server.lfuCache.cache[database] = eviction.NewCacheLFU()
+				server.lfuCache.mutex.Unlock()
+				// Create LRU cache for the database.
+				server.lruCache.mutex.Lock()
+				server.lruCache.cache[database] = eviction.NewCacheLRU()
+				server.lruCache.mutex.Unlock()
+			}
+			server.storeLock.Unlock()
+
+			// Set database index for the current connection.
+			info.Database = database
+
 			server.connInfo.tcpClients[conn] = info
 		},
 		GetServerInfo: func() internal.ServerInfo {

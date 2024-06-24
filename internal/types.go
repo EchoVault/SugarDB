@@ -133,7 +133,7 @@ type HandlerFuncParams struct {
 	// ListModules returns the list of modules loaded in the EchoVault instance.
 	ListModules func() []string
 	// SetConnectionInfo sets the connection's protocol and clientname.
-	SetConnectionInfo func(conn *net.Conn, protocol int, clientname string)
+	SetConnectionInfo func(conn *net.Conn, clientname string, protocol int, database int)
 	// GetConnectionInfo returns information about the current connection.
 	GetConnectionInfo func(conn *net.Conn) ConnectionInfo
 	// GetServerInfo returns information about the server when requested by commands such as HELLO.

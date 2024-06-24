@@ -119,12 +119,29 @@ func handleHello(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	// Set the connection details.
-	params.SetConnectionInfo(params.Connection, options.protocol, options.clientname)
+	connectionInfo := params.GetConnectionInfo(params.Connection)
+	params.SetConnectionInfo(params.Connection, options.clientname, options.protocol, connectionInfo.Database)
 
 	// Get the new connection details and server info to return to the client.
 	serverInfo := params.GetServerInfo()
-	connectionInfo := params.GetConnectionInfo(params.Connection)
+	connectionInfo = params.GetConnectionInfo(params.Connection)
 	return buildHelloResponse(serverInfo, connectionInfo), nil
+}
+
+func handleSelect(params internal.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) != 2 {
+		return nil, errors.New(constants.WrongArgsResponse)
+	}
+
+	database, err := strconv.Atoi(params.Command[1])
+	if err != nil {
+		return nil, err
+	}
+
+	connectionInfo := params.GetConnectionInfo(params.Connection)
+	params.SetConnectionInfo(params.Connection, connectionInfo.Name, connectionInfo.Protocol, database)
+
+	return []byte(constants.OkResponse), nil
 }
 
 func Commands() []internal.Command {
@@ -192,6 +209,21 @@ Otherwise, the server will return "PONG".`,
 				}, nil
 			},
 			HandlerFunc: handleHello,
+		},
+		{
+			Command:     "select",
+			Module:      constants.ConnectionModule,
+			Categories:  []string{constants.FastCategory, constants.ConnectionCategory},
+			Description: `(SELECT index) Change the logical database that the current connection is operating from.`,
+			Sync:        false,
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
+			},
+			HandlerFunc: handleSelect,
 		},
 	}
 }
