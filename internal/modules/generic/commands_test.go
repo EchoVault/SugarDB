@@ -2544,6 +2544,7 @@ func Test_Generic(t *testing.T) {
 		}
 
 		// Connect to the server
+
 		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
