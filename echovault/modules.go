@@ -21,7 +21,6 @@ import (
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/constants"
-	"github.com/echovault/echovault/internal/eviction"
 	"io"
 	"net"
 	"strings"
@@ -85,20 +84,7 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 			// If the database index does not exist, create the new database.
 			server.storeLock.Lock()
 			if server.store[database] == nil {
-				// Database does not exist.
-				server.store[database] = make(map[string]internal.KeyData)
-				// Create volatile key tracker for the database.
-				server.keysWithExpiry.rwMutex.Lock()
-				server.keysWithExpiry.keys[database] = make([]string, 0)
-				server.keysWithExpiry.rwMutex.Unlock()
-				// Create LFU cache for the database.
-				server.lfuCache.mutex.Lock()
-				server.lfuCache.cache[database] = eviction.NewCacheLFU()
-				server.lfuCache.mutex.Unlock()
-				// Create LRU cache for the database.
-				server.lruCache.mutex.Lock()
-				server.lruCache.cache[database] = eviction.NewCacheLRU()
-				server.lruCache.mutex.Unlock()
+				server.createDatabase(database)
 			}
 			server.storeLock.Unlock()
 
@@ -128,6 +114,43 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 					return "replica"
 				}(),
 				Modules: server.ListModules(),
+			}
+		},
+		SwapDBs: func(database1, database2 int) {
+			// If the databases are the same, skip the swap.
+			if database1 == database2 {
+				return
+			}
+
+			// If any of the databases does not exist, create them.
+			server.storeLock.Lock()
+			for _, database := range []int{database1, database2} {
+				if server.store[database] == nil {
+					server.createDatabase(database)
+				}
+			}
+			server.storeLock.Unlock()
+
+			// Swap the connections for each database.
+			server.connInfo.mut.Lock()
+			defer server.connInfo.mut.Unlock()
+			for connection, info := range server.connInfo.tcpClients {
+				switch info.Database {
+				case database1:
+					server.connInfo.tcpClients[connection] = internal.ConnectionInfo{
+						Id:       info.Id,
+						Name:     info.Name,
+						Protocol: info.Protocol,
+						Database: database2,
+					}
+				case database2:
+					server.connInfo.tcpClients[connection] = internal.ConnectionInfo{
+						Id:       info.Id,
+						Name:     info.Name,
+						Protocol: info.Protocol,
+						Database: database1,
+					}
+				}
 			}
 		},
 	}

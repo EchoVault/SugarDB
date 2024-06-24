@@ -137,9 +137,36 @@ func handleSelect(params internal.HandlerFuncParams) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if database < 0 {
+		return nil, errors.New("database must be >= 0")
+	}
 
 	connectionInfo := params.GetConnectionInfo(params.Connection)
 	params.SetConnectionInfo(params.Connection, connectionInfo.Name, connectionInfo.Protocol, database)
+
+	return []byte(constants.OkResponse), nil
+}
+
+func handleSwapDB(params internal.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) != 3 {
+		return nil, errors.New(constants.WrongArgsResponse)
+	}
+
+	database1, err := strconv.Atoi(params.Command[1])
+	if err != nil {
+		return nil, err
+	}
+
+	database2, err := strconv.Atoi(params.Command[2])
+	if err != nil {
+		return nil, err
+	}
+
+	if database1 < 0 || database2 < 0 {
+		return nil, errors.New("database must be >= 0")
+	}
+
+	params.SwapDBs(database1, database2)
 
 	return []byte(constants.OkResponse), nil
 }
@@ -224,6 +251,29 @@ Otherwise, the server will return "PONG".`,
 				}, nil
 			},
 			HandlerFunc: handleSelect,
+		},
+		{
+			Command: "swapdb",
+			Module:  constants.ConnectionModule,
+			Categories: []string{
+				constants.KeyspaceCategory,
+				constants.SlowCategory,
+				constants.DangerousCategory,
+				constants.ConnectionCategory,
+			},
+			Description: `(SWAPDB index1 index2) 
+This command swaps two databases, 
+so that immediately all the clients connected to a given database will see the data of the other database, 
+and the other way around.`,
+			Sync: false,
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
+			},
+			HandlerFunc: handleSwapDB,
 		},
 	}
 }

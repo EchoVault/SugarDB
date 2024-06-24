@@ -138,6 +138,10 @@ type HandlerFuncParams struct {
 	GetConnectionInfo func(conn *net.Conn) ConnectionInfo
 	// GetServerInfo returns information about the server when requested by commands such as HELLO.
 	GetServerInfo func() ServerInfo
+	// SwapDBs swaps two databases,
+	// so that immediately all the clients connected to a given database will see the data of the other database,
+	// and the other way around.
+	SwapDBs func(database1, database2 int)
 }
 
 // HandlerFunc is a functions described by a command where the bulk of the command handling is done.
