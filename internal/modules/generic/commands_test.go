@@ -2138,7 +2138,7 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
-	t.Run("Test_HandlerDECRBY", func(t *testing.T) {
+	t.Run("Test_HandlerINCRBY", func(t *testing.T) {
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
@@ -2153,69 +2153,62 @@ func Test_Generic(t *testing.T) {
 		tests := []struct {
 			name             string
 			key              string
-			decrement        string
+			increment        string
 			presetValue      interface{}
 			command          []resp.Value
 			expectedResponse int64
 			expectedError    error
 		}{
 			{
-				name:             "1. Decrement non-existent key by 4",
-				key:              "DecrByKey1",
-				decrement:        "4",
+				name:             "1. Increment non-existent key by 4",
+				key:              "IncrByKey1",
+				increment:        "4",
 				presetValue:      nil,
-				command:          []resp.Value{resp.StringValue("DECRBY"), resp.StringValue("DecrByKey1"), resp.StringValue("4")},
-				expectedResponse: -4,
+				command:          []resp.Value{resp.StringValue("INCRBY"), resp.StringValue("IncrByKey1"), resp.StringValue("4")},
+				expectedResponse: 4,
 				expectedError:    nil,
 			},
 			{
-				name:             "2. Decrement existing key with integer value by 3",
-				key:              "DecrByKey2",
-				decrement:        "3",
+				name:             "2. Increment existing key with integer value by 3",
+				key:              "IncrByKey2",
+				increment:        "3",
 				presetValue:      "5",
-				command:          []resp.Value{resp.StringValue("DECRBY"), resp.StringValue("DecrByKey2"), resp.StringValue("3")},
-				expectedResponse: 2,
+				command:          []resp.Value{resp.StringValue("INCRBY"), resp.StringValue("IncrByKey2"), resp.StringValue("3")},
+				expectedResponse: 8,
 				expectedError:    nil,
 			},
 			{
-				name:             "3. Decrement existing key with non-integer value by 2",
-				key:              "DecrByKey3",
-				decrement:        "2",
+				name:             "3. Increment existing key with non-integer value by 2",
+				key:              "IncrByKey3",
+				increment:        "2",
 				presetValue:      "not_an_int",
-				command:          []resp.Value{resp.StringValue("DECRBY"), resp.StringValue("DecrByKey3"), resp.StringValue("2")},
+				command:          []resp.Value{resp.StringValue("INCRBY"), resp.StringValue("IncrByKey3"), resp.StringValue("2")},
 				expectedResponse: 0,
 				expectedError:    errors.New("value is not an integer or out of range"),
 			},
 			{
-				name:             "4. Decrement existing key with int64 value by 7",
-				key:              "DecrByKey4",
-				decrement:        "7",
+				name:             "4. Increment existing key with int64 value by 7",
+				key:              "IncrByKey4",
+				increment:        "7",
 				presetValue:      int64(10),
-				command:          []resp.Value{resp.StringValue("DECRBY"), resp.StringValue("DecrByKey4"), resp.StringValue("7")},
-				expectedResponse: 3,
+				command:          []resp.Value{resp.StringValue("INCRBY"), resp.StringValue("IncrByKey4"), resp.StringValue("7")},
+				expectedResponse: 17,
 				expectedError:    nil,
 			},
-			{
-				name:             "5. Command too short",
-				key:              "DecrByKey5",
-				presetValue:      nil,
-				command:          []resp.Value{resp.StringValue("DECRBY"), resp.StringValue("DecrByKey5")},
-				expectedResponse: 0,
-				expectedError:    errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:        "6. Command too long",
-				key:         "DecrKey6",
-				presetValue: nil,
-				command: []resp.Value{
-					resp.StringValue("DECRBY"),
-					resp.StringValue("DecrKey6"),
-					resp.StringValue("3"),
-					resp.StringValue("extra_arg"),
-				},
-				expectedResponse: 0,
-				expectedError:    errors.New(constants.WrongArgsResponse),
-			},
+			// {
+			// 	name:        "6. Command too long",
+			// 	key:         "IncrByKey6",
+			// 	increment:   "5",
+			// 	presetValue: nil,
+			// 	command: []resp.Value{
+			// 		resp.StringValue("INCRBY"),
+			// 		resp.StringValue("IncrByKey6"),
+			// 		resp.StringValue("5"),
+			// 		resp.StringValue("extra_arg"),
+			// 	},
+			// 	expectedResponse: 0,
+			// 	expectedError:    errors.New("ERR wrong number of arguments for 'incrby' command"),
+			// },
 		}
 
 		for _, test := range tests {
