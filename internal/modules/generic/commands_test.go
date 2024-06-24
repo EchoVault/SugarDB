@@ -2137,4 +2137,110 @@ func Test_Generic(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Test_HandlerDECRBY", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			key              string
+			decrement        string
+			presetValue      interface{}
+			command          []resp.Value
+			expectedResponse int64
+			expectedError    error
+		}{
+			{
+				name:             "1. Decrement non-existent key by 4",
+				key:              "DecrByKey1",
+				decrement:        "4",
+				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("DECRBY"), resp.StringValue("DecrByKey1"), resp.StringValue("4")},
+				expectedResponse: -4,
+				expectedError:    nil,
+			},
+			{
+				name:             "2. Decrement existing key with integer value by 3",
+				key:              "DecrByKey2",
+				decrement:        "3",
+				presetValue:      "5",
+				command:          []resp.Value{resp.StringValue("DECRBY"), resp.StringValue("DecrByKey2"), resp.StringValue("3")},
+				expectedResponse: 2,
+				expectedError:    nil,
+			},
+			{
+				name:             "3. Decrement existing key with non-integer value by 2",
+				key:              "DecrByKey3",
+				decrement:        "2",
+				presetValue:      "not_an_int",
+				command:          []resp.Value{resp.StringValue("DECRBY"), resp.StringValue("DecrByKey3"), resp.StringValue("2")},
+				expectedResponse: 0,
+				expectedError:    errors.New("value is not an integer or out of range"),
+			},
+			{
+				name:             "4. Decrement existing key with int64 value by 7",
+				key:              "DecrByKey4",
+				decrement:        "7",
+				presetValue:      int64(10),
+				command:          []resp.Value{resp.StringValue("DECRBY"), resp.StringValue("DecrByKey4"), resp.StringValue("7")},
+				expectedResponse: 3,
+				expectedError:    nil,
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				if test.presetValue != nil {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(test.key), resp.StringValue(fmt.Sprintf("%v", test.presetValue))}
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+					if !strings.EqualFold(res.String(), "OK") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
+				}
+
+				if err = client.WriteArray(test.command); err != nil {
+					t.Error(err)
+				}
+
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					}
+					return
+				}
+
+				if err != nil {
+					t.Error(err)
+				} else {
+					responseInt, err := strconv.ParseInt(res.String(), 10, 64)
+					if err != nil {
+						t.Errorf("error parsing response to int64: %s", err)
+					}
+					if responseInt != test.expectedResponse {
+						t.Errorf("expected response %d, got %d", test.expectedResponse, responseInt)
+					}
+				}
+			})
+		}
+	})
 }
