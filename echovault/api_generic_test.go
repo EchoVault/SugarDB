@@ -974,11 +974,11 @@ func TestEchoVault_INCR(t *testing.T) {
 			}
 			got, err := server.Incr(tt.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TTL() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("INCR() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("TTL() got = %v, want %v", got, tt.want)
+				t.Errorf("INCR() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1038,11 +1038,11 @@ func TestEchoVault_DECR(t *testing.T) {
 			}
 			got, err := server.Decr(tt.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TTL() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DECR() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("TTL() got = %v, want %v", got, tt.want)
+				t.Errorf("DECR() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1112,6 +1112,74 @@ func TestEchoVault_INCRBY(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("IncrBy() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEchoVault_DECRBY(t *testing.T) {
+	server := createEchoVault()
+
+	tests := []struct {
+		name         string
+		key          string
+		decrement    string
+		presetValues map[string]internal.KeyData
+		want         int
+		wantErr      bool
+	}{
+		{
+			name:         "1. Decrement non-existent key by 4",
+			key:          "DecrByKey1",
+			decrement:    "4",
+			presetValues: nil,
+			want:         -4,
+			wantErr:      false,
+		},
+		{
+			name:      "2. Decrement existing key with integer value by 3",
+			key:       "DecrByKey2",
+			decrement: "3",
+			presetValues: map[string]internal.KeyData{
+				"DecrByKey2": {Value: "-5"},
+			},
+			want:    -8,
+			wantErr: false,
+		},
+		{
+			name:      "3. Decrement existing key with non-integer value by 2",
+			key:       "DecrByKey3",
+			decrement: "2",
+			presetValues: map[string]internal.KeyData{
+				"DecrByKey3": {Value: "not_an_int"},
+			},
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:      "4. Decrement existing key with int64 value by 7",
+			key:       "DecrByKey4",
+			decrement: "7",
+			presetValues: map[string]internal.KeyData{
+				"DecrByKey4": {Value: int64(10)}},
+			want:    3,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValues != nil {
+				for k, d := range tt.presetValues {
+					presetKeyData(server, context.Background(), k, d)
+				}
+			}
+			got, err := server.DecrBy(tt.key, tt.decrement)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DecrBy() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("DecrBy() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
