@@ -603,11 +603,26 @@ func handleRename(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	// Delete the old key
-	if err := params.DeleteKey(oldKey); err != nil {
+	if err := params.DeleteKey(params.Context, oldKey); err != nil {
 		return nil, err
 	}
 
 	return []byte("+OK\r\n"), nil
+}
+
+func handleFlush(params internal.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) != 1 {
+		return nil, errors.New(constants.WrongArgsResponse)
+	}
+
+	if strings.EqualFold(params.Command[0], "flushall") {
+		params.Flush(-1)
+		return []byte(constants.OkResponse), nil
+	}
+
+	database := params.Context.Value("Database").(int)
+	params.Flush(database)
+	return []byte(constants.OkResponse), nil
 }
 
 func Commands() []internal.Command {
@@ -835,6 +850,43 @@ Renames key to newkey. If newkey already exists, it is overwritten. If key does 
 			Sync:              true,
 			KeyExtractionFunc: renameKeyFunc,
 			HandlerFunc:       handleRename,
+		},
+		{
+			Command: "flushall",
+			Module:  constants.GenericModule,
+			Categories: []string{
+				constants.KeyspaceCategory,
+				constants.WriteCategory,
+				constants.SlowCategory,
+				constants.DangerousCategory,
+			},
+			Description: `(FLUSHALL) Delete all the keys in all the existing databases. This command is always synchronous.`,
+			Sync:        true,
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
+					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
+				}, nil
+			},
+			HandlerFunc: handleFlush,
+		},
+		{
+			Command: "flushdb",
+			Module:  constants.GenericModule,
+			Categories: []string{
+				constants.KeyspaceCategory,
+				constants.WriteCategory,
+				constants.SlowCategory,
+				constants.DangerousCategory,
+			},
+			Description: `(FLUSHDB) 
+Delete all the keys in the currently selected database. This command is always synchronous.`,
+			Sync: true,
+			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{
+					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
+				}, nil
+			},
+			HandlerFunc: handleFlush,
 		},
 	}
 }

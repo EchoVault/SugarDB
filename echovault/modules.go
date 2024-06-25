@@ -57,6 +57,9 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 		GetACL:                server.getACL,
 		GetAllCommands:        server.getCommands,
 		GetClock:              server.getClock,
+		Flush:                 server.Flush,
+		SwapDBs:               server.SwapDBs,
+		GetServerInfo:         server.GetServerInfo,
 		DeleteKey: func(ctx context.Context, key string) error {
 			server.storeLock.Lock()
 			defer server.storeLock.Unlock()
@@ -92,66 +95,6 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 			info.Database = database
 
 			server.connInfo.tcpClients[conn] = info
-		},
-		GetServerInfo: func() internal.ServerInfo {
-			return internal.ServerInfo{
-				Server:  "echovault",
-				Version: constants.Version,
-				Id:      server.config.ServerID,
-				Mode: func() string {
-					if server.isInCluster() {
-						return "cluster"
-					}
-					return "standalone"
-				}(),
-				Role: func() string {
-					if !server.isInCluster() {
-						return "master"
-					}
-					if server.raft.IsRaftLeader() {
-						return "master"
-					}
-					return "replica"
-				}(),
-				Modules: server.ListModules(),
-			}
-		},
-		SwapDBs: func(database1, database2 int) {
-			// If the databases are the same, skip the swap.
-			if database1 == database2 {
-				return
-			}
-
-			// If any of the databases does not exist, create them.
-			server.storeLock.Lock()
-			for _, database := range []int{database1, database2} {
-				if server.store[database] == nil {
-					server.createDatabase(database)
-				}
-			}
-			server.storeLock.Unlock()
-
-			// Swap the connections for each database.
-			server.connInfo.mut.Lock()
-			defer server.connInfo.mut.Unlock()
-			for connection, info := range server.connInfo.tcpClients {
-				switch info.Database {
-				case database1:
-					server.connInfo.tcpClients[connection] = internal.ConnectionInfo{
-						Id:       info.Id,
-						Name:     info.Name,
-						Protocol: info.Protocol,
-						Database: database2,
-					}
-				case database2:
-					server.connInfo.tcpClients[connection] = internal.ConnectionInfo{
-						Id:       info.Id,
-						Name:     info.Name,
-						Protocol: info.Protocol,
-						Database: database1,
-					}
-				}
-			}
 		},
 	}
 }
