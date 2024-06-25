@@ -484,10 +484,10 @@ func handleIncrBy(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 
-	// Parse decrement value
-	decrValue, err := strconv.ParseInt(params.Command[2], 10, 64)
+	// Parse increment value
+	incrValue, err := strconv.ParseInt(params.Command[2], 10, 64)
 	if err != nil {
-		return nil, errors.New("decrement value is not an integer or out of range")
+		return nil, errors.New("increment value is not an integer or out of range")
 	}
 
 	key := keys.WriteKeys[0]
@@ -499,8 +499,8 @@ func handleIncrBy(params internal.HandlerFuncParams) ([]byte, error) {
 
 	// Check if the key exists and its current value
 	if !ok || currentValue == nil {
-		// If key does not exist, initialize it with the decrement value
-		newValue = decrValue * -1
+		// If key does not exist, initialize it with the increment value
+		newValue = incrValue
 	} else {
 		// Use type switch to handle different types of currentValue
 		switch v := currentValue.(type) {
@@ -517,7 +517,7 @@ func handleIncrBy(params internal.HandlerFuncParams) ([]byte, error) {
 			fmt.Printf("unexpected type for currentValue: %T\n", currentValue)
 			return nil, errors.New("unexpected type for currentValue") // Handle unexpected types
 		}
-		newValue = currentValueInt - decrValue // decrement the value by the specified amount
+		newValue = currentValueInt + incrValue // Increment the value by the specified amount
 	}
 
 	// Set the new incremented value
