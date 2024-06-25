@@ -467,12 +467,12 @@ func (server *EchoVault) Decr(key string) (int, error) {
 // If the value stored at the key is not an integer, an error is returned.
 //
 // Parameters:
-// - `key` (string): The key whose value is to be incremented.
-// - `increment` (int): The amount by which to increment the key's value. This can be a positive or negative integer.
 //
-// Returns:
-// - (int): The new value of the key after the increment operation.
-
+// `key` - string -  The key whose value is to be incremented.
+//
+// `increment` - int -  The amount by which to increment the key's value. This can be a positive or negative integer.
+//
+// Returns: The new value of the key after the increment operation as an integer.
 func (server *EchoVault) IncrBy(key string, value string) (int, error) {
 	// Construct the command
 	cmd := []string{"INCRBY", key, value}
