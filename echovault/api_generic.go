@@ -507,3 +507,25 @@ func (server *EchoVault) DecrBy(key string, value string) (int, error) {
 	// Parse the integer response
 	return internal.ParseIntegerResponse(b)
 }
+
+// Rename renames the key from oldKey to newKey.
+// If the oldKey does not exist, an error is returned.
+//
+// Parameters:
+//
+// `oldKey` - string - The key to be renamed.
+//
+// `newKey` - string - The new name for the key.
+//
+// Returns: A string indicating the success of the operation.
+func (server *EchoVault) Rename(oldKey string, newKey string) (string, error) {
+	// Construct the command
+	cmd := []string{"RENAME", oldKey, newKey}
+	// Execute the command
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return "", err
+	}
+	// Parse the simple string response
+	return internal.ParseStringResponse(b)
+}

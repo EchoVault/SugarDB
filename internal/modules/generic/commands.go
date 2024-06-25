@@ -581,6 +581,35 @@ func handleDecrBy(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", newValue)), nil
 }
 
+func handleRename(params internal.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) != 3 {
+		return nil, errors.New(constants.WrongArgsResponse)
+	}
+
+	oldKey := params.Command[1]
+	newKey := params.Command[2]
+
+	// Get the current value for the old key
+	values := params.GetValues(params.Context, []string{oldKey})
+	oldValue, ok := values[oldKey]
+
+	if !ok || oldValue == nil {
+		return nil, errors.New("no such key")
+	}
+
+	// Set the new key with the old value
+	if err := params.SetValues(params.Context, map[string]interface{}{newKey: oldValue}); err != nil {
+		return nil, err
+	}
+
+	// Delete the old key
+	if err := params.DeleteKey(oldKey); err != nil {
+		return nil, err
+	}
+
+	return []byte("+OK\r\n"), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -778,8 +807,8 @@ This operation is limited to 64 bit signed integers.`,
 			Command:    "incrby",
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
-			Description: `(INCRBY key increment) 
-Increments the number stored at key by increment. If the key does not exist, it is set to 0 before performing the operation. 
+			Description: `(INCRBY key increment)
+Increments the number stored at key by increment. If the key does not exist, it is set to 0 before performing the operation.
 An error is returned if the key contains a value of the wrong type or contains a string that can not be represented as integer.`,
 			Sync:              true,
 			KeyExtractionFunc: incrByKeyFunc,
@@ -789,13 +818,23 @@ An error is returned if the key contains a value of the wrong type or contains a
 			Command:    "decrby",
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
-			Description: `(DECRBY key decrement) 
-The DECRBY command reduces the value stored at the specified key by the specified decrement. 
-If the key does not exist, it is initialized with a value of 0 before performing the operation. 
+			Description: `(DECRBY key decrement)
+The DECRBY command reduces the value stored at the specified key by the specified decrement.
+If the key does not exist, it is initialized with a value of 0 before performing the operation.
 If the key's value is not of the correct type or cannot be represented as an integer, an error is returned.`,
 			Sync:              true,
 			KeyExtractionFunc: decrByKeyFunc,
 			HandlerFunc:       handleDecrBy,
+		},
+		{
+			Command:    "rename",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(RENAME key newkey) 
+Renames key to newkey. If newkey already exists, it is overwritten. If key does not exist, an error is returned.`,
+			Sync:              true,
+			KeyExtractionFunc: renameKeyFunc,
+			HandlerFunc:       handleRename,
 		},
 	}
 }

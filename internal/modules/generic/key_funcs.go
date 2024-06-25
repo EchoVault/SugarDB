@@ -172,3 +172,12 @@ func decrByKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 		WriteKeys: []string{cmd[1]},
 	}, nil
 }
+
+func renameKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 3 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		WriteKeys: cmd[1:3],
+	}, nil
+}
