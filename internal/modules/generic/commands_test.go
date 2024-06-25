@@ -2137,4 +2137,133 @@ func Test_Generic(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Test_HandlerINCRBY", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			key              string
+			increment        string
+			presetValue      interface{}
+			command          []resp.Value
+			expectedResponse int64
+			expectedError    error
+		}{
+			{
+				name:             "1. Increment non-existent key by 4",
+				key:              "IncrByKey1",
+				increment:        "4",
+				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("INCRBY"), resp.StringValue("IncrByKey1"), resp.StringValue("4")},
+				expectedResponse: 4,
+				expectedError:    nil,
+			},
+			{
+				name:             "2. Increment existing key with integer value by 3",
+				key:              "IncrByKey2",
+				increment:        "3",
+				presetValue:      "5",
+				command:          []resp.Value{resp.StringValue("INCRBY"), resp.StringValue("IncrByKey2"), resp.StringValue("3")},
+				expectedResponse: 8,
+				expectedError:    nil,
+			},
+			{
+				name:             "3. Increment existing key with non-integer value by 2",
+				key:              "IncrByKey3",
+				increment:        "2",
+				presetValue:      "not_an_int",
+				command:          []resp.Value{resp.StringValue("INCRBY"), resp.StringValue("IncrByKey3"), resp.StringValue("2")},
+				expectedResponse: 0,
+				expectedError:    errors.New("value is not an integer or out of range"),
+			},
+			{
+				name:             "4. Increment existing key with int64 value by 7",
+				key:              "IncrByKey4",
+				increment:        "7",
+				presetValue:      int64(10),
+				command:          []resp.Value{resp.StringValue("INCRBY"), resp.StringValue("IncrByKey4"), resp.StringValue("7")},
+				expectedResponse: 17,
+				expectedError:    nil,
+			},
+			{
+				name:             "5. Command too short",
+				key:              "IncrByKey5",
+				increment:        "5",
+				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("INCRBY"), resp.StringValue("IncrByKey5")},
+				expectedResponse: 0,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:        "6. Command too long",
+				key:         "IncrByKey6",
+				increment:   "5",
+				presetValue: nil,
+				command: []resp.Value{
+					resp.StringValue("INCRBY"),
+					resp.StringValue("IncrByKey6"),
+					resp.StringValue("5"),
+					resp.StringValue("extra_arg"),
+				},
+				expectedResponse: 0,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				if test.presetValue != nil {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(test.key), resp.StringValue(fmt.Sprintf("%v", test.presetValue))}
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+					if !strings.EqualFold(res.String(), "OK") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
+				}
+
+				if err = client.WriteArray(test.command); err != nil {
+					t.Error(err)
+				}
+
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					}
+					return
+				}
+
+				if err != nil {
+					t.Error(err)
+				} else {
+					responseInt, err := strconv.ParseInt(res.String(), 10, 64)
+					if err != nil {
+						t.Errorf("error parsing response to int64: %s", err)
+					}
+					if responseInt != test.expectedResponse {
+						t.Errorf("expected response %d, got %d", test.expectedResponse, responseInt)
+					}
+				}
+			})
+		}
+	})
 }
