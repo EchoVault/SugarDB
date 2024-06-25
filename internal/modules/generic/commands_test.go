@@ -2442,6 +2442,21 @@ func Test_Generic(t *testing.T) {
 				expectedResponse: "OK",
 				expectedError:    nil,
 			},
+			{
+				name:          "4. Command too short",
+				command:       []resp.Value{resp.StringValue("RENAME"), resp.StringValue("key")},
+				expectedError: errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name: "5. Command too long",
+				command: []resp.Value{
+					resp.StringValue("RENAME"),
+					resp.StringValue("key"),
+					resp.StringValue("newkey"),
+					resp.StringValue("extra_arg"),
+				},
+				expectedError: errors.New(constants.WrongArgsResponse),
+			},
 		}
 
 		for _, test := range tests {

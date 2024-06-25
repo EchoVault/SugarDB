@@ -583,7 +583,7 @@ func handleDecrBy(params internal.HandlerFuncParams) ([]byte, error) {
 
 func handleRename(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) != 3 {
-		return nil, errors.New("wrong number of arguments for RENAME")
+		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
 	oldKey := params.Command[1]
@@ -827,10 +827,11 @@ If the key's value is not of the correct type or cannot be represented as an int
 			HandlerFunc:       handleDecrBy,
 		},
 		{
-			Command:           "rename",
-			Module:            constants.GenericModule,
-			Categories:        []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
-			Description:       `(RENAME key newkey) Renames key to newkey. If newkey already exists, it is overwritten. If key does not exist, an error is returned.`,
+			Command:    "rename",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(RENAME key newkey) 
+Renames key to newkey. If newkey already exists, it is overwritten. If key does not exist, an error is returned.`,
 			Sync:              true,
 			KeyExtractionFunc: renameKeyFunc,
 			HandlerFunc:       handleRename,
