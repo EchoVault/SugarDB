@@ -28,6 +28,87 @@ import (
 	"time"
 )
 
+// SwapDBs swaps every TCP client connection from database1 over to database2.
+// It also swaps every TCP client connection from database2 over to database1.
+// This only affects TCP connections, it does not swap the logical database currently
+// being used by the embedded API.
+func (server *EchoVault) SwapDBs(database1, database2 int) {
+	// If the databases are the same, skip the swap.
+	if database1 == database2 {
+		return
+	}
+
+	// If any of the databases does not exist, create them.
+	server.storeLock.Lock()
+	for _, database := range []int{database1, database2} {
+		if server.store[database] == nil {
+			server.createDatabase(database)
+		}
+	}
+	server.storeLock.Unlock()
+
+	// Swap the connections for each database.
+	server.connInfo.mut.Lock()
+	defer server.connInfo.mut.Unlock()
+	for connection, info := range server.connInfo.tcpClients {
+		switch info.Database {
+		case database1:
+			server.connInfo.tcpClients[connection] = internal.ConnectionInfo{
+				Id:       info.Id,
+				Name:     info.Name,
+				Protocol: info.Protocol,
+				Database: database2,
+			}
+		case database2:
+			server.connInfo.tcpClients[connection] = internal.ConnectionInfo{
+				Id:       info.Id,
+				Name:     info.Name,
+				Protocol: info.Protocol,
+				Database: database1,
+			}
+		}
+	}
+}
+
+// Flush flushes all the data from the database at the specified index.
+// When -1 is passed, all the logical databases are cleared.
+func (server *EchoVault) Flush(database int) {
+	server.storeLock.Lock()
+	defer server.storeLock.Unlock()
+
+	server.keysWithExpiry.rwMutex.Lock()
+	defer server.keysWithExpiry.rwMutex.Unlock()
+
+	server.lfuCache.mutex.Lock()
+	defer server.lfuCache.mutex.Unlock()
+
+	server.lruCache.mutex.Lock()
+	defer server.lruCache.mutex.Unlock()
+
+	if database == -1 {
+		for db, _ := range server.store {
+			// Clear db store.
+			clear(server.store[db])
+			// Clear db volatile key tracker.
+			clear(server.keysWithExpiry.keys[db])
+			// Clear db LFU cache.
+			server.lfuCache.cache[db] = eviction.NewCacheLFU()
+			// Clear db LRU cache.
+			server.lruCache.cache[db] = eviction.NewCacheLRU()
+		}
+		return
+	}
+
+	// Clear db store.
+	clear(server.store[database])
+	// Clear db volatile key tracker.
+	clear(server.keysWithExpiry.keys[database])
+	// Clear db LFU cache.
+	server.lfuCache.cache[database] = eviction.NewCacheLFU()
+	// Clear db LRU cache.
+	server.lruCache.cache[database] = eviction.NewCacheLRU()
+}
+
 func (server *EchoVault) keysExist(ctx context.Context, keys []string) map[string]bool {
 	server.storeLock.RLock()
 	defer server.storeLock.RUnlock()
@@ -224,81 +305,6 @@ func (server *EchoVault) createDatabase(database int) {
 	// Create database LRU cache.
 	server.lruCache.mutex.Lock()
 	defer server.lruCache.mutex.Unlock()
-	server.lruCache.cache[database] = eviction.NewCacheLRU()
-}
-
-func (server *EchoVault) SwapDBs(database1, database2 int) {
-	// If the databases are the same, skip the swap.
-	if database1 == database2 {
-		return
-	}
-
-	// If any of the databases does not exist, create them.
-	server.storeLock.Lock()
-	for _, database := range []int{database1, database2} {
-		if server.store[database] == nil {
-			server.createDatabase(database)
-		}
-	}
-	server.storeLock.Unlock()
-
-	// Swap the connections for each database.
-	server.connInfo.mut.Lock()
-	defer server.connInfo.mut.Unlock()
-	for connection, info := range server.connInfo.tcpClients {
-		switch info.Database {
-		case database1:
-			server.connInfo.tcpClients[connection] = internal.ConnectionInfo{
-				Id:       info.Id,
-				Name:     info.Name,
-				Protocol: info.Protocol,
-				Database: database2,
-			}
-		case database2:
-			server.connInfo.tcpClients[connection] = internal.ConnectionInfo{
-				Id:       info.Id,
-				Name:     info.Name,
-				Protocol: info.Protocol,
-				Database: database1,
-			}
-		}
-	}
-}
-
-func (server *EchoVault) Flush(database int) {
-	server.storeLock.Lock()
-	defer server.storeLock.Unlock()
-
-	server.keysWithExpiry.rwMutex.Lock()
-	defer server.keysWithExpiry.rwMutex.Unlock()
-
-	server.lfuCache.mutex.Lock()
-	defer server.lfuCache.mutex.Unlock()
-
-	server.lruCache.mutex.Lock()
-	defer server.lruCache.mutex.Unlock()
-
-	if database == -1 {
-		for db, _ := range server.store {
-			// Clear db store.
-			clear(server.store[db])
-			// Clear db volatile key tracker.
-			clear(server.keysWithExpiry.keys[db])
-			// Clear db LFU cache.
-			server.lfuCache.cache[db] = eviction.NewCacheLFU()
-			// Clear db LRU cache.
-			server.lruCache.cache[db] = eviction.NewCacheLRU()
-		}
-		return
-	}
-
-	// Clear db store.
-	clear(server.store[database])
-	// Clear db volatile key tracker.
-	clear(server.keysWithExpiry.keys[database])
-	// Clear db LFU cache.
-	server.lfuCache.cache[database] = eviction.NewCacheLFU()
-	// Clear db LRU cache.
 	server.lruCache.cache[database] = eviction.NewCacheLRU()
 }
 
