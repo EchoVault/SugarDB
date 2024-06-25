@@ -467,12 +467,12 @@ func (server *EchoVault) Decr(key string) (int, error) {
 // If the value stored at the key is not an integer, an error is returned.
 //
 // Parameters:
-// - `key` (string): The key whose value is to be decremented.
-// - `increment` (int): The amount by which to decrement the key's value. This can be a positive or negative integer.
 //
-// Returns:
-// - (int): The new value of the key after the decrement operation.
-
+// `key` - string - The key whose value is to be decremented.
+//
+// `increment` - int - The amount by which to decrement the key's value. This can be a positive or negative integer.
+//
+// Returns: The new value of the key after the decrement operation as an integer.
 func (server *EchoVault) DecrBy(key string, value string) (int, error) {
 	// Construct the command
 	cmd := []string{"DECRBY", key, value}

@@ -974,11 +974,11 @@ func TestEchoVault_INCR(t *testing.T) {
 			}
 			got, err := server.Incr(tt.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TTL() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("INCR() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("TTL() got = %v, want %v", got, tt.want)
+				t.Errorf("INCR() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1038,11 +1038,11 @@ func TestEchoVault_DECR(t *testing.T) {
 			}
 			got, err := server.Decr(tt.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TTL() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DECR() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("TTL() got = %v, want %v", got, tt.want)
+				t.Errorf("DECR() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1107,11 +1107,11 @@ func TestEchoVault_DECRBY(t *testing.T) {
 			}
 			got, err := server.DecrBy(tt.key, tt.decrement)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("IncrBy() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DecrBy() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("IncrBy() got = %v, want %v", got, tt.want)
+				t.Errorf("DecrBy() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -478,13 +478,8 @@ func handleDecr(params internal.HandlerFuncParams) ([]byte, error) {
 }
 
 func handleDecrBy(params internal.HandlerFuncParams) ([]byte, error) {
-	// Ensure command has the correct number of arguments
-	if len(params.Command) != 3 {
-		return nil, errors.New("wrong number of arguments for DECRBY")
-	}
-
 	// Extract key from command
-	keys, err := decrKeyByFunc(params.Command)
+	keys, err := decrByKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
 	}
@@ -728,12 +723,15 @@ This operation is limited to 64 bit signed integers.`,
 			HandlerFunc:       handleDecr,
 		},
 		{
-			Command:           "decrby",
-			Module:            constants.GenericModule,
-			Categories:        []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
-			Description:       `(DECRBY key decrement) The DECRBY command reduces the value stored at the specified key by the specified decrement. If the key does not exist, it is initialized with a value of 0 before performing the operation. If the key's value is not of the correct type or cannot be represented as an integer, an error is returned.`,
+			Command:    "decrby",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(DECRBY key decrement) 
+The DECRBY command reduces the value stored at the specified key by the specified decrement. 
+If the key does not exist, it is initialized with a value of 0 before performing the operation. 
+If the key's value is not of the correct type or cannot be represented as an integer, an error is returned.`,
 			Sync:              true,
-			KeyExtractionFunc: decrKeyByFunc,
+			KeyExtractionFunc: decrByKeyFunc,
 			HandlerFunc:       handleDecrBy,
 		},
 	}
