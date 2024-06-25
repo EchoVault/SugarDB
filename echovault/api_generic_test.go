@@ -1175,11 +1175,11 @@ func TestEchoVault_DECRBY(t *testing.T) {
 			}
 			got, err := server.DecrBy(tt.key, tt.decrement)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("IncrBy() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DecrBy() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("IncrBy() got = %v, want %v", got, tt.want)
+				t.Errorf("DecrBy() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
