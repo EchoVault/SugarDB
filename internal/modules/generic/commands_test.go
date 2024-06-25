@@ -2195,20 +2195,29 @@ func Test_Generic(t *testing.T) {
 				expectedResponse: 17,
 				expectedError:    nil,
 			},
-			// {
-			// 	name:        "6. Command too long",
-			// 	key:         "IncrByKey6",
-			// 	increment:   "5",
-			// 	presetValue: nil,
-			// 	command: []resp.Value{
-			// 		resp.StringValue("INCRBY"),
-			// 		resp.StringValue("IncrByKey6"),
-			// 		resp.StringValue("5"),
-			// 		resp.StringValue("extra_arg"),
-			// 	},
-			// 	expectedResponse: 0,
-			// 	expectedError:    errors.New("ERR wrong number of arguments for 'incrby' command"),
-			// },
+			{
+				name:             "5. Command too short",
+				key:              "IncrByKey5",
+				increment:        "5",
+				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("INCRBY"), resp.StringValue("IncrByKey5")},
+				expectedResponse: 0,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:        "6. Command too long",
+				key:         "IncrByKey6",
+				increment:   "5",
+				presetValue: nil,
+				command: []resp.Value{
+					resp.StringValue("INCRBY"),
+					resp.StringValue("IncrByKey6"),
+					resp.StringValue("5"),
+					resp.StringValue("extra_arg"),
+				},
+				expectedResponse: 0,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
 		}
 
 		for _, test := range tests {

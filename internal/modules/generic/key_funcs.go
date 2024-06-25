@@ -139,7 +139,7 @@ func expireAtKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 
 func incrKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
-		return internal.KeyExtractionFuncResult{}, errors.New("wrong number of arguments for INCR")
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
 	return internal.KeyExtractionFuncResult{
 		WriteKeys: cmd[1:2],
@@ -148,10 +148,19 @@ func incrKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 
 func decrKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
-		return internal.KeyExtractionFuncResult{}, errors.New("wrong number of arguments for INCR")
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
 	return internal.KeyExtractionFuncResult{
 		WriteKeys: cmd[1:2],
+	}, nil
+}
+
+func incrByKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 3 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		WriteKeys: []string{cmd[1]},
 	}, nil
 }
 
