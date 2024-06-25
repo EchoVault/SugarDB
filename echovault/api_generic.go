@@ -499,13 +499,11 @@ func (server *EchoVault) IncrBy(key string, value string) (int, error) {
 func (server *EchoVault) DecrBy(key string, value string) (int, error) {
 	// Construct the command
 	cmd := []string{"DECRBY", key, value}
-
 	// Execute the command
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return 0, err
 	}
-
 	// Parse the integer response
 	return internal.ParseIntegerResponse(b)
 }

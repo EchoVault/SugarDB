@@ -1184,3 +1184,72 @@ func TestEchoVault_DECRBY(t *testing.T) {
 		})
 	}
 }
+
+func TestEchoVault_INCRBY(t *testing.T) {
+	server := createEchoVault()
+
+	tests := []struct {
+		name         string
+		key          string
+		increment    string
+		presetValues map[string]internal.KeyData
+		want         int
+		wantErr      bool
+	}{
+		{
+			name:         "1. Increment non-existent key by 4",
+			key:          "IncrByKey1",
+			increment:    "4",
+			presetValues: nil,
+			want:         4,
+			wantErr:      false,
+		},
+		{
+			name:      "2. Increment existing key with integer value by 3",
+			key:       "IncrByKey2",
+			increment: "3",
+			presetValues: map[string]internal.KeyData{
+				"IncrByKey2": {Value: "5"},
+			},
+			want:    8,
+			wantErr: false,
+		},
+		{
+			name:      "3. Increment existing key with non-integer value by 2",
+			key:       "IncrByKey3",
+			increment: "2",
+			presetValues: map[string]internal.KeyData{
+				"IncrByKey3": {Value: "not_an_int"},
+			},
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:      "4. Increment existing key with int64 value by 7",
+			key:       "IncrByKey4",
+			increment: "7",
+			presetValues: map[string]internal.KeyData{
+				"IncrByKey4": {Value: int64(10)},
+			},
+			want:    17,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValues != nil {
+				for k, d := range tt.presetValues {
+					presetKeyData(server, context.Background(), k, d)
+				}
+			}
+			got, err := server.IncrBy(tt.key, tt.increment)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("IncrBy() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("IncrBy() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
