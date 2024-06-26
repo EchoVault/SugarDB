@@ -41,7 +41,7 @@ func getHelloOptions(cmd []string, options helloOptions) (helloOptions, error) {
 	}
 }
 
-func buildHelloResponse(serverInfo internal.ServerInfo, connectionInfo internal.ConnectionInfo) []byte {
+func BuildHelloResponse(serverInfo internal.ServerInfo, connectionInfo internal.ConnectionInfo) []byte {
 	var res []byte
 
 	if connectionInfo.Protocol == 2 {

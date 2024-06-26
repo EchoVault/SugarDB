@@ -326,7 +326,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 	}
 
 	// Skip certain commands from authorization
-	if slices.Contains([]string{"ping", "echo"}, strings.ToLower(comm)) {
+	if slices.Contains([]string{"ping", "echo", "hello"}, strings.ToLower(comm)) {
 		return nil
 	}
 
@@ -421,7 +421,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 		}
 
 		// 8. Check if readKeys are in IncludedReadKeys
-		if !slices.ContainsFunc(readKeys, func(key string) bool {
+		if len(readKeys) > 0 && !slices.ContainsFunc(readKeys, func(key string) bool {
 			return slices.ContainsFunc(connection.User.IncludedReadKeys, func(readKeyGlob string) bool {
 				if acl.GlobPatterns[readKeyGlob].Match(key) {
 					return true
@@ -433,12 +433,12 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 			})
 		}) {
 			if len(notAllowed) > 0 {
-				return fmt.Errorf("not authorised to access the following keys: %+v", notAllowed)
+				return fmt.Errorf("not authorised to access the following read keys: %+v", notAllowed)
 			}
 		}
 
 		// 9. Check if write keys are in IncludedWriteKeys
-		if !slices.ContainsFunc(writeKeys, func(key string) bool {
+		if len(writeKeys) > 0 && !slices.ContainsFunc(writeKeys, func(key string) bool {
 			return slices.ContainsFunc(connection.User.IncludedWriteKeys, func(writeKeyGlob string) bool {
 				if acl.GlobPatterns[writeKeyGlob].Match(key) {
 					return true
@@ -449,7 +449,7 @@ func (acl *ACL) AuthorizeConnection(conn *net.Conn, cmd []string, command intern
 				return false
 			})
 		}) {
-			return fmt.Errorf("not authorised to access the following keys: %+v", notAllowed)
+			return fmt.Errorf("not authorised to access the following write keys: %+v", notAllowed)
 		}
 	}
 

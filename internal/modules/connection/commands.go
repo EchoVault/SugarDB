@@ -68,7 +68,7 @@ func handleHello(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) == 1 {
 		serverInfo := params.GetServerInfo()
 		connectionInfo := params.GetConnectionInfo(params.Connection)
-		return buildHelloResponse(serverInfo, connectionInfo), nil
+		return BuildHelloResponse(serverInfo, connectionInfo), nil
 	}
 
 	options, err := getHelloOptions(
@@ -125,7 +125,7 @@ func handleHello(params internal.HandlerFuncParams) ([]byte, error) {
 	// Get the new connection details and server info to return to the client.
 	serverInfo := params.GetServerInfo()
 	connectionInfo = params.GetConnectionInfo(params.Connection)
-	return buildHelloResponse(serverInfo, connectionInfo), nil
+	return BuildHelloResponse(serverInfo, connectionInfo), nil
 }
 
 func handleSelect(params internal.HandlerFuncParams) ([]byte, error) {
