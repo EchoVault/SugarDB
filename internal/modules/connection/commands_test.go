@@ -565,7 +565,6 @@ func Test_Connection(t *testing.T) {
 
 	t.Run("Test_HandleSelect", func(t *testing.T) {
 		t.Parallel()
-
 		tests := []struct {
 			name       string
 			database   int
