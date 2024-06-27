@@ -308,6 +308,7 @@ github.com/echovault/echovault/internal/aof/log/store.go:193.2,193.47 1 0
 github.com/echovault/echovault/internal/aof/log/store.go:193.47,195.3 1 0
 github.com/echovault/echovault/internal/aof/log/store.go:196.2,196.12 1 0
 github.com/echovault/echovault/internal/aof/log/store.go:199.41,203.2 3 1
+
 github.com/echovault/echovault/internal/clock/clock.go:14.23,16.43 1 1
 github.com/echovault/echovault/internal/clock/clock.go:16.43,18.3 1 1
 github.com/echovault/echovault/internal/clock/clock.go:19.2,19.20 1 0
@@ -538,6 +539,7 @@ github.com/echovault/echovault/internal/aof/engine.go:196.55,198.3 1 0
 github.com/echovault/echovault/internal/aof/engine.go:199.2,199.53 1 1
 github.com/echovault/echovault/internal/aof/engine.go:199.53,201.3 1 0
 github.com/echovault/echovault/internal/aof/engine.go:202.2,202.12 1 1
+
 github.com/echovault/echovault/internal/clock/clock.go:14.23,16.43 1 1
 github.com/echovault/echovault/internal/clock/clock.go:16.43,18.3 1 1
 github.com/echovault/echovault/internal/clock/clock.go:19.2,19.20 1 0
@@ -1009,6 +1011,7 @@ github.com/echovault/echovault/internal/config/config.go:254.2,256.45 2 0
 github.com/echovault/echovault/internal/config/config.go:256.45,258.3 1 0
 github.com/echovault/echovault/internal/config/config.go:260.2,260.18 1 0
 github.com/echovault/echovault/internal/config/default.go:9.29,42.2 3 0
+
 github.com/echovault/echovault/internal/eviction/lfu.go:35.29,42.2 3 1
 github.com/echovault/echovault/internal/eviction/lfu.go:44.34,46.2 1 1
 github.com/echovault/echovault/internal/eviction/lfu.go:48.44,50.54 1 1
@@ -1043,6 +1046,7 @@ github.com/echovault/echovault/internal/eviction/lru.go:92.73,94.3 1 0
 github.com/echovault/echovault/internal/eviction/lru.go:95.2,95.19 1 0
 github.com/echovault/echovault/internal/eviction/lru.go:95.19,97.3 1 0
 github.com/echovault/echovault/internal/eviction/lru.go:100.50,103.2 2 1
+
 github.com/echovault/echovault/internal/utils.go:41.38,45.16 2 0
 github.com/echovault/echovault/internal/utils.go:45.16,47.3 1 0
 github.com/echovault/echovault/internal/utils.go:49.2,49.15 1 0
@@ -1819,6 +1823,7 @@ github.com/echovault/echovault/internal/modules/list/key_funcs.go:115.2,119.8 1 
 github.com/echovault/echovault/internal/modules/list/key_funcs.go:122.75,123.19 1 1
 github.com/echovault/echovault/internal/modules/list/key_funcs.go:123.19,125.3 1 1
 github.com/echovault/echovault/internal/modules/list/key_funcs.go:126.2,130.8 1 1
+
 github.com/echovault/echovault/internal/raft/fsm.go:48.36,52.2 1 0
 github.com/echovault/echovault/internal/raft/fsm.go:55.50,56.18 1 0
 github.com/echovault/echovault/internal/raft/fsm.go:57.10,57.10 0 0
@@ -4160,6 +4165,7 @@ github.com/echovault/echovault/internal/modules/set/commands.go:159.70,161.16 2 
 github.com/echovault/echovault/internal/modules/set/commands.go:161.16,163.3 1 0
 github.com/echovault/echovault/internal/modules/set/commands.go:165.2,169.37 3 1
 github.com/echovault/echovault/internal/modules/set/commands.go:169.37,170.14 1 1
+
 github.com/echovault/echovault/internal/modules/set/commands.go:170.14,172.4 1 1
 github.com/echovault/echovault/internal/modules/set/commands.go:173.3,174.10 2 1
 github.com/echovault/echovault/internal/modules/set/commands.go:174.10,177.4 1 1
@@ -4405,6 +4411,7 @@ github.com/echovault/echovault/internal/modules/set/set.go:184.31,185.19 1 1
 github.com/echovault/echovault/internal/modules/set/set.go:186.9,187.17 1 1
 github.com/echovault/echovault/internal/modules/set/set.go:188.9,191.15 3 1
 github.com/echovault/echovault/internal/modules/set/set.go:192.10,195.28 3 1
+
 github.com/echovault/echovault/internal/raft/fsm.go:48.36,52.2 1 0
 github.com/echovault/echovault/internal/raft/fsm.go:55.50,56.18 1 0
 github.com/echovault/echovault/internal/raft/fsm.go:57.10,57.10 0 0
@@ -5545,6 +5552,7 @@ github.com/echovault/echovault/internal/modules/sorted_set/utils.go:162.3,162.13
 github.com/echovault/echovault/internal/modules/sorted_set/utils.go:163.12,164.16 1 1
 github.com/echovault/echovault/internal/modules/sorted_set/utils.go:164.16,166.4 1 1
 github.com/echovault/echovault/internal/modules/sorted_set/utils.go:167.3,167.13 1 1
+
 github.com/echovault/echovault/internal/raft/fsm.go:48.36,52.2 1 0
 github.com/echovault/echovault/internal/raft/fsm.go:55.50,56.18 1 0
 github.com/echovault/echovault/internal/raft/fsm.go:57.10,57.10 0 0

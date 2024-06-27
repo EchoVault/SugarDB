@@ -154,16 +154,16 @@ func handleSwapDB(params internal.HandlerFuncParams) ([]byte, error) {
 
 	database1, err := strconv.Atoi(params.Command[1])
 	if err != nil {
-		return nil, err
+		return nil, errors.New("both database indices must be integers")
 	}
 
 	database2, err := strconv.Atoi(params.Command[2])
 	if err != nil {
-		return nil, err
+		return nil, errors.New("both database indices must be integers")
 	}
 
 	if database1 < 0 || database2 < 0 {
-		return nil, errors.New("database must be >= 0")
+		return nil, errors.New("database indices must be >= 0")
 	}
 
 	params.SwapDBs(database1, database2)

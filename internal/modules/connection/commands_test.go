@@ -714,4 +714,287 @@ func Test_Connection(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Test_HandleSwapDBs", func(t *testing.T) {
+		t.Parallel()
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		mockServer, err := setUpServer(port, false, "")
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		go func() {
+			mockServer.Start()
+		}()
+		t.Cleanup(func() {
+			mockServer.ShutDown()
+		})
+
+		tests := []struct {
+			name         string
+			presetValues map[int]map[string]string
+			database0    string
+			database1    string
+			getCommand   []resp.Value
+			swapCommand  []resp.Value
+			want0        []resp.Value
+			want1        []resp.Value
+			wantErr      error
+		}{
+			{
+				name: "1. Successfully swap databases",
+				presetValues: map[int]map[string]string{
+					0: {"key1": "value-01", "key2": "value-02", "key3": "value-03", "key4": "value-04", "key5": "value-05"},
+					1: {"key1": "value-11", "key2": "value-12", "key3": "value-13", "key4": "value-14", "key5": "value-15"},
+				},
+				database0: "0",
+				database1: "1",
+				getCommand: []resp.Value{
+					resp.StringValue("MGET"),
+					resp.StringValue("key1"), resp.StringValue("key2"), resp.StringValue("key3"),
+					resp.StringValue("key4"), resp.StringValue("key5"),
+				},
+				swapCommand: []resp.Value{
+					resp.StringValue("SWAPDB"), resp.StringValue("0"), resp.StringValue("1"),
+				},
+				want0: []resp.Value{
+					resp.StringValue("value-01"), resp.StringValue("value-02"), resp.StringValue("value-03"),
+					resp.StringValue("value-04"), resp.StringValue("value-05"),
+				},
+				want1: []resp.Value{
+					resp.StringValue("value-11"), resp.StringValue("value-12"), resp.StringValue("value-13"),
+					resp.StringValue("value-14"), resp.StringValue("value-15"),
+				},
+				wantErr: nil,
+			},
+			{
+				name:         "2. First database index is not an integer",
+				presetValues: nil,
+				database0:    "index0",
+				database1:    "1",
+				getCommand:   make([]resp.Value, 0),
+				swapCommand: []resp.Value{
+					resp.StringValue("SWAPDB"), resp.StringValue("index0"), resp.StringValue("1"),
+				},
+				want0:   make([]resp.Value, 0),
+				want1:   make([]resp.Value, 0),
+				wantErr: errors.New("both database indices must be integers"),
+			},
+			{
+				name:         "3. Second database index is not an integer",
+				presetValues: nil,
+				database0:    "0",
+				database1:    "index1",
+				getCommand:   make([]resp.Value, 0),
+				swapCommand: []resp.Value{
+					resp.StringValue("SWAPDB"), resp.StringValue("0"), resp.StringValue("index1"),
+				},
+				want0:   make([]resp.Value, 0),
+				want1:   make([]resp.Value, 0),
+				wantErr: errors.New("both database indices must be integers"),
+			},
+			{
+				name:         "4. First database index is < 0",
+				presetValues: nil,
+				database0:    "-1",
+				database1:    "1",
+				getCommand:   make([]resp.Value, 0),
+				swapCommand: []resp.Value{
+					resp.StringValue("SWAPDB"), resp.StringValue("-1"), resp.StringValue("1"),
+				},
+				want0:   make([]resp.Value, 0),
+				want1:   make([]resp.Value, 0),
+				wantErr: errors.New("database indices must be >= 0"),
+			},
+			{
+				name:         "5. Second database index is < 0",
+				presetValues: nil,
+				database0:    "1",
+				database1:    "-1",
+				getCommand:   make([]resp.Value, 0),
+				swapCommand: []resp.Value{
+					resp.StringValue("SWAPDB"), resp.StringValue("0"), resp.StringValue("-1"),
+				},
+				want0:   make([]resp.Value, 0),
+				want1:   make([]resp.Value, 0),
+				wantErr: errors.New("database indices must be >= 0"),
+			},
+			{
+				name:         "6. Command too short",
+				presetValues: nil,
+				database0:    "-1",
+				database1:    "1",
+				getCommand:   make([]resp.Value, 0),
+				swapCommand:  []resp.Value{resp.StringValue("SWAPDB"), resp.StringValue("0")},
+				want0:        make([]resp.Value, 0),
+				want1:        make([]resp.Value, 0),
+				wantErr:      errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:         "7. Command too long",
+				presetValues: nil,
+				database0:    "-1",
+				database1:    "1",
+				getCommand:   make([]resp.Value, 0),
+				swapCommand: []resp.Value{
+					resp.StringValue("SWAPDB"), resp.StringValue("0"),
+					resp.StringValue("1"), resp.StringValue("2"),
+				},
+				want0:   make([]resp.Value, 0),
+				want1:   make([]resp.Value, 0),
+				wantErr: errors.New(constants.WrongArgsResponse),
+			},
+		}
+
+		for _, test := range tests {
+			// Set values for database 0 and 1.
+			if test.presetValues != nil {
+				for db, data := range test.presetValues {
+					_ = mockServer.SelectDB(db)
+					if _, err = mockServer.MSet(data); err != nil {
+						t.Error(err)
+						return
+					}
+				}
+			}
+
+			// Create TPC connection for database 0
+			conn1, err := internal.GetConnection("localhost", port)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			client1 := resp.NewConn(conn1)
+			if len(test.getCommand) > 0 {
+				// Select database 0 for connection 1
+				if err = client1.WriteArray([]resp.Value{
+					resp.StringValue("SELECT"),
+					resp.StringValue(test.database0),
+				}); err != nil {
+					t.Error(err)
+					return
+				}
+				res, _, err := client1.ReadValue()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if !strings.EqualFold(res.String(), "ok") {
+					t.Errorf("expcted OK response when selecting database, got %s", res.String())
+					return
+				}
+
+				// Check that the connection reads values from database 0
+				if err = client1.WriteArray(test.getCommand); err != nil {
+					t.Error(err)
+					return
+				}
+				res, _, err = client1.ReadValue()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if !reflect.DeepEqual(test.want0, res.Array()) {
+					t.Errorf("expected response %+v, got %+v", test.want0, res.Array())
+				}
+			}
+
+			// Create TCP connection for database 1
+			conn2, err := internal.GetConnection("localhost", port)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			client2 := resp.NewConn(conn2)
+			if len(test.getCommand) > 0 {
+				// Select database 1 for the second connection.
+				if err = client2.WriteArray([]resp.Value{
+					resp.StringValue("SELECT"),
+					resp.StringValue(test.database1),
+				}); err != nil {
+					t.Error(err)
+					return
+				}
+				res, _, err := client2.ReadValue()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if !strings.EqualFold(res.String(), "ok") {
+					t.Errorf("expcted OK response when selecting database, got %s", res.String())
+					return
+				}
+				// Check that the connection reads values from database 1.
+				if err = client2.WriteArray(test.getCommand); err != nil {
+					t.Error(err)
+					return
+				}
+				res, _, err = client2.ReadValue()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if !reflect.DeepEqual(test.want1, res.Array()) {
+					t.Errorf("expected response %+v, got %+v", test.want1, res.Array())
+				}
+			}
+
+			// Run SWAPDB command
+			if err = client1.WriteArray(test.swapCommand); err != nil {
+				t.Error(err)
+				return
+			}
+			res, _, err := client1.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			// If we expect an error check the error.
+			if test.wantErr != nil {
+				if !strings.Contains(res.Error().Error(), test.wantErr.Error()) {
+					t.Errorf("expected error response to contain \"%s\", go \"%s\"",
+						test.wantErr.Error(), res.Error().Error())
+				}
+				continue
+			}
+			// Check if response is OK.
+			if !strings.EqualFold(res.String(), "ok") {
+				t.Errorf("expected OK response from SWAPDB command, got %s", res.String())
+				return
+			}
+
+			// Check that the first connection now reads values from database 1
+			if err = client1.WriteArray(test.getCommand); err != nil {
+				t.Error(err)
+				return
+			}
+			res, _, err = client1.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if !reflect.DeepEqual(test.want1, res.Array()) {
+				t.Errorf("expected response %+v, got %+v", test.want1, res.Array())
+			}
+
+			// Check that the second connection now reads values from database 0
+			if err = client2.WriteArray(test.getCommand); err != nil {
+				t.Error(err)
+				return
+			}
+			res, _, err = client2.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if !reflect.DeepEqual(test.want0, res.Array()) {
+				t.Errorf("expected response %+v, got %+v", test.want0, res.Array())
+			}
+		}
+	})
 }
