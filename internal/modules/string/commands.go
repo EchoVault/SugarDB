@@ -168,7 +168,30 @@ func handleSubStr(params internal.HandlerFuncParams) ([]byte, error) {
 }
 
 func handleAppend(params internal.HandlerFuncParams) ([]byte, error) {
-	return []byte("Hello World"), nil
+	keys, err := appendKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(keys.WriteKeys)[key]
+	value := params.Command[2]
+	if !keyExists {
+		if err = params.SetValues(params.Context, map[string]interface{}{
+			key: internal.AdaptType(value),
+		}); err != nil {
+			return nil, err
+		}
+		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)), nil
+	}
+	currentValue := params.GetValues(params.Context, []string{key})[key]
+	newValue := fmt.Sprintf("%v%s", currentValue, value)
+	if err = params.SetValues(params.Context, map[string]interface{}{
+		key: internal.AdaptType(newValue),
+	}); err != nil {
+		return nil, err
+	}
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(newValue), newValue)), nil
 }
 
 func Commands() []internal.Command {
@@ -209,6 +232,15 @@ Overwrites part of a string value with another by offset. Creates the key if it 
 			Sync:              false,
 			KeyExtractionFunc: subStrKeyFunc,
 			HandlerFunc:       handleSubStr,
+		},
+		{
+			Command:           "append",
+			Module:            constants.StringModule,
+			Categories:        []string{constants.StringCategory, constants.ReadCategory, constants.SlowCategory},
+			Description:       `(APPEND key value) If key already exists and is a string, this command appends the value at the end of the string. If key does not exist it is created and set as an empty string, so APPEND will be similar to [SET] in this special case.`,
+			Sync:              true,
+			KeyExtractionFunc: appendKeyFunc,
+			HandlerFunc:       handleAppend,
 		},
 	}
 }
