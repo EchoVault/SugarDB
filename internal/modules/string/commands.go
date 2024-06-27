@@ -17,6 +17,7 @@ package str
 import (
 	"errors"
 	"fmt"
+
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/constants"
 )
@@ -164,6 +165,10 @@ func handleSubStr(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(str), str)), nil
+}
+
+func handleAppend(params internal.HandlerFuncParams) ([]byte, error) {
+	return []byte("Hello World"), nil
 }
 
 func Commands() []internal.Command {
