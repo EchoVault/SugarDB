@@ -215,8 +215,7 @@ func (server *EchoVault) setValues(ctx context.Context, entries map[string]inter
 			ExpireAt: expireAt,
 		}
 		if !server.isInCluster() {
-			// TODO: Enable this when snapshot engine has support for multiple databases.
-			// server.snapshotEngine.IncrementChangeCount()
+			server.snapshotEngine.IncrementChangeCount()
 		}
 	}
 
@@ -318,6 +317,7 @@ func (server *EchoVault) getState() map[int]map[string]interface{} {
 	}
 	data := make(map[int]map[string]interface{})
 	for db, store := range server.store {
+		data[db] = make(map[string]interface{})
 		for k, v := range store {
 			data[db][k] = v
 		}

@@ -250,34 +250,36 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			ApplyDeleteKey:   echovault.raftApplyDeleteKey,
 		})
 	} else {
-		// TODO: Update snapshot engine to support multiple databases.
 		// Set up standalone snapshot engine
-		// echovault.snapshotEngine = snapshot.NewSnapshotEngine(
-		//	snapshot.WithClock(echovault.clock),
-		//	snapshot.WithDirectory(echovault.config.DataDir),
-		//	snapshot.WithThreshold(echovault.config.SnapShotThreshold),
-		//	snapshot.WithInterval(echovault.config.SnapshotInterval),
-		//	snapshot.WithStartSnapshotFunc(echovault.startSnapshot),
-		//	snapshot.WithFinishSnapshotFunc(echovault.finishSnapshot),
-		//	snapshot.WithSetLatestSnapshotTimeFunc(echovault.setLatestSnapshot),
-		//	snapshot.WithGetLatestSnapshotTimeFunc(echovault.getLatestSnapshotTime),
-		//	snapshot.WithGetStateFunc(func() map[string]internal.KeyData {
-		//		state := make(map[string]internal.KeyData)
-		//		for k, v := range echovault.getState() {
-		//			if data, ok := v.(internal.KeyData); ok {
-		//				state[k] = data
-		//			}
-		//		}
-		//		return state
-		//	}),
-		//	snapshot.WithSetKeyDataFunc(func(key string, data internal.KeyData) {
-		//		ctx := context.Background()
-		//		if err := echovault.setValues(ctx, map[string]interface{}{key: data.Value}); err != nil {
-		//			log.Println(err)
-		//		}
-		//		echovault.setExpiry(ctx, key, data.ExpireAt, false)
-		//	}),
-		// )
+		echovault.snapshotEngine = snapshot.NewSnapshotEngine(
+			snapshot.WithClock(echovault.clock),
+			snapshot.WithDirectory(echovault.config.DataDir),
+			snapshot.WithThreshold(echovault.config.SnapShotThreshold),
+			snapshot.WithInterval(echovault.config.SnapshotInterval),
+			snapshot.WithStartSnapshotFunc(echovault.startSnapshot),
+			snapshot.WithFinishSnapshotFunc(echovault.finishSnapshot),
+			snapshot.WithSetLatestSnapshotTimeFunc(echovault.setLatestSnapshot),
+			snapshot.WithGetLatestSnapshotTimeFunc(echovault.getLatestSnapshotTime),
+			snapshot.WithGetStateFunc(func() map[int]map[string]internal.KeyData {
+				state := make(map[int]map[string]internal.KeyData)
+				for database, data := range echovault.getState() {
+					state[database] = make(map[string]internal.KeyData)
+					for key, value := range data {
+						if keyData, ok := value.(internal.KeyData); ok {
+							state[database][key] = keyData
+						}
+					}
+				}
+				return state
+			}),
+			snapshot.WithSetKeyDataFunc(func(database int, key string, data internal.KeyData) {
+				ctx := context.WithValue(context.Background(), "Database", database)
+				if err := echovault.setValues(ctx, map[string]interface{}{key: data.Value}); err != nil {
+					log.Println(err)
+				}
+				echovault.setExpiry(ctx, key, data.ExpireAt, false)
+			}),
+		)
 
 		// TODO: Update AOF engine to support multiple databases.
 		// Set up standalone AOF engine
