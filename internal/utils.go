@@ -228,7 +228,6 @@ func FilterExpiredKeys(now time.Time, state map[int]map[string]KeyData) map[int]
 			delete(state[database], key)
 		}
 	}
-
 	return state
 }
 

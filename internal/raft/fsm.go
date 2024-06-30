@@ -68,8 +68,8 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 
 		ctx := context.WithValue(context.Background(), internal.ContextServerID("ServerID"), request.ServerID)
 		ctx = context.WithValue(ctx, internal.ContextConnID("ConnectionID"), request.ConnectionID)
-		// TODO: Add protocol version
-		// TODO: Add database index
+		ctx = context.WithValue(ctx, "Protocol", request.Protocol)
+		ctx = context.WithValue(ctx, "Database", request.Database)
 
 		switch strings.ToLower(request.Type) {
 		default:

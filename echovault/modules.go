@@ -102,7 +102,7 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool, embedded bool) ([]byte, error) {
 	// Prepare context before processing the command.
 	server.connInfo.mut.RLock()
-	if embedded {
+	if embedded && !replay {
 		// The call is triggered via the embedded API.
 		// Add embedded connection info to the context of the request.
 		ctx = context.WithValue(ctx, "ConnectionName", server.connInfo.embedded.Name)
@@ -174,8 +174,7 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 		}
 
 		if internal.IsWriteCommand(command, subCommand) && !replay {
-			// TODO: Enable this when AOF engine has support for multiple databases.
-			// go server.aofEngine.QueueCommand(message)
+			server.aofEngine.LogCommand(server.connInfo.tcpClients[conn].Database, message)
 		}
 
 		server.stateMutationInProgress.Store(false)

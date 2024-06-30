@@ -281,41 +281,45 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			}),
 		)
 
-		// TODO: Update AOF engine to support multiple databases.
 		// Set up standalone AOF engine
-		// aofEngine, err := aof.NewAOFEngine(
-		//	aof.WithClock(echovault.clock),
-		//	aof.WithDirectory(echovault.config.DataDir),
-		//	aof.WithStrategy(echovault.config.AOFSyncStrategy),
-		//	aof.WithStartRewriteFunc(echovault.startRewriteAOF),
-		//	aof.WithFinishRewriteFunc(echovault.finishRewriteAOF),
-		//	aof.WithGetStateFunc(func() map[string]internal.KeyData {
-		//		state := make(map[string]internal.KeyData)
-		//		for k, v := range echovault.getState() {
-		//			if data, ok := v.(internal.KeyData); ok {
-		//				state[k] = data
-		//			}
-		//		}
-		//		return state
-		//	}),
-		//	aof.WithSetKeyDataFunc(func(key string, value internal.KeyData) {
-		//		ctx := context.Background()
-		//		if err := echovault.setValues(ctx, map[string]interface{}{key: value.Value}); err != nil {
-		//			log.Println(err)
-		//		}
-		//		echovault.setExpiry(ctx, key, value.ExpireAt, false)
-		//	}),
-		//	aof.WithHandleCommandFunc(func(command []byte) {
-		//		_, err := echovault.handleCommand(context.Background(), command, nil, true, false)
-		//		if err != nil {
-		//			log.Println(err)
-		//		}
-		//	}),
-		// )
-		// if err != nil {
-		//	return nil, err
-		// }
-		// echovault.aofEngine = aofEngine
+		aofEngine, err := aof.NewAOFEngine(
+			aof.WithClock(echovault.clock),
+			aof.WithDirectory(echovault.config.DataDir),
+			aof.WithStrategy(echovault.config.AOFSyncStrategy),
+			aof.WithStartRewriteFunc(echovault.startRewriteAOF),
+			aof.WithFinishRewriteFunc(echovault.finishRewriteAOF),
+			aof.WithGetStateFunc(func() map[int]map[string]internal.KeyData {
+				state := make(map[int]map[string]internal.KeyData)
+				for database, data := range echovault.getState() {
+					state[database] = make(map[string]internal.KeyData)
+					for key, value := range data {
+						if keyData, ok := value.(internal.KeyData); ok {
+							state[database][key] = keyData
+						}
+					}
+				}
+				return state
+			}),
+			aof.WithSetKeyDataFunc(func(database int, key string, value internal.KeyData) {
+				ctx := context.WithValue(context.Background(), "Database", database)
+				if err := echovault.setValues(ctx, map[string]interface{}{key: value.Value}); err != nil {
+					log.Println(err)
+				}
+				echovault.setExpiry(ctx, key, value.ExpireAt, false)
+			}),
+			aof.WithHandleCommandFunc(func(database int, command []byte) {
+				ctx := context.WithValue(context.Background(), "Protocol", 2)
+				ctx = context.WithValue(ctx, "Database", database)
+				_, err := echovault.handleCommand(ctx, command, nil, true, false)
+				if err != nil {
+					log.Println(err)
+				}
+			}),
+		)
+		if err != nil {
+			return nil, err
+		}
+		echovault.aofEngine = aofEngine
 	}
 
 	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
@@ -356,9 +360,8 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		// Initialise raft and memberlist
 		echovault.raft.RaftInit(echovault.context)
 		echovault.memberList.MemberListInit(echovault.context)
-		if echovault.raft.IsRaftLeader() {
-			echovault.initialiseCaches()
-		}
+		// Initialise caches
+		echovault.initialiseCaches()
 	}
 
 	if !echovault.isInCluster() {
