@@ -48,7 +48,7 @@ type Opts struct {
 type MemberList struct {
 	options        Opts
 	broadcastQueue *memberlist.TransmitLimitedQueue
-	noOfNodesMut   sync.Mutex
+	noOfNodesMut   sync.RWMutex
 	noOfNodes      int
 	memberList     *memberlist.Memberlist
 }
@@ -57,7 +57,7 @@ func NewMemberList(opts Opts) *MemberList {
 	return &MemberList{
 		options:        opts,
 		broadcastQueue: new(memberlist.TransmitLimitedQueue),
-		noOfNodesMut:   sync.Mutex{},
+		noOfNodesMut:   sync.RWMutex{},
 		noOfNodes:      0,
 	}
 }
@@ -92,8 +92,8 @@ func (m *MemberList) MemberListInit(ctx context.Context) {
 
 	m.broadcastQueue.RetransmitMult = 1
 	m.broadcastQueue.NumNodes = func() int {
-		m.noOfNodesMut.Lock()
-		defer m.noOfNodesMut.Unlock()
+		m.noOfNodesMut.RLock()
+		defer m.noOfNodesMut.RUnlock()
 		noOfNodes := m.noOfNodes
 		return noOfNodes
 	}
