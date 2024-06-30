@@ -15,9 +15,17 @@
 package snapshot
 
 import (
+	"crypto/md5"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/clock"
+	"io"
+	"io/fs"
 	"log"
+	"os"
+	"path"
 	"sync/atomic"
 	"time"
 )
@@ -148,213 +156,210 @@ func NewSnapshotEngine(options ...func(engine *Engine)) *Engine {
 }
 
 func (engine *Engine) TakeSnapshot() error {
-	// TODO: Update to support multiple databases.
+	engine.startSnapshotFunc()
+	defer engine.finishSnapshotFunc()
 
-	//engine.startSnapshotFunc()
-	//defer engine.finishSnapshotFunc()
-	//
-	//// Extract current time
-	//msec := engine.clock.Now().UnixMilli()
-	//
-	//// Update manifest file to indicate the latest snapshot.
-	//// If manifest file does not exist, create it.
-	//// Manifest object will contain the following information:
-	//// 	1. Hash of the snapshot contents.
-	//// 	2. Unix time of the latest snapshot taken.
-	//// The information above will be used to determine whether a snapshot should be taken.
-	//// If the hash of the current state equals the hash in the manifest file, skip the snapshot.
-	//// Otherwise, take the snapshot and update the latest snapshot timestamp and hash in the manifest file.
-	//
-	//var firstSnapshot bool // Tracks whether the snapshot being attempted is the first one
-	//
-	//dirname := path.Join(engine.directory, "snapshots")
-	//if err := os.MkdirAll(dirname, os.ModePerm); err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	//
-	//// Open manifest file
-	//var mf *os.File
-	//mf, err := os.Open(path.Join(dirname, "manifest.bin"))
-	//if err != nil {
-	//	if errors.Is(err, fs.ErrNotExist) {
-	//		// Create file if it does not exist
-	//		mf, err = os.Create(path.Join(dirname, "manifest.bin"))
-	//		if err != nil {
-	//			log.Println(err)
-	//			return err
-	//		}
-	//		firstSnapshot = true
-	//	} else {
-	//		log.Println(err)
-	//		return err
-	//	}
-	//}
-	//
-	//md, err := io.ReadAll(mf)
-	//if err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	//if err := mf.Close(); err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	//
-	//manifest := new(Manifest)
-	//
-	//if !firstSnapshot {
-	//	if err = json.Unmarshal(md, manifest); err != nil {
-	//		log.Println(err)
-	//		return err
-	//	}
-	//}
-	//
-	//// Get current state
-	//snapshotObject := internal.SnapshotObject{
-	//	State:                      internal.FilterExpiredKeys(engine.clock.Now(), engine.getStateFunc()),
-	//	LatestSnapshotMilliseconds: engine.getLatestSnapshotTimeFunc(),
-	//}
-	//out, err := json.Marshal(snapshotObject)
-	//if err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	//
-	//snapshotHash := md5.Sum(out)
-	//if snapshotHash == manifest.LatestSnapshotHash {
-	//	return errors.New("nothing new to snapshot")
-	//}
-	//
-	//// Update the snapshotObject
-	//snapshotObject.LatestSnapshotMilliseconds = msec
-	//// Marshal the updated snapshotObject
-	//out, err = json.Marshal(snapshotObject)
-	//if err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	//
-	//// os.Create will replace the old manifest file
-	//mf, err = os.Create(path.Join(dirname, "manifest.bin"))
-	//if err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	//
-	//// Write the latest manifest data
-	//manifest = &Manifest{
-	//	LatestSnapshotHash:         md5.Sum(out),
-	//	LatestSnapshotMilliseconds: msec,
-	//}
-	//mo, err := json.Marshal(manifest)
-	//if err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	//if _, err = mf.Write(mo); err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	//if err = mf.Sync(); err != nil {
-	//	log.Println(err)
-	//}
-	//if err = mf.Close(); err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	//
-	//// Create snapshot directory
-	//dirname = path.Join(engine.directory, "snapshots", fmt.Sprintf("%d", msec))
-	//if err := os.MkdirAll(dirname, os.ModePerm); err != nil {
-	//	return err
-	//}
-	//
-	//// Create snapshot file
-	//f, err := os.OpenFile(path.Join(dirname, "state.bin"), os.O_WRONLY|os.O_CREATE, os.ModePerm)
-	//if err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	//defer func() {
-	//	if err := f.Close(); err != nil {
-	//		log.Println(err)
-	//	}
-	//}()
-	//
-	//// Write state to file
-	//if _, err = f.Write(out); err != nil {
-	//	return err
-	//}
-	//if err = f.Sync(); err != nil {
-	//	log.Println(err)
-	//}
-	//
-	//// Set the latest snapshot in unix milliseconds
-	//engine.setLatestSnapshotTimeFunc(msec)
-	//
-	//// Reset the change count
-	//engine.resetChangeCount()
+	// Extract current time
+	msec := engine.clock.Now().UnixMilli()
+
+	// Update manifest file to indicate the latest snapshot.
+	// If manifest file does not exist, create it.
+	// Manifest object will contain the following information:
+	// 	1. Hash of the snapshot contents.
+	// 	2. Unix time of the latest snapshot taken.
+	// The information above will be used to determine whether a snapshot should be taken.
+	// If the hash of the current state equals the hash in the manifest file, skip the snapshot.
+	// Otherwise, take the snapshot and update the latest snapshot timestamp and hash in the manifest file.
+
+	var firstSnapshot bool // Tracks whether the snapshot being attempted is the first one
+
+	dirname := path.Join(engine.directory, "snapshots")
+	if err := os.MkdirAll(dirname, os.ModePerm); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// Open manifest file
+	var mf *os.File
+	mf, err := os.Open(path.Join(dirname, "manifest.bin"))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			// Create file if it does not exist
+			mf, err = os.Create(path.Join(dirname, "manifest.bin"))
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			firstSnapshot = true
+		} else {
+			log.Println(err)
+			return err
+		}
+	}
+
+	md, err := io.ReadAll(mf)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	if err := mf.Close(); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	manifest := new(Manifest)
+
+	if !firstSnapshot {
+		if err = json.Unmarshal(md, manifest); err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
+	// Get current state
+	snapshotObject := internal.SnapshotObject{
+		State:                      internal.FilterExpiredKeys(engine.clock.Now(), engine.getStateFunc()),
+		LatestSnapshotMilliseconds: engine.getLatestSnapshotTimeFunc(),
+	}
+	out, err := json.Marshal(snapshotObject)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	snapshotHash := md5.Sum(out)
+	if snapshotHash == manifest.LatestSnapshotHash {
+		return errors.New("nothing new to snapshot")
+	}
+
+	// Update the snapshotObject
+	snapshotObject.LatestSnapshotMilliseconds = msec
+	// Marshal the updated snapshotObject
+	out, err = json.Marshal(snapshotObject)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// os.Create will replace the old manifest file
+	mf, err = os.Create(path.Join(dirname, "manifest.bin"))
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// Write the latest manifest data
+	manifest = &Manifest{
+		LatestSnapshotHash:         md5.Sum(out),
+		LatestSnapshotMilliseconds: msec,
+	}
+	mo, err := json.Marshal(manifest)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	if _, err = mf.Write(mo); err != nil {
+		log.Println(err)
+		return err
+	}
+	if err = mf.Sync(); err != nil {
+		log.Println(err)
+	}
+	if err = mf.Close(); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// Create snapshot directory
+	dirname = path.Join(engine.directory, "snapshots", fmt.Sprintf("%d", msec))
+	if err := os.MkdirAll(dirname, os.ModePerm); err != nil {
+		return err
+	}
+
+	// Create snapshot file
+	f, err := os.OpenFile(path.Join(dirname, "state.bin"), os.O_WRONLY|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	// Write state to file
+	if _, err = f.Write(out); err != nil {
+		return err
+	}
+	if err = f.Sync(); err != nil {
+		log.Println(err)
+	}
+
+	// Set the latest snapshot in unix milliseconds
+	engine.setLatestSnapshotTimeFunc(msec)
+
+	// Reset the change count
+	engine.resetChangeCount()
 
 	return nil
 }
 
 func (engine *Engine) Restore() error {
-	// TODO: Update to support multiple databases.
+	mf, err := os.Open(path.Join(engine.directory, "snapshots", "manifest.bin"))
+	if err != nil && errors.Is(err, fs.ErrNotExist) {
+		return errors.New("no snapshot manifest, skipping snapshot restore")
+	}
+	if err != nil {
+		return err
+	}
 
-	//mf, err := os.Open(path.Join(engine.directory, "snapshots", "manifest.bin"))
-	//if err != nil && errors.Is(err, fs.ErrNotExist) {
-	//	return errors.New("no snapshot manifest, skipping snapshot restore")
-	//}
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//manifest := new(Manifest)
-	//
-	//md, err := io.ReadAll(mf)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if err = json.Unmarshal(md, manifest); err != nil {
-	//	return err
-	//}
-	//
-	//if manifest.LatestSnapshotMilliseconds == 0 {
-	//	return errors.New("no snapshot to restore")
-	//}
-	//
-	//sf, err := os.Open(path.Join(
-	//	engine.directory,
-	//	"snapshots",
-	//	fmt.Sprintf("%d", manifest.LatestSnapshotMilliseconds),
-	//	"state.bin"))
-	//if err != nil && errors.Is(err, fs.ErrNotExist) {
-	//	return fmt.Errorf("snapshot file %d/state.bin not found, skipping snapshot", manifest.LatestSnapshotMilliseconds)
-	//}
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//sd, err := io.ReadAll(sf)
-	//if err != nil {
-	//	return nil
-	//}
-	//
-	//snapshotObject := new(internal.SnapshotObject)
-	//
-	//if err = json.Unmarshal(sd, snapshotObject); err != nil {
-	//	return err
-	//}
-	//
-	//engine.setLatestSnapshotTimeFunc(snapshotObject.LatestSnapshotMilliseconds)
-	//
-	//for key, data := range internal.FilterExpiredKeys(engine.clock.Now(), snapshotObject.State) {
-	//	engine.setKeyDataFunc(key, data)
-	//}
-	//
-	//log.Println("successfully restored latest snapshot")
+	manifest := new(Manifest)
+
+	md, err := io.ReadAll(mf)
+	if err != nil {
+		return err
+	}
+
+	if err = json.Unmarshal(md, manifest); err != nil {
+		return err
+	}
+
+	if manifest.LatestSnapshotMilliseconds == 0 {
+		return errors.New("no snapshot to restore")
+	}
+
+	sf, err := os.Open(path.Join(
+		engine.directory,
+		"snapshots",
+		fmt.Sprintf("%d", manifest.LatestSnapshotMilliseconds),
+		"state.bin"))
+	if err != nil && errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("snapshot file %d/state.bin not found, skipping snapshot", manifest.LatestSnapshotMilliseconds)
+	}
+	if err != nil {
+		return err
+	}
+
+	sd, err := io.ReadAll(sf)
+	if err != nil {
+		return nil
+	}
+
+	snapshotObject := new(internal.SnapshotObject)
+	if err = json.Unmarshal(sd, snapshotObject); err != nil {
+		return err
+	}
+
+	engine.setLatestSnapshotTimeFunc(snapshotObject.LatestSnapshotMilliseconds)
+
+	for database, data := range internal.FilterExpiredKeys(engine.clock.Now(), snapshotObject.State) {
+		for key, keyData := range data {
+			engine.setKeyDataFunc(database, key, keyData)
+		}
+	}
+
+	log.Println("successfully restored latest snapshot")
 
 	return nil
 }
