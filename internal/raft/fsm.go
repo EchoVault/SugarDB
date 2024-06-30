@@ -162,16 +162,16 @@ func (fsm *FSM) Restore(snapshot io.ReadCloser) error {
 	}
 
 	// Set state
-	ctx := context.Background()
-	for _, data := range internal.FilterExpiredKeys(time.Now(), data.State) {
-		for k, v := range data {
-			// TODO: Set values according to database.
-			if err = fsm.options.SetValues(ctx, map[string]interface{}{k: v.Value}); err != nil {
+	for database, data := range internal.FilterExpiredKeys(time.Now(), data.State) {
+		ctx := context.WithValue(context.Background(), "Database", database)
+		for key, keyData := range data {
+			if err = fsm.options.SetValues(ctx, map[string]interface{}{key: keyData.Value}); err != nil {
 				log.Fatal(err)
 			}
-			fsm.options.SetExpiry(ctx, k, v.ExpireAt, false)
+			fsm.options.SetExpiry(ctx, key, keyData.ExpireAt, false)
 		}
 	}
+
 	// Set latest snapshot milliseconds.
 	fsm.options.SetLatestSnapshotTime(data.LatestSnapshotMilliseconds)
 
