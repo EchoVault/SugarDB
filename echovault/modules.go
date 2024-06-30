@@ -174,7 +174,9 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 		}
 
 		if internal.IsWriteCommand(command, subCommand) && !replay {
+			server.connInfo.mut.RLock()
 			server.aofEngine.LogCommand(server.connInfo.tcpClients[conn].Database, message)
+			server.connInfo.mut.RUnlock()
 		}
 
 		server.stateMutationInProgress.Store(false)
