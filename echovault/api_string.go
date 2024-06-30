@@ -15,8 +15,9 @@
 package echovault
 
 import (
-	"github.com/echovault/echovault/internal"
 	"strconv"
+
+	"github.com/echovault/echovault/internal"
 )
 
 // SetRange replaces a portion of the string at the provided key starting at the offset with a new string.
@@ -75,4 +76,16 @@ func (server *EchoVault) GetRange(key string, start, end int) (string, error) {
 		return "", err
 	}
 	return internal.ParseStringResponse(b)
+}
+
+// Append concatenates the string at the key with the value provided
+// If the key does not exists it functions like a SET command
+//
+// Returns: The lenght of the new concatenated value at key
+//
+// Errors:
+//
+// - "value at key <key> is not a string" - when the value at the keys is not a string.
+func (server *EchoVault) Append(key string, value string) (int, error) {
+
 }
