@@ -223,11 +223,13 @@ Otherwise, the server will return "PONG".`,
 			HandlerFunc: handleEcho,
 		},
 		{
-			Command:     "hello",
-			Module:      constants.ConnectionModule,
-			Categories:  []string{constants.FastCategory, constants.ConnectionCategory},
-			Description: `(HELLO [protover [AUTH username password] [SETNAME clientname]])`,
-			Sync:        false,
+			Command:    "hello",
+			Module:     constants.ConnectionModule,
+			Categories: []string{constants.FastCategory, constants.ConnectionCategory},
+			Description: `(HELLO [protover [AUTH username password] [SETNAME clientname]])
+Switch to a different protocol, optionally authenticating and setting the connection's name, 
+or provide a contextual client report.`,
+			Sync: false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
