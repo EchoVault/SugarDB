@@ -239,7 +239,7 @@ Overwrites part of a string value with another by offset. Creates the key if it 
 		{
 			Command:           "append",
 			Module:            constants.StringModule,
-			Categories:        []string{constants.StringCategory, constants.ReadCategory, constants.SlowCategory},
+			Categories:        []string{constants.StringCategory, constants.WriteCategory, constants.SlowCategory},
 			Description:       `(APPEND key value) If key already exists and is a string, this command appends the value at the end of the string. If key does not exist it is created and set as an empty string, so APPEND will be similar to [SET] in this special case.`,
 			Sync:              true,
 			KeyExtractionFunc: appendKeyFunc,
