@@ -15,10 +15,12 @@
 package echovault
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
 	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/constants"
 )
 
 // SetOptions modifies the behaviour for the Set command
@@ -483,6 +485,15 @@ func (server *EchoVault) IncrBy(key string, value string) (int, error) {
 	}
 	// Parse the integer response
 	return internal.ParseIntegerResponse(b)
+}
+
+func incrByFloatKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 3 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		WriteKeys: []string{cmd[1]},
+	}, nil
 }
 
 // DecrBy decrements the integer value of the specified key by the given increment.

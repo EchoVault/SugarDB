@@ -529,6 +529,64 @@ func handleIncrBy(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", newValue)), nil
 }
 
+func handleIncrByFloat(params internal.HandlerFuncParams) ([]byte, error) {
+	// Extract key from command
+	keys, err := incrByFloatKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse increment value
+	incrValue, err := strconv.ParseFloat(params.Command[2], 64)
+	if err != nil {
+		return nil, errors.New("increment value is not a float or out of range")
+	}
+
+	key := keys.WriteKeys[0]
+	values := params.GetValues(params.Context, []string{key}) // Get the current values for the specified keys
+	currentValue, ok := values[key]                           // Check if the key exists
+
+	var newValue float64
+	var currentValueFloat float64
+
+	// Check if the key exists and its current value
+	if !ok || currentValue == nil {
+		// If key does not exist, initialize it with the increment value
+		newValue = incrValue
+	} else {
+		// Use type switch to handle different types of currentValue
+		switch v := currentValue.(type) {
+		case string:
+			currentValueFloat, err = strconv.ParseFloat(v, 64) // Parse the string to float64
+			if err != nil {
+				currentValueInt, err := strconv.ParseInt(v, 10, 64)
+				if err != nil {
+					return nil, errors.New("value is not a float or integer")
+				}
+				currentValueFloat = float64(currentValueInt)
+			}
+		case float64:
+			currentValueFloat = v // Use float64 value directly
+		case int64:
+			currentValueFloat = float64(v) // Convert int64 to float64
+		case int:
+			currentValueFloat = float64(v) // Convert int to float64
+		default:
+			fmt.Printf("unexpected type for currentValue: %T\n", currentValue)
+			return nil, errors.New("unexpected type for currentValue") // Handle unexpected types
+		}
+		newValue = currentValueFloat + incrValue // Increment the value by the specified amount
+	}
+
+	// Set the new incremented value
+	if err := params.SetValues(params.Context, map[string]interface{}{key: fmt.Sprintf("%g", newValue)}); err != nil {
+		return nil, err
+	}
+
+	// Prepare response with the actual new value in bulk string format
+	response := fmt.Sprintf("$%d\r\n%g\r\n", len(fmt.Sprintf("%g", newValue)), newValue)
+	return []byte(response), nil
+}
 func handleDecrBy(params internal.HandlerFuncParams) ([]byte, error) {
 	// Extract key from command
 	keys, err := decrByKeyFunc(params.Command)
@@ -829,6 +887,18 @@ An error is returned if the key contains a value of the wrong type or contains a
 			KeyExtractionFunc: incrByKeyFunc,
 			HandlerFunc:       handleIncrBy,
 		},
+
+		{
+			Command:    "incrbyfloat",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(INCRBYFLOAT key increment)
+Increments the number stored at key by increment. If the key does not exist, it is set to 0 before performing the operation.
+An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as float.`,
+			Sync:              true,
+			KeyExtractionFunc: incrByFloatKeyFunc,
+			HandlerFunc:       handleIncrByFloat,
+		},
 		{
 			Command:    "decrby",
 			Module:     constants.GenericModule,
@@ -845,7 +915,7 @@ If the key's value is not of the correct type or cannot be represented as an int
 			Command:    "rename",
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
-			Description: `(RENAME key newkey) 
+			Description: `(RENAME key newkey)
 Renames key to newkey. If newkey already exists, it is overwritten. If key does not exist, an error is returned.`,
 			Sync:              true,
 			KeyExtractionFunc: renameKeyFunc,
@@ -878,7 +948,7 @@ Renames key to newkey. If newkey already exists, it is overwritten. If key does 
 				constants.SlowCategory,
 				constants.DangerousCategory,
 			},
-			Description: `(FLUSHDB) 
+			Description: `(FLUSHDB)
 Delete all the keys in the currently selected database. This command is always synchronous.`,
 			Sync: true,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {

@@ -164,6 +164,15 @@ func incrByKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	}, nil
 }
 
+func incrByFloatKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 3 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		WriteKeys: []string{cmd[1]},
+	}, nil
+}
+
 func decrByKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 3 {
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
