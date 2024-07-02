@@ -16,14 +16,15 @@ package str_test
 
 import (
 	"errors"
+	"strconv"
+	"strings"
+	"testing"
+
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
-	"strconv"
-	"strings"
-	"testing"
 )
 
 func Test_String(t *testing.T) {
@@ -446,6 +447,108 @@ func Test_String(t *testing.T) {
 
 				if res.String() != test.expectedResponse {
 					t.Errorf("expected response \"%s\", got \"%s\"", test.expectedResponse, res.String())
+				}
+			})
+		}
+	})
+
+	t.Run("Test_HandleAppend", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			key              string
+			presetValue      interface{}
+			command          []string
+			expectedResponse int
+			expectedError    error
+		}{
+			{
+				name:             "Test APPEND with no preset value",
+				key:              "AppendKey1",
+				command:          []string{"APPEND", "AppendKey1", "Hello"},
+				expectedResponse: 5,
+				expectedError:    nil,
+			},
+			{
+				name:             "Test APPEND with preset value",
+				key:              "AppendKey2",
+				presetValue:      "Hello ",
+				command:          []string{"APPEND", "AppendKey2", "World"},
+				expectedResponse: 11,
+				expectedError:    nil,
+			},
+			{
+				name:             "Test APPEND with integer preset value",
+				key:              "AppendKey4",
+				presetValue:      10,
+				command:          []string{"APPEND", "AppendKey4", "World"},
+				expectedResponse: 0,
+				expectedError:    errors.New("Value at key AppendKey4 is not a string"),
+			},
+			{
+				name:          "Command too short",
+				command:       []string{"APPEND", "AppendKey5"},
+				expectedError: errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:          "Command too long",
+				command:       []string{"APPEND", "AppendKey5", "new value", "extra value"},
+				expectedError: errors.New(constants.WrongArgsResponse),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				if test.presetValue != "" {
+					if err = client.WriteArray([]resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(test.key),
+						resp.AnyValue(test.presetValue),
+					}); err != nil {
+						t.Error(err)
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
+				}
+
+				command := make([]resp.Value, len(test.command))
+				for i, c := range test.command {
+					command[i] = resp.StringValue(c)
+				}
+
+				if err = client.WriteArray(command); err != nil {
+					t.Error(err)
+				}
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					}
+					return
+				}
+
+				if res.Integer() != test.expectedResponse {
+					t.Errorf("expected response \"%d\", got \"%d\"", test.expectedResponse, res.Integer())
 				}
 			})
 		}

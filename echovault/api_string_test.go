@@ -311,3 +311,57 @@ func TestEchoVault_STRLEN(t *testing.T) {
 		})
 	}
 }
+
+func TestEchoVault_APPEND(t *testing.T) {
+	server := createEchoVault()
+	tests := []struct {
+		name        string
+		presetValue interface{}
+		key         string
+		value       string
+		want        int
+		wantErr     bool
+	}{
+		{
+			name:    "Test APPEND with no preset value",
+			key:     "key1",
+			value:   "Hello ",
+			want:    6,
+			wantErr: false,
+		},
+		{
+			name:        "Test APPEND with preset value",
+			presetValue: "Hello ",
+			key:         "key2",
+			value:       "World",
+			want:        11,
+			wantErr:     false,
+		},
+		{
+			name:        "Test APPEND with integer preset value",
+			key:         "key3",
+			presetValue: 10,
+			value:       "Hello ",
+			wantErr:     true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValue != nil {
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			got, err := server.Append(tt.key, tt.value)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("APPEND() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("APPEND() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

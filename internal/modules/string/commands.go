@@ -17,6 +17,7 @@ package str
 import (
 	"errors"
 	"fmt"
+
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/constants"
 )
@@ -166,6 +167,36 @@ func handleSubStr(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(str), str)), nil
 }
 
+func handleAppend(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := appendKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys.WriteKeys[0]
+	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
+	value := params.Command[2]
+	if !keyExists {
+		if err = params.SetValues(params.Context, map[string]interface{}{
+			key: internal.AdaptType(value),
+		}); err != nil {
+			return nil, err
+		}
+		return []byte(fmt.Sprintf(":%d\r\n", len(value))), nil
+	}
+	currentValue, ok := params.GetValues(params.Context, []string{key})[key].(string)
+	if !ok {
+		return nil, fmt.Errorf("Value at key %s is not a string", key)
+	}
+	newValue := fmt.Sprintf("%v%s", currentValue, value)
+	if err = params.SetValues(params.Context, map[string]interface{}{
+		key: internal.AdaptType(newValue),
+	}); err != nil {
+		return nil, err
+	}
+	return []byte(fmt.Sprintf(":%d\r\n", len(newValue))), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -204,6 +235,15 @@ Overwrites part of a string value with another by offset. Creates the key if it 
 			Sync:              false,
 			KeyExtractionFunc: subStrKeyFunc,
 			HandlerFunc:       handleSubStr,
+		},
+		{
+			Command:           "append",
+			Module:            constants.StringModule,
+			Categories:        []string{constants.StringCategory, constants.WriteCategory, constants.SlowCategory},
+			Description:       `(APPEND key value) If key already exists and is a string, this command appends the value at the end of the string. If key does not exist it is created and set as an empty string, so APPEND will be similar to [SET] in this special case.`,
+			Sync:              true,
+			KeyExtractionFunc: appendKeyFunc,
+			HandlerFunc:       handleAppend,
 		},
 	}
 }
