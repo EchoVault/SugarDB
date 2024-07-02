@@ -311,3 +311,43 @@ func TestEchoVault_STRLEN(t *testing.T) {
 		})
 	}
 }
+
+func TestEchoVault_APPEND(t *testing.T) {
+	server := createEchoVault()
+	tests := []struct {
+		name        string
+		presetValue interface{}
+		key         string
+		value       string
+		want        int
+		wantErr     bool
+	}{
+		{
+			name:        "Return the correct string length for appended value",
+			presetValue: "Hello ",
+			key:         "key1",
+			value:       "World",
+			want:        11,
+			wantErr:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValue != nil {
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			got, err := server.Append(tt.key, tt.value)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("APPEND() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("APPEND() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

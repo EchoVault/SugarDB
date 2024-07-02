@@ -87,5 +87,9 @@ func (server *EchoVault) GetRange(key string, start, end int) (string, error) {
 //
 // - "value at key <key> is not a string" - when the value at the keys is not a string.
 func (server *EchoVault) Append(key string, value string) (int, error) {
-
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"APPEND", key, value}), nil, false, true)
+	if err != nil {
+		return 0, err
+	}
+	return internal.ParseIntegerResponse(b)
 }
