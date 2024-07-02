@@ -323,12 +323,26 @@ func TestEchoVault_APPEND(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Return the correct string length for appended value",
+			name:    "Test APPEND with no preset value",
+			key:     "key1",
+			value:   "Hello ",
+			want:    6,
+			wantErr: false,
+		},
+		{
+			name:        "Test APPEND with preset value",
 			presetValue: "Hello ",
-			key:         "key1",
+			key:         "key2",
 			value:       "World",
 			want:        11,
 			wantErr:     false,
+		},
+		{
+			name:        "Test APPEND with integer preset value",
+			key:         "key3",
+			presetValue: 10,
+			value:       "Hello ",
+			wantErr:     true,
 		},
 	}
 	for _, tt := range tests {
