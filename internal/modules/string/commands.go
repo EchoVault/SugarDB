@@ -182,16 +182,19 @@ func handleAppend(params internal.HandlerFuncParams) ([]byte, error) {
 		}); err != nil {
 			return nil, err
 		}
-		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)), nil
+		return []byte(fmt.Sprintf(":%d\r\n", len(value))), nil
 	}
-	currentValue := params.GetValues(params.Context, []string{key})[key]
+	currentValue, ok := params.GetValues(params.Context, []string{key})[key].(string)
+	if !ok {
+		return nil, fmt.Errorf("Value at key %s is not a string", key)
+	}
 	newValue := fmt.Sprintf("%v%s", currentValue, value)
 	if err = params.SetValues(params.Context, map[string]interface{}{
 		key: internal.AdaptType(newValue),
 	}); err != nil {
 		return nil, err
 	}
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(newValue), newValue)), nil
+	return []byte(fmt.Sprintf(":%d\r\n", len(newValue))), nil
 }
 
 func Commands() []internal.Command {
