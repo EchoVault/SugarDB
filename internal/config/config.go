@@ -224,7 +224,7 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 	}
 
 	if len(*config) > 0 {
-		// Override configurations from file
+		// Override configurations from file.
 		if f, err := os.Open(*config); err != nil {
 			panic(err)
 		} else {
@@ -250,11 +250,11 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		}
 	}
 
-	// If requirePass is set to true, then password must be provided as well
+	// If requirePass is set to true, then password must be provided as well.
 	var err error = nil
 
 	if conf.RequirePass && conf.Password == "" {
-		err = errors.New("password cannot be empty if requirePass is generic to true")
+		err = errors.New("password cannot be empty if requirePass is true")
 	}
 
 	return conf, err
