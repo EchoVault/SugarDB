@@ -174,7 +174,7 @@ func handleAppend(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	key := keys.WriteKeys[0]
-	keyExists := params.KeysExist(keys.WriteKeys)[key]
+	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
 	value := params.Command[2]
 	if !keyExists {
 		if err = params.SetValues(params.Context, map[string]interface{}{
