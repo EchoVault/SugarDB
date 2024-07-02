@@ -172,5 +172,11 @@ func (store *Store) Restore() error {
 func (store *Store) Close() error {
 	store.mut.Lock()
 	defer store.mut.Unlock()
-	return store.rw.Close()
+	if store.rw == nil {
+		return nil
+	}
+	if err := store.rw.Close(); err != nil {
+		return err
+	}
+	return nil
 }

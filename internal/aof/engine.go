@@ -189,3 +189,12 @@ func (engine *Engine) Restore() error {
 	}
 	return nil
 }
+
+func (engine *Engine) Close() {
+	if err := engine.preambleStore.Close(); err != nil {
+		log.Printf("close preamble store error: %+v\n", engine)
+	}
+	if err := engine.appendStore.Close(); err != nil {
+		log.Printf("close append store error: %+v\n", engine)
+	}
+}

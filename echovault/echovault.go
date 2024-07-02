@@ -322,7 +322,7 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		echovault.aofEngine = aofEngine
 	}
 
-	// If eviction policy is not noeviction, start a goroutine to evict keys every 100 milliseconds.
+	// If eviction policy is not noeviction, start a goroutine to evict keys at the configured interval.
 	if echovault.config.EvictionPolicy != constants.NoEviction {
 		go func() {
 			ticker := time.NewTicker(echovault.config.EvictionInterval)
@@ -638,6 +638,9 @@ func (server *EchoVault) ShutDown() {
 		if err := server.listener.Load().(net.Listener).Close(); err != nil {
 			log.Printf("listener close: %v\n", err)
 		}
+	}
+	if !server.isInCluster() {
+		server.aofEngine.Close()
 	}
 	if server.isInCluster() {
 		server.raft.RaftShutdown()

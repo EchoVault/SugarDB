@@ -313,6 +313,11 @@ func (engine *Engine) Restore() error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err := mf.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	manifest := new(Manifest)
 
@@ -340,6 +345,11 @@ func (engine *Engine) Restore() error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err := sf.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	sd, err := io.ReadAll(sf)
 	if err != nil {

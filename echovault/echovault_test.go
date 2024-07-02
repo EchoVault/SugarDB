@@ -24,6 +24,7 @@ import (
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
+	"github.com/go-test/deep"
 	"github.com/tidwall/resp"
 	"io"
 	"math"
@@ -591,6 +592,65 @@ func Test_Cluster(t *testing.T) {
 			t.Errorf("expected response to contain \"%s\", got \"%s\"", expected, res.Error().Error())
 		}
 	})
+
+	t.Run("Test_SnapshotRestore", func(t *testing.T) {
+		// TODO: Test snapshot creation and restoration on the cluster.
+	})
+
+	t.Run("Test_EvictExpiredTTL", func(t *testing.T) {
+		// TODO: Implement test for evicting expired keys on the cluster.
+	})
+
+	t.Run("Test_GetServerInfo", func(t *testing.T) {
+		nodeInfo := []internal.ServerInfo{
+			{
+				Server:  "echovault",
+				Version: constants.Version,
+				Id:      nodes[0].serverId,
+				Mode:    "cluster",
+				Role:    "master",
+				Modules: nodes[0].server.ListModules(),
+			},
+			{
+				Server:  "echovault",
+				Version: constants.Version,
+				Id:      nodes[1].serverId,
+				Mode:    "cluster",
+				Role:    "replica",
+				Modules: nodes[1].server.ListModules(),
+			},
+			{
+				Server:  "echovault",
+				Version: constants.Version,
+				Id:      nodes[2].serverId,
+				Mode:    "cluster",
+				Role:    "replica",
+				Modules: nodes[2].server.ListModules(),
+			},
+			{
+				Server:  "echovault",
+				Version: constants.Version,
+				Id:      nodes[3].serverId,
+				Mode:    "cluster",
+				Role:    "replica",
+				Modules: nodes[3].server.ListModules(),
+			},
+			{
+				Server:  "echovault",
+				Version: constants.Version,
+				Id:      nodes[4].serverId,
+				Mode:    "cluster",
+				Role:    "replica",
+				Modules: nodes[4].server.ListModules(),
+			},
+		}
+		for i := 0; i < len(nodes); i++ {
+			if diff := deep.Equal(nodes[i].server.GetServerInfo(), nodeInfo[i]); diff != nil {
+				t.Errorf("GetServerInfo() - node %d: %+v", i, err)
+				return
+			}
+		}
+	})
 }
 
 func Test_Standalone(t *testing.T) {
@@ -606,6 +666,7 @@ func Test_Standalone(t *testing.T) {
 			Port:           uint16(port),
 			DataDir:        "",
 			EvictionPolicy: constants.NoEviction,
+			ServerID:       "Server_1",
 		}),
 	)
 	if err != nil {
@@ -1087,6 +1148,25 @@ func Test_Standalone(t *testing.T) {
 				t.Errorf("expected value at key \"%s\" to be \"%s\", got \"%s\"", key, value, res)
 				return
 			}
+		}
+	})
+
+	t.Run("Test_EvictExpiredTTL", func(t *testing.T) {
+		// TODO: Implement test for evicting expired keys in standalone mode.
+	})
+
+	t.Run("Test_GetServerInfo", func(t *testing.T) {
+		wantInfo := internal.ServerInfo{
+			Server:  "echovault",
+			Version: constants.Version,
+			Id:      mockServer.config.ServerID,
+			Mode:    "standalone",
+			Role:    "master",
+			Modules: mockServer.ListModules(),
+		}
+		info := mockServer.GetServerInfo()
+		if diff := deep.Equal(wantInfo, info); diff != nil {
+			t.Errorf("GetServerInfo(): %+v", err)
 		}
 	})
 }

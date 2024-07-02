@@ -333,6 +333,7 @@ func (server *EchoVault) getState() map[int]map[string]interface{} {
 // depending on whether an LFU or LRU strategy was used.
 func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) error {
 	database := ctx.Value("Database").(int)
+
 	for _, key := range keys {
 		// Only update cache when in standalone mode or when raft leader.
 		if server.isInCluster() || (server.isInCluster() && !server.raft.IsRaftLeader()) {

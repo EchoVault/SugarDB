@@ -216,5 +216,6 @@ func Test_AOFEngine(t *testing.T) {
 		}
 	}
 
+	engine.Close()
 	_ = os.RemoveAll(directory)
 }

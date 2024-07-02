@@ -15,9 +15,137 @@
 package echovault
 
 import (
+	"bufio"
+	"bytes"
+	"github.com/echovault/echovault/internal"
+	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/echovault/internal/modules/connection"
+	"github.com/tidwall/resp"
 	"reflect"
 	"testing"
 )
+
+func TestEchoVault_Hello(t *testing.T) {
+	t.Parallel()
+
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	conf := DefaultConfig()
+	conf.Port = uint16(port)
+	conf.RequirePass = false
+
+	mockServer := createEchoVaultWithConfig(conf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	go func() {
+		mockServer.Start()
+	}()
+	t.Cleanup(func() {
+		mockServer.ShutDown()
+	})
+
+	tests := []struct {
+		name    string
+		command []resp.Value
+		wantRes []byte
+	}{
+		{
+			name:    "1. Hello",
+			command: []resp.Value{resp.StringValue("HELLO")},
+			wantRes: connection.BuildHelloResponse(
+				internal.ServerInfo{
+					Server:  "echovault",
+					Version: constants.Version,
+					Id:      "",
+					Mode:    "standalone",
+					Role:    "master",
+					Modules: mockServer.ListModules(),
+				},
+				internal.ConnectionInfo{
+					Id:       1,
+					Name:     "",
+					Protocol: 2,
+					Database: 0,
+				},
+			),
+		},
+		{
+			name:    "2. Hello 2",
+			command: []resp.Value{resp.StringValue("HELLO"), resp.StringValue("2")},
+			wantRes: connection.BuildHelloResponse(
+				internal.ServerInfo{
+					Server:  "echovault",
+					Version: constants.Version,
+					Id:      "",
+					Mode:    "standalone",
+					Role:    "master",
+					Modules: mockServer.ListModules(),
+				},
+				internal.ConnectionInfo{
+					Id:       2,
+					Name:     "",
+					Protocol: 2,
+					Database: 0,
+				},
+			),
+		},
+		{
+			name:    "3. Hello 3",
+			command: []resp.Value{resp.StringValue("HELLO"), resp.StringValue("3")},
+			wantRes: connection.BuildHelloResponse(
+				internal.ServerInfo{
+					Server:  "echovault",
+					Version: constants.Version,
+					Id:      "",
+					Mode:    "standalone",
+					Role:    "master",
+					Modules: mockServer.ListModules(),
+				},
+				internal.ConnectionInfo{
+					Id:       3,
+					Name:     "",
+					Protocol: 3,
+					Database: 0,
+				},
+			),
+		},
+	}
+
+	for i := 0; i < len(tests); i++ {
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		client := resp.NewConn(conn)
+
+		if err = client.WriteArray(tests[i].command); err != nil {
+			t.Error(err)
+			return
+		}
+
+		buf := bufio.NewReader(conn)
+		res, err := internal.ReadMessage(buf)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		if !bytes.Equal(tests[i].wantRes, res) {
+			t.Errorf("expected byte resposne:\n%s, \n\ngot:\n%s", string(tests[i].wantRes), string(res))
+			return
+		}
+
+		// Close connection
+		_ = conn.Close()
+	}
+}
 
 func TestEchoVault_SelectDB(t *testing.T) {
 	t.Parallel()
