@@ -1117,6 +1117,75 @@ func TestEchoVault_INCRBY(t *testing.T) {
 	}
 }
 
+func TestEchoVault_INCRBYFLOAT(t *testing.T) {
+	server := createEchoVault()
+
+	tests := []struct {
+		name         string
+		key          string
+		increment    string
+		presetValues map[string]internal.KeyData
+		want         float64
+		wantErr      bool
+	}{
+		{
+			name:         "1. Increment non-existent key by 2.5",
+			key:          "IncrByFloatKey1",
+			increment:    "2.5",
+			presetValues: nil,
+			want:         2.5,
+			wantErr:      false,
+		},
+		{
+			name:      "2. Increment existing key with integer value by 1.2",
+			key:       "IncrByFloatKey2",
+			increment: "1.2",
+			presetValues: map[string]internal.KeyData{
+				"IncrByFloatKey2": {Value: "5"},
+			},
+			want:    6.2,
+			wantErr: false,
+		},
+		{
+			name:      "3. Increment existing key with non-integer value by 3.3",
+			key:       "IncrByFloatKey3",
+			increment: "3.3",
+			presetValues: map[string]internal.KeyData{
+				"IncrByFloatKey3": {Value: "not_a_float"},
+			},
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:      "4. Increment existing key with int64 value by 0.7",
+			key:       "IncrByFloatKey4",
+			increment: "0.7",
+			presetValues: map[string]internal.KeyData{
+				"IncrByFloatKey4": {Value: int64(10)},
+			},
+			want:    10.7,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValues != nil {
+				for k, d := range tt.presetValues {
+					presetKeyData(server, context.Background(), k, d)
+				}
+			}
+			got, err := server.IncrByFloat(tt.key, tt.increment)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("IncrByFloat() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err == nil && got != tt.want {
+				t.Errorf("IncrByFloat() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestEchoVault_DECRBY(t *testing.T) {
 	server := createEchoVault()
 
