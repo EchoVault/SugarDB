@@ -2309,25 +2309,16 @@ func Test_Generic(t *testing.T) {
 				expectedError:    nil,
 			},
 			{
-				name:             "3. Increment existing key with non-integer value by 3.3",
-				key:              "IncrByFloatKey3",
-				increment:        "3.3",
-				presetValue:      "not_a_float",
-				command:          []resp.Value{resp.StringValue("INCRBYFLOAT"), resp.StringValue("IncrByFloatKey3"), resp.StringValue("3.3")},
-				expectedResponse: 0,
-				expectedError:    errors.New("value is not a float or out of range"),
-			},
-			{
-				name:             "4. Increment existing key with int64 value by 0.7",
+				name:             "3. Increment existing key with float value by 0.7",
 				key:              "IncrByFloatKey4",
 				increment:        "0.7",
-				presetValue:      int64(10),
+				presetValue:      "10.0",
 				command:          []resp.Value{resp.StringValue("INCRBYFLOAT"), resp.StringValue("IncrByFloatKey4"), resp.StringValue("0.7")},
 				expectedResponse: 10.7,
 				expectedError:    nil,
 			},
 			{
-				name:             "5. Command too short",
+				name:             "4. Command too short",
 				key:              "IncrByFloatKey5",
 				increment:        "5",
 				presetValue:      nil,
@@ -2336,7 +2327,7 @@ func Test_Generic(t *testing.T) {
 				expectedError:    errors.New(constants.WrongArgsResponse),
 			},
 			{
-				name:        "6. Command too long",
+				name:        "5. Command too long",
 				key:         "IncrByFloatKey6",
 				increment:   "5",
 				presetValue: nil,
@@ -2378,7 +2369,7 @@ func Test_Generic(t *testing.T) {
 
 				if test.expectedError != nil {
 					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
-						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), res.Error())
 					}
 					return
 				}

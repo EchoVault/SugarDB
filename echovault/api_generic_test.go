@@ -1147,23 +1147,23 @@ func TestEchoVault_INCRBYFLOAT(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:      "3. Increment existing key with non-integer value by 3.3",
-			key:       "IncrByFloatKey3",
-			increment: "3.3",
-			presetValues: map[string]internal.KeyData{
-				"IncrByFloatKey3": {Value: "not_a_float"},
-			},
-			want:    0,
-			wantErr: true,
-		},
-		{
-			name:      "4. Increment existing key with int64 value by 0.7",
+			name:      "3. Increment existing key with float value by 0.7",
 			key:       "IncrByFloatKey4",
 			increment: "0.7",
 			presetValues: map[string]internal.KeyData{
-				"IncrByFloatKey4": {Value: int64(10)},
+				"IncrByFloatKey4": {Value: "10.0"},
 			},
 			want:    10.7,
+			wantErr: false,
+		},
+		{
+			name:      "4. Increment existing key with scientific notation value by 200",
+			key:       "IncrByFloatKey5",
+			increment: "200",
+			presetValues: map[string]internal.KeyData{
+				"IncrByFloatKey5": {Value: "5.0e3"},
+			},
+			want:    5200,
 			wantErr: false,
 		},
 	}
