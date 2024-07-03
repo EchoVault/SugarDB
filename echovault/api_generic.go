@@ -485,6 +485,17 @@ func (server *EchoVault) IncrBy(key string, value string) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
+// IncrByFloat increments the floating-point value of the specified key by the given increment.
+// If the key does not exist, it is created with an initial value of 0 before incrementing.
+// If the value stored at the key is not a float, an error is returned.
+//
+// Parameters:
+//
+// `key` - string - The key whose value is to be incremented.
+//
+// `increment` - float64 - The amount by which to increment the key's value. This can be a positive or negative float.
+//
+// Returns: The new value of the key after the increment operation as a float64.
 func (server *EchoVault) IncrByFloat(key string, value string) (float64, error) {
 	// Construct the command
 	cmd := []string{"INCRBYFLOAT", key, value}
