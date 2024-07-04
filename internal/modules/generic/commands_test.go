@@ -17,16 +17,17 @@ package generic_test
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
-	"strconv"
-	"strings"
-	"testing"
-	"time"
 )
 
 type KeyData struct {
@@ -2262,6 +2263,126 @@ func Test_Generic(t *testing.T) {
 					}
 					if responseInt != test.expectedResponse {
 						t.Errorf("expected response %d, got %d", test.expectedResponse, responseInt)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("Test_HandlerINCRBYFLOAT", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			key              string
+			increment        string
+			presetValue      interface{}
+			command          []resp.Value
+			expectedResponse float64
+			expectedError    error
+		}{
+			{
+				name:             "1. Increment non-existent key by 2.5",
+				key:              "IncrByFloatKey1",
+				increment:        "2.5",
+				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("INCRBYFLOAT"), resp.StringValue("IncrByFloatKey1"), resp.StringValue("2.5")},
+				expectedResponse: 2.5,
+				expectedError:    nil,
+			},
+			{
+				name:             "2. Increment existing key with integer value by 1.2",
+				key:              "IncrByFloatKey2",
+				increment:        "1.2",
+				presetValue:      "5",
+				command:          []resp.Value{resp.StringValue("INCRBYFLOAT"), resp.StringValue("IncrByFloatKey2"), resp.StringValue("1.2")},
+				expectedResponse: 6.2,
+				expectedError:    nil,
+			},
+			{
+				name:             "3. Increment existing key with float value by 0.7",
+				key:              "IncrByFloatKey4",
+				increment:        "0.7",
+				presetValue:      "10.0",
+				command:          []resp.Value{resp.StringValue("INCRBYFLOAT"), resp.StringValue("IncrByFloatKey4"), resp.StringValue("0.7")},
+				expectedResponse: 10.7,
+				expectedError:    nil,
+			},
+			{
+				name:             "4. Command too short",
+				key:              "IncrByFloatKey5",
+				increment:        "5",
+				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("INCRBYFLOAT"), resp.StringValue("IncrByFloatKey5")},
+				expectedResponse: 0,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:        "5. Command too long",
+				key:         "IncrByFloatKey6",
+				increment:   "5",
+				presetValue: nil,
+				command: []resp.Value{
+					resp.StringValue("INCRBYFLOAT"),
+					resp.StringValue("IncrByFloatKey6"),
+					resp.StringValue("5"),
+					resp.StringValue("extra_arg"),
+				},
+				expectedResponse: 0,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				if test.presetValue != nil {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(test.key), resp.StringValue(fmt.Sprintf("%v", test.presetValue))}
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+					if !strings.EqualFold(res.String(), "OK") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
+				}
+
+				if err = client.WriteArray(test.command); err != nil {
+					t.Error(err)
+				}
+
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), res.Error())
+					}
+					return
+				}
+
+				if err != nil {
+					t.Error(err)
+				} else {
+					responseFloat, err := strconv.ParseFloat(res.String(), 64)
+					if err != nil {
+						t.Errorf("error parsing response to float64: %s", err)
+					}
+					if responseFloat != test.expectedResponse {
+						t.Errorf("expected response %f, got %f", test.expectedResponse, responseFloat)
 					}
 				}
 			})
