@@ -887,11 +887,10 @@ An error is returned if the key contains a value of the wrong type or contains a
 			KeyExtractionFunc: incrByKeyFunc,
 			HandlerFunc:       handleIncrBy,
 		},
-
 		{
 			Command:    "incrbyfloat",
 			Module:     constants.GenericModule,
-			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Categories: []string{constants.WriteCategory, constants.FastCategory},
 			Description: `(INCRBYFLOAT key increment)
 Increments the number stored at key by increment. If the key does not exist, it is set to 0 before performing the operation.
 An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as float.`,
