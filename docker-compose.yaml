@@ -45,8 +45,8 @@ services:
       - "7480:7480"
       - "7946:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/standalone_node:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/standalone_node:/var/lib/echovault
     networks:
       - testnet
 
@@ -89,8 +89,8 @@ services:
       - "7481:7480"
       - "7945:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/cluster_node_1:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_1:/var/lib/echovault
     networks:
       - testnet
 
@@ -133,8 +133,8 @@ services:
       - "7482:7480"
       - "7947:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/cluster_node_2:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_2:/var/lib/echovault
     networks:
       - testnet
 
@@ -177,8 +177,8 @@ services:
       - "7483:7480"
       - "7948:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/cluster_node_3:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_3:/var/lib/echovault
     networks:
       - testnet
 
@@ -221,8 +221,8 @@ services:
       - "7484:7480"
       - "7949:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/cluster_node_4:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_4:/var/lib/echovault
     networks:
       - testnet
 
@@ -265,7 +265,7 @@ services:
       - "7485:7480"
       - "7950:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/cluster_node_5:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_5:/var/lib/echovault
     networks:
       - testnet
