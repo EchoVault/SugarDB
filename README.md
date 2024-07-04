@@ -48,6 +48,7 @@ Features offered by EchoVault include:
 7) Key Eviction Policies.
 8) Command extension via shared object files.
 9) Command extension via embedded API.
+10) Multi-database support for key namespacing.
 
 We are working hard to add more features to EchoVault to make it
 much more powerful. Features in the roadmap include:
@@ -121,7 +122,6 @@ Redis clients.
 # Supported Commands
 
 ## ACL
-* [AUTH](https://echovault.io/docs/commands/acl/auth)
 * [ACL CAT](https://echovault.io/docs/commands/acl/acl_cat)
 * [ACL DELUSER](https://echovault.io/docs/commands/acl/acl_deluser)
 * [ACL GETUSER](https://echovault.io/docs/commands/acl/acl_getuser)
@@ -144,19 +144,30 @@ Redis clients.
 * [SAVE](https://echovault.io/docs/commands/admin/save)
 
 ## CONNECTION
+* [AUTH](https://echovault.io/docs/commands/connection/auth)
+* [HELLO](https://echovault.io/docs/commands/connection/hello)
 * [PING](https://echovault.io/docs/commands/connection/ping)
+* [SELECT](https://echovault.io/docs/commands/connection/select)
+* [SWAPDB](https://echovault.io/docs/commands/connection/swapdb)
 
 ## GENERIC
+* [DECR](https://echovault.io/docs/commands/generic/decr)
+* [DECRBY](https://echovault.io/docs/commands/generic/decrby)
 * [DEL](https://echovault.io/docs/commands/generic/del)
 * [EXPIRE](https://echovault.io/docs/commands/generic/expire)
 * [EXPIRETIME](https://echovault.io/docs/commands/generic/expiretime)
+* [FLUSHALL](https://echovault.io/docs/commands/generic/flushall)
+* [FLUSHDB](https://echovault.io/docs/commands/generic/flushdb)
 * [GET](https://echovault.io/docs/commands/generic/get)
+* [INCR](https://echovault.io/docs/commands/generic/incr)
+* [INCRBY](https://echovault.io/docs/commands/generic/incrby)
 * [MGET](https://echovault.io/docs/commands/generic/mget)
 * [MSET](https://echovault.io/docs/commands/generic/mset)
 * [PERSIST](https://echovault.io/docs/commands/generic/persist)
 * [PEXPIRE](https://echovault.io/docs/commands/generic/pexpire)
 * [PEXPIRETIME](https://echovault.io/docs/commands/generic/pexpiretime)
 * [PTTL](https://echovault.io/docs/commands/generic/pttl)
+* [RENAME](https://echovault.io/docs/commands/generic/rename)
 * [SET](https://echovault.io/docs/commands/generic/set)
 * [TTL](https://echovault.io/docs/commands/generic/ttl)
 

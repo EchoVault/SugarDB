@@ -854,7 +854,7 @@ LT - Only set the expiry time if the new expiry time is less than the current on
 		{
 			Command:    "incr",
 			Module:     constants.GenericModule,
-			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Categories: []string{constants.WriteCategory, constants.FastCategory},
 			Description: `(INCR key)
 Increments the number stored at key by one. If the key does not exist, it is set to 0 before performing the operation.
 An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer.
@@ -866,7 +866,7 @@ This operation is limited to 64 bit signed integers.`,
 		{
 			Command:    "decr",
 			Module:     constants.GenericModule,
-			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Categories: []string{constants.WriteCategory, constants.FastCategory},
 			Description: `(DECR key)
 Decrements the number stored at key by one.
 If the key does not exist, it is set to 0 before performing the operation.
@@ -879,7 +879,7 @@ This operation is limited to 64 bit signed integers.`,
 		{
 			Command:    "incrby",
 			Module:     constants.GenericModule,
-			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Categories: []string{constants.WriteCategory, constants.FastCategory},
 			Description: `(INCRBY key increment)
 Increments the number stored at key by increment. If the key does not exist, it is set to 0 before performing the operation.
 An error is returned if the key contains a value of the wrong type or contains a string that can not be represented as integer.`,
@@ -901,7 +901,7 @@ An error is returned if the key contains a value of the wrong type or contains a
 		{
 			Command:    "decrby",
 			Module:     constants.GenericModule,
-			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Categories: []string{constants.WriteCategory, constants.FastCategory},
 			Description: `(DECRBY key decrement)
 The DECRBY command reduces the value stored at the specified key by the specified decrement.
 If the key does not exist, it is initialized with a value of 0 before performing the operation.

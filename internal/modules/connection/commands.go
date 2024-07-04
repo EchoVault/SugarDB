@@ -227,8 +227,8 @@ Otherwise, the server will return "PONG".`,
 			Module:     constants.ConnectionModule,
 			Categories: []string{constants.FastCategory, constants.ConnectionCategory},
 			Description: `(HELLO [protover [AUTH username password] [SETNAME clientname]])
-Switch to a different protocol, optionally authenticating and setting the connection's name, 
-or provide a contextual client report.`,
+Switch to a different protocol, optionally authenticating and setting the connection's name. 
+This command returns a contextual client report.`,
 			Sync: false,
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
