@@ -48,6 +48,7 @@ Features offered by EchoVault include:
 7) Key Eviction Policies.
 8) Command extension via shared object files.
 9) Command extension via embedded API.
+10) Multi-database support for key namespacing.
 
 We are working hard to add more features to EchoVault to make it
 much more powerful. Features in the roadmap include:
