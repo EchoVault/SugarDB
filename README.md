@@ -65,7 +65,7 @@ much more powerful. Features in the roadmap include:
 
 # Usage (Embedded)
 
-Install EchoVault with: `go get github.com/echoVault/echoVault`.
+Install EchoVault with: `go get github.com/echovault/echovault`.
 Run `go mod tidy` to pull all of EchoVault's dependencies.
 
 Here's an example of using EchoVault as an embedded library.
