@@ -18,7 +18,11 @@ RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -o $DEST/
 
 FROM --platform=linux/amd64 alpine:latest AS server
 
-COPY --from=build /build/volumes/modules /opt/echovault/bin/modules
+RUN mkdir -p /usr/echovault/bin/modules
+RUN mkdir -p /etc/ssl/certs/echovault/server
+RUN mkdir -p /etc/ssl/certs/echovault/client
+
+COPY --from=build /build/volumes/modules /usr/echovault/bin/modules
 COPY --from=build /build/bin/server /usr/echovault/bin
 COPY ./openssl/server /etc/ssl/certs/echovault/server
 COPY ./openssl/client /etc/ssl/certs/echovault/client

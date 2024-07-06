@@ -48,222 +48,222 @@ services:
     networks:
       - testnet
 
-#  cluster_node_1:
-#    container_name: cluster_node_1
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.dev
-#    environment:
-#      - BIND_ADDR=0.0.0.0
-#      - PORT=7480
-#      - DISCOVERY_PORT=7946
-#      - SERVER_ID=1
-#      - JOIN_ADDR=2/cluster_node_2:7946
-#      - DATA_DIR=/var/lib/echovault
-#      - TLS=false
-#      - MTLS=false
-#      - BOOTSTRAP_CLUSTER=true
-#      - ACL_CONFIG=/etc/echovault/config/acl.yml
-#      - REQUIRE_PASS=false
-#      - FORWARD_COMMAND=true
-#      - SNAPSHOT_THRESHOLD=1000
-#      - SNAPSHOT_INTERVAL=5m30s
-#      - RESTORE_SNAPSHOT=false
-#      - RESTORE_AOF=false
-#      - AOF_SYNC_STRATEGY=everysec
-#      - MAX_MEMORY=100mb
-#      - EVICTION_POLICY=noeviction
-#      - EVICTION_SAMPLE=20
-#      - EVICTION_INTERVAL=100ms
-#      # List of echovault cert/key pairs
-#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
-#      # List of client certificate authorities
-#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
-#      # List of shared object plugins to load on startup
-#      - MODULE_1=./modules/module_set/module_set.so
-#      - MODULE_2=./modules/module_get/module_get.so
-#    ports:
-#      - "7481:7480"
-#      - "7945:7946"
-#    volumes:
-#      - ./internal/volumes/config:/etc/echovault/config
-#      - ./internal/volumes/nodes/cluster_node_1:/var/lib/echovault
-#    networks:
-#      - testnet
-#
-#  cluster_node_2:
-#    container_name: cluster_node_2
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.dev
-#    environment:
-#      - BIND_ADDR=0.0.0.0
-#      - PORT=7480
-#      - DISCOVERY_PORT=7946
-#      - SERVER_ID=2
-#      - JOIN_ADDR=3/cluster_node_3:7946
-#      - DATA_DIR=/var/lib/echovault
-#      - TLS=false
-#      - MTLS=false
-#      - BOOTSTRAP_CLUSTER=false
-#      - ACL_CONFIG=/etc/echovault/config/acl.yml
-#      - REQUIRE_PASS=false
-#      - FORWARD_COMMAND=true
-#      - SNAPSHOT_THRESHOLD=1000
-#      - SNAPSHOT_INTERVAL=5m30s
-#      - RESTORE_SNAPSHOT=false
-#      - RESTORE_AOF=false
-#      - AOF_SYNC_STRATEGY=everysec
-#      - MAX_MEMORY=100mb
-#      - EVICTION_POLICY=noeviction
-#      - EVICTION_SAMPLE=20
-#      - EVICTION_INTERVAL=100ms
-#      # List of echovault cert/key pairs
-#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
-#      # List of client certificate authorities
-#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
-#      # List of shared object plugins to load on startup
-#      - MODULE_1=./modules/module_set/module_set.so
-#      - MODULE_2=./modules/module_get/module_get.so
-#    ports:
-#      - "7482:7480"
-#      - "7947:7946"
-#    volumes:
-#      - ./internal/volumes/config:/etc/echovault/config
-#      - ./internal/volumes/nodes/cluster_node_2:/var/lib/echovault
-#    networks:
-#      - testnet
-#
-#  cluster_node_3:
-#    container_name: cluster_node_3
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.dev
-#    environment:
-#      - BIND_ADDR=0.0.0.0
-#      - PORT=7480
-#      - DISCOVERY_PORT=7946
-#      - SERVER_ID=3
-#      - JOIN_ADDR=4/cluster_node_4:7946
-#      - DATA_DIR=/var/lib/echovault
-#      - TLS=false
-#      - MTLS=false
-#      - BOOTSTRAP_CLUSTER=false
-#      - ACL_CONFIG=/etc/echovault/config/acl.yml
-#      - REQUIRE_PASS=false
-#      - FORWARD_COMMAND=true
-#      - SNAPSHOT_THRESHOLD=1000
-#      - SNAPSHOT_INTERVAL=5m30s
-#      - RESTORE_SNAPSHOT=false
-#      - RESTORE_AOF=false
-#      - AOF_SYNC_STRATEGY=everysec
-#      - MAX_MEMORY=100mb
-#      - EVICTION_POLICY=noeviction
-#      - EVICTION_SAMPLE=20
-#      - EVICTION_INTERVAL=100ms
-#      # List of echovault cert/key pairs
-#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
-#      # List of client certificate authorities
-#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
-#      # List of shared object plugins to load on startup
-#      - MODULE_1=./modules/module_set/module_set.so
-#      - MODULE_2=./modules/module_get/module_get.so
-#    ports:
-#      - "7483:7480"
-#      - "7948:7946"
-#    volumes:
-#      - ./internal/volumes/config:/etc/echovault/config
-#      - ./internal/volumes/nodes/cluster_node_3:/var/lib/echovault
-#    networks:
-#      - testnet
-#
-#  cluster_node_4:
-#    container_name: cluster_node_4
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.dev
-#    environment:
-#      - BIND_ADDR=0.0.0.0
-#      - PORT=7480
-#      - DISCOVERY_PORT=7946
-#      - SERVER_ID=4
-#      - JOIN_ADDR=5/cluster_node_5:7946
-#      - DATA_DIR=/var/lib/echovault
-#      - TLS=false
-#      - MTLS=false
-#      - BOOTSTRAP_CLUSTER=false
-#      - ACL_CONFIG=/etc/echovault/config/acl.yml
-#      - REQUIRE_PASS=false
-#      - FORWARD_COMMAND=true
-#      - SNAPSHOT_THRESHOLD=1000
-#      - SNAPSHOT_INTERVAL=5m30s
-#      - RESTORE_SNAPSHOT=false
-#      - RESTORE_AOF=false
-#      - AOF_SYNC_STRATEGY=everysec
-#      - MAX_MEMORY=100mb
-#      - EVICTION_POLICY=noeviction
-#      - EVICTION_SAMPLE=20
-#      - EVICTION_INTERVAL=100ms
-#      # List of echovault cert/key pairs
-#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
-#      # List of client certificate authorities
-#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
-#      # List of shared object plugins to load on startup
-#      - MODULE_1=./modules/module_set/module_set.so
-#      - MODULE_2=./modules/module_get/module_get.so
-#    ports:
-#      - "7484:7480"
-#      - "7949:7946"
-#    volumes:
-#      - ./internal/volumes/config:/etc/echovault/config
-#      - ./internal/volumes/nodes/cluster_node_4:/var/lib/echovault
-#    networks:
-#      - testnet
-#
-#  cluster_node_5:
-#    container_name: cluster_node_5
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.dev
-#    environment:
-#      - BIND_ADDR=0.0.0.0
-#      - PORT=7480
-#      - DISCOVERY_PORT=7946
-#      - SERVER_ID=5
-#      - JOIN_ADDR=1/cluster_node_1:7946
-#      - DATA_DIR=/var/lib/echovault
-#      - TLS=false
-#      - MTLS=false
-#      - BOOTSTRAP_CLUSTER=false
-#      - ACL_CONFIG=/etc/echovault/config/acl.yml
-#      - REQUIRE_PASS=false
-#      - FORWARD_COMMAND=true
-#      - SNAPSHOT_THRESHOLD=1000
-#      - SNAPSHOT_INTERVAL=5m30s
-#      - RESTORE_SNAPSHOT=false
-#      - RESTORE_AOF=false
-#      - AOF_SYNC_STRATEGY=everysec
-#      - MAX_MEMORY=100mb
-#      - EVICTION_POLICY=noeviction
-#      - EVICTION_SAMPLE=20
-#      - EVICTION_INTERVAL=100ms
-#      # List of echovault cert/key pairs
-#      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
-#      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
-#      # List of client certificate authorities
-#      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
-#      # List of shared object plugins to load on startup
-#      - MODULE_1=./modules/module_set/module_set.so
-#      - MODULE_2=./modules/module_get/module_get.so
-#    ports:
-#      - "7485:7480"
-#      - "7950:7946"
-#    volumes:
-#      - ./internal/volumes/config:/etc/echovault/config
-#      - ./internal/volumes/nodes/cluster_node_5:/var/lib/echovault
-#    networks:
-#      - testnet
+  cluster_node_1:
+    container_name: cluster_node_1
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - BIND_ADDR=0.0.0.0
+      - PORT=7480
+      - DISCOVERY_PORT=7946
+      - SERVER_ID=1
+      - JOIN_ADDR=2/cluster_node_2:7946
+      - DATA_DIR=/var/lib/echovault
+      - TLS=false
+      - MTLS=false
+      - BOOTSTRAP_CLUSTER=true
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - REQUIRE_PASS=false
+      - FORWARD_COMMAND=true
+      - SNAPSHOT_THRESHOLD=1000
+      - SNAPSHOT_INTERVAL=5m30s
+      - RESTORE_SNAPSHOT=false
+      - RESTORE_AOF=false
+      - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=100mb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of client certificate authorities
+      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+      # List of shared object plugins to load on startup
+      - MODULE_1=./modules/module_set/module_set.so
+      - MODULE_2=./modules/module_get/module_get.so
+    ports:
+      - "7481:7480"
+      - "7945:7946"
+    volumes:
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_1:/var/lib/echovault
+    networks:
+      - testnet
+
+  cluster_node_2:
+    container_name: cluster_node_2
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - BIND_ADDR=0.0.0.0
+      - PORT=7480
+      - DISCOVERY_PORT=7946
+      - SERVER_ID=2
+      - JOIN_ADDR=3/cluster_node_3:7946
+      - DATA_DIR=/var/lib/echovault
+      - TLS=false
+      - MTLS=false
+      - BOOTSTRAP_CLUSTER=false
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - REQUIRE_PASS=false
+      - FORWARD_COMMAND=true
+      - SNAPSHOT_THRESHOLD=1000
+      - SNAPSHOT_INTERVAL=5m30s
+      - RESTORE_SNAPSHOT=false
+      - RESTORE_AOF=false
+      - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=100mb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of client certificate authorities
+      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+      # List of shared object plugins to load on startup
+      - MODULE_1=./modules/module_set/module_set.so
+      - MODULE_2=./modules/module_get/module_get.so
+    ports:
+      - "7482:7480"
+      - "7947:7946"
+    volumes:
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_2:/var/lib/echovault
+    networks:
+      - testnet
+
+  cluster_node_3:
+    container_name: cluster_node_3
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - BIND_ADDR=0.0.0.0
+      - PORT=7480
+      - DISCOVERY_PORT=7946
+      - SERVER_ID=3
+      - JOIN_ADDR=4/cluster_node_4:7946
+      - DATA_DIR=/var/lib/echovault
+      - TLS=false
+      - MTLS=false
+      - BOOTSTRAP_CLUSTER=false
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - REQUIRE_PASS=false
+      - FORWARD_COMMAND=true
+      - SNAPSHOT_THRESHOLD=1000
+      - SNAPSHOT_INTERVAL=5m30s
+      - RESTORE_SNAPSHOT=false
+      - RESTORE_AOF=false
+      - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=100mb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of client certificate authorities
+      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+      # List of shared object plugins to load on startup
+      - MODULE_1=./modules/module_set/module_set.so
+      - MODULE_2=./modules/module_get/module_get.so
+    ports:
+      - "7483:7480"
+      - "7948:7946"
+    volumes:
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_3:/var/lib/echovault
+    networks:
+      - testnet
+
+  cluster_node_4:
+    container_name: cluster_node_4
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - BIND_ADDR=0.0.0.0
+      - PORT=7480
+      - DISCOVERY_PORT=7946
+      - SERVER_ID=4
+      - JOIN_ADDR=5/cluster_node_5:7946
+      - DATA_DIR=/var/lib/echovault
+      - TLS=false
+      - MTLS=false
+      - BOOTSTRAP_CLUSTER=false
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - REQUIRE_PASS=false
+      - FORWARD_COMMAND=true
+      - SNAPSHOT_THRESHOLD=1000
+      - SNAPSHOT_INTERVAL=5m30s
+      - RESTORE_SNAPSHOT=false
+      - RESTORE_AOF=false
+      - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=100mb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of client certificate authorities
+      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+      # List of shared object plugins to load on startup
+      - MODULE_1=./modules/module_set/module_set.so
+      - MODULE_2=./modules/module_get/module_get.so
+    ports:
+      - "7484:7480"
+      - "7949:7946"
+    volumes:
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_4:/var/lib/echovault
+    networks:
+      - testnet
+
+  cluster_node_5:
+    container_name: cluster_node_5
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - BIND_ADDR=0.0.0.0
+      - PORT=7480
+      - DISCOVERY_PORT=7946
+      - SERVER_ID=5
+      - JOIN_ADDR=1/cluster_node_1:7946
+      - DATA_DIR=/var/lib/echovault
+      - TLS=false
+      - MTLS=false
+      - BOOTSTRAP_CLUSTER=false
+      - ACL_CONFIG=/etc/echovault/config/acl.yml
+      - REQUIRE_PASS=false
+      - FORWARD_COMMAND=true
+      - SNAPSHOT_THRESHOLD=1000
+      - SNAPSHOT_INTERVAL=5m30s
+      - RESTORE_SNAPSHOT=false
+      - RESTORE_AOF=false
+      - AOF_SYNC_STRATEGY=everysec
+      - MAX_MEMORY=100mb
+      - EVICTION_POLICY=noeviction
+      - EVICTION_SAMPLE=20
+      - EVICTION_INTERVAL=100ms
+      # List of echovault cert/key pairs
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
+      # List of client certificate authorities
+      - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
+      # List of shared object plugins to load on startup
+      - MODULE_1=./modules/module_set/module_set.so
+      - MODULE_2=./modules/module_get/module_get.so
+    ports:
+      - "7485:7480"
+      - "7950:7946"
+    volumes:
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_5:/var/lib/echovault
+    networks:
+      - testnet
