@@ -6,7 +6,7 @@ before:
     - go generate ./...
 
 builds:
-  - main: ./cmd
+  - main: .
     env:
       - CGO_ENABLED=0
     goos:
