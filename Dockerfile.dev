@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 golang:alpine as build
+FROM --platform=linux/amd64 golang:alpine AS build
 
 RUN apk add --no-cache gcc musl-dev
 
@@ -8,28 +8,26 @@ COPY . ./
 ENV CGO_ENABLED=1 CC=gcc GOOS=linux GOARCH=amd64 
 
 ENV DEST=volumes/modules
-RUN  CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_set/module_set.so ./volumes/modules/module_set/module_set.go 
-RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_get/module_get.so ./volumes/modules/module_get/module_get.go
+RUN  CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_set/module_set.so ./internal/volumes/modules/module_set/module_set.go
+RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_get/module_get.so ./internal/volumes/modules/module_get/module_get.go
 
-ENV DEST=bin/linux/x86_64
-RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -o $DEST/server ./cmd/main.go
+ENV DEST=bin
+RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -o $DEST/server .
 
 
 
-FROM --platform=linux/amd64 alpine:latest as server
+FROM --platform=linux/amd64 alpine:latest AS server
 
-RUN mkdir -p /usr/local/lib/echovault
-RUN mkdir -p /opt/echovault/bin
-RUN mkdir -p /etc/ssl/certs/echovault/echovault
+RUN mkdir -p /usr/echovault/bin/modules
+RUN mkdir -p /etc/ssl/certs/echovault/server
 RUN mkdir -p /etc/ssl/certs/echovault/client
 
-COPY --from=build /build/volumes/modules /opt/echovault/bin/modules
-COPY --from=build /build/bin/linux/x86_64/server /opt/echovault/bin
-
+COPY --from=build /build/volumes/modules /usr/echovault/bin/modules
+COPY --from=build /build/bin/server /usr/echovault/bin
 COPY ./openssl/server /etc/ssl/certs/echovault/server
 COPY ./openssl/client /etc/ssl/certs/echovault/client
 
-WORKDIR /opt/echovault/bin
+WORKDIR /usr/echovault/bin
 
 CMD "./server" \
   "--bind-addr" "${BIND_ADDR}" \

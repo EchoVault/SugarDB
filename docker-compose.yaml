@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   testnet:
     driver: bridge
@@ -34,8 +32,8 @@ services:
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
       # List of echovault cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
@@ -45,8 +43,8 @@ services:
       - "7480:7480"
       - "7946:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/standalone_node:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/standalone_node:/var/lib/echovault
     networks:
       - testnet
 
@@ -78,8 +76,8 @@ services:
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
       # List of echovault cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
@@ -89,8 +87,8 @@ services:
       - "7481:7480"
       - "7945:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/cluster_node_1:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_1:/var/lib/echovault
     networks:
       - testnet
 
@@ -122,8 +120,8 @@ services:
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
       # List of echovault cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
@@ -133,8 +131,8 @@ services:
       - "7482:7480"
       - "7947:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/cluster_node_2:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_2:/var/lib/echovault
     networks:
       - testnet
 
@@ -166,8 +164,8 @@ services:
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
       # List of echovault cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
@@ -177,8 +175,8 @@ services:
       - "7483:7480"
       - "7948:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/cluster_node_3:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_3:/var/lib/echovault
     networks:
       - testnet
 
@@ -210,8 +208,8 @@ services:
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
       # List of echovault cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
@@ -221,8 +219,8 @@ services:
       - "7484:7480"
       - "7949:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/cluster_node_4:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_4:/var/lib/echovault
     networks:
       - testnet
 
@@ -254,8 +252,8 @@ services:
       - EVICTION_SAMPLE=20
       - EVICTION_INTERVAL=100ms
       # List of echovault cert/key pairs
-      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/echovault/server1.crt,/etc/ssl/certs/echovault/echovault/server1.key
-      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/echovault/server2.crt,/etc/ssl/certs/echovault/echovault/server2.key
+      - CERT_KEY_PAIR_1=/etc/ssl/certs/echovault/server/server1.crt,/etc/ssl/certs/echovault/server/server1.key
+      - CERT_KEY_PAIR_2=/etc/ssl/certs/echovault/server/server2.crt,/etc/ssl/certs/echovault/server/server2.key
       # List of client certificate authorities
       - CLIENT_CA_1=/etc/ssl/certs/echovault/client/rootCA.crt
       # List of shared object plugins to load on startup
@@ -265,7 +263,7 @@ services:
       - "7485:7480"
       - "7950:7946"
     volumes:
-      - ./volumes/config:/etc/echovault/config
-      - ./volumes/nodes/cluster_node_5:/var/lib/echovault
+      - ./internal/volumes/config:/etc/echovault/config
+      - ./internal/volumes/nodes/cluster_node_5:/var/lib/echovault
     networks:
       - testnet

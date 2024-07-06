@@ -1,9 +1,8 @@
 .idea
 .DS_Store
 bin
-volumes/nodes
+internal/volumes/nodes
 dist/
-pkg/modules/*/aof
-pkg/echovault/aof
 dump.rdb
 **/*/testdata
+echovault/aof
