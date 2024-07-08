@@ -103,6 +103,18 @@ To install via homebrew, run:
 Once installed, you can run the server with the following command:
 `echovault --bind-addr=localhost --data-dir="path/to/persistence/directory"`
 
+### Docker
+
+`docker pull echovault/echovault`
+
+The full list of tags can be found [here](https://hub.docker.com/r/echovault/echovault/tags).
+
+### Container Registry
+
+`docker pull ghcr.io/echovault/echovault`
+
+The full list of tags can be found [here](https://github.com/EchoVault/EchoVault/pkgs/container/echovault).
+
 ### Binaries
 
 You can download the binaries by clicking on a release tag and downloading
