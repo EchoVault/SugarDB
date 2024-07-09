@@ -1,4 +1,4 @@
-version: 1
+version: 2
 
 before:
   hooks:
@@ -6,7 +6,7 @@ before:
     - go generate ./...
 
 builds:
-  - main: .
+  - main: ./cmd
     env:
       - CGO_ENABLED=0
     goos:
