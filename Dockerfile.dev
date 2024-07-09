@@ -12,7 +12,7 @@ RUN  CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmo
 RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_get/module_get.so ./internal/volumes/modules/module_get/module_get.go
 
 ENV DEST=bin
-RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -o $DEST/server .
+RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -o $DEST/server ./cmd/...
 
 
 
