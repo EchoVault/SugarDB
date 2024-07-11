@@ -21,6 +21,7 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/tidwall/resp"
+	"go/types"
 	"slices"
 	"strconv"
 	"strings"
@@ -196,7 +197,7 @@ func Test_List(t *testing.T) {
 			key              string
 			presetValue      interface{}
 			command          []string
-			expectedResponse string
+			expectedResponse interface{}
 			expectedError    error
 		}{
 			{
@@ -224,60 +225,76 @@ func Test_List(t *testing.T) {
 				expectedError:    nil,
 			},
 			{
-				name:             "4. If key does not exist, return error",
+				name:             "4. If key does not exist, return nil",
 				key:              "LindexKey4",
 				presetValue:      nil,
 				command:          []string{"LINDEX", "LindexKey4", "0"},
-				expectedResponse: "",
-				expectedError:    errors.New("LINDEX command on non-list item"),
+				expectedResponse: nil,
+				expectedError:    nil,
 			},
 			{
-				name:             "5. Command too short",
-				key:              "LindexKey3",
-				presetValue:      nil,
-				command:          []string{"LINDEX", "LindexKey3"},
-				expectedResponse: "",
-				expectedError:    errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:             " 6. Command too long",
-				key:              "LindexKey4",
-				presetValue:      nil,
-				command:          []string{"LINDEX", "LindexKey4", "0", "20"},
-				expectedResponse: "",
-				expectedError:    errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:             "7. Trying to get element by index on a non-list returns error",
+				name:             "5. If the index is -1, return the element from the end of the list",
 				key:              "LindexKey5",
+				presetValue:      []string{"value1", "value2", "value3", "value4", "value5"},
+				command:          []string{"LINDEX", "LindexKey5", "-1"},
+				expectedResponse: "value5",
+				expectedError:    nil,
+			},
+			{
+				name:             "6. If index is -3, return the 3 element from the end of the list.",
+				key:              "LindexKey6",
+				presetValue:      []string{"value1", "value2", "value3", "value4", "value5"},
+				command:          []string{"LINDEX", "LindexKey6", "-3"},
+				expectedResponse: "value3",
+				expectedError:    nil,
+			},
+			{
+				name:             "7. When negative index absolute value is greater than the lenght of the list, return nil",
+				key:              "LindexKey7",
+				presetValue:      []string{"value1", "value2", "value3", "value4", "value5"},
+				command:          []string{"LINDEX", "LindexKey7", "-10"},
+				expectedResponse: nil,
+				expectedError:    nil,
+			},
+			{
+				name:             "8. Trying to get element by index on a non-list returns error",
+				key:              "LindexKey8",
 				presetValue:      "Default value",
-				command:          []string{"LINDEX", "LindexKey5", "0"},
+				command:          []string{"LINDEX", "LindexKey8", "0"},
 				expectedResponse: "",
 				expectedError:    errors.New("LINDEX command on non-list item"),
 			},
 			{
-				name:             "8. Trying to get index out of range index beyond last index",
-				key:              "LindexKey6",
+				name:             "9. Trying to get index out of range index beyond last index",
+				key:              "LindexKey9",
 				presetValue:      []string{"value1", "value2", "value3"},
-				command:          []string{"LINDEX", "LindexKey6", "3"},
-				expectedResponse: "",
-				expectedError:    errors.New("index must be within list range"),
-			},
-			{
-				name:             "9. Trying to get index out of range with negative index",
-				key:              "LindexKey7",
-				presetValue:      []string{"value1", "value2", "value3"},
-				command:          []string{"LINDEX", "LindexKey7", "-1"},
-				expectedResponse: "",
-				expectedError:    errors.New("index must be within list range"),
+				command:          []string{"LINDEX", "LindexKey9", "3"},
+				expectedResponse: nil,
+				expectedError:    nil,
 			},
 			{
 				name:             " 10. Return error when index is not an integer",
-				key:              "LindexKey8",
+				key:              "LindexKey10",
 				presetValue:      []string{"value1", "value2", "value3"},
-				command:          []string{"LINDEX", "LindexKey8", "index"},
-				expectedResponse: "",
+				command:          []string{"LINDEX", "LindexKey10", "index"},
+				expectedResponse: nil,
 				expectedError:    errors.New("index must be an integer"),
+			},
+			{
+				name:             "11. Command too short",
+				key:              "LindexKey11",
+				presetValue:      nil,
+				command:          []string{"LINDEX", "LindexKey11"},
+				expectedResponse: "",
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:             "12. Command too long",
+				key:              "LindexKey12",
+				presetValue:      nil,
+				command:          []string{"LINDEX", "LindexKey12", "0", "20"},
+				expectedResponse: "",
+				expectedError:    errors.New(constants.WrongArgsResponse),
 			},
 		}
 
@@ -336,6 +353,13 @@ func Test_List(t *testing.T) {
 					return
 				}
 
+				if test.expectedResponse == nil {
+					if !res.IsNull() {
+						t.Errorf("expected nil response, for %+v", res)
+					}
+					return
+				}
+
 				if res.String() != test.expectedResponse {
 					t.Errorf("expected response \"%s\", got \"%s\"", test.expectedResponse, res.String())
 				}
@@ -383,39 +407,23 @@ func Test_List(t *testing.T) {
 				expectedError:    nil,
 			},
 			{
-				name:             "3. Return the reversed sub-list when the end index is greater than -1 but less than start index",
+				name:             "3. Return empty array when the start index is greater than the end index.",
 				key:              "LrangeKey3",
 				presetValue:      []string{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
 				command:          []string{"LRANGE", "LrangeKey3", "3", "0"},
-				expectedResponse: []string{"value4", "value3", "value2", "value1"},
+				expectedResponse: []string{},
 				expectedError:    nil,
 			},
 			{
-				name:             "4. If key does not exist, return error",
+				name:             "4. If key does not exist, return an empty array",
 				key:              "LrangeKey4",
 				presetValue:      nil,
 				command:          []string{"LRANGE", "LrangeKey4", "0", "2"},
-				expectedResponse: nil,
-				expectedError:    errors.New("LRANGE command on non-list item"),
+				expectedResponse: []string{},
+				expectedError:    nil,
 			},
 			{
-				name:             "5. Command too short",
-				key:              "LrangeKey5",
-				presetValue:      nil,
-				command:          []string{"LRANGE", "LrangeKey5"},
-				expectedResponse: nil,
-				expectedError:    errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:             "6. Command too long",
-				key:              "LrangeKey6",
-				presetValue:      nil,
-				command:          []string{"LRANGE", "LrangeKey6", "0", "element", "element"},
-				expectedResponse: nil,
-				expectedError:    errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:             "7. Error when executing command on non-list command",
+				name:             "5. Error when executing command on non-list command",
 				key:              "LrangeKey5",
 				presetValue:      "Default value",
 				command:          []string{"LRANGE", "LrangeKey5", "0", "3"},
@@ -423,44 +431,60 @@ func Test_List(t *testing.T) {
 				expectedError:    errors.New("LRANGE command on non-list item"),
 			},
 			{
-				name:             "8. Error when start index is less than 0",
-				key:              "LrangeKey7",
+				name:             "6. Return sub-list when start index is < 0",
+				key:              "LrangeKey6",
 				presetValue:      []string{"value1", "value2", "value3", "value4"},
-				command:          []string{"LRANGE", "LrangeKey7", "-1", "3"},
-				expectedResponse: nil,
-				expectedError:    errors.New("start index must be within list boundary"),
+				command:          []string{"LRANGE", "LrangeKey6", "-3", "3"},
+				expectedResponse: []string{"value2", "value3", "value4"},
+				expectedError:    nil,
 			},
 			{
-				name:             "9. Error when start index is higher than the length of the list",
+				name:             "7. Empty array when start index is higher than the length of the list",
+				key:              "LrangeKey7",
+				presetValue:      []string{"value1", "value2", "value3"},
+				command:          []string{"LRANGE", "LrangeKey7", "10", "11"},
+				expectedResponse: []string{},
+				expectedError:    nil,
+			},
+			{
+				name:             "8. Return error when start index is not an integer",
 				key:              "LrangeKey8",
 				presetValue:      []string{"value1", "value2", "value3"},
-				command:          []string{"LRANGE", "LrangeKey8", "10", "11"},
+				command:          []string{"LRANGE", "LrangeKey8", "start", "7"},
 				expectedResponse: nil,
-				expectedError:    errors.New("start index must be within list boundary"),
+				expectedError:    errors.New("start index must be an integer"),
 			},
 			{
-				name:             "10. Return error when start index is not an integer",
+				name:             "9. Return error when end index is not an integer",
 				key:              "LrangeKey9",
 				presetValue:      []string{"value1", "value2", "value3"},
-				command:          []string{"LRANGE", "LrangeKey9", "start", "7"},
+				command:          []string{"LRANGE", "LrangeKey9", "0", "end"},
 				expectedResponse: nil,
-				expectedError:    errors.New("start and end indices must be integers"),
+				expectedError:    errors.New("end index must be an integer"),
 			},
 			{
-				name:             "11. Return error when end index is not an integer",
+				name:             "10. Return 1 element when start and end indices are equal",
 				key:              "LrangeKey10",
 				presetValue:      []string{"value1", "value2", "value3"},
-				command:          []string{"LRANGE", "LrangeKey10", "0", "end"},
-				expectedResponse: nil,
-				expectedError:    errors.New("start and end indices must be integers"),
+				command:          []string{"LRANGE", "LrangeKey10", "1", "1"},
+				expectedResponse: []string{"value2"},
+				expectedError:    nil,
 			},
 			{
-				name:             "12. Error when start and end indices are equal",
+				name:             "11. Command too short",
 				key:              "LrangeKey11",
-				presetValue:      []string{"value1", "value2", "value3"},
-				command:          []string{"LRANGE", "LrangeKey11", "1", "1"},
+				presetValue:      nil,
+				command:          []string{"LRANGE", "LrangeKey11"},
 				expectedResponse: nil,
-				expectedError:    errors.New("start and end indices cannot be equal"),
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:             "12. Command too long",
+				key:              "LrangeKey12",
+				presetValue:      nil,
+				command:          []string{"LRANGE", "LrangeKey12", "0", "element", "element"},
+				expectedResponse: nil,
+				expectedError:    errors.New(constants.WrongArgsResponse),
 			},
 		}
 
@@ -585,23 +609,7 @@ func Test_List(t *testing.T) {
 				expectedError: errors.New("LSET command on non-list item"),
 			},
 			{
-				name:          "5. Command too short",
-				key:           "LsetKey5",
-				presetValue:   nil,
-				command:       []string{"LSET", "LsetKey5"},
-				expectedValue: nil,
-				expectedError: errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:          "6. Command too long",
-				key:           "LsetKey6",
-				presetValue:   nil,
-				command:       []string{"LSET", "LsetKey6", "0", "element", "element"},
-				expectedValue: nil,
-				expectedError: errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:          "7. Trying to get element by index on a non-list returns error",
+				name:          "5. Trying to get element by index on a non-list returns error",
 				key:           "LsetKey5",
 				presetValue:   "Default value",
 				command:       []string{"LSET", "LsetKey5", "0", "element"},
@@ -609,7 +617,7 @@ func Test_List(t *testing.T) {
 				expectedError: errors.New("LSET command on non-list item"),
 			},
 			{
-				name:          "8. Trying to get index out of range index beyond last index",
+				name:          "6. Trying to get index out of range index beyond last index",
 				key:           "LsetKey6",
 				presetValue:   []string{"value1", "value2", "value3"},
 				command:       []string{"LSET", "LsetKey6", "3", "element"},
@@ -617,20 +625,36 @@ func Test_List(t *testing.T) {
 				expectedError: errors.New("index must be within list range"),
 			},
 			{
-				name:          "9. Trying to get index out of range with negative index",
+				name:          "7. Set last element with -1 index",
 				key:           "LsetKey7",
 				presetValue:   []string{"value1", "value2", "value3"},
 				command:       []string{"LSET", "LsetKey7", "-1", "element"},
-				expectedValue: nil,
-				expectedError: errors.New("index must be within list range"),
+				expectedValue: []string{"value1", "value2", "element"},
+				expectedError: nil,
 			},
 			{
-				name:          "10. Return error when index is not an integer",
+				name:          "8. Return error when index is not an integer",
 				key:           "LsetKey8",
 				presetValue:   []string{"value1", "value2", "value3"},
 				command:       []string{"LSET", "LsetKey8", "index", "element"},
 				expectedValue: nil,
 				expectedError: errors.New("index must be an integer"),
+			},
+			{
+				name:          "9. Command too short",
+				key:           "LsetKey9",
+				presetValue:   nil,
+				command:       []string{"LSET", "LsetKey5"},
+				expectedValue: nil,
+				expectedError: errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:          "10. Command too long",
+				key:           "LsetKey10",
+				presetValue:   nil,
+				command:       []string{"LSET", "LsetKey10", "0", "element", "element"},
+				expectedValue: nil,
+				expectedError: errors.New(constants.WrongArgsResponse),
 			},
 		}
 
@@ -749,7 +773,7 @@ func Test_List(t *testing.T) {
 				key:           "LtrimKey1",
 				presetValue:   []string{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
 				command:       []string{"LTRIM", "LtrimKey1", "3", "6"},
-				expectedValue: []string{"value4", "value5", "value6"},
+				expectedValue: []string{"value4", "value5", "value6", "value7"},
 				expectedError: nil,
 			},
 			{
@@ -761,12 +785,12 @@ func Test_List(t *testing.T) {
 				expectedError: nil,
 			},
 			{
-				name:          "3. Return error when end index is smaller than start index but greater than -1",
+				name:          "3. Delete the key when end index is smaller than start index.",
 				key:           "LtrimKey3",
 				presetValue:   []string{"value1", "value2", "value3", "value4"},
 				command:       []string{"LTRIM", "LtrimKey3", "3", "1"},
 				expectedValue: nil,
-				expectedError: errors.New("end index must be greater than start index or -1"),
+				expectedError: nil,
 			},
 			{
 				name:          "4. If key does not exist, return error",
@@ -774,26 +798,10 @@ func Test_List(t *testing.T) {
 				presetValue:   nil,
 				command:       []string{"LTRIM", "LtrimKey4", "0", "2"},
 				expectedValue: nil,
-				expectedError: errors.New("LTRIM command on non-list item"),
+				expectedError: nil,
 			},
 			{
-				name:          "5. Command too short",
-				key:           "LtrimKey5",
-				presetValue:   nil,
-				command:       []string{"LTRIM", "LtrimKey5"},
-				expectedValue: nil,
-				expectedError: errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:          "6. Command too long",
-				key:           "LtrimKey6",
-				presetValue:   nil,
-				command:       []string{"LTRIM", "LtrimKey6", "0", "element", "element"},
-				expectedValue: nil,
-				expectedError: errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:          "7. Trying to get element by index on a non-list returns error",
+				name:          "5. Trying to get element by index on a non-list returns error",
 				key:           "LtrimKey5",
 				presetValue:   "Default value",
 				command:       []string{"LTRIM", "LtrimKey5", "0", "3"},
@@ -801,36 +809,52 @@ func Test_List(t *testing.T) {
 				expectedError: errors.New("LTRIM command on non-list item"),
 			},
 			{
-				name:          "8. Error when start index is less than 0",
-				key:           "LtrimKey7",
+				name:          "6. Trim from the end of the list when start index is less than 0",
+				key:           "LtrimKey6",
 				presetValue:   []string{"value1", "value2", "value3", "value4"},
-				command:       []string{"LTRIM", "LtrimKey7", "-1", "3"},
-				expectedValue: nil,
-				expectedError: errors.New("start index must be within list boundary"),
+				command:       []string{"LTRIM", "LtrimKey6", "-3", "3"},
+				expectedValue: []string{"value2", "value3", "value4"},
+				expectedError: nil,
 			},
 			{
-				name:          "9. Error when start index is higher than the length of the list",
+				name:          "7. Delete list when start index is higher than the length of the list",
+				key:           "LtrimKey7",
+				presetValue:   []string{"value1", "value2", "value3"},
+				command:       []string{"LTRIM", "LtrimKey7", "10", "11"},
+				expectedValue: nil,
+				expectedError: nil,
+			},
+			{
+				name:          "8. Return error when start index is not an integer",
 				key:           "LtrimKey8",
 				presetValue:   []string{"value1", "value2", "value3"},
-				command:       []string{"LTRIM", "LtrimKey8", "10", "11"},
+				command:       []string{"LTRIM", "LtrimKey8", "start", "7"},
 				expectedValue: nil,
-				expectedError: errors.New("start index must be within list boundary"),
+				expectedError: errors.New("start index must be an integer"),
 			},
 			{
-				name:          "10. Return error when start index is not an integer",
+				name:          "9. Return error when end index is not an integer",
 				key:           "LtrimKey9",
 				presetValue:   []string{"value1", "value2", "value3"},
-				command:       []string{"LTRIM", "LtrimKey9", "start", "7"},
+				command:       []string{"LTRIM", "LtrimKey9", "0", "end"},
 				expectedValue: nil,
-				expectedError: errors.New("start and end indices must be integers"),
+				expectedError: errors.New("end index must be an integer"),
 			},
 			{
-				name:          "11. Return error when end index is not an integer",
+				name:          "10. Command too short",
 				key:           "LtrimKey10",
-				presetValue:   []string{"value1", "value2", "value3"},
-				command:       []string{"LTRIM", "LtrimKey10", "0", "end"},
+				presetValue:   nil,
+				command:       []string{"LTRIM", "LtrimKey10"},
 				expectedValue: nil,
-				expectedError: errors.New("start and end indices must be integers"),
+				expectedError: errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:          "11. Command too long",
+				key:           "LtrimKey11",
+				presetValue:   nil,
+				command:       []string{"LTRIM", "LtrimKey11", "0", "element", "element"},
+				expectedValue: nil,
+				expectedError: errors.New(constants.WrongArgsResponse),
 			},
 		}
 
@@ -934,68 +958,72 @@ func Test_List(t *testing.T) {
 		client := resp.NewConn(conn)
 
 		tests := []struct {
-			name          string
-			key           string
-			presetValue   interface{}
-			command       []string
-			expectedValue []string
-			expectedError error
+			name             string
+			key              string
+			presetValue      interface{}
+			command          []string
+			expectedResponse int
+			expectedValue    []string
+			expectedError    error
 		}{
 			{
-				name:          "1. Remove the first 3 elements that appear in the list",
-				key:           "LremKey1",
-				presetValue:   []string{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
-				command:       []string{"LREM", "LremKey1", "3", "4"},
-				expectedValue: []string{"1", "2", "5", "6", "7", "8", "4", "9", "10", "5", "4"},
-				expectedError: nil,
+				name:             "1. Remove the first 3 elements that appear in the list",
+				key:              "LremKey1",
+				presetValue:      []string{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
+				command:          []string{"LREM", "LremKey1", "3", "4"},
+				expectedResponse: 3,
+				expectedValue:    []string{"1", "2", "5", "6", "7", "8", "4", "9", "10", "5", "4"},
+				expectedError:    nil,
 			},
 			{
-				name:          "2. Remove the last 3 elements that appear in the list",
-				key:           "LremKey2",
-				presetValue:   []string{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
-				command:       []string{"LREM", "LremKey2", "-3", "4"},
-				expectedValue: []string{"1", "2", "4", "4", "5", "6", "7", "8", "9", "10", "5"},
-				expectedError: nil,
+				name:             "2. Remove the last 3 elements that appear in the list",
+				key:              "LremKey2",
+				presetValue:      []string{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
+				command:          []string{"LREM", "LremKey2", "-3", "4"},
+				expectedResponse: 3,
+				expectedValue:    []string{"1", "2", "4", "4", "5", "6", "7", "8", "9", "10", "5"},
+				expectedError:    nil,
 			},
 			{
-				name:          "3. Command too short",
+				name:          "3. Throw error when count is not an integer",
 				key:           "LremKey3",
 				presetValue:   nil,
-				command:       []string{"LREM", "LremKey3"},
-				expectedValue: nil,
-				expectedError: errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:          "4. Command too long",
-				key:           "LremKey4",
-				presetValue:   nil,
-				command:       []string{"LREM", "LremKey4", "0", "element", "element"},
-				expectedValue: nil,
-				expectedError: errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:          "5. Throw error when count is not an integer",
-				key:           "LremKey5",
-				presetValue:   nil,
-				command:       []string{"LREM", "LremKey5", "count", "value1"},
+				command:       []string{"LREM", "LremKey3", "count", "value1"},
 				expectedValue: nil,
 				expectedError: errors.New("count must be an integer"),
 			},
 			{
-				name:          "6. Throw error on non-list item",
-				key:           "LremKey6",
+				name:          "4. Throw error on non-list item",
+				key:           "LremKey4",
 				presetValue:   "Default value",
-				command:       []string{"LREM", "LremKey6", "0", "value1"},
+				command:       []string{"LREM", "LremKey4", "0", "value1"},
 				expectedValue: nil,
 				expectedError: errors.New("LREM command on non-list item"),
 			},
 			{
-				name:          "7. Throw error on non-existent item",
-				key:           "LremKey7",
-				presetValue:   "Default value",
-				command:       []string{"LREM", "LremKey7", "0", "value1"},
+				name:             "5. Return 0 on non-existent key",
+				key:              "LremKey5",
+				presetValue:      nil,
+				command:          []string{"LREM", "LremKey5", "0", "value1"},
+				expectedResponse: 0,
+				expectedValue:    nil,
+				expectedError:    nil,
+			},
+			{
+				name:          "6. Command too short",
+				key:           "LremKey6",
+				presetValue:   nil,
+				command:       []string{"LREM", "LremKey6"},
 				expectedValue: nil,
-				expectedError: errors.New("LREM command on non-list item"),
+				expectedError: errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:          "7. Command too long",
+				key:           "LremKey7",
+				presetValue:   nil,
+				command:       []string{"LREM", "LremKey7", "0", "element", "element"},
+				expectedValue: nil,
+				expectedError: errors.New(constants.WrongArgsResponse),
 			},
 		}
 
@@ -1054,8 +1082,9 @@ func Test_List(t *testing.T) {
 					return
 				}
 
-				if !strings.EqualFold(res.String(), "ok") {
-					t.Errorf("expected response OK, got \"%s\"", res.String())
+				if res.Integer() != test.expectedResponse {
+					t.Errorf("expected response %d, got %d", test.expectedResponse, res.Integer())
+					return
 				}
 
 				if err = client.WriteArray([]resp.Value{
@@ -1644,7 +1673,7 @@ func Test_List(t *testing.T) {
 			key              string
 			presetValue      interface{}
 			command          []string
-			expectedResponse string
+			expectedResponse interface{}
 			expectedValue    []string
 			expectedError    error
 		}{
@@ -1667,8 +1696,98 @@ func Test_List(t *testing.T) {
 				expectedError:    nil,
 			},
 			{
-				name:             "3. Command too short",
+				name:             "3. Pop 3 elements from the beginning of the list",
 				key:              "PopKey3",
+				presetValue:      []string{"value1", "value2", "value3", "value4"},
+				command:          []string{"LPOP", "PopKey3", "3"},
+				expectedResponse: []string{"value1", "value2", "value3"},
+				expectedValue:    []string{"value4"},
+				expectedError:    nil,
+			},
+			{
+				name:             "4. Pop 3 elements from the end of the list",
+				key:              "PopKey4",
+				presetValue:      []string{"value1", "value2", "value3", "value4"},
+				command:          []string{"RPOP", "PopKey4", "3"},
+				expectedResponse: []string{"value2", "value3", "value4"},
+				expectedValue:    []string{"value1"},
+				expectedError:    nil,
+			},
+			{
+				name:             "5. LPOP on a non-existent key should return nil",
+				key:              "PopKey5",
+				presetValue:      nil,
+				command:          []string{"LPOP", "PopKey5"},
+				expectedResponse: nil,
+				expectedValue:    nil,
+				expectedError:    nil,
+			},
+			{
+				name:             "6. RPOP on a non-existent key should return nil",
+				key:              "PopKey6",
+				presetValue:      nil,
+				command:          []string{"RPOP", "PopKey6"},
+				expectedResponse: nil,
+				expectedValue:    nil,
+				expectedError:    nil,
+			},
+			{
+				name:             "7. LPOP on a non-existent key should return nil",
+				key:              "PopKey7",
+				presetValue:      nil,
+				command:          []string{"LPOP", "PopKey7"},
+				expectedResponse: nil,
+				expectedValue:    nil,
+				expectedError:    nil,
+			},
+			{
+				name:             "8. RPOP on an empty list key should return nil",
+				key:              "PopKey8",
+				presetValue:      []string{},
+				command:          []string{"RPOP", "PopKey8"},
+				expectedResponse: nil,
+				expectedValue:    []string{},
+				expectedError:    nil,
+			},
+			{
+				name:             "9. LPOP empties the list when count = length of the list",
+				key:              "PopKey9",
+				presetValue:      []string{"value1", "value2", "value3", "value4", "value5"},
+				command:          []string{"LPOP", "PopKey9", "5"},
+				expectedResponse: []string{"value1", "value2", "value3", "value4", "value5"},
+				expectedValue:    []string{},
+				expectedError:    nil,
+			},
+			{
+				name:             "10. RPOP empties the list when count = length of the list",
+				key:              "PopKey10",
+				presetValue:      []string{"value1", "value2", "value3", "value4", "value5"},
+				command:          []string{"LPOP", "PopKey10", "5"},
+				expectedResponse: []string{"value1", "value2", "value3", "value4", "value5"},
+				expectedValue:    []string{},
+				expectedError:    nil,
+			},
+			{
+				name:             "11. Trying to execute LPOP from a non-list item return an error",
+				key:              "PopKey11",
+				presetValue:      "Default value",
+				command:          []string{"LPOP", "PopKey11"},
+				expectedResponse: "",
+				expectedValue:    nil,
+				expectedError:    errors.New("LPOP command on non-list item"),
+			},
+			{
+				name:             "12. Trying to execute RPOP from a non-list item return an error",
+				key:              "PopKey12",
+				presetValue:      "Default value",
+				command:          []string{"RPOP", "PopKey12"},
+				expectedResponse: "",
+				expectedValue:    nil,
+				expectedError:    errors.New("RPOP command on non-list item"),
+			},
+			{
+				name:             "13. Command too short",
+				key:              "PopKey13",
 				presetValue:      nil,
 				command:          []string{"LPOP"},
 				expectedResponse: "",
@@ -1676,31 +1795,13 @@ func Test_List(t *testing.T) {
 				expectedError:    errors.New(constants.WrongArgsResponse),
 			},
 			{
-				name:             "4.  Command too long",
-				key:              "PopKey4",
+				name:             "14.  Command too long",
+				key:              "PopKey14",
 				presetValue:      nil,
-				command:          []string{"LPOP", "PopKey4", "PopKey4"},
+				command:          []string{"LPOP", "PopKey14", "5", "extra-arg"},
 				expectedResponse: "",
 				expectedValue:    nil,
 				expectedError:    errors.New(constants.WrongArgsResponse),
-			},
-			{
-				name:             "5. Trying to execute LPOP from a non-list item return an error",
-				key:              "PopKey5",
-				presetValue:      "Default value",
-				command:          []string{"LPOP", "PopKey5"},
-				expectedResponse: "",
-				expectedValue:    nil,
-				expectedError:    errors.New("LPOP command on non-list item"),
-			},
-			{
-				name:             "6. Trying to execute RPOP from a non-list item return an error",
-				key:              "PopKey6",
-				presetValue:      "Default value",
-				command:          []string{"RPOP", "PopKey6"},
-				expectedResponse: "",
-				expectedValue:    nil,
-				expectedError:    errors.New("RPOP command on non-list item"),
 			},
 		}
 
@@ -1719,11 +1820,19 @@ func Test_List(t *testing.T) {
 						}
 						expected = "ok"
 					case []string:
+						elements := test.presetValue.([]string)
+						if len(elements) == 0 {
+							// If the length of the preset array is 0, set with a default value
+							elements = []string{"default"}
+							expected = "1"
+						} else {
+							expected = strconv.Itoa(len(test.presetValue.([]string)))
+						}
+						// Prepare the commands
 						command = []resp.Value{resp.StringValue("LPUSH"), resp.StringValue(test.key)}
-						for _, element := range test.presetValue.([]string) {
+						for _, element := range elements {
 							command = append(command, []resp.Value{resp.StringValue(element)}...)
 						}
-						expected = strconv.Itoa(len(test.presetValue.([]string)))
 					}
 
 					if err = client.WriteArray(command); err != nil {
@@ -1736,6 +1845,14 @@ func Test_List(t *testing.T) {
 
 					if !strings.EqualFold(res.String(), expected) {
 						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
+
+					// If preset value is an empty array, pop the default element that we pushed earlier to make the list empty.
+					if preset, ok := test.presetValue.([]string); ok && len(preset) == 0 {
+						if err = client.WriteArray([]resp.Value{resp.StringValue("LPOP"), resp.StringValue(test.key)}); err != nil {
+							t.Error(err)
+						}
+						_, _, _ = client.ReadValue()
 					}
 				}
 
@@ -1759,8 +1876,27 @@ func Test_List(t *testing.T) {
 					return
 				}
 
-				if res.String() != test.expectedResponse {
-					t.Errorf("expected response %s, got %s", test.expectedResponse, res.String())
+				switch test.expectedResponse.(type) {
+				case string:
+					if res.String() != test.expectedResponse.(string) {
+						t.Errorf("expected response %s, got %s", test.expectedResponse.(string), res.String())
+						return
+					}
+				case types.Nil:
+					if !res.IsNull() {
+						t.Errorf("expected nil response, got %+v", res)
+						return
+					}
+				case []string:
+					if len(res.Array()) != len(test.expectedResponse.([]string)) {
+						t.Errorf("expected list at key \"%s\" to be length %d, got %d",
+							test.key, len(test.expectedValue), len(res.Array()))
+					}
+					for _, item := range res.Array() {
+						if !slices.Contains(test.expectedResponse.([]string), item.String()) {
+							t.Errorf("unexpected value \"%s\" in updated list", item.String())
+						}
+					}
 				}
 
 				if err = client.WriteArray([]resp.Value{

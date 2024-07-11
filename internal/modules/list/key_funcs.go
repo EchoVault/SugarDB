@@ -32,7 +32,7 @@ func lpushKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 }
 
 func popKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
-	if len(cmd) != 2 {
+	if len(cmd) < 2 || len(cmd) > 3 {
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
 	return internal.KeyExtractionFuncResult{

@@ -315,13 +315,20 @@ func ParseBooleanResponse(b []byte) (bool, error) {
 
 func ParseStringArrayResponse(b []byte) ([]string, error) {
 	r := resp.NewReader(bytes.NewReader(b))
+
 	v, _, err := r.ReadValue()
 	if err != nil {
 		return nil, err
 	}
+
 	if v.IsNull() {
 		return []string{}, nil
 	}
+
+	if v.Type().String() == "BulkString" {
+		return []string{v.String()}, nil
+	}
+
 	arr := make([]string, len(v.Array()))
 	for i, e := range v.Array() {
 		if e.IsNull() {
