@@ -55,22 +55,36 @@ func handleHSET(params internal.HandlerFuncParams) ([]byte, error) {
 
 	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
 	if !ok {
-		hash = make(map[string]interface{})
+		// Not hash, save the entries map directly.
+		if err = params.SetValues(params.Context, map[string]interface{}{key: entries}); err != nil {
+			return nil, err
+		}
+		return []byte(fmt.Sprintf(":%d\r\n", len(entries))), nil
 	}
 
 	count := 0
-	for field, value := range entries {
-		if strings.EqualFold(params.Command[0], "hsetnx") {
+	switch strings.ToLower(params.Command[0]) {
+	case "hsetnx":
+		// Handle HSETNX
+		for field, _ := range entries {
 			if hash[field] == nil {
-				hash[field] = value
 				count += 1
 			}
-			continue
 		}
-		hash[field] = value
-		count += 1
+		for field, value := range hash {
+			entries[field] = value
+		}
+	default:
+		// Handle HSET
+		for field, value := range hash {
+			if entries[field] == nil {
+				entries[field] = value
+			}
+		}
+		count = len(entries)
 	}
-	if err = params.SetValues(params.Context, map[string]interface{}{key: hash}); err != nil {
+
+	if err = params.SetValues(params.Context, map[string]interface{}{key: entries}); err != nil {
 		return nil, err
 	}
 
