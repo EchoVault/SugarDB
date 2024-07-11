@@ -32,17 +32,17 @@ func TestEchoVault_LLEN(t *testing.T) {
 		wantErr     bool
 	}{
 		{
+			name:        "1. If key exists and is a list, return the lists length",
 			preset:      true,
 			key:         "key1",
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
-			name:        "If key exists and is a list, return the lists length",
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			want:        4,
 			wantErr:     false,
 		},
 		{
+			name:        "2. If key does not exist, return 0",
 			preset:      false,
 			key:         "key2",
-			name:        "If key does not exist, return 0",
 			presetValue: nil,
 			want:        0,
 			wantErr:     false,
@@ -50,7 +50,7 @@ func TestEchoVault_LLEN(t *testing.T) {
 		{
 			preset:      true,
 			key:         "key5",
-			name:        "Trying to get lengths on a non-list returns error",
+			name:        "3. Trying to get lengths on a non-list returns error",
 			presetValue: "Default value",
 			want:        0,
 			wantErr:     true,
@@ -90,43 +90,43 @@ func TestEchoVault_LINDEX(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Return last element within range",
+			name:        "1. Return last element within range",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key1",
 			index:       3,
 			want:        "value4",
 			wantErr:     false,
 		},
 		{
-			name:        "Return first element within range",
+			name:        "2. Return first element within range",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key2",
 			index:       0,
 			want:        "value1",
 			wantErr:     false,
 		},
 		{
-			name:        "Return middle element within range",
+			name:        "3. Return middle element within range",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key3",
 			index:       1,
 			want:        "value2",
 			wantErr:     false,
 		},
 		{
-			name:        "If key does not exist, return error",
+			name:        "4. If key does not exist, return error",
 			preset:      false,
 			presetValue: nil,
 			key:         "key4",
 			index:       0,
 			want:        "",
-			wantErr:     true,
+			wantErr:     false,
 		},
 		{
-			name:        "Trying to get element by index on a non-list returns error",
+			name:        "5. Trying to get element by index on a non-list returns error",
 			preset:      true,
 			presetValue: "Default value",
 			key:         "key5",
@@ -135,13 +135,13 @@ func TestEchoVault_LINDEX(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:        "Trying to get index out of range index beyond last index",
+			name:        "6. Trying to get index out of range index beyond last index",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3"},
+			presetValue: []string{"value1", "value2", "value3"},
 			key:         "key6",
 			index:       3,
 			want:        "",
-			wantErr:     true,
+			wantErr:     false,
 		},
 	}
 	for _, tt := range tests {
@@ -180,11 +180,11 @@ func TestEchoVault_LMOVE(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:   "Move element from LEFT of left list to LEFT of right list",
+			name:   "1. Move element from LEFT of left list to LEFT of right list",
 			preset: true,
 			presetValue: map[string]interface{}{
-				"source1":      []interface{}{"one", "two", "three"},
-				"destination1": []interface{}{"one", "two", "three"},
+				"source1":      []string{"one", "two", "three"},
+				"destination1": []string{"one", "two", "three"},
 			},
 			source:      "source1",
 			destination: "destination1",
@@ -194,11 +194,11 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:   "Move element from LEFT of left list to RIGHT of right list",
+			name:   "2. Move element from LEFT of left list to RIGHT of right list",
 			preset: true,
 			presetValue: map[string]interface{}{
-				"source2":      []interface{}{"one", "two", "three"},
-				"destination2": []interface{}{"one", "two", "three"},
+				"source2":      []string{"one", "two", "three"},
+				"destination2": []string{"one", "two", "three"},
 			},
 			source:      "source2",
 			destination: "destination2",
@@ -208,11 +208,11 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:   "Move element from RIGHT of left list to LEFT of right list",
+			name:   "3. Move element from RIGHT of left list to LEFT of right list",
 			preset: true,
 			presetValue: map[string]interface{}{
-				"source3":      []interface{}{"one", "two", "three"},
-				"destination3": []interface{}{"one", "two", "three"},
+				"source3":      []string{"one", "two", "three"},
+				"destination3": []string{"one", "two", "three"},
 			},
 			source:      "source3",
 			destination: "destination3",
@@ -222,11 +222,11 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:   "Move element from RIGHT of left list to RIGHT of right list",
+			name:   "4. Move element from RIGHT of left list to RIGHT of right list",
 			preset: true,
 			presetValue: map[string]interface{}{
-				"source4":      []interface{}{"one", "two", "three"},
-				"destination4": []interface{}{"one", "two", "three"},
+				"source4":      []string{"one", "two", "three"},
+				"destination4": []string{"one", "two", "three"},
 			},
 			source:      "source4",
 			destination: "destination4",
@@ -236,10 +236,10 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:   "Throw error when the right list is non-existent",
+			name:   "5. Throw error when the right list is non-existent",
 			preset: true,
 			presetValue: map[string]interface{}{
-				"source5": []interface{}{"one", "two", "three"},
+				"source5": []string{"one", "two", "three"},
 			},
 			source:      "source5",
 			destination: "destination5",
@@ -249,10 +249,10 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:   "Throw error when right list in not a list",
+			name:   "6. Throw error when right list in not a list",
 			preset: true,
 			presetValue: map[string]interface{}{
-				"source6":      []interface{}{"one", "two", "tree"},
+				"source6":      []string{"one", "two", "tree"},
 				"destination6": "Default value",
 			},
 			source:      "source6",
@@ -263,10 +263,10 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:   "Throw error when left list is non-existent",
+			name:   "7. Throw error when left list is non-existent",
 			preset: true,
 			presetValue: map[string]interface{}{
-				"destination7": []interface{}{"one", "two", "three"},
+				"destination7": []string{"one", "two", "three"},
 			},
 			source:      "source7",
 			destination: "destination7",
@@ -276,11 +276,11 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:   "Throw error when left list is not a list",
+			name:   "8. Throw error when left list is not a list",
 			preset: true,
 			presetValue: map[string]interface{}{
 				"source8":      "Default value",
-				"destination8": []interface{}{"one", "two", "three"},
+				"destination8": []string{"one", "two", "three"},
 			},
 			source:      "source8",
 			destination: "destination8",
@@ -290,7 +290,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:        "Throw error when WHEREFROM argument is not LEFT/RIGHT",
+			name:        "9. Throw error when WHEREFROM argument is not LEFT/RIGHT",
 			preset:      false,
 			presetValue: map[string]interface{}{},
 			source:      "source9",
@@ -301,7 +301,7 @@ func TestEchoVault_LMOVE(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:        "Throw error when WHERETO argument is not LEFT/RIGHT",
+			name:        "10. Throw error when WHERETO argument is not LEFT/RIGHT",
 			preset:      false,
 			presetValue: map[string]interface{}{},
 			source:      "source10",
@@ -343,44 +343,49 @@ func TestEchoVault_POP(t *testing.T) {
 		preset      bool
 		presetValue interface{}
 		key         string
-		popFunc     func(key string) (string, error)
-		want        string
+		count       uint
+		popFunc     func(key string, count uint) ([]string, error)
+		want        []string
 		wantErr     bool
 	}{
 		{
-			name:        "LPOP returns last element and removed first element from the list",
+			name:        "1. LPOP returns last element and removed first element from the list",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key1",
+			count:       1,
 			popFunc:     server.LPop,
-			want:        "value1",
+			want:        []string{"value1"},
 			wantErr:     false,
 		},
 		{
-			name:        "RPOP returns last element and removed last element from the list",
+			name:        "2. RPOP returns last element and removed last element from the list",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key2",
+			count:       1,
 			popFunc:     server.RPop,
-			want:        "value4",
+			want:        []string{"value4"},
 			wantErr:     false,
 		},
 		{
-			name:        "Trying to execute LPOP from a non-list item return an error",
+			name:        "3. Trying to execute LPOP from a non-list item return an error",
 			preset:      true,
 			key:         "key3",
+			count:       1,
 			presetValue: "Default value",
 			popFunc:     server.LPop,
-			want:        "",
+			want:        []string{},
 			wantErr:     true,
 		},
 		{
-			name:        "Trying to execute RPOP from a non-list item return an error",
+			name:        "4. Trying to execute RPOP from a non-list item return an error",
 			preset:      true,
 			presetValue: "Default value",
 			key:         "key6",
+			count:       1,
 			popFunc:     server.RPop,
-			want:        "",
+			want:        []string{},
 			wantErr:     true,
 		},
 	}
@@ -393,12 +398,12 @@ func TestEchoVault_POP(t *testing.T) {
 					return
 				}
 			}
-			got, err := tt.popFunc(tt.key)
+			got, err := tt.popFunc(tt.key, tt.count)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("POP() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("POP() got = %v, want %v", got, tt.want)
 			}
 		})
@@ -419,9 +424,9 @@ func TestEchoVault_LPUSH(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "LPUSHX to existing list prepends the element to the list",
+			name:        "1. LPUSHX to existing list prepends the element to the list",
 			preset:      true,
-			presetValue: []interface{}{"1", "2", "4", "5"},
+			presetValue: []string{"1", "2", "4", "5"},
 			key:         "key1",
 			values:      []string{"value1", "value2"},
 			lpushFunc:   server.LPushX,
@@ -429,9 +434,9 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "LPUSH on existing list prepends the elements to the list",
+			name:        "2. LPUSH on existing list prepends the elements to the list",
 			preset:      true,
-			presetValue: []interface{}{"1", "2", "4", "5"},
+			presetValue: []string{"1", "2", "4", "5"},
 			key:         "key2",
 			values:      []string{"value1", "value2"},
 			lpushFunc:   server.LPush,
@@ -439,7 +444,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "LPUSH on non-existent list creates the list",
+			name:        "3. LPUSH on non-existent list creates the list",
 			preset:      false,
 			presetValue: nil,
 			key:         "key3",
@@ -449,7 +454,7 @@ func TestEchoVault_LPUSH(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "LPUSHX command returns error on non-existent list",
+			name:        "4. LPUSHX command returns error on non-existent list",
 			preset:      false,
 			presetValue: nil,
 			key:         "key4",
@@ -494,7 +499,7 @@ func TestEchoVault_RPUSH(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "RPUSH on non-existent list creates the list",
+			name:        "1. RPUSH on non-existent list creates the list",
 			preset:      false,
 			presetValue: nil,
 			key:         "key1",
@@ -504,7 +509,7 @@ func TestEchoVault_RPUSH(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "RPUSHX command returns error on non-existent list",
+			name:        "2. RPUSHX command returns error on non-existent list",
 			preset:      false,
 			presetValue: nil,
 			key:         "key2",
@@ -552,9 +557,9 @@ func TestEchoVault_LRANGE(t *testing.T) {
 			// Return sub-list within range.
 			// Both start and end indices are positive.
 			// End index is greater than start index.
-			name:        "Return sub-list within range.",
+			name:        "1. Return sub-list within range.",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
+			presetValue: []string{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
 			key:         "key1",
 			start:       3,
 			end:         6,
@@ -562,9 +567,9 @@ func TestEchoVault_LRANGE(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "Return sub-list from start index to the end of the list when end index is -1",
+			name:        "2. Return sub-list from start index to the end of the list when end index is -1",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
+			presetValue: []string{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
 			key:         "key2",
 			start:       3,
 			end:         -1,
@@ -572,28 +577,28 @@ func TestEchoVault_LRANGE(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "Return the reversed sub-list when the end index is greater than -1 but less than start index",
+			name:        "3. Return empty list when the end index is less than start index",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
+			presetValue: []string{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
 			key:         "key3",
 			start:       3,
 			end:         0,
-			want:        []string{"value4", "value3", "value2", "value1"},
+			want:        []string{},
 			wantErr:     false,
 		},
 		{
-			name:        "If key does not exist, return error",
+			name:        "4. If key does not exist, return empty list",
 			preset:      false,
 			presetValue: nil,
 			key:         "key4",
 			start:       0,
 			end:         2,
-			want:        nil,
-			wantErr:     true,
+			want:        []string{},
+			wantErr:     false,
 		},
 
 		{
-			name:        "Error when executing command on non-list command",
+			name:        "5. Error when executing command on non-list command",
 			preset:      true,
 			presetValue: "Default value",
 			key:         "key5",
@@ -603,34 +608,34 @@ func TestEchoVault_LRANGE(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:        "Error when start index is less than 0",
+			name:        "6. Start index calculated from end of list when start index is less than 0",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key6",
-			start:       -1,
+			start:       -3,
 			end:         3,
-			want:        nil,
-			wantErr:     true,
+			want:        []string{"value2", "value3", "value4"},
+			wantErr:     false,
 		},
 		{
-			name:        "Error when start index is higher than the length of the list",
+			name:        "7. Empty list when start index is higher than the length of the list",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3"},
+			presetValue: []string{"value1", "value2", "value3"},
 			key:         "key7",
 			start:       10,
 			end:         11,
-			want:        nil,
-			wantErr:     true,
+			want:        []string{},
+			wantErr:     false,
 		},
 		{
-			name:        "Error when start and end indices are equal",
+			name:        "8. One element when start and end indices are equal",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3"},
+			presetValue: []string{"value1", "value2", "value3"},
 			key:         "key8",
 			start:       1,
 			end:         1,
-			want:        nil,
-			wantErr:     true,
+			want:        []string{"value2"},
+			wantErr:     false,
 		},
 	}
 	for _, tt := range tests {
@@ -664,37 +669,37 @@ func TestEchoVault_LREM(t *testing.T) {
 		key         string
 		count       int
 		value       string
-		want        bool
+		want        int
 		wantErr     bool
 	}{
 		{
-			name:        "Remove the first 3 elements that appear in the list",
+			name:        "1. Remove the first 3 elements that appear in the list",
 			preset:      true,
-			presetValue: []interface{}{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
+			presetValue: []string{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
 			key:         "key1",
 			count:       3,
 			value:       "4",
-			want:        true,
+			want:        3,
 			wantErr:     false,
 		},
 		{
-			name:        "Remove the last 3 elements that appear in the list",
+			name:        "2. Remove the last 3 elements that appear in the list",
 			preset:      true,
-			presetValue: []interface{}{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
+			presetValue: []string{"1", "2", "4", "4", "5", "6", "7", "4", "8", "4", "9", "10", "5", "4"},
 			key:         "key2",
 			count:       -3,
 			value:       "4",
-			want:        true,
+			want:        3,
 			wantErr:     false,
 		},
 		{
-			name:        "Throw error on non-list item",
+			name:        "3. Throw error on non-list item",
 			preset:      true,
 			presetValue: "Default value",
 			key:         "LremKey8",
 			count:       0,
 			value:       "value1",
-			want:        false,
+			want:        0,
 			wantErr:     true,
 		},
 	}
@@ -733,9 +738,9 @@ func TestEchoVault_LSET(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Return last element within range",
+			name:        "1. Return last element within range",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key1",
 			index:       3,
 			value:       "new-value",
@@ -743,9 +748,9 @@ func TestEchoVault_LSET(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "Return first element within range",
+			name:        "2. Return first element within range",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key2",
 			index:       0,
 			value:       "new-value",
@@ -753,9 +758,9 @@ func TestEchoVault_LSET(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "Return middle element within range",
+			name:        "3. Return middle element within range",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key3",
 			index:       1,
 			value:       "new-value",
@@ -763,7 +768,7 @@ func TestEchoVault_LSET(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "If key does not exist, return error",
+			name:        "4. If key does not exist, return error",
 			preset:      false,
 			presetValue: nil,
 			key:         "key4",
@@ -773,7 +778,7 @@ func TestEchoVault_LSET(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:        "Trying to get element by index on a non-list returns error",
+			name:        "5. Trying to get element by index on a non-list returns error",
 			preset:      true,
 			presetValue: "Default value",
 			key:         "key5",
@@ -783,9 +788,9 @@ func TestEchoVault_LSET(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:        "Trying to get index out of range index beyond last index",
+			name:        "6. Trying to get index out of range index beyond last index",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3"},
+			presetValue: []string{"value1", "value2", "value3"},
 			key:         "key6",
 			index:       3,
 			value:       "element",
@@ -793,11 +798,11 @@ func TestEchoVault_LSET(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:        "Trying to get index out of range with negative index",
+			name:        "7. Trying to get index out of range with negative index",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3"},
+			presetValue: []string{"value1", "value2", "value3"},
 			key:         "key7",
-			index:       -1,
+			index:       -4,
 			value:       "element",
 			want:        false,
 			wantErr:     true,
@@ -841,9 +846,9 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			// Return trim within range.
 			// Both start and end indices are positive.
 			// End index is greater than start index.
-			name:        "Return trim within range",
+			name:        "1. Return trim within range",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
+			presetValue: []string{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
 			key:         "key1",
 			start:       3,
 			end:         6,
@@ -851,9 +856,9 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "Return element from start index to end index when end index is greater than length of the list",
+			name:        "2. Return element from start index to end index when end index is greater than length of the list",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
+			presetValue: []string{"value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"},
 			key:         "key2",
 			start:       5,
 			end:         -1,
@@ -861,27 +866,27 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "Return error when end index is smaller than start index but greater than -1",
+			name:        "3. Return false when end index is smaller than start index.",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key3",
 			start:       3,
 			end:         1,
-			want:        false,
-			wantErr:     true,
+			want:        true,
+			wantErr:     false,
 		},
 		{
-			name:        "If key does not exist, return error",
+			name:        "4. If key does not exist, return true",
 			preset:      false,
 			presetValue: nil,
 			key:         "key4",
 			start:       0,
 			end:         2,
-			want:        false,
-			wantErr:     true,
+			want:        true,
+			wantErr:     false,
 		},
 		{
-			name:        "Trying to get element by index on a non-list returns error",
+			name:        "5. Trying to get element by index on a non-list returns error",
 			preset:      true,
 			presetValue: "Default value",
 			key:         "key5",
@@ -891,24 +896,24 @@ func TestEchoVault_LTRIM(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name:        "Error when start index is less than 0",
+			name:        "6. Trim from the end when start index is less than 0",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3", "value4"},
+			presetValue: []string{"value1", "value2", "value3", "value4"},
 			key:         "key6",
-			start:       -1,
+			start:       -3,
 			end:         3,
-			want:        false,
-			wantErr:     true,
+			want:        true,
+			wantErr:     false,
 		},
 		{
-			name:        "Error when start index is higher than the length of the list",
+			name:        "7. Return true when start index is higher than the length of the list",
 			preset:      true,
-			presetValue: []interface{}{"value1", "value2", "value3"},
+			presetValue: []string{"value1", "value2", "value3"},
 			key:         "key7",
 			start:       10,
 			end:         11,
-			want:        false,
-			wantErr:     true,
+			want:        true,
+			wantErr:     false,
 		},
 	}
 	for _, tt := range tests {

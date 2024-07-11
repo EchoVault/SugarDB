@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/constants"
-	"math"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -38,7 +38,7 @@ func handleLLen(params internal.HandlerFuncParams) ([]byte, error) {
 		return []byte(":0\r\n"), nil
 	}
 
-	if list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{}); ok {
+	if list, ok := params.GetValues(params.Context, []string{key})[key].([]string); ok {
 		return []byte(fmt.Sprintf(":%d\r\n", len(list))), nil
 	}
 
@@ -53,26 +53,29 @@ func handleLIndex(params internal.HandlerFuncParams) ([]byte, error) {
 
 	key := keys.ReadKeys[0]
 	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
-	index, ok := internal.AdaptType(params.Command[2]).(int)
+	if !keyExists {
+		return []byte(fmt.Sprintf("$-1\r\n")), nil
+	}
 
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]string)
 	if !ok {
+		return nil, errors.New("LINDEX command on non-list item")
+	}
+
+	index, err := strconv.Atoi(params.Command[2])
+	if err != nil {
 		return nil, errors.New("index must be an integer")
 	}
-
-	if !keyExists {
-		return nil, errors.New("LINDEX command on non-list item")
+	// If index is less than 0, calculate index from the end of the list
+	if index < 0 {
+		index = len(list) + index
 	}
 
-	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
-	if !ok {
-		return nil, errors.New("LINDEX command on non-list item")
+	if index >= len(list) || index < 0 {
+		return []byte(fmt.Sprintf("$-1\r\n")), nil
 	}
 
-	if !(index >= 0 && index < len(list)) {
-		return nil, errors.New("index must be within list range")
-	}
-
-	return []byte(fmt.Sprintf("+%s\r\n", list[index])), nil
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(list[index]), list[index])), nil
 }
 
 func handleLRange(params internal.HandlerFuncParams) ([]byte, error) {
@@ -83,71 +86,47 @@ func handleLRange(params internal.HandlerFuncParams) ([]byte, error) {
 
 	key := keys.ReadKeys[0]
 	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
-	start, startOk := internal.AdaptType(params.Command[2]).(int)
-	end, endOk := internal.AdaptType(params.Command[3]).(int)
-
-	if !startOk || !endOk {
-		return nil, errors.New("start and end indices must be integers")
-	}
-
 	if !keyExists {
-		return nil, errors.New("LRANGE command on non-list item")
+		return []byte("*0\r\n"), nil
 	}
 
-	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]string)
 	if !ok {
 		return nil, errors.New("LRANGE command on non-list item")
 	}
 
-	// Make sure start is within range
-	if !(start >= 0 && start < len(list)) {
-		return nil, errors.New("start index must be within list boundary")
+	start, err := strconv.Atoi(params.Command[2])
+	if err != nil {
+		return nil, fmt.Errorf("start index must be an integer")
+	}
+	// If start is < 0, calculate it from the end of the list
+	if start < 0 {
+		start = len(list) + start
 	}
 
-	// Make sure end is within range, or is -1 otherwise
-	if !((end >= 0 && end < len(list)) || end == -1) {
-		return nil, errors.New("end index must be within list range or -1")
+	end, err := strconv.Atoi(params.Command[3])
+	if err != nil {
+		return nil, fmt.Errorf("end index must be an integer")
+	}
+	// If end is < 0, calculate it from the end of the list
+	if end < 0 {
+		end = len(list) - end
+	}
+	// If end is greater than list length, set it to the last element of the list
+	if end > len(list) {
+		end = len(list) - 1
 	}
 
-	var bytes []byte
-
-	// If end is -1, read list from start to the end of the list
-	if end == -1 {
-		bytes = []byte("*" + fmt.Sprint(len(list)-int(start)) + "\r\n")
-		for i := int(start); i < len(list); i++ {
-			str := fmt.Sprintf("%v", list[i])
-			bytes = append(bytes, []byte("$"+fmt.Sprint(len(str))+"\r\n"+str+"\r\n")...)
-		}
-		return bytes, nil
+	if start > end || start > len(list) {
+		return []byte("*0\r\n"), nil
 	}
 
-	// Make sure start and end are not equal to each other
-	if start == end {
-		return nil, errors.New("start and end indices cannot be equal")
+	res := fmt.Sprintf("*%d\r\n", end-start+1)
+	for i := start; i <= end; i++ {
+		res += fmt.Sprintf("$%d\r\n%s\r\n", len(list[i]), list[i])
 	}
 
-	// If end is not -1:
-	//	1) If end is larger than start, return slice from start -> end
-	//	2) If end is smaller than start, return slice from end -> start
-	bytes = []byte("*" + fmt.Sprint(int(math.Abs(float64(start-end)))+1) + "\r\n")
-
-	i := start
-	j := end + 1
-	if start > end {
-		j = end - 1
-	}
-
-	for i != j {
-		str := fmt.Sprintf("%v", list[i])
-		bytes = append(bytes, []byte("$"+fmt.Sprint(len(str))+"\r\n"+str+"\r\n")...)
-		if start < end {
-			i++
-		} else {
-			i--
-		}
-	}
-
-	return bytes, nil
+	return []byte(res), nil
 }
 
 func handleLSet(params internal.HandlerFuncParams) ([]byte, error) {
@@ -158,26 +137,30 @@ func handleLSet(params internal.HandlerFuncParams) ([]byte, error) {
 
 	key := keys.WriteKeys[0]
 	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
-
-	index, ok := internal.AdaptType(params.Command[2]).(int)
-	if !ok {
-		return nil, errors.New("index must be an integer")
-	}
-
 	if !keyExists {
 		return nil, errors.New("LSET command on non-list item")
 	}
 
-	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
+	index, err := strconv.Atoi(params.Command[2])
+	if err != nil {
+		return nil, errors.New("index must be an integer")
+	}
+
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]string)
 	if !ok {
 		return nil, errors.New("LSET command on non-list item")
+	}
+
+	// If index is negative set index to length - index
+	if index < 0 {
+		index = len(list) + index
 	}
 
 	if !(index >= 0 && index < len(list)) {
 		return nil, errors.New("index must be within list range")
 	}
 
-	list[index] = internal.AdaptType(params.Command[3])
+	list[index] = params.Command[3]
 	if err = params.SetValues(params.Context, map[string]interface{}{key: list}); err != nil {
 		return nil, err
 	}
@@ -193,40 +176,53 @@ func handleLTrim(params internal.HandlerFuncParams) ([]byte, error) {
 
 	key := keys.WriteKeys[0]
 	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
-	start, startOk := internal.AdaptType(params.Command[2]).(int)
-	end, endOk := internal.AdaptType(params.Command[3]).(int)
-
-	if !startOk || !endOk {
-		return nil, errors.New("start and end indices must be integers")
-	}
-
-	if end < start && end != -1 {
-		return nil, errors.New("end index must be greater than start index or -1")
-	}
-
 	if !keyExists {
-		return nil, errors.New("LTRIM command on non-list item")
+		return []byte(constants.OkResponse), nil
 	}
 
-	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
+	start, err := strconv.Atoi(params.Command[2])
+	if err != nil {
+		return nil, fmt.Errorf("start index must be an integer")
+	}
+	end, err := strconv.Atoi(params.Command[3])
+	if err != nil {
+		return nil, fmt.Errorf("end index must be an integer")
+	}
+
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]string)
 	if !ok {
 		return nil, errors.New("LTRIM command on non-list item")
 	}
 
-	if !(start >= 0 && start < len(list)) {
-		return nil, errors.New("start index must be within list boundary")
+	// If start and end indices are negative, calculate them from the end of the list
+	if start < 0 {
+		start = len(list) + start
+	}
+	if end < 0 {
+		end = len(list) + end
 	}
 
-	if end == -1 || end > len(list) {
-		if err = params.SetValues(params.Context, map[string]interface{}{key: list[start:]}); err != nil {
+	// If start index is greater than end index or greater than the index of the last element, delete the key.
+	if start > end || start > len(list)-1 {
+		if err = params.DeleteKey(params.Context, key); err != nil {
 			return nil, err
 		}
 		return []byte(constants.OkResponse), nil
 	}
 
+	// If end is greater than the length of the list, set it to the length of the list
+	if end > len(list) {
+		end = len(list)
+	}
+	// In order to include end element, if the end index is within range, add 1
+	if end <= len(list)-1 {
+		end += 1
+	}
+
 	if err = params.SetValues(params.Context, map[string]interface{}{key: list[start:end]}); err != nil {
 		return nil, err
 	}
+
 	return []byte(constants.OkResponse), nil
 }
 
@@ -238,35 +234,42 @@ func handleLRem(params internal.HandlerFuncParams) ([]byte, error) {
 
 	key := keys.WriteKeys[0]
 	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
-	value := params.Command[3]
 
-	count, ok := internal.AdaptType(params.Command[2]).(int)
-	if !ok {
+	value := params.Command[3]
+	count, err := strconv.Atoi(params.Command[2])
+	if err != nil {
 		return nil, errors.New("count must be an integer")
 	}
-
 	absoluteCount := internal.AbsInt(count)
 
 	if !keyExists {
-		return nil, errors.New("LREM command on non-list item")
+		return []byte(":0\r\n"), nil
 	}
 
-	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]string)
 	if !ok {
 		return nil, errors.New("LREM command on non-list item")
 	}
 
+	removedCount := len(list)
+
 	switch {
 	default:
-		// Count is zero, keep list the same
+		// Count is zero, remove all instances of the element from the list.
+		for i := 0; i < len(list); i++ {
+			if list[i] == value {
+				list = append(list[:i], list[i+1:]...)
+				absoluteCount += 1
+			}
+		}
 	case count > 0:
 		// Start from the head
 		for i := 0; i < len(list); i++ {
 			if absoluteCount == 0 {
 				break
 			}
-			if fmt.Sprintf("%v", list[i]) == value {
-				list[i] = nil
+			if list[i] == value {
+				list = append(list[:i], list[i+1:]...)
 				absoluteCount -= 1
 			}
 		}
@@ -276,22 +279,20 @@ func handleLRem(params internal.HandlerFuncParams) ([]byte, error) {
 			if absoluteCount == 0 {
 				break
 			}
-			if fmt.Sprintf("%v", list[i]) == value {
-				list[i] = nil
+			if list[i] == value {
+				list = append(list[:i], list[i+1:]...)
 				absoluteCount -= 1
+				removedCount += 0
 			}
 		}
 	}
-
-	list = slices.DeleteFunc(list, func(elem interface{}) bool {
-		return elem == nil
-	})
 
 	if err = params.SetValues(params.Context, map[string]interface{}{key: list}); err != nil {
 		return nil, err
 	}
 
-	return []byte(constants.OkResponse), nil
+	removedCount = removedCount - len(list)
+	return []byte(fmt.Sprintf(":%d\r\n", removedCount)), nil
 }
 
 func handleLMove(params internal.HandlerFuncParams) ([]byte, error) {
@@ -314,8 +315,8 @@ func handleLMove(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	lists := params.GetValues(params.Context, keys.WriteKeys)
-	sourceList, sourceOk := lists[source].([]interface{})
-	destinationList, destinationOk := lists[destination].([]interface{})
+	sourceList, sourceOk := lists[source].([]string)
+	destinationList, destinationOk := lists[destination].([]string)
 
 	if !sourceOk || !destinationOk {
 		return nil, errors.New("both source and destination must be lists")
@@ -324,8 +325,8 @@ func handleLMove(params internal.HandlerFuncParams) ([]byte, error) {
 	switch whereFrom {
 	case "left":
 		err = params.SetValues(params.Context, map[string]interface{}{
-			source: append([]interface{}{}, sourceList[1:]...),
-			destination: func() []interface{} {
+			source: append([]string{}, sourceList[1:]...),
+			destination: func() []string {
 				if whereTo == "left" {
 					return append(sourceList[0:1], destinationList...)
 				}
@@ -335,8 +336,8 @@ func handleLMove(params internal.HandlerFuncParams) ([]byte, error) {
 		})
 	case "right":
 		err = params.SetValues(params.Context, map[string]interface{}{
-			source: append([]interface{}{}, sourceList[:len(sourceList)-1]...),
-			destination: func() []interface{} {
+			source: append([]string{}, sourceList[:len(sourceList)-1]...),
+			destination: func() []string {
 				if whereTo == "left" {
 					return append(sourceList[len(sourceList)-1:], destinationList...)
 				}
@@ -359,10 +360,10 @@ func handleLPush(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 
-	var newElems []interface{}
+	var newElems []string
 
 	for _, elem := range params.Command[2:] {
-		newElems = append(newElems, internal.AdaptType(elem))
+		newElems = append(newElems, elem)
 	}
 
 	key := keys.WriteKeys[0]
@@ -373,14 +374,14 @@ func handleLPush(params internal.HandlerFuncParams) ([]byte, error) {
 		case "lpushx":
 			return nil, errors.New("LPUSHX command on non-existent key")
 		default:
-			if err = params.SetValues(params.Context, map[string]interface{}{key: []interface{}{}}); err != nil {
+			if err = params.SetValues(params.Context, map[string]interface{}{key: []string{}}); err != nil {
 				return nil, err
 			}
 		}
 	}
 
 	currentList := params.GetValues(params.Context, []string{key})[key]
-	l, ok := currentList.([]interface{})
+	l, ok := currentList.([]string)
 	if !ok {
 		return nil, errors.New("LPUSH command on non-list item")
 	}
@@ -401,10 +402,10 @@ func handleRPush(params internal.HandlerFuncParams) ([]byte, error) {
 	key := keys.WriteKeys[0]
 	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
 
-	var newElems []interface{}
+	var newElems []string
 
 	for _, elem := range params.Command[2:] {
-		newElems = append(newElems, internal.AdaptType(elem))
+		newElems = append(newElems, elem)
 	}
 
 	if !keyExists {
@@ -412,14 +413,14 @@ func handleRPush(params internal.HandlerFuncParams) ([]byte, error) {
 		case "rpushx":
 			return nil, errors.New("RPUSHX command on non-existent key")
 		default:
-			if err = params.SetValues(params.Context, map[string]interface{}{key: []interface{}{}}); err != nil {
+			if err = params.SetValues(params.Context, map[string]interface{}{key: []string{}}); err != nil {
 				return nil, err
 			}
 		}
 	}
 
 	currentList := params.GetValues(params.Context, []string{key})[key]
-	l, ok := currentList.([]interface{})
+	l, ok := currentList.([]string)
 	if !ok {
 		return nil, errors.New("RPUSH command on non-list item")
 	}
@@ -438,28 +439,63 @@ func handlePop(params internal.HandlerFuncParams) ([]byte, error) {
 
 	key := keys.WriteKeys[0]
 	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
-
 	if !keyExists {
-		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(params.Command[0]))
+		return []byte("$-1\r\n"), nil
 	}
 
-	list, ok := params.GetValues(params.Context, []string{key})[key].([]interface{})
+	list, ok := params.GetValues(params.Context, []string{key})[key].([]string)
 	if !ok {
 		return nil, fmt.Errorf("%s command on non-list item", strings.ToUpper(params.Command[0]))
 	}
 
-	switch strings.ToLower(params.Command[0]) {
-	default:
-		if err = params.SetValues(params.Context, map[string]interface{}{key: list[1:]}); err != nil {
-			return nil, err
+	withCount := false
+	count := 1
+	// Parse count
+	if len(params.Command) == 3 {
+		withCount = true
+		count, err = strconv.Atoi(params.Command[2])
+		if err != nil {
+			return nil, fmt.Errorf("count must be an integer")
 		}
-		return []byte(fmt.Sprintf("+%v\r\n", list[0])), nil
-	case "rpop":
-		if err = params.SetValues(params.Context, map[string]interface{}{key: list[:len(list)-1]}); err != nil {
-			return nil, err
+		// Set absolute value for count
+		count = internal.AbsInt(count)
+		// If count is greater than the length of the list, set count to the length of the list.
+		if count > len(list) {
+			count = len(list)
 		}
-		return []byte(fmt.Sprintf("+%v\r\n", list[len(list)-1])), nil
 	}
+
+	// Return nil if list is empty
+	if len(list) == 0 {
+		return []byte("$-1\r\n"), nil
+	}
+
+	var popped []string
+	for i := 0; i < count; i++ {
+		if strings.EqualFold(params.Command[0], "lpop") {
+			// Pop from the left
+			popped = append(popped, list[0])
+			list = list[1:]
+		} else {
+			// Pop from the right
+			popped = append(popped, list[len(list)-1])
+			list = list[:len(list)-1]
+		}
+	}
+	if err = params.SetValues(params.Context, map[string]interface{}{key: list}); err != nil {
+		return nil, err
+	}
+
+	// If withCount is false, return a bulk string of the popped element.
+	if !withCount {
+		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(popped[0]), popped[0])), nil
+	}
+	// Return an array of the popped elements.
+	res := fmt.Sprintf("*%d\r\n", len(popped))
+	for i := 0; i < len(popped); i++ {
+		res += fmt.Sprintf("$%d\r\n%s\r\n", len(popped[i]), popped[i])
+	}
+	return []byte(res), nil
 }
 
 func Commands() []internal.Command {
@@ -485,10 +521,13 @@ Prepends a value to the beginning of a list only if the list exists.`,
 			HandlerFunc:       handleLPush,
 		},
 		{
-			Command:           "lpop",
-			Module:            constants.ListModule,
-			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
-			Description:       "(LPOP key) Removes and returns the first element of a list.",
+			Command:    "lpop",
+			Module:     constants.ListModule,
+			Categories: []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(LPOP key [count]) 
+Removes count elements from the beginning of the list and returns an array of the elements removed.
+Returns a bulk string of the first element when called without count.
+Returns an array of n elements from the beginning of the list when called with a count when n=count. `,
 			Sync:              true,
 			KeyExtractionFunc: popKeyFunc,
 			HandlerFunc:       handlePop,
@@ -558,10 +597,13 @@ Move element from one list to the other specifying left/right for both lists.`,
 			HandlerFunc:       handleLMove,
 		},
 		{
-			Command:           "rpop",
-			Module:            constants.ListModule,
-			Categories:        []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
-			Description:       "(RPOP key) Removes and gets the last element in a list.",
+			Command:    "rpop",
+			Module:     constants.ListModule,
+			Categories: []string{constants.ListCategory, constants.WriteCategory, constants.FastCategory},
+			Description: `(RPOP key [count]) 
+Removes count elements from the end of the list and returns an array of the elements removed.
+Returns a bulk string of the last element when called without count.
+Returns an array of n elements from the end of the list when called with a count when n=count.`,
 			Sync:              true,
 			KeyExtractionFunc: popKeyFunc,
 			HandlerFunc:       handlePop,

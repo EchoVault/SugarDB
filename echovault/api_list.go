@@ -55,10 +55,6 @@ func (server *EchoVault) LLen(key string) (int, error) {
 // Errors:
 //
 // "LRange command on non-list item" - when the provided key exists but is not a list.
-//
-// "start index must be within list boundary" - when the start index is not within the list boundaries.
-//
-// "end index must be within list range or -1" - when end index is not within the list boundaries.
 func (server *EchoVault) LRange(key string, start, end int) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LRANGE", key, strconv.Itoa(start), strconv.Itoa(end)}), nil, false, true)
 	if err != nil {
@@ -80,8 +76,6 @@ func (server *EchoVault) LRange(key string, start, end int) ([]string, error) {
 // Errors:
 //
 // "LIndex command on non-list item" - when the provided key exists but is not a list.
-//
-// "index must be within list range" - when the index is not within the list boundary.
 func (server *EchoVault) LIndex(key string, index uint) (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LINDEX", key, strconv.Itoa(int(index))}), nil, false, true)
 	if err != nil {
@@ -139,12 +133,12 @@ func (server *EchoVault) LTrim(key string, start int, end int) (bool, error) {
 //
 // `value` - string - the element to remove.
 //
-// Returns: true if the removal was successful.
+// Returns: An integer representing the number of elements removed.
 //
 // Errors:
 //
 // "LRem command on non-list item" - when the provided key exists but is not a list.
-func (server *EchoVault) LRem(key string, count int, value string) (bool, error) {
+func (server *EchoVault) LRem(key string, count int, value string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{
 		"LREM", key, strconv.Itoa(count), value}),
 		nil,
@@ -152,10 +146,9 @@ func (server *EchoVault) LRem(key string, count int, value string) (bool, error)
 		true,
 	)
 	if err != nil {
-		return false, err
+		return 0, err
 	}
-	s, err := internal.ParseStringResponse(b)
-	return strings.EqualFold(s, "ok"), err
+	return internal.ParseIntegerResponse(b)
 }
 
 // LMove moves an element from one list to another.
@@ -194,17 +187,23 @@ func (server *EchoVault) LMove(source, destination, whereFrom, whereTo string) (
 //
 // `key` - string - the key to the list.
 //
-// Returns: The popped element as a string.
+// Returns: A string slice containing the popped elements.
 //
 // Errors:
 //
-// "LPop command on non-list item" - when the provided key is not a list.
-func (server *EchoVault) LPop(key string) (string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LPOP", key}), nil, false, true)
+// "LPOP command on non-list item" - when the provided key is not a list.
+func (server *EchoVault) LPop(key string, count uint) ([]string, error) {
+	b, err := server.handleCommand(
+		server.context,
+		internal.EncodeCommand([]string{"LPOP", key, strconv.Itoa(int(count))}),
+		nil,
+		false,
+		true,
+	)
 	if err != nil {
-		return "", err
+		return []string{}, err
 	}
-	return internal.ParseStringResponse(b)
+	return internal.ParseStringArrayResponse(b)
 }
 
 // RPop pops an element from the end of the list and return it.
@@ -213,17 +212,23 @@ func (server *EchoVault) LPop(key string) (string, error) {
 //
 // `key` - string - the key to the list.
 //
-// Returns: The popped element as a string.
+// Returns: A string slice containing the popped elements.
 //
 // Errors:
 //
-// "RPop command on non-list item" - when the provided key is not a list.
-func (server *EchoVault) RPop(key string) (string, error) {
-	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"RPOP", key}), nil, false, true)
+// "RPOP command on non-list item" - when the provided key is not a list.
+func (server *EchoVault) RPop(key string, count uint) ([]string, error) {
+	b, err := server.handleCommand(
+		server.context,
+		internal.EncodeCommand([]string{"RPOP", key, strconv.Itoa(int(count))}),
+		nil,
+		false,
+		true,
+	)
 	if err != nil {
-		return "", err
+		return []string{}, err
 	}
-	return internal.ParseStringResponse(b)
+	return internal.ParseStringArrayResponse(b)
 }
 
 // LPush pushed 1 or more values to the beginning of a list. If the list does not exist, a new list is created
