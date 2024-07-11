@@ -6,3 +6,4 @@ dist/
 dump.rdb
 **/*/testdata
 echovault/aof
+aof
