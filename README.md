@@ -8,7 +8,7 @@
 <br/>
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go) 
 [![Discord](https://img.shields.io/discord/1211815152291414037?label=Discord&labelColor=%237289da)](https://discord.com/invite/JrG4kPrF8v)
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/echovault_io)
+[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/echovault_io)](https://x.com/echovault_io)
 <br/>
 
 <hr/>
