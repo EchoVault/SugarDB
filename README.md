@@ -93,26 +93,25 @@ much more powerful. Features in the roadmap include:
 # Usage (Embedded)
 
 Install EchoVault with: `go get github.com/echovault/echovault`.
-Run `go mod tidy` to pull all of EchoVault's dependencies.
 
 Here's an example of using EchoVault as an embedded library.
 You can access all of EchoVault's commands using an ergonomic API.
 
 ```go
 func main() {
-	server, err := echovault.NewEchoVault()
+  server, err := echovault.NewEchoVault()
 
-	if err != nil {
-		log.Fatal(err)
-	}
+  if err != nil {
+    log.Fatal(err)
+  }
 
-	_, _ = server.Set("key", "Hello, world!", echovault.SETOptions{})
-	
-	v, _ := server.Get("key")
-	fmt.Println(v) // Hello, world!
+  _, _, _ = server.Set("key", "Hello, world!", echovault.SETOptions{})
 
-	// (Optional): Listen for TCP connections on this EchoVault instance.
-	server.Start()
+  v, _ := server.Get("key")
+  fmt.Println(v) // Hello, world!
+
+  // (Optional): Listen for TCP connections on this EchoVault instance.
+  server.Start()
 }
 ```
 
