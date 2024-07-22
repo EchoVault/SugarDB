@@ -190,3 +190,14 @@ func renameKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 		WriteKeys: cmd[1:3],
 	}, nil
 }
+
+func typeKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 2 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
+}
