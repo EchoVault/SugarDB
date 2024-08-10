@@ -21,6 +21,9 @@ test-race:
 	env RACE=true OUT=echovault/testdata make build-modules-test && \
 	CGO_ENABLED=1 go test ./... --race
 
+test-win:
+	docker-compose -f windows_test_env/docker-compose.yaml up
+
 cover:
 	go tool cover -html=./coverage/coverage.out
 
