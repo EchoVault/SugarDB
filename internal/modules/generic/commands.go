@@ -692,12 +692,20 @@ func handleType(params internal.HandlerFuncParams) ([]byte, error) {
 	keyExists := params.KeysExist(params.Context, []string{key})[key]
 
 	if !keyExists {
-		return []byte("$-1\r\n"), nil
+		return nil, fmt.Errorf("key %s does not exist", key)
 	}
 
 	value := params.GetValues(params.Context, []string{key})[key]
-
-	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
+	type_string := ""
+	switch value.(type) {
+	case string:
+		type_string = "string"
+	case int:
+		type_string = "integer"
+	default:
+		type_string = "unknown"
+	}
+	return []byte(fmt.Sprintf("+%v\r\n", type_string)), nil
 }
 
 func Commands() []internal.Command {

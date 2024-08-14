@@ -2757,4 +2757,105 @@ func Test_Generic(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("Test_HandleType", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			key              string
+			presetValue      interface{}
+			command          []string
+			expectedResponse string
+			expectedError    error
+		}{
+			//	{
+			//		name:          "Test TYPE with nonexistent key",
+			//		key:           "non-existent-key",
+			//		command:       []string{"TYPE", "non-existent-key"},
+			//		expectedError: errors.New("key non-existent-key does not exist"),
+			//	},
+			{
+				name:             "Test TYPE with preset string value",
+				key:              "TypeTestString",
+				presetValue:      "Hello",
+				command:          []string{"TYPE", "TypeTestString"},
+				expectedResponse: "string",
+				expectedError:    nil,
+			},
+			//	{
+			//		name:             "Test APPEND with integer preset value",
+			//		key:              "AppendKey4",
+			//		presetValue:      10,
+			//		command:          []string{"APPEND", "AppendKey4", "World"},
+			//		expectedResponse: 0,
+			//		expectedError:    errors.New("Value at key AppendKey4 is not a string"),
+			//	},
+			//	{
+			//		name:          "Command too short",
+			//		command:       []string{"APPEND", "AppendKey5"},
+			//		expectedError: errors.New(constants.WrongArgsResponse),
+			//	},
+			//	{
+			//		name:          "Command too long",
+			//		command:       []string{"APPEND", "AppendKey5", "new value", "extra value"},
+			//		expectedError: errors.New(constants.WrongArgsResponse),
+			//	},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				if test.presetValue != "" {
+					if err = client.WriteArray([]resp.Value{
+						resp.StringValue("SET"),
+						resp.StringValue(test.key),
+						resp.AnyValue(test.presetValue),
+					}); err != nil {
+						t.Error(err)
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
+				}
+
+				command := make([]resp.Value, len(test.command))
+				for i, c := range test.command {
+					command[i] = resp.StringValue(c)
+				}
+
+				if err = client.WriteArray(command); err != nil {
+					t.Error(err)
+				}
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					}
+					return
+				}
+
+				if res.String() != test.expectedResponse {
+					t.Errorf("expected response \"%s\", got \"%s\"", test.expectedResponse, res.String())
+				}
+			})
+		}
+	})
 }
