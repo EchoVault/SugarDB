@@ -2757,4 +2757,78 @@ func Test_Generic(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("Test_HandleRANDOMKEY", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name  string
+			key   string
+			value string
+		}{
+			{
+				name:  "1. String",
+				key:   "RandKey1",
+				value: "value1",
+			},
+			{
+				name:  "2. Integer",
+				key:   "RandKey2",
+				value: "10",
+			},
+			{
+				name:  "3. Float",
+				key:   "RandKey3",
+				value: "3.142",
+			},
+		}
+		// Map to check RANDOMKEY output
+        var expected map[string]string
+		// Preset the values
+        for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				func(key, value string, expected map[string]string) {
+					err = client.WriteArray([]resp.Value{resp.StringValue("SET"), resp.StringValue(key), resp.StringValue(value)})
+					if err != nil {
+						t.Error(err)
+					}
+
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+                    
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be \"OK\", got %s", res.String())
+					}
+                    
+                    expected[key] = ""
+				}(test.key, test.value, expected)
+			})
+		}
+        // Test RANDOMKEY
+        if err = client.WriteArray([]resp.Value{resp.StringValue("RANDOMKEY")}); err != nil {
+            t.Error(err)
+        }
+
+        res, _, err := client.ReadValue()
+        if err != nil {
+            t.Error(err)
+        }
+
+        if _, ok := expected[res.String()]; !ok {
+            t.Errorf("expected one of %v, got %s", expected, res.String())
+        }
+
+	})
+
 }
