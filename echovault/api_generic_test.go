@@ -1308,3 +1308,37 @@ func TestEchoVault_Rename(t *testing.T) {
 		})
 	}
 }
+
+func TestEchoVault_RANDOMKEY(t *testing.T) {
+	server := createEchoVault()
+
+    // test without keys
+    got, err := server.Randomkey()
+    if err != nil {
+        t.Error(err)
+        return
+    }
+    if got != "" {
+        t.Errorf("RANDOMKEY error, expected emtpy string (%v), got (%v)", []byte(""), []byte(got))
+    } 
+     
+    // test with keys
+    testkeys := []string{"key1", "key2", "key3"}
+    for _, k := range testkeys {
+        err := presetValue(server, context.Background(), k, "")
+        if err != nil {
+            t.Error(err)
+            return
+        }
+    }
+
+    actual, err := server.Randomkey()
+    if err != nil {
+        t.Error(err)
+        return
+    }
+    if !strings.Contains(actual, "key") {
+        t.Errorf("RANDOMKEY error, expected one of %v, got %s", testkeys, got)
+    }
+
+}

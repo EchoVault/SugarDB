@@ -290,27 +290,6 @@ func (server *EchoVault) deleteKey(ctx context.Context, key string) error {
 	return nil
 }
 
-func (server *EchoVault) randomKey(ctx context.Context) string {
-	server.storeLock.RLock()
-	defer server.storeLock.RUnlock()
-
-	database := ctx.Value("Database").(int)
-    
-    randnum := rand.Intn(len(server.store[database]))
-    i := 0
-    var randkey string
-
-    for key, _ := range server.store[database] {
-        if i == randnum {
-            randkey = key
-        } else {
-            i++
-        }
-	}
-
-	return randkey
-}
-
 func (server *EchoVault) createDatabase(database int) {
 	// Create database store.
 	server.store[database] = make(map[string]internal.KeyData)
@@ -656,4 +635,30 @@ func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (server *EchoVault) randomKey(ctx context.Context) string {
+	server.storeLock.RLock()
+	defer server.storeLock.RUnlock()
+
+	database := ctx.Value("Database").(int)
+    
+	    _max := len(server.store[database])
+	    if _max == 0 {
+	        return ""
+	    }
+
+	    randnum := rand.Intn(_max)
+	    i := 0
+	    var randkey string
+
+	    for key, _ := range server.store[database] {
+	        if i == randnum {
+	            randkey = key
+	        } else {
+	            i++
+	        }
+	}
+
+	return randkey
 }
