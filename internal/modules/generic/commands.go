@@ -683,6 +683,13 @@ func handleFlush(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
+func handleRandomkey(params internal.HandlerFuncParams) ([]byte, error) {
+
+	key := params.Randomkey(params.Context)
+
+	return []byte(fmt.Sprintf("+%v\r\n", key)), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -956,6 +963,15 @@ Delete all the keys in the currently selected database. This command is always s
 				}, nil
 			},
 			HandlerFunc: handleFlush,
+		},
+		{
+			Command:           "randomkey",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.KeyspaceCategory, constants.ReadCategory, constants.SlowCategory},
+			Description:       "(RANDOMKEY) Returns a random key from the current selected database.",
+			Sync:              false,
+			KeyExtractionFunc: randomKeyFunc,
+			HandlerFunc:       handleRandomkey,
 		},
 	}
 }

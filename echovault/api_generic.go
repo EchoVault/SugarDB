@@ -552,3 +552,13 @@ func (server *EchoVault) Rename(oldKey string, newKey string) (string, error) {
 	// Parse the simple string response
 	return internal.ParseStringResponse(b)
 }
+
+// RandomKey returns a random key from the current active database.
+// If no keys present in db returns an empty string.
+func (server *EchoVault) RandomKey() (string, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"RANDOMKEY"}), nil, false, true)
+	if err != nil {
+		return "", err
+	}
+	return internal.ParseStringResponse(b)
+}
