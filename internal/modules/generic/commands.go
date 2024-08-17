@@ -968,7 +968,7 @@ Delete all the keys in the currently selected database. This command is always s
 			Command:           "randomkey",
 			Module:            constants.GenericModule,
 			Categories:        []string{constants.KeyspaceCategory, constants.ReadCategory, constants.SlowCategory},
-			Description:       "(RANDOMKEY) Returns a random key.",
+			Description:       "(RANDOMKEY) Returns a random key from the current selected database.",
 			Sync:              false,
 			KeyExtractionFunc: randomKeyFunc,
 			HandlerFunc:       handleRandomkey,
