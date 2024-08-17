@@ -642,22 +642,22 @@ func (server *EchoVault) randomKey(ctx context.Context) string {
 	defer server.storeLock.RUnlock()
 
 	database := ctx.Value("Database").(int)
-    
-	    _max := len(server.store[database])
-	    if _max == 0 {
-	        return ""
-	    }
 
-	    randnum := rand.Intn(_max)
-	    i := 0
-	    var randkey string
+	_max := len(server.store[database])
+	if _max == 0 {
+		return ""
+	}
 
-	    for key, _ := range server.store[database] {
-	        if i == randnum {
-	            randkey = key
-	        } else {
-	            i++
-	        }
+	randnum := rand.Intn(_max)
+	i := 0
+	var randkey string
+
+	for key, _ := range server.store[database] {
+		if i == randnum {
+			randkey = key
+		} else {
+			i++
+		}
 	}
 
 	return randkey

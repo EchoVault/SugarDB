@@ -2021,7 +2021,6 @@ func Test_Generic(t *testing.T) {
 	t.Run("Test_HandlerDECR", func(t *testing.T) {
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
-
 		if err != nil {
 			t.Error(err)
 			return
@@ -2760,6 +2759,20 @@ func Test_Generic(t *testing.T) {
 
 	t.Run("Test_HandleRANDOMKEY", func(t *testing.T) {
 		t.Parallel()
+
+		// Populate the store with keys first
+		for i := 0; i < 10; i++ {
+			_, _, err := mockServer.Set(
+				fmt.Sprintf("RandomKey%d", i),
+				fmt.Sprintf("Value%d", i),
+				echovault.SetOptions{},
+			)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+		}
+
 		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
 			t.Error(err)
@@ -2770,23 +2783,18 @@ func Test_Generic(t *testing.T) {
 		}()
 		client := resp.NewConn(conn)
 
-        // Reuse existing keys to test RANDOMKEY
-        // All keys used for other tests contain the substring 'Key'
-        expected := "Key"
-        // Test RANDOMKEY
-        if err = client.WriteArray([]resp.Value{resp.StringValue("RANDOMKEY")}); err != nil {
-            t.Error(err)
-        }
+		expected := "Key"
+		if err = client.WriteArray([]resp.Value{resp.StringValue("RANDOMKEY")}); err != nil {
+			t.Error(err)
+		}
 
-        res, _, err := client.ReadValue()
-        if err != nil {
-            t.Error(err)
-        }
+		res, _, err := client.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
 
-        if !strings.Contains(res.String(), expected) {
-            t.Errorf("expected a key containing substring '%s', got %s", expected, res.String())
-        }
-
+		if !strings.Contains(res.String(), expected) {
+			t.Errorf("expected a key containing substring '%s', got %s", expected, res.String())
+		}
 	})
-
 }
