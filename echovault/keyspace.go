@@ -655,9 +655,11 @@ func (server *EchoVault) randomKey(ctx context.Context) string {
 	for key, _ := range server.store[database] {
 		if i == randnum {
 			randkey = key
+			break
 		} else {
 			i++
 		}
+
 	}
 
 	return randkey
