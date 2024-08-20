@@ -702,8 +702,10 @@ func handleType(params internal.HandlerFuncParams) ([]byte, error) {
 		type_string = "string"
 	case int:
 		type_string = "integer"
+	case float32, float64:
+		type_string = "float"
 	default:
-		type_string = "unknown"
+		type_string = fmt.Sprintf("%T", value)
 	}
 	return []byte(fmt.Sprintf("+%v\r\n", type_string)), nil
 }

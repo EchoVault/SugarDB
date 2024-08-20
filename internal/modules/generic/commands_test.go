@@ -2792,6 +2792,22 @@ func Test_Generic(t *testing.T) {
 				expectedResponse: "string",
 				expectedError:    nil,
 			},
+			{
+				name:             "Test TYPE with preset integer value",
+				key:              "TypeTestInteger",
+				presetValue:      1,
+				command:          []string{"TYPE", "TypeTestInteger"},
+				expectedResponse: "integer",
+				expectedError:    nil,
+			},
+			{
+				name:             "Test TYPE with preset float value",
+				key:              "TypeTestFloat",
+				presetValue:      1.12,
+				command:          []string{"TYPE", "TypeTestFloat"},
+				expectedResponse: "float",
+				expectedError:    nil,
+			},
 			//	{
 			//		name:             "Test APPEND with integer preset value",
 			//		key:              "AppendKey4",
