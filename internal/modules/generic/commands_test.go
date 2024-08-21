@@ -27,6 +27,7 @@ import (
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/echovault/internal/modules/set"
 	"github.com/tidwall/resp"
 )
 
@@ -2774,6 +2775,7 @@ func Test_Generic(t *testing.T) {
 			name             string
 			key              string
 			presetValue      interface{}
+			presetCommand    string
 			command          []string
 			expectedResponse string
 			expectedError    error
@@ -2788,6 +2790,7 @@ func Test_Generic(t *testing.T) {
 				name:             "Test TYPE with preset string value",
 				key:              "TypeTestString",
 				presetValue:      "Hello",
+				presetCommand:    "SET",
 				command:          []string{"TYPE", "TypeTestString"},
 				expectedResponse: "string",
 				expectedError:    nil,
@@ -2796,6 +2799,7 @@ func Test_Generic(t *testing.T) {
 				name:             "Test TYPE with preset integer value",
 				key:              "TypeTestInteger",
 				presetValue:      1,
+				presetCommand:    "SET",
 				command:          []string{"TYPE", "TypeTestInteger"},
 				expectedResponse: "integer",
 				expectedError:    nil,
@@ -2804,8 +2808,18 @@ func Test_Generic(t *testing.T) {
 				name:             "Test TYPE with preset float value",
 				key:              "TypeTestFloat",
 				presetValue:      1.12,
+				presetCommand:    "SET",
 				command:          []string{"TYPE", "TypeTestFloat"},
 				expectedResponse: "float",
+				expectedError:    nil,
+			},
+			{
+				name:             "Test TYPE with preset set value",
+				key:              "TypeTestSet",
+				presetValue:      set.NewSet([]string{"one", "two", "three", "four"}),
+				presetCommand:    "SADD",
+				command:          []string{"TYPE", "TypeTestSet"},
+				expectedResponse: "set",
 				expectedError:    nil,
 			},
 			//	{
@@ -2830,12 +2844,27 @@ func Test_Generic(t *testing.T) {
 
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				if test.presetValue != "" {
-					if err = client.WriteArray([]resp.Value{
-						resp.StringValue("SET"),
-						resp.StringValue(test.key),
-						resp.AnyValue(test.presetValue),
-					}); err != nil {
+				if test.presetValue != nil {
+					var command []resp.Value
+					var expected string
+
+					switch test.presetValue.(type) {
+					case string, int, float64:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(test.key),
+							resp.AnyValue(test.presetValue),
+						}
+						expected = "ok"
+					case *set.Set:
+						command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(test.key)}
+						for _, element := range test.presetValue.(*set.Set).GetAll() {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+					}
+
+					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
 					res, _, err := client.ReadValue()
@@ -2843,8 +2872,8 @@ func Test_Generic(t *testing.T) {
 						t.Error(err)
 					}
 
-					if !strings.EqualFold(res.String(), "ok") {
-						t.Errorf("expected preset response to be OK, got %s", res.String())
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
 					}
 				}
 

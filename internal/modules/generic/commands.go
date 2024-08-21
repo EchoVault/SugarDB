@@ -24,6 +24,7 @@ import (
 
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/echovault/internal/modules/set"
 )
 
 type KeyObject struct {
@@ -702,8 +703,10 @@ func handleType(params internal.HandlerFuncParams) ([]byte, error) {
 		type_string = "string"
 	case int:
 		type_string = "integer"
-	case float32, float64:
+	case float64:
 		type_string = "float"
+	case *set.Set:
+		type_string = "set"
 	default:
 		type_string = fmt.Sprintf("%T", value)
 	}
