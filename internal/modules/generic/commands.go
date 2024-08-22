@@ -18,13 +18,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/constants"
-	"github.com/echovault/echovault/internal/modules/set"
 )
 
 type KeyObject struct {
@@ -697,16 +697,23 @@ func handleType(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	value := params.GetValues(params.Context, []string{key})[key]
+	t := reflect.TypeOf(value)
 	type_string := ""
-	switch value.(type) {
-	case string:
+	switch t.Kind() {
+	case reflect.String:
 		type_string = "string"
-	case int:
+	case reflect.Int:
 		type_string = "integer"
-	case float64:
+	case reflect.Float64:
 		type_string = "float"
-	case *set.Set:
-		type_string = "set"
+	case reflect.Slice:
+		type_string = "list"
+	case reflect.Pointer:
+		if t.Elem().Name() == "Set" {
+			type_string = "set"
+		} else {
+			type_string = t.Elem().Name()
+		}
 	default:
 		type_string = fmt.Sprintf("%T", value)
 	}

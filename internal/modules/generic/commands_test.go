@@ -2790,7 +2790,6 @@ func Test_Generic(t *testing.T) {
 				name:             "Test TYPE with preset string value",
 				key:              "TypeTestString",
 				presetValue:      "Hello",
-				presetCommand:    "SET",
 				command:          []string{"TYPE", "TypeTestString"},
 				expectedResponse: "string",
 				expectedError:    nil,
@@ -2799,7 +2798,6 @@ func Test_Generic(t *testing.T) {
 				name:             "Test TYPE with preset integer value",
 				key:              "TypeTestInteger",
 				presetValue:      1,
-				presetCommand:    "SET",
 				command:          []string{"TYPE", "TypeTestInteger"},
 				expectedResponse: "integer",
 				expectedError:    nil,
@@ -2808,7 +2806,6 @@ func Test_Generic(t *testing.T) {
 				name:             "Test TYPE with preset float value",
 				key:              "TypeTestFloat",
 				presetValue:      1.12,
-				presetCommand:    "SET",
 				command:          []string{"TYPE", "TypeTestFloat"},
 				expectedResponse: "float",
 				expectedError:    nil,
@@ -2817,9 +2814,24 @@ func Test_Generic(t *testing.T) {
 				name:             "Test TYPE with preset set value",
 				key:              "TypeTestSet",
 				presetValue:      set.NewSet([]string{"one", "two", "three", "four"}),
-				presetCommand:    "SADD",
 				command:          []string{"TYPE", "TypeTestSet"},
 				expectedResponse: "set",
+				expectedError:    nil,
+			},
+			{
+				name:             "Test TYPE with preset list value",
+				key:              "TypeTestList",
+				presetValue:      []string{"value1", "value2", "value3", "value4"},
+				command:          []string{"TYPE", "TypeTestList"},
+				expectedResponse: "list",
+				expectedError:    nil,
+			},
+			{
+				name:             "Test TYPE with preset list of integers value",
+				key:              "TypeTestList2",
+				presetValue:      []int{1, 2, 3, 4},
+				command:          []string{"TYPE", "TypeTestList2"},
+				expectedResponse: "list",
 				expectedError:    nil,
 			},
 			//	{
@@ -2862,6 +2874,18 @@ func Test_Generic(t *testing.T) {
 							command = append(command, []resp.Value{resp.StringValue(element)}...)
 						}
 						expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+					case []string:
+						command = []resp.Value{resp.StringValue("LPUSH"), resp.StringValue(test.key)}
+						for _, element := range test.presetValue.([]string) {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(len(test.presetValue.([]string)))
+					case []int:
+						command = []resp.Value{resp.StringValue("LPUSH"), resp.StringValue(test.key)}
+						for _, element := range test.presetValue.([]int) {
+							command = append(command, []resp.Value{resp.IntegerValue(element)}...)
+						}
+						expected = strconv.Itoa(len(test.presetValue.([]int)))
 					}
 
 					if err = client.WriteArray(command); err != nil {
