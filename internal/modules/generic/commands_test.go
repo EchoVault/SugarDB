@@ -2797,4 +2797,137 @@ func Test_Generic(t *testing.T) {
 			t.Errorf("expected a key containing substring '%s', got %s", expected, res.String())
 		}
 	})
+
+	t.Run("Test_HandleGETDEL", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name  string
+			key   string
+			value string
+		}{
+			{
+				name:  "1. String",
+				key:   "GetDelKey1",
+				value: "value1",
+			},
+			{
+				name:  "2. Integer",
+				key:   "GetDelKey2",
+				value: "10",
+			},
+			{
+				name:  "3. Float",
+				key:   "GetDelKey3",
+				value: "3.142",
+			},
+		}
+		// Test successful GETDEL command
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				func(key, value string) {
+					// Preset the values
+					err = client.WriteArray([]resp.Value{resp.StringValue("SET"), resp.StringValue(key), resp.StringValue(value)})
+					if err != nil {
+						t.Error(err)
+					}
+
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(res.String(), "ok") {
+						t.Errorf("expected preset response to be \"OK\", got %s", res.String())
+					}
+
+					// Verify correct value returned
+					if err = client.WriteArray([]resp.Value{resp.StringValue("GETDEL"), resp.StringValue(key)}); err != nil {
+						t.Error(err)
+					}
+
+					res, _, err = client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if res.String() != test.value {
+						t.Errorf("expected value %s, got %s", test.value, res.String())
+					}
+
+					// Verify key was deleted
+					if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
+						t.Error(err)
+					}
+					res, _, err = client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+					if !res.IsNull() {
+						t.Errorf("expected nil, got: %+v", res)
+					}
+				}(test.key, test.value)
+			})
+		}
+
+		// Test get non-existent key
+		if err = client.WriteArray([]resp.Value{resp.StringValue("GETDEL"), resp.StringValue("test4")}); err != nil {
+			t.Error(err)
+		}
+		res, _, err := client.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if !res.IsNull() {
+			t.Errorf("expected nil, got: %+v", res)
+		}
+
+		errorTests := []struct {
+			name     string
+			command  []string
+			expected string
+		}{
+			{
+				name:     "1. Return error when no GETDEL key is passed",
+				command:  []string{"GETDEL"},
+				expected: constants.WrongArgsResponse,
+			},
+			{
+				name:     "2. Return error when too many GETDEL keys are passed",
+				command:  []string{"GETDEL", "GetKey1", "test"},
+				expected: constants.WrongArgsResponse,
+			},
+		}
+		for _, test := range errorTests {
+			t.Run(test.name, func(t *testing.T) {
+				command := make([]resp.Value, len(test.command))
+				for i, c := range test.command {
+					command[i] = resp.StringValue(c)
+				}
+
+				if err = client.WriteArray(command); err != nil {
+					t.Error(err)
+				}
+
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if !strings.Contains(res.Error().Error(), test.expected) {
+					t.Errorf("expected error '%s', got: %s", test.expected, err.Error())
+				}
+			})
+		}
+	})
+
 }

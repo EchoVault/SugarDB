@@ -690,6 +690,28 @@ func handleRandomkey(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("+%v\r\n", key)), nil
 }
 
+func handleGetdel(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := getDelKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(params.Context, []string{key})[key]
+
+	if !keyExists {
+		return []byte("$-1\r\n"), nil
+	}
+
+	value := params.GetValues(params.Context, []string{key})[key]
+	delkey := keys.WriteKeys[0]
+	err = params.DeleteKey(params.Context, delkey)
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -972,6 +994,15 @@ Delete all the keys in the currently selected database. This command is always s
 			Sync:              false,
 			KeyExtractionFunc: randomKeyFunc,
 			HandlerFunc:       handleRandomkey,
+		},
+		{
+			Command:           "getdel",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.WriteCategory, constants.FastCategory},
+			Description:       "(GETDEL key) Get the value of key and delete the key. This command is similar to [GET], but deletes key on success.",
+			Sync:              true,
+			KeyExtractionFunc: getDelKeyFunc,
+			HandlerFunc:       handleGetdel,
 		},
 	}
 }
