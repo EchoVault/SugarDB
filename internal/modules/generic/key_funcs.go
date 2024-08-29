@@ -212,3 +212,14 @@ func getDelKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 		WriteKeys: cmd[1:],
 	}, nil
 }
+
+func getExKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) < 2 || len(cmd) > 4 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: cmd[1:2],
+	}, nil
+}

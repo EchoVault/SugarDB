@@ -2952,7 +2952,7 @@ func Test_Generic(t *testing.T) {
 		}{
 			{
 				name:    "1. Get key and set new expire by seconds",
-				command: []string{"GETEX", "ExpireKey1", "EX", "100"},
+				command: []string{"GETEX", "GetExKey1", "EX", "100"},
 				presetValues: map[string]KeyData{
 					"GetExKey1": {Value: "value1", ExpireAt: time.Time{}},
 				},
@@ -2964,7 +2964,7 @@ func Test_Generic(t *testing.T) {
 			},
 			{
 				name:    "2. Get key and set new expire by milliseconds",
-				command: []string{"GETEX", "ExpireKey2", "PX", "1000"},
+				command: []string{"GETEX", "GetExKey2", "PX", "1000"},
 				presetValues: map[string]KeyData{
 					"GetExKey2": {Value: "value2", ExpireAt: time.Time{}},
 				},
@@ -2975,8 +2975,8 @@ func Test_Generic(t *testing.T) {
 				expectedError: nil,
 			},
 			{
-				name:    "3. Get key an set new expire at by seconds",
-				command: []string{"GETEX", "ExpireKey3", "EXAT", "100"},
+				name:    "3. Get key and set new expire at by seconds",
+				command: []string{"GETEX", "GetExKey3", "EXAT", fmt.Sprintf("%d", mockClock.Now().Add(100*time.Second).Unix())},
 				presetValues: map[string]KeyData{
 					"GetExKey3": {Value: "value3", ExpireAt: time.Time{}},
 				},
@@ -2988,7 +2988,7 @@ func Test_Generic(t *testing.T) {
 			},
 			{
 				name:    "4. Get key and set new expire at by milliseconds",
-				command: []string{"GETEX", "ExpireKey4", "PXAT", "1000"},
+				command: []string{"GETEX", "GetExKey4", "PXAT", fmt.Sprintf("%d", mockClock.Now().Add(1000*time.Millisecond).UnixMilli())},
 				presetValues: map[string]KeyData{
 					"GetExKey4": {Value: "value4", ExpireAt: time.Time{}},
 				},
@@ -3000,7 +3000,7 @@ func Test_Generic(t *testing.T) {
 			},
 			{
 				name:    "5. Get key and persist",
-				command: []string{"GETEX", "ExpireKey5", "PERSIST"},
+				command: []string{"GETEX", "GetExKey5", "PERSIST"},
 				presetValues: map[string]KeyData{
 					"GetExKey5": {Value: "value5", ExpireAt: time.Time{}},
 				},
@@ -3011,37 +3011,49 @@ func Test_Generic(t *testing.T) {
 				expectedError: nil,
 			},
 			{
-				// Get key when no expire options are passed
 				name:    "6. Get key when no expire options are passed",
-				command: []string{"GETEX", "ExpireKey6"},
+				command: []string{"GETEX", "GetExKey6"},
 				presetValues: map[string]KeyData{
 					"GetExKey6": {Value: "value6", ExpireAt: time.Time{}},
 				},
-				expectedResponse: "value5",
+				expectedResponse: "value6",
 				expectedValues: map[string]KeyData{
 					"GetExKey6": {Value: "value6", ExpireAt: time.Time{}},
 				},
 				expectedError: nil,
 			},
 			{
-				// return empty string when key doesn't exist
 				name:             "7. Return empty string when key doesn't exist",
-				command:          []string{"GETEX", "ExpireKey7", "PXAT", "1000"},
+				command:          []string{"GETEX", "GetExKey7", "PXAT", "1000"},
 				presetValues:     nil,
 				expectedResponse: "",
 				expectedValues:   nil,
 				expectedError:    nil,
 			},
 			{
-				name:             "14. Return error when expire time is not a valid integer",
-				command:          []string{"GETEX", "GetExKey7", "expire"},
-				presetValues:     nil,
+				name:    "8. Get key and don't set expiration when time not provided",
+				command: []string{"GETEX", "GetExKey8", "PXAT"},
+				presetValues: map[string]KeyData{
+					"GetExKey8": {Value: "value8", ExpireAt: time.Time{}},
+				},
+				expectedResponse: "value8",
+				expectedValues: map[string]KeyData{
+					"GetExKey8": {Value: "value8", ExpireAt: time.Time{}},
+				},
+				expectedError: nil,
+			},
+			{
+				name:    "9. Return error when expire time is not a valid integer",
+				command: []string{"GETEX", "GetExKey9", "EX", "notAnInt"},
+				presetValues: map[string]KeyData{
+					"GetExKey9": {Value: "value9", ExpireAt: time.Time{}},
+				},
 				expectedResponse: "",
 				expectedValues:   nil,
 				expectedError:    errors.New("expire time must be integer"),
 			},
 			{
-				name:             "15. Command too short",
+				name:             "10. Command too short",
 				command:          []string{"GETEX"},
 				presetValues:     nil,
 				expectedResponse: "",
@@ -3049,8 +3061,8 @@ func Test_Generic(t *testing.T) {
 				expectedError:    errors.New(constants.WrongArgsResponse),
 			},
 			{
-				name:             "16. Command too long",
-				command:          []string{"GETEX", "GetExKey9", "EX", "10", "PERSIST"},
+				name:             "11. Command too long",
+				command:          []string{"GETEX", "GetExKey11", "EX", "1000", "PERSIST"},
 				presetValues:     nil,
 				expectedResponse: "",
 				expectedValues:   nil,
@@ -3097,8 +3109,8 @@ func Test_Generic(t *testing.T) {
 				}
 
 				if test.expectedError != nil {
-					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
-						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					if res.Error() == nil || !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%v\"", test.expectedError.Error(), res.Error())
 					}
 					return
 				}
@@ -3116,6 +3128,7 @@ func Test_Generic(t *testing.T) {
 					if err = client.WriteArray([]resp.Value{resp.StringValue("PTTL"), resp.StringValue(key)}); err != nil {
 						t.Error(err)
 					}
+
 					res, _, err = client.ReadValue()
 					if err != nil {
 						t.Error(err)
