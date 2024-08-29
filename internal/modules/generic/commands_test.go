@@ -2930,4 +2930,208 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
+	t.Run("Test_HandleGETEX", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			command          []string
+			presetValues     map[string]KeyData
+			expectedResponse string
+			expectedValues   map[string]KeyData
+			expectedError    error
+		}{
+			{
+				name:    "1. Get key and set new expire by seconds",
+				command: []string{"GETEX", "ExpireKey1", "EX", "100"},
+				presetValues: map[string]KeyData{
+					"GetExKey1": {Value: "value1", ExpireAt: time.Time{}},
+				},
+				expectedResponse: "value1",
+				expectedValues: map[string]KeyData{
+					"GetExKey1": {Value: "value1", ExpireAt: mockClock.Now().Add(100 * time.Second)},
+				},
+				expectedError: nil,
+			},
+			{
+				name:    "2. Get key and set new expire by milliseconds",
+				command: []string{"GETEX", "ExpireKey2", "PX", "1000"},
+				presetValues: map[string]KeyData{
+					"GetExKey2": {Value: "value2", ExpireAt: time.Time{}},
+				},
+				expectedResponse: "value2",
+				expectedValues: map[string]KeyData{
+					"GetExKey2": {Value: "value2", ExpireAt: mockClock.Now().Add(1000 * time.Millisecond)},
+				},
+				expectedError: nil,
+			},
+			{
+				name:    "3. Get key an set new expire at by seconds",
+				command: []string{"GETEX", "ExpireKey3", "EXAT", "100"},
+				presetValues: map[string]KeyData{
+					"GetExKey3": {Value: "value3", ExpireAt: time.Time{}},
+				},
+				expectedResponse: "value3",
+				expectedValues: map[string]KeyData{
+					"GetExKey3": {Value: "value3", ExpireAt: mockClock.Now().Add(100 * time.Second)},
+				},
+				expectedError: nil,
+			},
+			{
+				name:    "4. Get key and set new expire at by milliseconds",
+				command: []string{"GETEX", "ExpireKey4", "PXAT", "1000"},
+				presetValues: map[string]KeyData{
+					"GetExKey4": {Value: "value4", ExpireAt: time.Time{}},
+				},
+				expectedResponse: "value4",
+				expectedValues: map[string]KeyData{
+					"GetExKey4": {Value: "value4", ExpireAt: mockClock.Now().Add(1000 * time.Millisecond)},
+				},
+				expectedError: nil,
+			},
+			{
+				name:    "5. Get key and persist",
+				command: []string{"GETEX", "ExpireKey5", "PERSIST"},
+				presetValues: map[string]KeyData{
+					"GetExKey5": {Value: "value5", ExpireAt: time.Time{}},
+				},
+				expectedResponse: "value5",
+				expectedValues: map[string]KeyData{
+					"GetExKey5": {Value: "value5", ExpireAt: time.Time{}},
+				},
+				expectedError: nil,
+			},
+			{
+				// Get key when no expire options are passed
+				name:    "6. Get key when no expire options are passed",
+				command: []string{"GETEX", "ExpireKey6"},
+				presetValues: map[string]KeyData{
+					"GetExKey6": {Value: "value6", ExpireAt: time.Time{}},
+				},
+				expectedResponse: "value5",
+				expectedValues: map[string]KeyData{
+					"GetExKey6": {Value: "value6", ExpireAt: time.Time{}},
+				},
+				expectedError: nil,
+			},
+			{
+				// return empty string when key doesn't exist
+				name:             "7. Return empty string when key doesn't exist",
+				command:          []string{"GETEX", "ExpireKey7", "PXAT", "1000"},
+				presetValues:     nil,
+				expectedResponse: "",
+				expectedValues:   nil,
+				expectedError:    nil,
+			},
+			{
+				name:             "14. Return error when expire time is not a valid integer",
+				command:          []string{"GETEX", "GetExKey7", "expire"},
+				presetValues:     nil,
+				expectedResponse: "",
+				expectedValues:   nil,
+				expectedError:    errors.New("expire time must be integer"),
+			},
+			{
+				name:             "15. Command too short",
+				command:          []string{"GETEX"},
+				presetValues:     nil,
+				expectedResponse: "",
+				expectedValues:   nil,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name:             "16. Command too long",
+				command:          []string{"GETEX", "GetExKey9", "EX", "10", "PERSIST"},
+				presetValues:     nil,
+				expectedResponse: "",
+				expectedValues:   nil,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				if test.presetValues != nil {
+					for k, v := range test.presetValues {
+						command := []resp.Value{resp.StringValue("SET"), resp.StringValue(k), resp.StringValue(v.Value.(string))}
+						if !v.ExpireAt.Equal(time.Time{}) {
+							command = append(command, []resp.Value{
+								resp.StringValue("PX"),
+								resp.StringValue(fmt.Sprintf("%d", v.ExpireAt.Sub(mockClock.Now()).Milliseconds())),
+							}...)
+						}
+						if err = client.WriteArray(command); err != nil {
+							t.Error(err)
+						}
+						res, _, err := client.ReadValue()
+						if err != nil {
+							t.Error(err)
+						}
+						if !strings.EqualFold(res.String(), "ok") {
+							t.Errorf("expected preset response to be OK, got %s", res.String())
+						}
+					}
+				}
+
+				command := make([]resp.Value, len(test.command))
+				for i, c := range test.command {
+					command[i] = resp.StringValue(c)
+				}
+
+				if err = client.WriteArray(command); err != nil {
+					t.Error(err)
+				}
+
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					}
+					return
+				}
+
+				if res.String() != test.expectedResponse {
+					t.Errorf("expected response %s, got %s", test.expectedResponse, res.String())
+				}
+
+				if test.expectedValues == nil {
+					return
+				}
+
+				for key, expected := range test.expectedValues {
+					// Compare the expiry of the key with what's expected
+					if err = client.WriteArray([]resp.Value{resp.StringValue("PTTL"), resp.StringValue(key)}); err != nil {
+						t.Error(err)
+					}
+					res, _, err = client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+					if expected.ExpireAt.Equal(time.Time{}) {
+						if res.Integer() != -1 {
+							t.Error("expected key to be persisted, it was not.")
+						}
+						continue
+					}
+					if res.Integer() != int(expected.ExpireAt.Sub(mockClock.Now()).Milliseconds()) {
+						t.Errorf("expected expiry %d, got %d", expected.ExpireAt.Sub(mockClock.Now()).Milliseconds(), res.Integer())
+					}
+				}
+			})
+		}
+	})
+
 }
