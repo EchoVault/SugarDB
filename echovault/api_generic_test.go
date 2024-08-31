@@ -1400,3 +1400,140 @@ func TestEchoVault_GETDEL(t *testing.T) {
 		})
 	}
 }
+
+func TestEchoVault_GETEX(t *testing.T) {
+	mockClock := clock.NewClock()
+	server := createEchoVault()
+
+	tests := []struct {
+		name        string
+		presetValue interface{}
+		getExOpts   GetExOptions
+		key         string
+		want        string
+		wantEx      int
+		wantErr     bool
+	}{
+		{
+			name:        "1. Return string from existing key, no expire options",
+			presetValue: "value1",
+			getExOpts:   GetExOptions{},
+			key:         "key1",
+			want:        "value1",
+			wantEx:      -1,
+			wantErr:     false,
+		},
+		{
+			name:        "2. Return empty string if the key does not exist",
+			presetValue: nil,
+			getExOpts:   GetExOptions{EX: true, UNIXTIME: int(mockClock.Now().Add(100 * time.Second).Unix())},
+			key:         "key2",
+			want:        "",
+			wantEx:      0,
+			wantErr:     false,
+		},
+		{
+			name:        "3. Return key set expiry with EX",
+			presetValue: "value3",
+			getExOpts:   GetExOptions{EX: true, UNIXTIME: 100},
+			key:         "key3",
+			want:        "value3",
+			wantEx:      100,
+			wantErr:     false,
+		},
+		{
+			name:        "4. Return key set expiry with PX",
+			presetValue: "value4",
+			getExOpts:   GetExOptions{PX: true, UNIXTIME: 100000},
+			key:         "key4",
+			want:        "value4",
+			wantEx:      100,
+			wantErr:     false,
+		},
+		{
+			name:        "5. Return key set expiry with EXAT",
+			presetValue: "value5",
+			getExOpts:   GetExOptions{EXAT: true, UNIXTIME: int(mockClock.Now().Add(100 * time.Second).Unix())},
+			key:         "key5",
+			want:        "value5",
+			wantEx:      100,
+			wantErr:     false,
+		},
+		{
+			name:        "6. Return key set expiry with PXAT",
+			presetValue: "value6",
+			getExOpts:   GetExOptions{PXAT: true, UNIXTIME: int(mockClock.Now().Add(100 * time.Second).UnixMilli())},
+			key:         "key6",
+			want:        "value6",
+			wantEx:      100,
+			wantErr:     false,
+		},
+		{
+			name:        "7. Return key passing PERSIST",
+			presetValue: "value7",
+			getExOpts:   GetExOptions{PERSIST: true},
+			key:         "key7",
+			want:        "value7",
+			wantEx:      -1,
+			wantErr:     false,
+		},
+		{
+			name:        "8. Return key passing PERSIST, and include a UNIXTIME",
+			presetValue: "value8",
+			getExOpts:   GetExOptions{PERSIST: true, UNIXTIME: int(mockClock.Now().Add(100 * time.Second).Unix())},
+			key:         "key8",
+			want:        "value8",
+			wantEx:      -1,
+			wantErr:     false,
+		},
+		{
+			name:        "9. Return key and attempt to set expiry with EX without providing UNIXTIME",
+			presetValue: "value9",
+			getExOpts:   GetExOptions{EX: true},
+			key:         "key9",
+			want:        "value9",
+			wantEx:      -1,
+			wantErr:     false,
+		},
+		{
+			name:        "10. Return key and attempt to set expiry with PXAT without providing UNIXTIME",
+			presetValue: "value10",
+			getExOpts:   GetExOptions{PXAT: true},
+			key:         "key10",
+			want:        "value10",
+			wantEx:      -1,
+			wantErr:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValue != nil {
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			//Check value received
+			got, err := server.GetEx(tt.key, tt.getExOpts)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GETEX() GET error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("GETEX() GET - got = %v, want %v", got, tt.want)
+			}
+			//Check expiry was set
+			if tt.presetValue != nil {
+				actual, err := server.TTL(tt.key)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("GETEX() EXPIRY error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if actual != tt.wantEx {
+					t.Errorf("GETEX() EXPIRY - got = %v, want %v", actual, tt.wantEx)
+				}
+			}
+		})
+	}
+}

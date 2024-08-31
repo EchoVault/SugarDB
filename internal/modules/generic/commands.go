@@ -773,8 +773,10 @@ func handleGetex(params internal.HandlerFuncParams) ([]byte, error) {
 		expireAt = time.Unix(n, 0)
 	case "PXAT":
 		expireAt = time.UnixMilli(n)
+	case "PERSIST":
+		expireAt = time.Time{}
 	default:
-		return nil, fmt.Errorf("unknown option %s", strings.ToUpper(exCommand))
+		return nil, fmt.Errorf("unknown option %s -- '%v'", strings.ToUpper(exCommand), params.Command)
 	}
 
 	params.SetExpiry(params.Context, exkey, expireAt, false)
