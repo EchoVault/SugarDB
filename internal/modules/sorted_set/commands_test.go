@@ -16,17 +16,18 @@ package sorted_set_test
 
 import (
 	"errors"
+	"math"
+	"slices"
+	"strconv"
+	"strings"
+	"testing"
+
 	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/echovault/echovault/internal/modules/sorted_set"
 	"github.com/tidwall/resp"
-	"math"
-	"slices"
-	"strconv"
-	"strings"
-	"testing"
 )
 
 func Test_SortedSet(t *testing.T) {
@@ -2376,7 +2377,7 @@ func Test_SortedSet(t *testing.T) {
 				expectedError: nil,
 			},
 			{
-				name:          "2. Return error when the source key is not a sorted set.",
+				name:          "3. Return error when the source key is not a sorted set.",
 				key:           "ZrandMemberKey3",
 				presetValue:   "Default value",
 				command:       []string{"ZRANDMEMBER", "ZrandMemberKey3"},
