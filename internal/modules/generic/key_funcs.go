@@ -201,3 +201,14 @@ func randomKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 		WriteKeys: make([]string, 0),
 	}, nil
 }
+
+func getDelKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 2 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: cmd[1:],
+	}, nil
+}

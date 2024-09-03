@@ -1342,3 +1342,61 @@ func TestEchoVault_RANDOMKEY(t *testing.T) {
 	}
 
 }
+
+func TestEchoVault_GETDEL(t *testing.T) {
+	server := createEchoVault()
+
+	tests := []struct {
+		name        string
+		presetValue interface{}
+		key         string
+		want        string
+		wantErr     bool
+	}{
+		{
+			name:        "Return string from existing key",
+			presetValue: "value1",
+			key:         "key1",
+			want:        "value1",
+			wantErr:     false,
+		},
+		{
+			name:        "Return empty string if the key does not exist",
+			presetValue: nil,
+			key:         "key2",
+			want:        "",
+			wantErr:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValue != nil {
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			//Check value received
+			got, err := server.GetDel(tt.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GETDEL() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("GETDEL() got = %v, want %v", got, tt.want)
+			}
+			//Check key was deleted
+			if tt.presetValue != nil {
+				got, err := server.Get(tt.key)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("GETDEL() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if got != "" {
+					t.Errorf("GETDEL() got = %v, want empty string", got)
+				}
+			}
+		})
+	}
+}

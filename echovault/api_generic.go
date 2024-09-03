@@ -562,3 +562,19 @@ func (server *EchoVault) RandomKey() (string, error) {
 	}
 	return internal.ParseStringResponse(b)
 }
+
+// GetDel retrieves the value at the provided key and deletes that key.
+//
+// Parameters:
+//
+// `key` - string - the key whose value should be retrieved and then deleted.
+//
+// Returns: A string representing the value at the specified key. If the value does not exist, an empty
+// string is returned.
+func (server *EchoVault) GetDel(key string) (string, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"GETDEL", key}), nil, false, true)
+	if err != nil {
+		return "", err
+	}
+	return internal.ParseStringResponse(b)
+}
