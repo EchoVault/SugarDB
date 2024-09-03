@@ -140,15 +140,6 @@ func WithConfig(config config.Config) func(echovault *EchoVault) {
 	}
 }
 
-// WithDataDir is an option to the NewEchoVault function that allows you to pass a
-// custom DataDir to EchoVault.
-// If not specified, EchoVault will use the default configuration from config.DefaultConfig().
-func WithDataDir(dataDir string) func(echovault *EchoVault) {
-	return func(echovault *EchoVault) {
-		echovault.config.DataDir = dataDir
-	}
-}
-
 // NewEchoVault creates a new EchoVault instance.
 // This functions accepts the WithContext, WithConfig and WithCommands options.
 func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
