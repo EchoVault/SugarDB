@@ -3147,4 +3147,29 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
+	t.Run("Test_HandleGETDEL", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name     string
+			keys     []string
+			expected int64
+		}{
+			{},
+		}
+
+		for _, tt := range tests {
+
+		}
+	})
+
 }

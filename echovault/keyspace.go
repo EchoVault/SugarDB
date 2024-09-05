@@ -185,7 +185,7 @@ func (server *EchoVault) getValues(ctx context.Context, keys []string) map[strin
 
 	// Asynchronously update the keys in the cache.
 	go func(ctx context.Context, keys []string) {
-		if err := server.updateKeysInCache(ctx, keys); err != nil {
+		if _, err := server.updateKeysInCache(ctx, keys); err != nil {
 			log.Printf("getValues error: %+v\n", err)
 		}
 	}(ctx, keys)
@@ -225,7 +225,7 @@ func (server *EchoVault) setValues(ctx context.Context, entries map[string]inter
 	// Asynchronously update the keys in the cache.
 	go func(ctx context.Context, entries map[string]interface{}) {
 		for key, _ := range entries {
-			err := server.updateKeysInCache(ctx, []string{key})
+			_, err := server.updateKeysInCache(ctx, []string{key})
 			if err != nil {
 				log.Printf("setValues error: %+v\n", err)
 			}
@@ -256,7 +256,7 @@ func (server *EchoVault) setExpiry(ctx context.Context, key string, expireAt tim
 	// If touch is true, update the keys status in the cache.
 	if touch {
 		go func(ctx context.Context, key string) {
-			err := server.updateKeysInCache(ctx, []string{key})
+			_, err := server.updateKeysInCache(ctx, []string{key})
 			if err != nil {
 				log.Printf("setExpiry error: %+v\n", err)
 			}
@@ -331,18 +331,27 @@ func (server *EchoVault) getState() map[int]map[string]interface{} {
 
 // updateKeysInCache updates either the key access count or the most recent access time in the cache
 // depending on whether an LFU or LRU strategy was used.
-func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) error {
+func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) (int64, error) {
 	database := ctx.Value("Database").(int)
+	var touchCounter int64
+
+	// Only update cache when in standalone mode or when raft leader.
+	if server.isInCluster() || (server.isInCluster() && !server.raft.IsRaftLeader()) {
+		return touchCounter, nil
+	}
+	// If max memory is 0, there's no max so no need to update caches.
+	if server.config.MaxMemory == 0 {
+		return touchCounter, nil
+	}
 
 	for _, key := range keys {
-		// Only update cache when in standalone mode or when raft leader.
-		if server.isInCluster() || (server.isInCluster() && !server.raft.IsRaftLeader()) {
-			return nil
+		// Verify key exists
+		if _, ok := server.store[database][key]; !ok {
+			continue
 		}
-		// If max memory is 0, there's no max so no need to update caches.
-		if server.config.MaxMemory == 0 {
-			return nil
-		}
+
+		touchCounter++
+
 		switch strings.ToLower(server.config.EvictionPolicy) {
 		case constants.AllKeysLFU:
 			server.lfuCache.mutex.Lock()
@@ -392,11 +401,11 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) e
 
 	select {
 	case err := <-errChan:
-		return fmt.Errorf("adjustMemoryUsage error: %+v", err)
+		return touchCounter, fmt.Errorf("adjustMemoryUsage error: %+v", err)
 	case <-doneChan:
 	}
 
-	return nil
+	return touchCounter, nil
 }
 
 // adjustMemoryUsage should only be called from standalone echovault or from raft cluster leader.

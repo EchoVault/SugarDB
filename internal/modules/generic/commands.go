@@ -785,6 +785,16 @@ func handleGetex(params internal.HandlerFuncParams) ([]byte, error) {
 
 }
 
+func handleTouch(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := touchKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	touchedKeys, err := params.Touchkey(params.Context, keys.ReadKeys)
+	return []byte(fmt.Sprintf("+%v\r\n", touchedKeys)), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -1085,6 +1095,16 @@ Delete all the keys in the currently selected database. This command is always s
 			Sync:              true,
 			KeyExtractionFunc: getExKeyFunc,
 			HandlerFunc:       handleGetex,
+		},
+		{
+			Command:    "touch",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
+			Description: `(TOUCH key [key ...]) Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used. 
+A key is ignored if it does not exist.`,
+			Sync:              true,
+			KeyExtractionFunc: touchKeyFunc,
+			HandlerFunc:       handleTouch,
 		},
 	}
 }

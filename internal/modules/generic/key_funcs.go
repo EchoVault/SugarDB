@@ -223,3 +223,14 @@ func getExKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 		WriteKeys: cmd[1:2],
 	}, nil
 }
+
+func touchKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) < 2 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
+}

@@ -145,8 +145,11 @@ type HandlerFuncParams struct {
 	// FlushDB flushes the specified database keys. It accepts the integer index of the database to be flushed.
 	// If -1 is passed as the index, then all databases will be flushed.
 	Flush func(database int)
-    // Randomkey returns a random key
-    Randomkey func(ctx context.Context) string
+	// Randomkey returns a random key
+	Randomkey func(ctx context.Context) string
+	// (TOUCH key [key ...]) Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used.
+	// A key is ignored if it does not exist.
+	Touchkey func(ctx context.Context, keys []string) (int64, error)
 }
 
 // HandlerFunc is a functions described by a command where the bulk of the command handling is done.
