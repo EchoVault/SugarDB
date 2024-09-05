@@ -40,6 +40,15 @@ func NewCacheLRU() *CacheLRU {
 	return &cache
 }
 
+func (cache *CacheLRU) GetTime(key string) int64 {
+	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLRU) bool {
+		return e.key == key
+	})
+	entry := cache.entries[entryIdx]
+
+	return entry.unixTime
+}
+
 func (cache *CacheLRU) Len() int {
 	return len(cache.entries)
 }

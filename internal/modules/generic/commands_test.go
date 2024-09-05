@@ -2930,6 +2930,7 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
+<<<<<<< HEAD
 	t.Run("Test_HandleGETEX", func(t *testing.T) {
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
@@ -3148,6 +3149,9 @@ func Test_Generic(t *testing.T) {
 	})
 
 	t.Run("Test_HandleGETDEL", func(t *testing.T) {
+=======
+	t.Run("Test_HandleTOUCH", func(t *testing.T) {
+>>>>>>> 210bc0a (GetCount and GetTime methods added)
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
@@ -3162,12 +3166,85 @@ func Test_Generic(t *testing.T) {
 		tests := []struct {
 			name     string
 			keys     []string
+			setKeys  bool
 			expected int64
 		}{
-			{},
+			{
+				name:     "1. Touch key that exists.",
+				keys:     []string{"TouchKey1"},
+				setKeys:  true,
+				expected: 1,
+			},
+			{
+				name:     "2. Touch multiple keys that exist.",
+				keys:     []string{"TouchKey2", "TouchKey2.1", "TouchKey2.2"},
+				setKeys:  true,
+				expected: 3,
+			},
+			{
+				name:     "3. Touch multiple keys, some don't exist.",
+				keys:     []string{"TouchKey3", "TouchKey3.1", "TouchKey3.9", "TouchKey3.0"},
+				setKeys:  true,
+				expected: 2,
+			},
+			{
+				name:     "4. Touch key that doesn't exist.",
+				keys:     []string{"TouchKey4"},
+				setKeys:  false,
+				expected: 0,
+			},
 		}
 
 		for _, tt := range tests {
+
+			t.Run(tt.name, func(t *testing.T) {
+				func(keys []string, setKeys bool, expected int64) {
+					if setKeys {
+						// Preset the values
+						for _, k := range keys {
+							command := make([]resp.Value, 3)
+							command[0] = resp.StringValue("SET")
+							command[1] = resp.StringValue(k)
+							command[2] = resp.StringValue("___")
+							err = client.WriteArray(command)
+							if err != nil {
+								t.Error(err)
+							}
+
+							res, _, err := client.ReadValue()
+							if err != nil {
+								t.Error(err)
+							}
+
+							if !strings.EqualFold(res.String(), "ok") {
+								t.Errorf("expected preset response to be \"OK\", got %s", res.String())
+							}
+						}
+					}
+
+					// Verify correct value returned
+					command := make([]resp.Value, len(keys)+1)
+					command[0] = resp.StringValue("TOUCH")
+					for i := 1; i < len(command); i++ {
+						ki := i - 1
+						command[i] = resp.StringValue(keys[ki])
+					}
+
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if int64(res.Integer()) != expected {
+						t.Errorf("expected value %v, got %v", expected, res.Integer())
+					}
+
+				}(tt.keys, tt.setKeys, tt.expected)
+			})
 
 		}
 	})

@@ -41,6 +41,15 @@ func NewCacheLFU() *CacheLFU {
 	return &cache
 }
 
+func (cache *CacheLFU) GetCount(key string) int {
+	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLFU) bool {
+		return e.key == key
+	})
+	entry := cache.entries[entryIdx]
+
+	return entry.count
+}
+
 func (cache *CacheLFU) Len() int {
 	return len(cache.entries)
 }
