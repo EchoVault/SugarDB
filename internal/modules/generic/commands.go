@@ -711,6 +711,8 @@ func handleType(params internal.HandlerFuncParams) ([]byte, error) {
 	case reflect.Pointer:
 		if t.Elem().Name() == "Set" {
 			type_string = "set"
+		} else if t.Elem().Name() == "SortedSet" {
+			type_string = "zset"
 		} else {
 			type_string = t.Elem().Name()
 		}

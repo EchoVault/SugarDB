@@ -28,6 +28,7 @@ import (
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
 	"github.com/echovault/echovault/internal/modules/set"
+	"github.com/echovault/echovault/internal/modules/sorted_set"
 	"github.com/tidwall/resp"
 )
 
@@ -2834,6 +2835,18 @@ func Test_Generic(t *testing.T) {
 				expectedResponse: "list",
 				expectedError:    nil,
 			},
+			{
+				name: "Test TYPE with preset zset of integers value",
+				key:  "TypeTestZSet",
+				presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "member1", Score: sorted_set.Score(5.5)},
+					{Value: "member2", Score: sorted_set.Score(67.77)},
+					{Value: "member3", Score: sorted_set.Score(10)},
+				}),
+				command:          []string{"TYPE", "TypeTestZSet"},
+				expectedResponse: "zset",
+				expectedError:    nil,
+			},
 			//	{
 			//		name:             "Test APPEND with integer preset value",
 			//		key:              "AppendKey4",
@@ -2886,6 +2899,15 @@ func Test_Generic(t *testing.T) {
 							command = append(command, []resp.Value{resp.IntegerValue(element)}...)
 						}
 						expected = strconv.Itoa(len(test.presetValue.([]int)))
+					case *sorted_set.SortedSet:
+						command = []resp.Value{resp.StringValue("ZADD"), resp.StringValue(test.key)}
+						for _, member := range test.presetValue.(*sorted_set.SortedSet).GetAll() {
+							command = append(command, []resp.Value{
+								resp.StringValue(strconv.FormatFloat(float64(member.Score), 'f', -1, 64)),
+								resp.StringValue(string(member.Value)),
+							}...)
+						}
+						expected = strconv.Itoa(test.presetValue.(*sorted_set.SortedSet).Cardinality())
 					}
 
 					if err = client.WriteArray(command); err != nil {
