@@ -1002,7 +1002,7 @@ Delete all the keys in the currently selected database. This command is always s
 			Command:           "type",
 			Module:            constants.GenericModule,
 			Categories:        []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
-			Description:       "(TYPE key) Returns the string representation of the type of the value stored at key. The different types that can be returned are: string, integer, float, list, set, zset, hash and stream.",
+			Description:       "(TYPE key) Returns the string representation of the type of the value stored at key. The different types that can be returned are: string, integer, float, list, set, zset, and hash.",
 			Sync:              false,
 			KeyExtractionFunc: typeKeyFunc,
 			HandlerFunc:       handleType,
