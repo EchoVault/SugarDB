@@ -2930,7 +2930,6 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
-<<<<<<< HEAD
 	t.Run("Test_HandleGETEX", func(t *testing.T) {
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
@@ -3148,10 +3147,7 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
-	t.Run("Test_HandleGETDEL", func(t *testing.T) {
-=======
 	t.Run("Test_HandleTOUCH", func(t *testing.T) {
->>>>>>> 210bc0a (GetCount and GetTime methods added)
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
 		if err != nil {
