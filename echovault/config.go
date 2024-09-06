@@ -77,12 +77,20 @@ func WithMTLS(b ...bool) func(echovault *EchoVault) {
 	}
 }
 
+// CertKeyPair defines the paths to the cert and key pair files respectively.
+type CertKeyPair struct {
+	Cert string
+	Key  string
+}
+
 // WithCertKeyPairs is an option to the NewEchoVault function that allows you to pass a
 // custom CertKeyPairs to EchoVault.
 // If not specified, EchoVault will use the default configuration from config.DefaultConfig().
-func WithCertKeyPairs(certKeyPairs [][]string) func(echovault *EchoVault) {
+func WithCertKeyPairs(certKeyPairs []CertKeyPair) func(echovault *EchoVault) {
 	return func(echovault *EchoVault) {
-		echovault.config.CertKeyPairs = certKeyPairs
+		for _, pair := range certKeyPairs {
+			echovault.config.CertKeyPairs = append(echovault.config.CertKeyPairs, []string{pair.Cert, pair.Key})
+		}
 	}
 }
 
