@@ -269,9 +269,12 @@ func handleExpire(params internal.HandlerFuncParams) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("expire time must be integer")
 	}
-	expireAt := params.GetClock().Now().Add(time.Duration(n) * time.Second)
+
+	var expireAt time.Time
 	if strings.ToLower(params.Command[0]) == "pexpire" {
 		expireAt = params.GetClock().Now().Add(time.Duration(n) * time.Millisecond)
+	} else {
+		expireAt = params.GetClock().Now().Add(time.Duration(n) * time.Second)
 	}
 
 	if !keyExists {
@@ -333,9 +336,12 @@ func handleExpireAt(params internal.HandlerFuncParams) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("expire time must be integer")
 	}
-	expireAt := time.Unix(n, 0)
+
+	var expireAt time.Time
 	if strings.ToLower(params.Command[0]) == "pexpireat" {
 		expireAt = time.UnixMilli(n)
+	} else {
+		expireAt = time.Unix(n, 0)
 	}
 
 	if !keyExists {
@@ -712,6 +718,73 @@ func handleGetdel(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
 }
 
+func handleGetex(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := getExKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(params.Context, []string{key})[key]
+
+	if !keyExists {
+		return []byte("$-1\r\n"), nil
+	}
+
+	value := params.GetValues(params.Context, []string{key})[key]
+
+	exkey := keys.WriteKeys[0]
+
+	cmdLen := len(params.Command)
+
+	// Handle no expire options provided
+	if cmdLen == 2 {
+		return []byte(fmt.Sprintf("+%v\r\n", value)), nil
+	}
+
+	// Handle persist
+	exCommand := strings.ToUpper(params.Command[2])
+	// If time is provided with PERSIST it is effectively ignored
+	if exCommand == "persist" {
+		// getValues will update key access so no need here
+		params.SetExpiry(params.Context, exkey, time.Time{}, false)
+		return []byte(fmt.Sprintf("+%v\r\n", value)), nil
+	}
+
+	// Handle exipre command passed but no time provided
+	if cmdLen == 3 {
+		return []byte(fmt.Sprintf("+%v\r\n", value)), nil
+	}
+
+	// Extract time
+	exTimeString := params.Command[3]
+	n, err := strconv.ParseInt(exTimeString, 10, 64)
+	if err != nil {
+		return []byte("$-1\r\n"), errors.New("expire time must be integer")
+	}
+
+	var expireAt time.Time
+	switch exCommand {
+	case "EX":
+		expireAt = params.GetClock().Now().Add(time.Duration(n) * time.Second)
+	case "PX":
+		expireAt = params.GetClock().Now().Add(time.Duration(n) * time.Millisecond)
+	case "EXAT":
+		expireAt = time.Unix(n, 0)
+	case "PXAT":
+		expireAt = time.UnixMilli(n)
+	case "PERSIST":
+		expireAt = time.Time{}
+	default:
+		return nil, fmt.Errorf("unknown option %s -- '%v'", strings.ToUpper(exCommand), params.Command)
+	}
+
+	params.SetExpiry(params.Context, exkey, expireAt, false)
+
+	return []byte(fmt.Sprintf("+%v\r\n", value)), nil
+
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -1003,6 +1076,15 @@ Delete all the keys in the currently selected database. This command is always s
 			Sync:              true,
 			KeyExtractionFunc: getDelKeyFunc,
 			HandlerFunc:       handleGetdel,
+		},
+		{
+			Command:           "getex",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.WriteCategory, constants.FastCategory},
+			Description:       "(GETEX key [EX seconds | PX milliseconds | EXAT unix-time-seconds | PXAT unix-time-milliseconds | PERSIST]) Get the value of key and optionally set its expiration. GETEX is similar to [GET], but is a write command with additional options.",
+			Sync:              true,
+			KeyExtractionFunc: getExKeyFunc,
+			HandlerFunc:       handleGetex,
 		},
 	}
 }
