@@ -3170,12 +3170,6 @@ func Test_Generic(t *testing.T) {
 			expectedResponse string
 			expectedError    error
 		}{
-			//	{
-			//		name:          "Test TYPE with nonexistent key",
-			//		key:           "non-existent-key",
-			//		command:       []string{"TYPE", "non-existent-key"},
-			//		expectedError: errors.New("key non-existent-key does not exist"),
-			//	},
 			{
 				name:             "Test TYPE with preset string value",
 				key:              "TypeTestString",
@@ -3244,24 +3238,6 @@ func Test_Generic(t *testing.T) {
 				expectedResponse: "hash",
 				expectedError:    nil,
 			},
-			//	{
-			//		name:             "Test APPEND with integer preset value",
-			//		key:              "AppendKey4",
-			//		presetValue:      10,
-			//		command:          []string{"APPEND", "AppendKey4", "World"},
-			//		expectedResponse: 0,
-			//		expectedError:    errors.New("Value at key AppendKey4 is not a string"),
-			//	},
-			//	{
-			//		name:          "Command too short",
-			//		command:       []string{"APPEND", "AppendKey5"},
-			//		expectedError: errors.New(constants.WrongArgsResponse),
-			//	},
-			//	{
-			//		name:          "Command too long",
-			//		command:       []string{"APPEND", "AppendKey5", "new value", "extra value"},
-			//		expectedError: errors.New(constants.WrongArgsResponse),
-			//	},
 		}
 
 		for _, test := range tests {
