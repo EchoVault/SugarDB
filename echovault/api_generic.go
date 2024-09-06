@@ -69,6 +69,28 @@ type PExpireOptions ExpireOptions
 type ExpireAtOptions ExpireOptions
 type PExpireAtOptions ExpireOptions
 
+// GetExOptions modifies the behaviour of
+//
+// EX - Set the specified expire time, in seconds.
+//
+// PX - Set the specified expire time, in milliseconds.
+//
+// EXAT - Set the specified Unix time at which the key will expire, in seconds.
+//
+// PXAT - Set the specified Unix time at which the key will expire, in milliseconds.
+//
+// PERSIST - Remove the time to live associated with the key.
+//
+// UNIXTIME - Number of seconds or miliseconds from now
+type GetExOptions struct {
+	EX       bool
+	PX       bool
+	EXAT     bool
+	PXAT     bool
+	PERSIST  bool
+	UNIXTIME int
+}
+
 // Set creates or modifies the value at the given key.
 //
 // Parameters:
@@ -323,7 +345,7 @@ func (server *EchoVault) Expire(key string, seconds int, options ExpireOptions) 
 //
 // `key` - string.
 //
-// `milliseconds` - int - number of seconds from now.
+// `milliseconds` - int - number of milliseconds from now.
 //
 // `options` - PExpireOptions
 //
@@ -550,5 +572,77 @@ func (server *EchoVault) Rename(oldKey string, newKey string) (string, error) {
 		return "", err
 	}
 	// Parse the simple string response
+	return internal.ParseStringResponse(b)
+}
+
+// RandomKey returns a random key from the current active database.
+// If no keys present in db returns an empty string.
+func (server *EchoVault) RandomKey() (string, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"RANDOMKEY"}), nil, false, true)
+	if err != nil {
+		return "", err
+	}
+	return internal.ParseStringResponse(b)
+}
+
+// GetDel retrieves the value at the provided key and deletes that key.
+//
+// Parameters:
+//
+// `key` - string - the key whose value should be retrieved and then deleted.
+//
+// Returns: A string representing the value at the specified key. If the value does not exist, an empty
+// string is returned.
+func (server *EchoVault) GetDel(key string) (string, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"GETDEL", key}), nil, false, true)
+	if err != nil {
+		return "", err
+	}
+	return internal.ParseStringResponse(b)
+}
+
+// GetEx retrieves the value of the provided key and optionally sets its expiration
+//
+// Parameters:
+//
+// `key` - string - the key whose value should be retrieved and expiry set.
+//
+// `opts` - GetExOptions.
+//
+// Returns: A string representing the value at the specified key. If the value does not exist, an empty string is returned.
+func (server *EchoVault) GetEx(key string, opts GetExOptions) (string, error) {
+
+	cmd := make([]string, 2)
+
+	cmd[0] = "GETEX"
+	cmd[1] = key
+
+	var command string
+
+	switch {
+	case opts.EX:
+		command = "EX"
+	case opts.PX:
+		command = "PX"
+	case opts.EXAT:
+		command = "EXAT"
+	case opts.PXAT:
+		command = "PXAT"
+	case opts.PERSIST:
+		command = "PERSIST"
+	default:
+	}
+
+	if command != "" {
+		cmd = append(cmd, command)
+	}
+	if opts.UNIXTIME != 0 {
+		cmd = append(cmd, strconv.Itoa(opts.UNIXTIME))
+	}
+
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return "", err
+	}
 	return internal.ParseStringResponse(b)
 }

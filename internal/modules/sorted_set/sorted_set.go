@@ -86,15 +86,15 @@ func (set *SortedSet) GetRandom(count int) []MemberParam {
 		}
 	} else {
 		// If count is positive only allow unique values
+
 		for i := 0; i < internal.AbsInt(count); {
 			n = rand.Intn(len(members))
 			if !slices.ContainsFunc(res, func(m MemberParam) bool {
 				return m.Value == members[n].Value
 			}) {
 				res = append(res, members[n])
-				slices.DeleteFunc(members, func(m MemberParam) bool {
-					return m.Value == members[n].Value
-				})
+				members[n] = members[len(members)-1]
+				members = members[:len(members)-1]
 				i++
 			}
 		}

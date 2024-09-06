@@ -1,0 +1,10 @@
+# run from root dir
+services:
+  test:
+    build: 
+      context: ..
+      dockerfile: windows_test_env/Dockerfile
+    container_name: EchoVault_win_test_env
+    stdin_open: true
+    tty: true
+

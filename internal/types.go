@@ -145,6 +145,8 @@ type HandlerFuncParams struct {
 	// FlushDB flushes the specified database keys. It accepts the integer index of the database to be flushed.
 	// If -1 is passed as the index, then all databases will be flushed.
 	Flush func(database int)
+    // Randomkey returns a random key
+    Randomkey func(ctx context.Context) string
 }
 
 // HandlerFunc is a functions described by a command where the bulk of the command handling is done.

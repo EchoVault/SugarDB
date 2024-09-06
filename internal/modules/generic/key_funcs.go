@@ -191,6 +191,39 @@ func renameKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	}, nil
 }
 
+func randomKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 1 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: make([]string, 0),
+	}, nil
+}
+
+func getDelKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 2 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: cmd[1:],
+	}, nil
+}
+
+func getExKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) < 2 || len(cmd) > 4 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:2],
+		WriteKeys: cmd[1:2],
+	}, nil
+}
+
 func typeKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
