@@ -2847,6 +2847,14 @@ func Test_Generic(t *testing.T) {
 				expectedResponse: "zset",
 				expectedError:    nil,
 			},
+			{
+				name:             "Test TYPE with preset hash of map[string]string",
+				key:              "TypeTestHash",
+				presetValue:      map[string]string{"field1": "value1"},
+				command:          []string{"TYPE", "TypeTestHash"},
+				expectedResponse: "hash",
+				expectedError:    nil,
+			},
 			//	{
 			//		name:             "Test APPEND with integer preset value",
 			//		key:              "AppendKey4",
@@ -2908,6 +2916,15 @@ func Test_Generic(t *testing.T) {
 							}...)
 						}
 						expected = strconv.Itoa(test.presetValue.(*sorted_set.SortedSet).Cardinality())
+					case map[string]string:
+						command = []resp.Value{resp.StringValue("HSET"), resp.StringValue(test.key)}
+						for key, value := range test.presetValue.(map[string]string) {
+							command = append(command, []resp.Value{
+								resp.StringValue(key),
+								resp.StringValue(value)}...,
+							)
+						}
+						expected = strconv.Itoa(len(test.presetValue.(map[string]string)))
 					}
 
 					if err = client.WriteArray(command); err != nil {

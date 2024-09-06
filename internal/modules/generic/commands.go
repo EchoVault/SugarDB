@@ -708,6 +708,8 @@ func handleType(params internal.HandlerFuncParams) ([]byte, error) {
 		type_string = "float"
 	case reflect.Slice:
 		type_string = "list"
+	case reflect.Map:
+		type_string = "hash"
 	case reflect.Pointer:
 		if t.Elem().Name() == "Set" {
 			type_string = "set"
