@@ -35,6 +35,7 @@ type KeyData struct {
 	ExpireAt time.Time
 }
 
+// Testing against a server with no eviction policy.
 func Test_Generic(t *testing.T) {
 	mockClock := clock.NewClock()
 	port, err := internal.GetFreePort()
@@ -3147,6 +3148,40 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
+}
+
+// Certain commands will need to be tested in a server with an eviction policy.
+// This is for testing against an LFU evictiona policy.
+func Test_Generic_LFU(t *testing.T) {
+	// mockClock := clock.NewClock()
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	mockServer, err := echovault.NewEchoVault(
+		echovault.WithConfig(config.Config{
+			BindAddr:       "localhost",
+			Port:           uint16(port),
+			DataDir:        "",
+			EvictionPolicy: constants.AllKeysLFU,
+			MaxMemory:      1000000,
+		}),
+	)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	go func() {
+		mockServer.Start()
+	}()
+
+	t.Cleanup(func() {
+		mockServer.ShutDown()
+	})
+
 	t.Run("Test_HandleTOUCH", func(t *testing.T) {
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
@@ -3238,6 +3273,142 @@ func Test_Generic(t *testing.T) {
 					if int64(res.Integer()) != expected {
 						t.Errorf("expected value %v, got %v", expected, res.Integer())
 					}
+
+					// Verify access count was updated in lfu cache
+					//TODO
+
+				}(tt.keys, tt.setKeys, tt.expected)
+			})
+
+		}
+	})
+}
+
+// Certain commands will need to be tested in a server with an eviction policy.
+// This is for testing against an LRU evictiona policy.
+func Test_Generic_LRU(t *testing.T) {
+	// mockClock := clock.NewClock()
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	mockServer, err := echovault.NewEchoVault(
+		echovault.WithConfig(config.Config{
+			BindAddr:       "localhost",
+			Port:           uint16(port),
+			DataDir:        "",
+			EvictionPolicy: constants.AllKeysLRU,
+			MaxMemory:      1000000,
+		}),
+	)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	go func() {
+		mockServer.Start()
+	}()
+
+	t.Cleanup(func() {
+		mockServer.ShutDown()
+	})
+
+	t.Run("Test_HandleTOUCH", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name     string
+			keys     []string
+			setKeys  bool
+			expected int64
+		}{
+			{
+				name:     "1. Touch key that exists.",
+				keys:     []string{"TouchKey1"},
+				setKeys:  true,
+				expected: 1,
+			},
+			{
+				name:     "2. Touch multiple keys that exist.",
+				keys:     []string{"TouchKey2", "TouchKey2.1", "TouchKey2.2"},
+				setKeys:  true,
+				expected: 3,
+			},
+			{
+				name:     "3. Touch multiple keys, some don't exist.",
+				keys:     []string{"TouchKey3", "TouchKey3.1", "TouchKey3.9", "TouchKey3.0"},
+				setKeys:  true,
+				expected: 2,
+			},
+			{
+				name:     "4. Touch key that doesn't exist.",
+				keys:     []string{"TouchKey4"},
+				setKeys:  false,
+				expected: 0,
+			},
+		}
+
+		for _, tt := range tests {
+
+			t.Run(tt.name, func(t *testing.T) {
+				func(keys []string, setKeys bool, expected int64) {
+					if setKeys {
+						// Preset the values
+						for _, k := range keys {
+							command := make([]resp.Value, 3)
+							command[0] = resp.StringValue("SET")
+							command[1] = resp.StringValue(k)
+							command[2] = resp.StringValue("___")
+							err = client.WriteArray(command)
+							if err != nil {
+								t.Error(err)
+							}
+
+							res, _, err := client.ReadValue()
+							if err != nil {
+								t.Error(err)
+							}
+
+							if !strings.EqualFold(res.String(), "ok") {
+								t.Errorf("expected preset response to be \"OK\", got %s", res.String())
+							}
+						}
+					}
+
+					// Verify correct value returned
+					command := make([]resp.Value, len(keys)+1)
+					command[0] = resp.StringValue("TOUCH")
+					for i := 1; i < len(command); i++ {
+						ki := i - 1
+						command[i] = resp.StringValue(keys[ki])
+					}
+
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if int64(res.Integer()) != expected {
+						t.Errorf("expected value %v, got %v", expected, res.Integer())
+					}
+					// Verify access time (unixTime field) was updated in lru cache
+					// TODO
 
 				}(tt.keys, tt.setKeys, tt.expected)
 			})
