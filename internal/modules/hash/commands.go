@@ -138,6 +138,53 @@ func handleHGET(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(res), nil
 }
 
+func handleHMGET(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := hmgetKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
+	if !keyExists {
+		return []byte("*0\r\n"), nil
+	}
+
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	fields := params.Command[2:]
+
+	var value interface{}
+	res := fmt.Sprintf("*%d\r\n", len(fields))
+	for _, field := range fields {
+		value, ok = hash[field]
+		if !ok {
+			res += "$-1\r\n"
+			continue
+		}
+
+		if s, ok := value.(string); ok {
+			res += fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)
+			continue
+		}
+		if d, ok := value.(int); ok {
+			res += fmt.Sprintf(":%d\r\n", d)
+			continue
+		}
+		if f, ok := value.(float64); ok {
+			fs := strconv.FormatFloat(f, 'f', -1, 64)
+			res += fmt.Sprintf("$%d\r\n%s\r\n", len(fs), fs)
+			continue
+		}
+		res += fmt.Sprintf("$-1\r\n")
+
+	}
+	return []byte(res), nil
+}
+
 func handleHSTRLEN(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := hstrlenKeyFunc(params.Command)
 	if err != nil {
@@ -593,6 +640,16 @@ Retrieve the value of each of the listed fields from the hash.`,
 			Sync:              false,
 			KeyExtractionFunc: hgetKeyFunc,
 			HandlerFunc:       handleHGET,
+		},
+		{
+			Command:    "hmget",
+			Module:     constants.HashModule,
+			Categories: []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
+			Description: `(HMGET key field [field ...]) 
+Retrieve the value of each of the listed fields from the hash.`,
+			Sync:              false,
+			KeyExtractionFunc: hmgetKeyFunc,
+			HandlerFunc:       handleHMGET,
 		},
 		{
 			Command:    "hstrlen",
