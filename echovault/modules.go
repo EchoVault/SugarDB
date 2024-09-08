@@ -60,6 +60,8 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 		Flush:                 server.Flush,
 		Randomkey:             server.randomKey,
 		Touchkey:              server.updateKeysInCache,
+		GetObjectFrequency:    server.getObjectFreq,
+		GetObjectIdleTime:     server.getObjectIdleTime,
 		SwapDBs:               server.SwapDBs,
 		GetServerInfo:         server.GetServerInfo,
 		DeleteKey: func(ctx context.Context, key string) error {

@@ -16,6 +16,8 @@ package eviction
 
 import (
 	"container/heap"
+	"errors"
+	"fmt"
 	"slices"
 	"time"
 )
@@ -40,13 +42,17 @@ func NewCacheLRU() *CacheLRU {
 	return &cache
 }
 
-func (cache *CacheLRU) GetTime(key string) int64 {
+func (cache *CacheLRU) GetTime(key string) (int64, error) {
+
 	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLRU) bool {
 		return e.key == key
 	})
-	entry := cache.entries[entryIdx]
-
-	return entry.unixTime
+	if entryIdx > -1 {
+		entry := cache.entries[entryIdx]
+		return entry.unixTime, nil
+	} else {
+		return -1, errors.New(fmt.Sprintf("Error: key %s does not exist.", key))
+	}
 }
 
 func (cache *CacheLRU) Len() int {

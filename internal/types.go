@@ -150,6 +150,10 @@ type HandlerFuncParams struct {
 	// (TOUCH key [key ...]) Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used.
 	// A key is ignored if it does not exist.
 	Touchkey func(ctx context.Context, keys []string) (int64, error)
+	// GetObjectFrequency retrieves the access frequency count of a key. Can only be used with LFU type eviction policies.
+	GetObjectFrequency func(ctx context.Context, keys string) (int, error)
+	// GetObjectIdleTime retrieves the time in seconds since the last access of a key. Can only be used with LRU type eviction policies.
+	GetObjectIdleTime func(ctx context.Context, keys string) (int, error)
 }
 
 // HandlerFunc is a functions described by a command where the bulk of the command handling is done.

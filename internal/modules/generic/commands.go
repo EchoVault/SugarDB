@@ -792,7 +792,39 @@ func handleTouch(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	touchedKeys, err := params.Touchkey(params.Context, keys.ReadKeys)
+	if err != nil {
+		return nil, err
+	}
+
 	return []byte(fmt.Sprintf("+%v\r\n", touchedKeys)), nil
+}
+
+func handleObjFreq(params internal.HandlerFuncParams) ([]byte, error) {
+	key, err := objFreqKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	freq, err := params.GetObjectFrequency(params.Context, key.ReadKeys[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(fmt.Sprintf("+%v\r\n", freq)), nil
+}
+
+func handleObjIdleTime(params internal.HandlerFuncParams) ([]byte, error) {
+	key, err := objIdleTimeKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	freq, err := params.GetObjectIdleTime(params.Context, key.ReadKeys[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(fmt.Sprintf("+%v\r\n", freq)), nil
 }
 
 func Commands() []internal.Command {
@@ -1105,6 +1137,26 @@ A key is ignored if it does not exist.`,
 			Sync:              true,
 			KeyExtractionFunc: touchKeyFunc,
 			HandlerFunc:       handleTouch,
+		},
+		{
+			Command:    "object freq",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.SlowCategory},
+			Description: `This command returns the access frequency count of an object stored at <key>.
+The command is only available when the maxmemory-policy configuration directive is set to one of the LFU policies.`,
+			Sync:              false,
+			KeyExtractionFunc: objFreqKeyFunc,
+			HandlerFunc:       handleObjFreq,
+		},
+		{
+			Command:    "object idletime",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.SlowCategory},
+			Description: `This command returns the time in seconds since the last access to the value stored at <key>.
+The command is only available when the maxmemory-policy configuration directive is set to one of the LRU policies.`,
+			Sync:              false,
+			KeyExtractionFunc: objIdleTimeKeyFunc,
+			HandlerFunc:       handleObjIdleTime,
 		},
 	}
 }

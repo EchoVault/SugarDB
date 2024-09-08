@@ -673,3 +673,46 @@ func (server *EchoVault) randomKey(ctx context.Context) string {
 
 	return randkey
 }
+
+func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, error) {
+
+	database := ctx.Value("Database").(int)
+
+	var freq int
+	var err error
+	if server.lfuCache.cache != nil {
+		freq, err = server.lfuCache.cache[database].GetCount(key)
+	} else {
+		return -1, errors.New("Error: Eviction policy must be one a type of LFU.")
+	}
+
+	if err != nil {
+		return -1, err
+	}
+
+	return freq, nil
+
+}
+
+func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (int, error) {
+
+	database := ctx.Value("Database").(int)
+
+	var accessTime int64
+	var err error
+	if server.lruCache.cache != nil {
+		accessTime, err = server.lruCache.cache[database].GetTime(key)
+	} else {
+		return -1, errors.New("Error: Eviction policy must be one a type of LRU.")
+	}
+
+	if err != nil {
+		return -1, err
+	}
+
+	lastAcess := time.UnixMilli(accessTime)
+	secs := lastAcess.Sub(time.Now())
+
+	return int(secs), nil
+
+}
