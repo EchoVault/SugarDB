@@ -643,7 +643,7 @@ func Test_Hash(t *testing.T) {
 				command:          []string{"HMGET", "HmgetKey3", "field1"},
 				expectedResponse: nil,
 				expectedValue:    nil,
-				expectedError:    errors.New("value at HgetKey3 is not a hash"),
+				expectedError:    errors.New("value at HmgetKey3 is not a hash"),
 			},
 			{
 				name:             "4. Command too short",
