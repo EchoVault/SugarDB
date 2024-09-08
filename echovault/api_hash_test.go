@@ -826,3 +826,59 @@ func TestEchoVault_HGet(t *testing.T) {
 		})
 	}
 }
+
+func TestEchoVault_HMGet(t *testing.T) {
+	server := createEchoVault()
+	tests := []struct {
+		name        string
+		presetValue interface{}
+		key         string
+		fields      []string
+		want        []string
+		wantErr     bool
+	}{
+		{
+			name:        "1. Get values from existing hash.",
+			key:         "HgetKey1",
+			presetValue: map[string]interface{}{"field1": "value1", "field2": 365, "field3": 3.142},
+			fields:      []string{"field1", "field2", "field3", "field4"},
+			want:        []string{"value1", "365", "3.142", ""},
+			wantErr:     false,
+		},
+		{
+			name:        "2. Return empty slice when attempting to get from non-existed key",
+			presetValue: nil,
+			key:         "HgetKey2",
+			fields:      []string{"field1"},
+			want:        []string{},
+			wantErr:     false,
+		},
+		{
+			name:        "3. Error when trying to get from a value that is not a hash map",
+			presetValue: "Default Value",
+			key:         "HgetKey3",
+			fields:      []string{"field1"},
+			want:        nil,
+			wantErr:     true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValue != nil {
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			got, err := server.HGet(tt.key, tt.fields...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HMGet() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("HMGet() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
