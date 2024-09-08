@@ -147,7 +147,7 @@ func handleHMGET(params internal.HandlerFuncParams) ([]byte, error) {
 	key := keys.ReadKeys[0]
 	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
 	if !keyExists {
-		return []byte("*0\r\n"), nil
+		return []byte("$-1\r\n"), nil
 	}
 
 	hash, ok := params.GetValues(params.Context, []string{key})[key].(map[string]interface{})
