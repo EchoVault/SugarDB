@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# REWRITEAOF
+
+### Syntax
+```
+REWRITEAOF
+```
+
+### Module
+<span className="acl-category">admin</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">fast</span>
+
+### Description
+Trigger re-writing of append process.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Trigger re-writing of append process:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    count, err := vault.RewriteAOF()
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Trigger re-writing of append process:
+    ```
+    > REWRITEAOF
+    ```
+  </TabItem>
+</Tabs>

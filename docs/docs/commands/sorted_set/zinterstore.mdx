@@ -1,0 +1,75 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZINTERSTORE
+
+### Syntax
+```
+ZINTERSTORE destination key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">write</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Computes the intersection of the sets in the keys, with weights, aggregate and scores.
+The result is stored in destination.
+
+## Options 
+- `WEIGHTS` - A list of floats that determine the weight of each sorted set. The scores of each member
+of a sort set are multiplied by the corresponding weight. If weights are not provided, the default weight
+is 1 for all sorted sets.
+- `AGGREGATE` - Determines the strategy used to compare the scores of members in the intersection.
+SUM will add the scores, MIN will choose the minimum score, and MAX will choose the maximum score.
+- `WITHSCORES` - Determines whether scores should be included in the resulting sorted set.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Store the intersection between 2 sorted sets:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    cardinality, err := vault.ZInterStore("destination", []string{"key1", "key2"}, echovault.ZInterStoreOptions{})
+    ```
+    
+    Store the intersection between 2 sorted sets with a sum of the weighted scores:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    cardinality, err := vault.ZInterStore(
+      "destination",
+      []string{"key1", "key2"},
+      echovault.ZInterStoreOptions{Weights: []float64{2, 4}, Aggregate: "SUM", WithScores: true},
+    )
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Store the intersection between 2 sorted sets:
+    ```
+    > ZINTERSTORE destination key1 key2
+    ```
+    
+    Store the intersection between 2 sorted sets with a sum of the weighted scores:
+    ```
+    > ZINTERSTORE destination key1 key2 WEIGHTS 2 4 AGGREGATE SUM WITHSCORES
+    ```
+  </TabItem>
+</Tabs>
+  

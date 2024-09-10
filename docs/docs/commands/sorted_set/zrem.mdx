@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZREM
+
+### Syntax
+```
+ZREM key member [member ...]
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">write</span>
+<span className="acl-category">fast</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Removes the listed members from the sorted set. Returns the number of elements removed.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Remove the listed members from the sorted set:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    deletedCount, err := vault.ZRem("key", "member1", "member2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Remove the listed members from the sorted set:
+    ```
+    > ZREM key member1 member2
+    ```
+  </TabItem>
+</Tabs>  

@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# MODULE UNLOAD
+
+### Syntax
+```
+MODULE UNLOAD name
+```
+
+### Module
+<span className="acl-category">admin</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">fast</span>
+
+### Description
+Unloads a module based on the its name as displayed by the MODULE LIST command.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Unload a module:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    err := server.UnloadModule("module-name")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Unload a module:
+    ```
+    > MODULE UNLOAD module-name
+    ```
+  </TabItem>
+</Tabs>

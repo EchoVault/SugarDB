@@ -1,0 +1,46 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# AUTH
+
+### Syntax
+```
+AUTH [username] password
+```
+
+### Module
+<span className="acl-category">connection</span>
+
+### Categories
+<span className="acl-category">connection</span>
+<span className="acl-category">slow</span>
+
+### Description
+Authenticates the connection. If the username is not provided, the connection will be authenticated against the
+default ACL user. Otherwise, it is authenticated against the ACL user with the provided username.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    ```go
+    // Not available in embedded mode.
+    ```
+  </TabItem>
+  <TabItem value="cli">
+  Authenticate against the default user:
+  ```
+  > AUTH password
+  ```
+  Authenticate against a specific user:
+  ```
+  > AUTH username password
+  ```
+  </TabItem>
+</Tabs>

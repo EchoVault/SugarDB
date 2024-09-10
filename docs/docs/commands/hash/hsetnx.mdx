@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HSETNX
+
+### Syntax
+```
+HSETNX key field value [field value ...]
+```
+
+### Module
+<span className="acl-category">hash</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">hash</span>
+<span className="acl-category">write</span>
+
+### Description 
+Set hash field value only if the field does not exist.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Set hash field value:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    noOfUpdatedFields, err := vault.HSetNX("key", map[string]string{"field1": "value1", "field2": "value2"})
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Set hash field value:
+    ```
+    > HSETNX key field1 value1 field2 value2
+    ```
+  </TabItem>
+</Tabs>

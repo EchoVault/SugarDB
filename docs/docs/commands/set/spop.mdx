@@ -1,0 +1,61 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SPOP
+
+### Syntax
+```
+SPOP key [count]
+```
+
+### Module
+<span className="acl-category">set</span>
+
+### Categories 
+<span className="acl-category">set</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">write</span>
+
+### Description 
+Returns and removes one or more random members from the set.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Pop one element from the set:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    elements, err := vault.SPop("key", 1)
+    ```
+
+    Pop 5 elements from the set:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    elements, err := vault.SPop("key", 5)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Pop one element from the set:
+    ```
+    > SPOP key
+    ```
+
+    Pop 5 elements from the set:
+    ```
+    > SPOP key 5
+    ```
+  </TabItem>
+</Tabs>

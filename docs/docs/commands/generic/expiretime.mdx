@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# EXPIRETIME
+
+### Syntax
+```
+EXPIRETIME key
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### categories
+<span className="acl-category">fast</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">read</span>
+
+### Description
+Returns the absolute unix time in seconds when the key will expire.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get the expiration time of a key:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    expireTime, err := vault.ExpireTime("key")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get the expiration time of a key:
+    ```
+    > EXPIRETIME key
+    ```
+  </TabItem>
+</Tabs>

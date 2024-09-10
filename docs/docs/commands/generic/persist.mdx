@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# PERSIST
+
+### Syntax
+```
+PERSIST key
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories
+<span className="acl-category">fast</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">write</span>
+
+### Description
+Removes the TTl associated with a key, turning it from a volatile key to a persistent key.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Remove the TTL associated with a key:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := vault.Persist("key")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Remove the TTL associated with a key:
+    ```
+    > PERSIST key
+    ```
+  </TabItem>
+</Tabs>

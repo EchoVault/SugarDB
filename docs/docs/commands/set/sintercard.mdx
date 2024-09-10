@@ -1,0 +1,65 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SINTERCARD
+
+### Syntax
+```
+SINTERCARD key [key...] [LIMIT limit]
+```
+
+### Module
+<span className="acl-category">set</span>
+
+### Categories 
+<span className="acl-category">read</span>
+<span className="acl-category">set</span>
+<span className="acl-category">slow</span>
+
+### Description 
+Returns the cardinality of the intersection between multiple sets.
+
+### Options 
+- LIMIT - limit is an integer which determines the cardinality at which the intersection calculation
+is terminated.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get the difference between 2 sets:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    cardinality, err := vault.SInterCard([]string{"key1", "key2"}, 0)
+    ```
+
+    Get the intersection only upto an intersection cardinality of 5:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    cardinality, err := vault.SInterCard([]string{"key1", "key2"}, 5)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get the difference between 2 sets:
+    ```
+    > SINTERCARD key1 key2
+    ```
+
+    Get the intersection only upto an intersection cardinality of 5:
+    ```
+    > SINTERCARD key1 key2 LIMIT 5
+    ```
+  </TabItem>
+</Tabs>

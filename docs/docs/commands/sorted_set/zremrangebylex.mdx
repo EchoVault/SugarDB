@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZREMRANGEBYLEX
+
+### Syntax
+```
+ZREMRANGEBYLEX key min max
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">write</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Removes the elements in the lexicographical range between min and max.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Remove the elements in the lexicographical range between min and max:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    deletedCount, err := vault.ZRemRangeByLex("key", "aa", "xx")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Remove the elements in the lexicographical range between min and max:
+    ```
+    > ZREMRANGEBYLEX key aa xx
+    ```
+  </TabItem>
+</Tabs>  

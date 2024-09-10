@@ -1,0 +1,49 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# PTTL
+
+### Syntax
+```
+PTTL key
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">read</span>
+
+### Description 
+Returns the remaining time to live for a key that has an expiry time in milliseconds.
+If the key exists but does not have an associated expiry time, -1 is returned.
+If the key does not exist, -2 is returned.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Retrieve the expiration time of a key:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ttl, err := vault.PTTL("key")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Retrieve the expiration time of a key:
+    ```
+    > PTTL key
+    ```
+  </TabItem>
+</Tabs>

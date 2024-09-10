@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HINCRBY
+
+### Syntax
+```
+HINCRBY key field increment
+```
+
+### Module
+<span className="acl-category">hash</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">hash</span>
+<span className="acl-category">write</span>
+
+### Description 
+Increment the hash value by the integer increment.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Increment the hash value by the integer increment:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    newValue, err := vault.HIncrBy("key", "field", 7)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Increment the hash value by the integer increment:
+    ```
+    > HINCRBY key field 7
+    ```
+  </TabItem>
+</Tabs>

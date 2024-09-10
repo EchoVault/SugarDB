@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# RPUSHX
+
+### Syntax
+```
+RPUSHX key element [element ...]
+```
+
+### Module
+<span className="acl-category">list</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">list</span>
+<span className="acl-category">write</span>
+
+### Description 
+Appends a value to the end of a list only if the list exists.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Appends a value to the end of a list only if the list exists:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    length, err := vault.RPushX("key", "element1", "element2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Appends a value to the end of a list only if the list exists:
+    ```
+    > RPUSHX key element1 element2
+    ```
+  </TabItem>
+</Tabs>

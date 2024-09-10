@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZDIFFSTORE
+
+### Syntax
+```
+ZDIFFSTORE destination key1 key2
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+<span className="acl-category">write</span>
+
+### Description 
+Computes the difference between all the sorted sets specifies in the list of keys. Stores the result in destination.
+If the base set (first key) does not exist, return 0, otherwise, return the cardinality of the diff.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Store the difference between 2 sorted sets:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    cardinality, err := vault.ZDiffStore("destination", "key1", "key2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Store the difference between 2 sorted sets:
+    ```
+    > ZDIFFSTORE destination key1 key2
+    ```
+  </TabItem>
+</Tabs>

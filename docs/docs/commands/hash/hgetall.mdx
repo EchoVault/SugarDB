@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HGETALL
+
+### Syntax
+```
+HGETALL key
+```
+
+### Module
+<span className="acl-category">hash</span>
+
+### Categories 
+<span className="acl-category">hash</span>
+<span className="acl-category">read</span>
+<span className="acl-category">slow</span>
+
+### Description 
+Get all fields and values of a hash.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get all fields and values of a hash:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    result, err := vault.HGetAll("key")
+    ```   
+  </TabItem>
+  <TabItem value="cli">
+    Get all fields and values of a hash:
+    ```
+    > HGETALL key
+    ```
+  </TabItem>
+</Tabs>

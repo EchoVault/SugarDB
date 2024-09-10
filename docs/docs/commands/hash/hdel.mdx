@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HDEL
+
+### Syntax
+```
+HDEL key field [field ...]
+```
+
+### Module
+<span className="acl-category">hash</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">hash</span>
+<span className="acl-category">write</span>
+
+
+### Description 
+Deletes the specified fields from the hash.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Delete fields from a hash:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    deletedCount, err := vault.HDel("key", "field1", "field2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Delete fields from a hash:
+    ```
+    > HDEL key field1 field2
+    ```
+  </TabItem>
+</Tabs>

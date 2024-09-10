@@ -1,0 +1,40 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# COMMANDS
+
+### Syntax
+```
+COMMANDS
+```
+
+### Module
+<span className="acl-category">admin</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">slow</span>
+
+### Description
+Get a list of all the commands in available on the echovault with categories and descriptions.
+Sub-commmands are formated as "command|subcommand".
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Make use of the <a href="/docs/commands/admin/command_list">CommandList method</a>.
+  </TabItem>
+  <TabItem value="cli">
+    Get List of commands:
+    ```
+    > COMMAND
+    ```  
+  </TabItem>
+</Tabs>

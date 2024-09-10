@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZREMRANGEBYSCORE
+
+### Syntax
+```
+ZREMRANGEBYSCORE key min max
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">write</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Removes the elements whose scores are in the range between min and max.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Remove the elements whose scores are in the range between min and max:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    deletedCount, err := vault.ZRemRangeByScore("key", 3.55, 12.75)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Remove the elements whose scores are in the range between min and max:
+    ```
+    > ZREMRANGEBYSCORE key 3.55 12.75
+    ```
+  </TabItem>
+</Tabs>  

@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZMPOP
+
+### Syntax
+```
+ZMPOP key [key ...] <MIN | MAX> [COUNT count]
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">write</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Pop a 'count' elements from multiple sorted sets.
+MIN or MAX determines whether to pop elements with the lowest or highest scores respectively.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Pop a 'count' elements from multiple sorted sets:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    sortedSets, err := vault.ZMPop([]string{"key1", "key2"}, echovault.ZMPopOptions{Min: true, Count: 2})
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Pop a 'count' elements from multiple sorted sets:
+    ```
+    > ZMPOP key1 key2 MIN COUNT 2
+    ```
+  </TabItem>
+</Tabs>  

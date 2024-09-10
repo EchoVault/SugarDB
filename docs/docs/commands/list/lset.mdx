@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# LSET
+
+### Syntax
+```
+LSET key index element
+```
+
+### Module
+<span className="acl-category">list</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">list</span>
+<span className="acl-category">write</span>
+
+### Description 
+Sets the value of an element in a list by its index.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Sets the value of an element in a list by its index:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := vault.LSet("key", 2, "element")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Sets the value of an element in a list by its index:
+    ```
+    > LSET key 2 element
+    ```
+  </TabItem>
+</Tabs>

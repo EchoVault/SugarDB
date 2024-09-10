@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SUBSTR
+
+### Syntax
+```
+SUBSTR key start end
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">read</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Return the substring of the string value stored at key. The substring is specified by the start and end indexes.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get the substring of a string value:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    substring, err := vault.GetRange("key", 4, 10)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get the substring of a string value:
+    ```
+    > GETRANGE key 4 10
+    ```
+  </TabItem>
+</Tabs>  

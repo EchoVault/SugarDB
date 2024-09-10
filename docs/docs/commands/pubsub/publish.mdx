@@ -1,0 +1,46 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# PUBLISH
+
+### Syntax
+```
+PUBLISH channel message
+```
+
+### Module
+<span className="acl-category">pubsub</span>
+
+### Categories 
+<span className="acl-category">pubsub</span>
+<span className="acl-category">fast</span>
+
+### Description 
+Publish a message to the specified channel.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Publish a message to the specified channel:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := vault.Publish("channel1", "Hello, world!")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Publish a message to the specified channel:
+    ```
+    > PUBLISH channel1 "Hello, world!"
+    ```
+  </TabItem>
+</Tabs>

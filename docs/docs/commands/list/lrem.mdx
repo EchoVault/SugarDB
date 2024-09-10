@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# LREM
+
+### Syntax
+```
+LREM key count element
+```
+
+### Module
+<span className="acl-category">list</span>
+
+### Categories 
+<span className="acl-category">list</span>
+<span className="acl-category">write</span>
+<span className="acl-category">slow</span>
+
+### Description 
+Remove `<count>` elements from list.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Remove 2 instances if "value1" from the list at key:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := vault.Lrem("key", 2, "value1")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Remove 2 instances if "value1" from the list at key:
+    ```
+    > LREM key 2 value1
+    ```
+  </TabItem>
+</Tabs>

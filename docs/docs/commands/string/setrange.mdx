@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SETRANGE
+
+### Syntax
+```
+SETRANGE key offset value
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">write</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Overwrites part of a string value with another by offset. Creates the key if it doesn't exist.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Overwrite part of a string value:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    length, err := vault.SetRange("key", 2, "replacement string")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Overwrite part of a string value:
+    ```
+    > SETRANGE key 2 "replacement string"
+    ```
+  </TabItem>
+</Tabs>  
