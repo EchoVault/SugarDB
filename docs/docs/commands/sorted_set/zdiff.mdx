@@ -1,0 +1,64 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZDIFF
+
+### Syntax
+```
+ZDIFF key [key...] [WITHSCORES]
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">read</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Computes the difference between all the sorted sets specified in the list of keys and returns the result.
+
+## Options 
+- `WITHSCORES` - Whether the returned sorted set should include scores
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get the difference between 2 sorted sets:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    sortedSet, err := vault.ZDiff(false, "key1", "key2")
+    ```
+
+    Get the difference between 2 sorted sets and include the scores:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    sortedSet, err := vault.ZDiff(true, "key1", "key2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get the difference between 2 sorted sets:
+    ```
+    > ZDIFF key1 key2
+    ```
+
+    Get the difference between 2 sorted sets and include the scores:
+    ```
+    > ZDIFF key1 key2 WITHSCORES
+    ```
+  </TabItem>
+</Tabs>

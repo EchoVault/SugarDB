@@ -1,0 +1,62 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZRANGE
+
+### Syntax
+```
+ZRANGE key start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count] [WITHSCORES]
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">read</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Returns the range of elements in the sorted set.
+
+### Options 
+- `BYSCORE` - Sorts the elements in accending order of score before calculating the range.
+- `BYLEX` - Sorts the elements in ascending lexicographical order before calcularing the range.
+  This option only works if all the members have the same score.
+- `REV` - Reverse the order determined by BYSCORE or BYLEX.
+- `LIMIT` - Offset determines where EchoVault will start counting from after the previous modification.
+  Count is the number of elements to extract after the offset.
+- `WITHSCORES` - Whether the result should include scores.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get range by score:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    sortedSet, err := vault.ZRange("key", "11.55", "15.66", echovault.ZRangeOptions{
+      ByScore:    true,
+      Rev:        true,
+      WithScores: true,
+      Offset:     0,
+      Count:      2,
+    })
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get range by score:
+    ```
+    > ZRANGE key 11.55 15.66 BYSCORE REV LIMIT 0 2 WITHSCORES
+    ```
+  </TabItem>
+</Tabs>  

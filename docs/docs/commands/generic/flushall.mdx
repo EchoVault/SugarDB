@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# FLUSHALL
+
+### Syntax
+```
+FLUSHALL
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories 
+<span className="acl-category">dangerous</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">write</span>
+
+### Description
+Delete all the keys in all the existing databases. This command is always synchronous.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+  In order to delete all the keys in all the databases, you need to pass -1 to the `Flush` method:
+  ```go
+  vault, err := echovault.NewEchoVault()
+  if err != nil {
+    log.Fatal(err)
+  }
+  vault.Flush(-1)
+  ```
+  </TabItem>
+  <TabItem value="cli">
+  Flush all the databases:
+  ```
+  > FLUSHALL
+  ```
+  </TabItem>
+</Tabs> 

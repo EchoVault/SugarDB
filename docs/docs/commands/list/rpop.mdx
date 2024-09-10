@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# RPOP
+
+### Syntax
+```
+LPOP key
+```
+
+### Module
+<span className="acl-category">list</span>
+
+### Categories 
+<span className="acl-category">list</span>
+<span className="acl-category">write</span>
+<span className="acl-category">fast</span>
+
+### Description 
+Removes and returns the last element of a list.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Removes and returns the last element of a list:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    element, err := vault.RPop("key")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Removes and returns the last element of a list:
+    ```
+    > RPOP key
+    ```
+  </TabItem>
+</Tabs>

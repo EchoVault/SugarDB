@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# LLEN
+
+### Syntax
+```
+LLEN key
+```
+
+### Module
+<span className="acl-category">list</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">list</span>
+<span className="acl-category">read</span>
+
+### Description 
+Returns the length of a list.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Returns the length of a list:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    length, err := vault.LLen("key")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Returns the length of a list:
+    ```
+    > LLEN key
+    ```
+  </TabItem>
+</Tabs>

@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# LTRIM
+
+### Syntax
+```
+LTRIM key start end
+```
+
+### Module
+<span className="acl-category">list</span>
+
+### Categories 
+<span className="acl-category">list</span>
+<span className="acl-category">write</span>
+<span className="acl-category">slow</span>
+
+### Description 
+Trims a list using the specified range.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Trims a list using the specified range:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := vault.LTrim("key", 2, 6)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Trims a list using the specified range:
+    ```
+    > LTRIM key 2 6
+    ```
+  </TabItem>
+</Tabs>

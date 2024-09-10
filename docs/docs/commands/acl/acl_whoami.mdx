@@ -1,0 +1,38 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ACL WHOAMI
+
+### Syntax
+```
+ACL WHOAMI
+```
+
+### Module
+<span className="acl-category">acl</span>
+
+### Categories
+<span className="acl-category">fast</span>
+
+### Description
+Returns the authenticated user of the current connection.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Not available in embedded mode.
+  </TabItem>
+  <TabItem value="cli">
+    Get the username of the user associated with the current connection:
+    ```
+    > ACL WHOAMI
+    ```  
+  </TabItem>
+</Tabs>

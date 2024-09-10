@@ -1,0 +1,98 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SET
+
+### Syntax
+```
+SET key value [NX | XX] [GET] [EX seconds | PX milliseconds | EXAT unix-time-seconds | PXAT unix-time-milliseconds]
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories 
+<span className="acl-category">slow</span>
+<span className="acl-category">write</span>
+
+### Description 
+Set the value of a key, considering the value's type. If the key already exists, it is overwritten.
+
+### Options 
+- `NX` - Only set if the key does not exist.
+- `XX` - Only set if the key exists.
+- `GET` - Return the old value stored at key, or nil if the value does not exist.
+- `EX` - Expire the key after the specified number of seconds (positive integer).
+- `PX` - Expire the key after the specified number of milliseconds (positive integer).
+- `EXAT` - Expire at the exact time in unix seconds (positive integer).
+- `PXAT` - Expire at the exat time in unix milliseconds (positive integer).
+
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Set a value at a key:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := vault.Set("name", "EchoVault", echovault.SetOptions{})
+    ```
+
+    Set a value only if the key does not exist:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := vault.Set("name", "EchoVault", echovault.SetOptions{NX: true})
+    ```
+
+    Set a value if key already exists and get the previous value:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    previousValue, err := vault.Set("name", "EchoVault", echovault.SetOptions{XX: true, GET: true})
+    ```
+
+    Set a value if the key already exists, return the previous value, and expire after 10 seconds:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    previousValue, err := vault.Set("name", "EchoVault", echovault.SetOptions{XX: true, GET: true, EX: 10})
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Set a value at a key:
+    ```
+    > SET name EchoVault
+    ```
+
+    Set a value only if the key does not exist:
+    ```
+    > SET name EchoVault NX
+    ```
+
+    Set a value if key already exists and get the previous value:
+    ```
+    > SET name EchoVault XX GET
+    ```
+
+    Set a value if the key already exists, return the previous value, and expire after 10 seconds:
+    ```
+    > SET name EchoVault XX GET EX 10
+    ```
+  </TabItem>
+</Tabs>

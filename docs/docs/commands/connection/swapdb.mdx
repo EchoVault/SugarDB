@@ -1,0 +1,52 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SWAPDB
+
+### Syntax
+```
+SWAPDB index1 index2
+```
+
+### Module
+<span className="acl-category">connection</span>
+
+### Categories 
+<span className="acl-category">connection</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">slow</span>
+
+### Description
+This command swaps two databases, 
+so that immediately all the clients connected to a given database will see the data of the other database, 
+and the other way around. If either one of the databases does not exist, it will be created.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+  Swap the databases with indexes 1 and 2:
+  ```go
+  vault, err := echovault.NewEchoVault()
+  if err != nil {
+    log.Fatal(err)
+  }
+  err := vault.SwapDBs(1, 2)
+  ```
+  The method above only switches the databases for the currently active TCP connections.
+  To switch the database for the embeded instance, use the `SelectDB` method.
+  </TabItem>
+  <TabItem value="cli">
+  Swap the databases with indexes 1 and 2:
+  ```
+  > SWAPDB 1 2
+  ```
+  </TabItem>
+</Tabs> 

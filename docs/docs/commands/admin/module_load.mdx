@@ -1,0 +1,63 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# MODULE LOAD
+
+### Syntax
+```
+MODULE LOAD path [arg [arg ...]]
+```
+
+### Module
+<span className="acl-category">admin</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">fast</span>
+
+### Description
+Load a module from a dynamic library at runtime.
+The path should be the full path to the module, including the .so filename. Any args will be be passed unmodified to the
+module's key extraction and handler functions.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Load a modules with no args:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    err := server.LoadModule("/path/to/module.so")
+    ```
+
+    Load a module with a few args:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    err := server.LoadModule("/path/to/module.so", "arg1", "arg2", "arg3")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Load a module with no args:
+    ```
+    > MODULE LOAD path/to/module.so
+    ```
+
+    Load a module with a few args:
+    ```
+    > MODULE LOAD path/to/module.so arg1 arg2 arg3
+    ```
+  </TabItem>
+</Tabs>

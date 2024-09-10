@@ -1,0 +1,46 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# COMMAND COUNT
+
+### Syntax
+```
+COMMAND COUNT
+```
+
+### Module
+<span className="acl-category">admin</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">slow</span>
+
+### Description
+Get the dumber of commands in the echovault instance.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get server command count:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    count, err := vault.CommandCount()
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get server command count:
+    ```
+    > COMMAND COUNT
+    ```  
+  </TabItem>
+</Tabs>

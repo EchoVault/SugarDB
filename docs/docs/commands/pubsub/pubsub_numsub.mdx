@@ -1,0 +1,49 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# PUBSUB NUMSUB
+
+### Syntax
+```
+PUBSUB NUMSUB [channel [channel ...]]
+```
+
+### Module
+<span className="acl-category">pubsub</span>
+
+### Categories 
+<span className="acl-category">pubsub</span>
+<span className="acl-category">slow</span>
+
+### Description 
+Return an array of arrays containing the provided channel name and 
+how many clients are currently subscribed to the channel.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Return an array of arrays containing the provided channel name and 
+    how many clients are currently subscribed to the channel.
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    stats, err := server.PubSubNumSub()
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Return an array of arrays containing the provided channel name and 
+    how many clients are currently subscribed to the channel.
+    ```
+    > PUBSUB NUMSUB channel1 channel2
+    ```
+  </TabItem>
+</Tabs>

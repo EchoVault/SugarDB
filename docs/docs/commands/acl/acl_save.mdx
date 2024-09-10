@@ -1,0 +1,49 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ACL SAVE
+
+### Syntax
+```
+ACL SAVE
+```
+
+### Module
+<span className="acl-category">acl</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">slow</span>
+
+### Description
+Saves the effective ACL rules the configured ACL config file.
+The save command overwrites the current ACL config file entirely and using the current
+in-memory ACL configuration.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Save ACL rules:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := server.ACLSave()
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Save ACL rules:
+    ```
+    > ACL SAVE
+    ```  
+  </TabItem>
+</Tabs>

@@ -1,0 +1,46 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# MSET
+
+### Syntax
+```
+MSET key value [key value ...]
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories
+<span className="acl-category">write</span>
+<span className="acl-category">slow</span>
+
+### Description
+Set or modify multiple key/value pairs at once.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Set multiple key/value pairs:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := vault.MSet(map[string]string{"key1": "value1", "key2": "value2", "key3": "value3"})
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Set multiple key/value pairs:
+    ```
+    > MSET key1 value1 key2 value2 key3 value3
+    ```
+  </TabItem>
+</Tabs>

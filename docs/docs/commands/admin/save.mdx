@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SAVE
+
+### Syntax
+```
+SAVE
+```
+
+### Module
+<span className="acl-category">admin</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">fast</span>
+
+### Description
+Trigger a snapshot save.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Trigger a snapshot save:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    count, err := vault.Save()
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Trigger a snapshot save:
+    ```
+    > SAVE
+    ```
+  </TabItem>
+</Tabs>

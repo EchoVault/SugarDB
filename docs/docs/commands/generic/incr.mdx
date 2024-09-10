@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# INCR
+
+### Syntax
+```
+INCR key
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">write</span>
+
+### Description
+Increments the number stored at key by one. If the key does not exist, it is set to 0 before performing the operation.
+An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer.
+This operation is limited to 64 bit signed integers.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+  Increment the value of the key `mykey`:
+  ```go
+  vault, err := echovault.NewEchoVault()
+  if err != nil {
+    log.Fatal(err)
+  }
+  value, err := vault.Incr("mykey")
+  ```
+  </TabItem>
+  <TabItem value="cli">
+  Increment the value of the key `mykey`:
+  ```
+  > INCR mykey
+  ```
+  </TabItem>
+</Tabs> 

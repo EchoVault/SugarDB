@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SINTERSTORE
+
+### Syntax
+```
+SINTERSTORE destination key [key...]
+```
+
+### Module
+<span className="acl-category">set</span>
+
+### Categories 
+<span className="acl-category">set</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">write</span>
+
+### Description 
+Stores the intersection of multiple sets at the destination key.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get the difference between 2 sets:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    cardinality, err := vault.SInterStore("destination", "key1", "key2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get the difference between 2 sets:
+    ```
+    > SINTERSTORE destination key1 key2
+    ```
+  </TabItem>
+</Tabs>

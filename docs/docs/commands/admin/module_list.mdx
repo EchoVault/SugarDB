@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# MODULE LIST
+
+### Syntax
+```
+MODULE LIST
+```
+
+### Module
+<span className="acl-category">admin</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">fast</span>
+
+### Description
+List all the modules that are currently loaded in the server.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    List all the modules that are currently loaded in the server:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    modules := server.ListModules()
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    List all the modules that are currently loaded in the server:
+    ```
+    > MODULE LIST
+    ```  
+  </TabItem>
+</Tabs>

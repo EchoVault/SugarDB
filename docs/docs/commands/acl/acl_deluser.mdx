@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ACL DELUSER
+
+### Syntax
+```
+ACL DELUSER username [username ...]
+```
+
+### Module
+<span className="acl-category">acl</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">slow</span>
+
+### Description
+Deletes users and terminates their connections. This command cannot delete the default user.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Delete users:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := vault.ACLDelUser("username1", "username2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+  Delete users:
+  ```
+  > ACL DELUSER username1 username2
+  ```  
+  </TabItem>
+</Tabs>

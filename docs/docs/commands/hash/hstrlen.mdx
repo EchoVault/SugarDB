@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HSTRLEN
+
+### Syntax
+```
+HSTRLEN key field [field ...]
+```
+
+### Module
+<span className="acl-category">hash</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">hash</span>
+<span className="acl-category">read</span>
+
+### Description 
+Return the string length of the values stored at the specified fields.
+Returns 0 if the value does not exist.  
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Return the string length of the values stored at the specified fields:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    lengths, err := vault.HStrLen("key", "field1", "field2", "field3")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Return the string length of the values stored at the specified fields:
+    ```
+    > HSTRLEN key field1 field2
+    ```
+  </TabItem>
+</Tabs>

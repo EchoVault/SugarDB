@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# LASTSAVE
+
+### Syntax
+```
+LASTSAVE
+```
+
+### Module
+<span className="acl-category">admin</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">fast</span>
+
+### Description
+Get unix timestamp for the latest snapshot in milliseconds.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get last snapshot timestamp:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    count, err := vault.LastSave()
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get last snapshot timestamp:
+    ```
+    > LASTSAVE
+    ```  
+  </TabItem>
+</Tabs>

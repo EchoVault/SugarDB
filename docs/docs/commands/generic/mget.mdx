@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# MGET
+
+### Syntax
+```
+MGET key [key ...]
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories
+<span className="acl-category">fast</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">read</span>
+
+### Description
+Get multiple values from the specified keys.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get the values at the specified keys:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    values, err := vault.MGet("key1", "key2", "key3")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get the values at the specified keys:
+    ```
+    > MGET key1 key2 key3
+    ```
+  </TabItem>
+</Tabs>

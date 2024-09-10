@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SADD
+
+### Syntax
+```
+SADD key member [member...]
+```
+
+### Module
+<span className="acl-category">set</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">set</span>
+<span className="acl-category">write</span>
+
+### Description 
+Add one or more members to the set. If the set does not exist, it's created.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Add members to the set:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    cardinality, err := vault.SAdd("key", "member1", "member2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Add members to the set:
+    ```
+    > SADD key member1 member2
+    ```
+  </TabItem>
+</Tabs>

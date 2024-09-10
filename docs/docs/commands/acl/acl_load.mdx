@@ -1,0 +1,58 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ACL LOAD
+
+### Syntax
+```
+ACL LOAD <MERGE | REPLACE>
+```
+
+### Module
+<span className="acl-category">acl</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">slow</span>
+
+### Description
+Reloads the rules from the configured ACL config file.
+When 'MERGE' is passed, users from config file who share a username with users in memory will be merged.
+When 'REPLACE' is passed, users from config file who share a username with users in memory will replace the user in memory.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Load ACL config:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    // Load config and merge with currently loaded ACL config
+    ok, err := vault.ACLLoad(echovault.ACLLoadOptions{Merge: true})
+
+    // Load config and replace currently loaded ACL config
+    ok, err := vault.ACLLoad(echovault.ACLLoadOptions{Replace: true})`
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Load ACL config file and merge it with currently loaded config:
+    ```
+    > ACL LOAD MERGE
+    ```  
+
+    Load ACL config file and replace the currently loaded config:
+    ```
+    > ACL LOAD REPLACE
+    ``` 
+  </TabItem>
+</Tabs>

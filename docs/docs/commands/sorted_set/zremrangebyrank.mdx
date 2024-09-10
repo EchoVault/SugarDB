@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZREMRANGEBYRANK
+
+### Syntax
+```
+ZREMRANGEBYRANK key min max
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">write</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Removes the elements in the rank range between start and stop.
+The elements are ordered from lowest score to highest score.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Remove the elements in the rank range between start and stop:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    deletedCount, err := vault.ZRemRangeByRank("key", 3, 7)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Remove the elements in the rank range between start and stop:
+    ```
+    > ZREMRANGEBYRANK key 3 7
+    ```
+  </TabItem>
+</Tabs>  

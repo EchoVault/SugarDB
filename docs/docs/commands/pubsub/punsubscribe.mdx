@@ -1,0 +1,61 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# PUNSUBSCRIBE
+
+### Syntax
+```
+PUNSUBSCRIBE [pattern [pattern ...]]
+```
+
+### Module
+<span className="acl-category">pubsub</span>
+
+### Categories 
+<span className="acl-category">pubsub</span>
+<span className="acl-category">connection</span>
+<span className="acl-category">slow</span>
+
+### Description 
+Unsubscribe from a list of channels using patterns.
+If the pattern list is not provided, then the connection will be unsubscribed from all the patterns that
+it's currently subscribed to.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Unsubscribe from all patterns:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    vault.PUnsubscribe()
+    ```
+    Unsubscribe from specific patterns:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    vault.PUnsubscribe("pattern_[12]", "pattern_h[ae]llo")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Unsubscribe from all patterns:
+    ```
+    > PUNSUBSCRIBE
+    ```
+    Unsubscribe from specific patterns:
+    ```
+    > PUNSUBSCRIBE pattern_[12] pattern_h[ae]llo
+    ```
+  </TabItem>
+</Tabs>

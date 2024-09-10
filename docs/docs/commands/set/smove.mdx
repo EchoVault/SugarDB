@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SMOVE
+
+### Syntax
+```
+SMOVE source destination member
+```
+
+### Module
+<span className="acl-category">set</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">set</span>
+<span className="acl-category">write</span>
+
+### Description 
+Moves a member from source set to destination set.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Move a member from source set to destination set:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    moved, err := vault.SMove("source", "destination", "member")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Move a member from source set to destination set:
+    ```
+    > SMOVE source destination member
+    ```
+  </TabItem>
+</Tabs>

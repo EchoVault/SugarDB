@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SREM
+
+### Syntax
+```
+SREM key member [member...]
+```
+
+### Module
+<span className="acl-category">set</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">set</span>
+<span className="acl-category">write</span>
+
+### Description 
+Remove one or more members from a set.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Remove members from the set:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    deletedCount, err := vault.SRem("key", "member1", "member2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Remove members from the set:
+    ```
+    > SREM key member1 member2
+    ```
+  </TabItem>
+</Tabs>

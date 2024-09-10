@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HEXISTS
+
+### Syntax
+```
+HEXISTS key field
+```
+
+### Module
+<span className="acl-category">hash</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">hash</span>
+<span className="acl-category">read</span>
+
+
+### Description 
+Returns if field is an existing field in the hash.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Returns if field exists in a hash:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    exists, err := vault.HExists ("key", "field1")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Returns if field exists in a hash:
+    ```
+    > HEXISTS key field1
+    ```
+  </TabItem>
+</Tabs>

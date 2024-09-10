@@ -1,0 +1,86 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HELLO
+
+### Syntax
+```
+HELLO [protover [AUTH username password] [SETNAME clientname]]
+```
+
+### Module
+<span className="acl-category">connection</span>
+
+### Categories 
+<span className="acl-category">connection</span>
+<span className="acl-category">fast</span>
+
+### Description
+Switch to a different protocol, optionally authenticating and setting the connection's name. 
+This command returns a contextual client report.
+
+### Options
+- `protover` - The protocol version to switch to. The default is 2.
+- `AUTH username password` - Authenticate with the server using the specified username and password.
+- `SETNAME clientname` - Set the connection's name to the specified clientname.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+  When using the embedded API, there's no need to authenticate the API caller or set an alias for the caller.
+  Therefore, only the set protocol functionality is available in embedded mode. You can set the protocol using
+  the SetProtocol method:
+
+  ```go
+  vault, err := echovault.NewEchoVault()
+  if err != nil {
+    log.Fatal(err)
+  }
+  err := vault.SetProtocol(2)
+  ```
+
+  The method above changes the protocol to version 3. This is relevant when executing commands using the
+  `ExecuteCommand` method. Since this methods returns a raw RESP response. It will not affect any other methods'
+  return types as they return native go types.
+
+  `SetProtocol` return an error if the protocol version is not supported (i.e. not 2 or 3).
+  </TabItem>
+  <TabItem value="cli">
+  Only fetch client report:
+  ```
+  > HELLO
+  ```
+
+  Authenticate and set the connection's name:
+  ```
+  > HELLO 2 AUTH myuser mypass SETNAME myclient
+  ```
+
+  Authenticate only:
+  ```
+  > HELLO 2 AUTH myuser mypass
+  ```
+
+  Set the connection's name only:
+  ```
+  > HELLO 2 SETNAME myclient
+  ```
+
+  Switch to protocol version 3:
+  ```
+  > HELLO 3
+  ```
+
+  Authenticate and switch to protocol version 3:
+  ```
+  > HELLO 3 AUTH myuser mypass
+  ```
+  </TabItem>
+</Tabs>  

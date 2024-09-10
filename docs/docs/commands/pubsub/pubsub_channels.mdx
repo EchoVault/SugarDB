@@ -1,0 +1,50 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# PUBSUB CHANNELS
+
+### Syntax
+```
+PUBSUB CHANNELS [pattern]
+```
+
+### Module
+<span className="acl-category">pubsub</span>
+
+### Categories 
+<span className="acl-category">pubsub</span>
+<span className="acl-category">slow</span>
+
+### Description 
+Returns an array containing the list of channels that
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Returns an array containing the list of channels that
+    match the given pattern. If no pattern is provided, all active channels are returned. Active channels are 
+    channels with 1 or more subscribers.
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    channels, err := vault.PubSubChannels("channel*")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Returns an array containing the list of channels that
+    match the given pattern. If no pattern is provided, all active channels are returned. Active channels are 
+    channels with 1 or more subscribers.
+    ```
+    > PUBSUB CHANNELS channel*
+    ```
+  </TabItem>
+</Tabs>

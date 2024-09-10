@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HSET
+
+### Syntax
+```
+HSET key field value [field value ...]
+```
+
+### Module
+<span className="acl-category">hash</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">hash</span>
+<span className="acl-category">write</span>
+
+### Description 
+Update each field of the hash with the corresponding value.
+If the field does not exist, it is created.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Update each field of the hash with the corresponding value:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    noOfUpdatedFields, err := vault.HSet("key", map[string]string{"field1": "value1", "field2": "value2"})
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Update each field of the hash with the corresponding value:
+    ```
+    > HSET key field1 value1 field2 value2
+    ```
+  </TabItem>
+</Tabs>

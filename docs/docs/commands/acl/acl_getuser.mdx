@@ -1,0 +1,77 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ACL GETUSER
+
+### Syntax
+```
+ACL GETUSER username
+```
+
+### Module
+<span className="acl-category">acl</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">slow</span>
+
+### Description
+List the ACL rules of a user.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Retrieve user:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    rules, err := vault.ACLGetUser("username")
+    ```
+
+    Returns a map[string][]string map where each key is the rule category and each value is a string slice of relevant values.
+    The map returned has the following structure:
+
+    - "username" - string slice containing the user's username.
+    - "flags" - string slices containing the following values: "on" if the user is enabled, otherwise "off",
+    - "nokeys" if the user is not allowed to access any keys (and NoKeys is true),
+    - "nopass" if the user has no passwords (and NoPass is true).
+    - "categories" - string slice af ACL command categories associated with the user. 
+    If the user is allowed to access all categories, it will contain "+@*".
+    For each category the user is allowed to access, the slice will contain "+@\<category\>".
+    If the user is not allowed to access any categories, it will contain "-@*".
+    For each category the user is not allowed to access, the slice will contain "-@\<category\>".
+    - "commands" - string slice af commands associated with the user.
+    If the user is allowed to execute all commands, it will contain "+all".
+    For each command the user is allowed to execute, the slice will contain "+\<command\>".
+    If the user is not allowed to execute any commands, it will contain "-all".
+    For each command the user is not allowed to execute, the slice will contain "-\<category\>".
+    - "keys" - string slice af keys associated with the user.
+    If the user is allowed read/write access all keys, the slice will contain "%RW~*".
+    For each key glob pattern the user has read/write access to, the slice will contain "%RW~\<pattern\>".
+    If the user is allowed read access to all keys, the slice will contain "%R~*".
+    For each key glob pattern the user has read access to, the slice will contain "%R~\<pattern\>".
+    If the user is allowed write access to all keys, the slice will contain "%W~*".
+    For each key glob pattern the user has write access to, the slice will contain "%W~\<pattern\>".
+    - "channels" - string slice af pubsub channels associated with the user.
+    If the user is allowed to access all channels, the slice will contain "+&*".
+    For each channel the user is allowed to access, the slice will contain "+&\<channel\>".
+    If the user is not allowed to access any channels, the slice will contain "-&*".
+    For each channel the user is not allowed to access, the slice will contain "-&\<channel\>".
+  </TabItem>
+  <TabItem value="cli">
+  Retrieve user:
+  ```
+  > ACL GETUSER username
+  ```  
+  </TabItem>
+</Tabs>

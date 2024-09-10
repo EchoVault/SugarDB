@@ -1,0 +1,94 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# COMMAND LIST
+
+### Syntax
+```
+COMMAND LIST [FILTERBY <ACLCAT category | PATTERN pattern | MODULE module>]
+```
+
+### Module
+<span className="acl-category">admin</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">slow</span>
+
+### Description
+Get the list of command names. Allows for filtering by ACL category or glob pattern.
+
+### Options
+
+FILTERBY - An optional condition used to filter the response. ACLCAT filters by the provided acl
+category string. PATTERN filters the response by the provided glob pattern. 
+MODULE filters the response by the provided EchoVault module.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get a list of all the loaded commands:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    commands, err := vault.CommandList(echovault.CommandListOptions{})
+    ```
+
+    Get a list of all commands with the \"fast\" ACL category:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    commands, err := vault.CommandList(echovault.CommandListOptions{ACLCAT: "fast"})
+    ```
+
+    Get a list of all commands which satisfy the \"z*\" glob pattern:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    commands, err := vault.CommandList(echovault.CommandListOptions{PATTERN: "z*"})
+    ```
+
+    Get a list of all the commands in the \"set\" module:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    commands, err := vault.CommandList(echovault.CommandListOptions{MODULE: "set"})
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get a list of all the loaded commands:
+    ```
+    > COMMAND LIST
+    ```  
+
+    Get a list of all commands with the "fast" ACL category:
+    ```
+    > COMMAND LIST FILTERBY ACLCAT fast
+    ```
+
+    Get a list of all commands which satisfy the "z*" glob pattern:
+    ```
+    > COMMAND LIST FILTERBY PATTERN z*
+    ```
+
+    Get a list of all the commands in the "set" module:
+    ```
+    > COMMAND LIST FILTERBY MODULE set
+    ```
+  </TabItem>
+</Tabs>

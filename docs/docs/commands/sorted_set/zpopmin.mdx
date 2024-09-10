@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZPOPMIN
+
+### Syntax
+```
+ZPOPMIN key [count]
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">write</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Removes and returns 'count' number of members in the sorted set with the lowest scores.
+Default count is 1.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Remove and return 'count' number of members in the sorted set with the lowest scores:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    members, err := vault.ZPopMin("key", 2)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Remove and return 'count' number of members in the sorted set with the lowest scores:
+    ```
+    > ZPOPMIN key 2
+    ```
+  </TabItem>
+</Tabs>  
