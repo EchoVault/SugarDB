@@ -8,8 +8,8 @@ on:
     # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#on
 
 jobs:
-  test-deploy:
-    name: Test deployment
+  test_docs_deploy:
+    name: Test docusaurus documentation deployment
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
