@@ -1,0 +1,57 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# PSUBSCRIBE
+
+### Syntax
+```
+PSUBSCRIBE pattern [pattern ...]
+```
+
+### Module
+<span className="acl-category">pubsub</span>
+
+### Categories 
+<span className="acl-category">connection</span>
+<span className="acl-category">pubsub</span>
+<span className="acl-category">slow</span>
+
+### Description 
+Subscribe to one or more patterns. This command accepts glob patterns.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    The Subscribe method returns a readMessage function.
+    This method is lazy so it must be invoked each time the you want to read the next message from
+    the pattern.
+    When subscribing to an'N' number of patterns, the first N messages will be
+    the subscription confimations.
+    The readMessage functions returns a message object when called. The message
+    object is a string slice with the following inforamtion: 
+    event type at index 0 (e.g. subscribe, message), pattern at index 1,
+    message/subscription index at index 2.
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    readMessage := vault.PSubscribe("subscribe_tag_1", "pattern_[12]", "pattern_h[ae]llo") // Return lazy readMessage function
+    for i := 0; i < 2; i++ {
+      message := readMessage() // Call the readMessage function for each channel subscription.
+    }
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    ```
+    > PSUBSCRIBE pattern_[12] pattern_h[ae]llo
+    ```
+  </TabItem>
+</Tabs>

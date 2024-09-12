@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# LPUSH
+
+### Syntax
+```
+LPUSH key element [element ...]
+```
+
+### Module
+<span className="acl-category">list</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">list</span>
+<span className="acl-category">write</span>
+
+### Description 
+Prepends one or more values to the beginning of a list, creates the list if it does not exist.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Prepends one or more values to the beginning of a list, creates the list if it does not exist:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    length, err := vault.LPush("key", "element1", "element2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Prepends one or more values to the beginning of a list, creates the list if it does not exist:
+    ```
+    > LPUSH key element1 element2
+    ```
+  </TabItem>
+</Tabs>

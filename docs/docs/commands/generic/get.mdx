@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# GET
+
+### Syntax
+```
+GET key
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories
+<span className="acl-category">fast</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">read</span>
+
+### Description
+Get the value at the specified key.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get the value at the specified key:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    value, err := vault.Get("key")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get the value at the specified key:
+    ```
+    > GET key
+    ```
+  </TabItem>
+</Tabs>

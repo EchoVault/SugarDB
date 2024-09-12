@@ -1,0 +1,95 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# PEXPIRE
+
+### Syntax
+```
+PEXPIRE key seconds [NX | XX | GT | LT]
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories
+<span className="acl-category">fast</span>
+<span className="acl-category">write</span>
+
+### Description
+Expire the key in the specified number of milliseconds. This commands turns a key into a volatile one.
+
+## Options
+
+- `NX` - Only set the expiry time if the key has no associated expiry.
+- `XX` - Only set the expiry time if the key already has an expiry time.
+- `GT` - Only set the expiry time if the new expiry time is greater than the current one.
+- `LT` - Only set the expiry time if the new expiry time is less than the current one.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Add an expiration to a key:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    updated, err := vault.PExpire("key", 10000, echovault.PExpireOptions{})
+    ```    
+
+    Add an expiration to a key only if it does not have one already:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    updated, err := vault.PExpire("key", 10000, echovault.PExpireOptions{NX: true})
+    ```
+
+    Add an expiration to a key only if it has one already:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    updated, err := vault.PExpire("key", 10000, echovault.PExpireOptions{XX: true})
+    ```
+
+    Add an expiration to a key only if it already has one that is less than the current expiry:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    updated, err := vault.PExpire("key", 10000, echovault.PExpireOptions{XX: true, LT: true})
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Add an expiration to a key:
+    ```
+    > PEXPIRE key 10000
+    ```
+
+    Add an expiration to a key only if it does not have one already:
+    ```
+    > PEXPIRE key 10000 NX
+    ```
+
+    Add an expiration to a key only if it has one already:
+    ```
+    > PEXPIRE key 10000 XX
+    ```
+
+    Add an expiration to a key only if it already has one that is less than the current expiry:
+    ```
+    > PEXPIRE key 10000 XX LT
+    ```
+  </TabItem>
+</Tabs>

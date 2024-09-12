@@ -1,0 +1,46 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# PING
+
+### Syntax
+```
+PING [message]
+```
+
+### Module
+<span className="acl-category">connection</span>
+
+### Categories
+<span className="acl-category">connection</span>
+<span className="acl-category">fast</span>
+
+### Description
+Ping the echovault server. If a message is provided, the message will be echoed back to the client.
+Otherwise, the server will return "PONG".
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    ```go
+    // Not available in embedded mode.
+    ```
+  </TabItem>
+  <TabItem value="cli">
+ Ping without message (returns PONG):
+  ```
+  > PING
+  ```
+  Ping with message (returns "Hello, world!"):
+  ```
+  > PING "Hello, world!"
+  ```
+  </TabItem>
+</Tabs>

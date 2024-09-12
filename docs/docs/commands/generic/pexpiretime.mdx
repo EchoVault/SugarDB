@@ -1,0 +1,50 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# PEXPIRETIME
+
+### Syntax
+```
+PEXPIRETIME key
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">read</span>
+
+
+### Description
+Returns the absolute unix time in milliseconds when the key will expire.
+Returns -1 if the key exists but has no associated expiry time.
+Returns -2 if the key does not exist.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Retrieve the expiration time of a key:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    pexpireTime, err := vault.PExpireTime("key")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Retrieve the expiration time of a key:
+    ```
+    > PEXPIRETIME key
+    ```
+  </TabItem>
+</Tabs>

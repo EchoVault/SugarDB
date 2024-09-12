@@ -1,0 +1,51 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZINCRBY
+
+### Syntax
+```
+ZINCRBY key increment member
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">sortedset</span>
+<span className="acl-category">write</span>
+
+### Description 
+Increments the score of the specified sorted set's member by the increment. If the member does not exist, it is created.
+If the key does not exist, it is created with new sorted set and the member added with the increment as its score.
+
+## Options 
+- `WITHSCORES` - Whether the returned sorted set should include scores
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Increment the score of the sorted set's member:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    cardinality, err := vault.ZIncrBy("key", 2.55, "member1")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Increment the score of the sorted set's member:
+    ```
+    > ZINCRBY key 2.55 member1
+    ```
+  </TabItem>
+</Tabs>

@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HINCRBYFLOAT
+
+### Syntax
+```
+HINCRBYFLOAT key field increment
+```
+
+### Module
+<span className="acl-category">hash</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">hash</span>
+<span className="acl-category">write</span>
+
+### Description 
+Increment the hash value by the float increment.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Increment the hash value by the float increment:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    newValue, err := vault.HIncrByFloat("key", "field", 7.75)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Increment the hash value by the float increment:
+    ```
+    > HINCRBYFLOAT key field 7.75
+    ```
+  </TabItem>
+</Tabs>

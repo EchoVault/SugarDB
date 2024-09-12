@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SUNIONSTORE
+
+### Syntax
+```
+SUNIONSTORE destination key [key...]
+```
+
+### Module
+<span className="acl-category">set</span>
+
+### Categories 
+<span className="acl-category">set</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">write</span>
+
+### Description 
+Stores the union of the given sets into destination.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Stores the union of the given sets into destination:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    cardinality, err := vault.SUnionStore("destination", "key1", "key2")
+    ```
+  </TabItem>
+
+  <TabItem value="cli">
+    Stores the union of the given sets into destination:
+    ```
+    > SUNIONSTORE destination key1 key2
+    ```
+  </TabItem>
+</Tabs>

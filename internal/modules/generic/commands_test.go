@@ -27,6 +27,8 @@ import (
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/echovault/internal/modules/set"
+	"github.com/echovault/echovault/internal/modules/sorted_set"
 	"github.com/tidwall/resp"
 )
 
@@ -3148,6 +3150,188 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
+	t.Run("Test_HandleType", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			key              string
+			presetValue      interface{}
+			presetCommand    string
+			command          []string
+			expectedResponse string
+			expectedError    error
+		}{
+			{
+				name:             "Test TYPE with preset string value",
+				key:              "TypeTestString",
+				presetValue:      "Hello",
+				command:          []string{"TYPE", "TypeTestString"},
+				expectedResponse: "string",
+				expectedError:    nil,
+			},
+			{
+				name:             "Test TYPE with preset integer value",
+				key:              "TypeTestInteger",
+				presetValue:      1,
+				command:          []string{"TYPE", "TypeTestInteger"},
+				expectedResponse: "integer",
+				expectedError:    nil,
+			},
+			{
+				name:             "Test TYPE with preset float value",
+				key:              "TypeTestFloat",
+				presetValue:      1.12,
+				command:          []string{"TYPE", "TypeTestFloat"},
+				expectedResponse: "float",
+				expectedError:    nil,
+			},
+			{
+				name:             "Test TYPE with preset set value",
+				key:              "TypeTestSet",
+				presetValue:      set.NewSet([]string{"one", "two", "three", "four"}),
+				command:          []string{"TYPE", "TypeTestSet"},
+				expectedResponse: "set",
+				expectedError:    nil,
+			},
+			{
+				name:             "Test TYPE with preset list value",
+				key:              "TypeTestList",
+				presetValue:      []string{"value1", "value2", "value3", "value4"},
+				command:          []string{"TYPE", "TypeTestList"},
+				expectedResponse: "list",
+				expectedError:    nil,
+			},
+			{
+				name:             "Test TYPE with preset list of integers value",
+				key:              "TypeTestList2",
+				presetValue:      []int{1, 2, 3, 4},
+				command:          []string{"TYPE", "TypeTestList2"},
+				expectedResponse: "list",
+				expectedError:    nil,
+			},
+			{
+				name: "Test TYPE with preset zset of integers value",
+				key:  "TypeTestZSet",
+				presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
+					{Value: "member1", Score: sorted_set.Score(5.5)},
+					{Value: "member2", Score: sorted_set.Score(67.77)},
+					{Value: "member3", Score: sorted_set.Score(10)},
+				}),
+				command:          []string{"TYPE", "TypeTestZSet"},
+				expectedResponse: "zset",
+				expectedError:    nil,
+			},
+			{
+				name:             "Test TYPE with preset hash of map[string]string",
+				key:              "TypeTestHash",
+				presetValue:      map[string]string{"field1": "value1"},
+				command:          []string{"TYPE", "TypeTestHash"},
+				expectedResponse: "hash",
+				expectedError:    nil,
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				if test.presetValue != nil {
+					var command []resp.Value
+					var expected string
+
+					switch test.presetValue.(type) {
+					case string, int, float64:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(test.key),
+							resp.AnyValue(test.presetValue),
+						}
+						expected = "ok"
+					case *set.Set:
+						command = []resp.Value{resp.StringValue("SADD"), resp.StringValue(test.key)}
+						for _, element := range test.presetValue.(*set.Set).GetAll() {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(test.presetValue.(*set.Set).Cardinality())
+					case []string:
+						command = []resp.Value{resp.StringValue("LPUSH"), resp.StringValue(test.key)}
+						for _, element := range test.presetValue.([]string) {
+							command = append(command, []resp.Value{resp.StringValue(element)}...)
+						}
+						expected = strconv.Itoa(len(test.presetValue.([]string)))
+					case []int:
+						command = []resp.Value{resp.StringValue("LPUSH"), resp.StringValue(test.key)}
+						for _, element := range test.presetValue.([]int) {
+							command = append(command, []resp.Value{resp.IntegerValue(element)}...)
+						}
+						expected = strconv.Itoa(len(test.presetValue.([]int)))
+					case *sorted_set.SortedSet:
+						command = []resp.Value{resp.StringValue("ZADD"), resp.StringValue(test.key)}
+						for _, member := range test.presetValue.(*sorted_set.SortedSet).GetAll() {
+							command = append(command, []resp.Value{
+								resp.StringValue(strconv.FormatFloat(float64(member.Score), 'f', -1, 64)),
+								resp.StringValue(string(member.Value)),
+							}...)
+						}
+						expected = strconv.Itoa(test.presetValue.(*sorted_set.SortedSet).Cardinality())
+					case map[string]string:
+						command = []resp.Value{resp.StringValue("HSET"), resp.StringValue(test.key)}
+						for key, value := range test.presetValue.(map[string]string) {
+							command = append(command, []resp.Value{
+								resp.StringValue(key),
+								resp.StringValue(value)}...,
+							)
+						}
+						expected = strconv.Itoa(len(test.presetValue.(map[string]string)))
+					}
+
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
+				}
+
+				command := make([]resp.Value, len(test.command))
+				for i, c := range test.command {
+					command[i] = resp.StringValue(c)
+				}
+
+				if err = client.WriteArray(command); err != nil {
+					t.Error(err)
+				}
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					}
+					return
+				}
+
+				if res.String() != test.expectedResponse {
+					t.Errorf("expected response \"%s\", got \"%s\"", test.expectedResponse, res.String())
+				}
+			})
+		}
+	})
 }
 
 // Certain commands will need to be tested in a server with an eviction policy.

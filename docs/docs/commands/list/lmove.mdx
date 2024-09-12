@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# LMOVE
+
+### Syntax
+```
+LMOVE source destination <LEFT | RIGHT> <LEFT | RIGHT>
+```
+
+### Module
+<span className="acl-category">list</span>
+
+### Categories 
+<span className="acl-category">list</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">write</span>
+
+### Description 
+Move element from one list to the other specifying left/right for both lists.
+LEFT represents the start of a list. RIGHT represents the end of a list.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Move an element from the beginning of the source list to the end of the destination list:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    ok, err := vault.LMove("source", "destination", "LEFT", "RIGHT")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Move an element from the beginning of the source list to the end of the destination list:
+    ```
+    > LMOVE source destination LEFT RIGHT
+    ```
+  </TabItem>
+</Tabs>

@@ -1,0 +1,61 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# UNSUBSCRIBE
+
+### Syntax
+```
+UNSUBSCRIBE [channel [channel ...]]
+```
+
+### Module
+<span className="acl-category">pubsub</span>
+
+### Categories 
+<span className="acl-category">pubsub</span>
+<span className="acl-category">connection</span>
+<span className="acl-category">slow</span>
+
+### Description 
+Unsubscribe from a list of channels.
+If the channel list is not provided, then the connection will be unsubscribed from all the channels that
+it's currently subscribed to.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Unsubscribe from all channels:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    vault.Unsubscribe()
+    ```
+    Unsubscribe from specific channels:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    vault.Unsubscribe("channel1", "channel2")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Unsubscribe from all channels:
+    ```
+    > UNSUBSCRIBE
+    ```
+    Unsubscribe from specific channels:
+    ```
+    > UNSUBSCRIBE channel1 channel2
+    ```
+  </TabItem>
+</Tabs>

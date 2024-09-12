@@ -1,0 +1,77 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZRANDMEMBER
+
+### Syntax
+```
+ZRANDMEMBER key [count [WITHSCORES]]
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">read</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Return a list of length equivalent to count containing random members of the sorted set.
+If count is negative, repeated elements are allowed. If count is positive, the returned elements will be distinct.
+WITHSCORES modifies the result to include scores in the result.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get a random member from the sorted set:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    members, err := vault.ZRandMember("key", 1, false)
+    ```
+
+    Get 2 unique random members from the sorted set:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    members, err := vault.ZRandMember("key", 2, false)
+    ```
+
+    Get 4 non-unique random members from the sorted set with scores:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    members, err := vault.ZRandMember("key", -4, true)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get a random member from the sorted set:
+    ```
+    > ZRANDMEMBER key
+    ```
+
+    Get 2 unique random members from the sorted set:
+    ```
+    > ZRANDMEMBER key 2
+    ```
+
+    Get 4 non-unique random members from the sorted set with scores:
+    ```
+    > ZRANDMEMBER key -4 WITHSCORES
+    ```
+  </TabItem>
+</Tabs>  

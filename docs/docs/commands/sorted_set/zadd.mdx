@@ -1,0 +1,95 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZADD
+
+### Syntax
+```
+ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member...]
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">sortedset</span>
+<span className="acl-category">write</span>
+
+### Description 
+Adds all the specified members with the specified scores to the sorted set at the key. 
+
+### Options 
+- `NX` - only adds the member if it currently does not exist in the sorted set.
+- `XX` - only updates the scores of members that exist in the sorted set.
+- `GT` - only updates the score if the new score is greater than the current score.
+- `LT` - only updates the score if the new score is less than the current score.
+- `CH` - modifies the result to return total number of members changed + added, instead of only new members added.
+- `INCR` - modifies the command to act like ZINCRBY, only one score/member pair can be specified in this mode.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Add elements to sorted set:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    changedCount, err := vault.ZAdd( 
+      "key",
+      map[string]float64{"member1": 2.5, "member2": 1.25, "member3": 3},
+      echovault.ZAddOptions{},
+    )
+    ```
+
+    Add elements to sorted set, skipping members that already exist in the set:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    changedCount, err := vault.ZAdd(
+      "key",
+      map[string]float64{"member1": 2.5, "member2": 1.25, "member3": 3, "member4": 4},
+      echovault.ZAddOptions{NX: true},
+    )
+    ```
+
+    Increment the element by the specified score:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    changedCount, err := vault.ZAdd(
+      "key",
+      map[string]float64{"member1": 5.75},
+      echovault.ZAddOptions{INCR: true},
+    )
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Add elements to sorted set:
+    ```
+    > ZADD key 2.5 member1 1.25 member2 3 member3
+    ```
+
+    Add elements to sorted set, skipping members that already exist in the set:
+    ```
+    > ZADD key NX 2.5 member1 1.25 member2 3 member3 4 member4
+    ```
+
+    Increment the element by the specified score:
+    ```
+    > ZADD key INCR 5.75 member1
+    ```
+  </TabItem>
+</Tabs>

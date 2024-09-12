@@ -1,0 +1,49 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ZLEXCOUNT
+
+### Syntax
+```
+ZLEXCOUNT key min max
+```
+
+### Module
+<span className="acl-category">sortedset</span>
+
+### Categories 
+<span className="acl-category">read</span>
+<span className="acl-category">slow</span>
+<span className="acl-category">sortedset</span>
+
+### Description 
+Returns the number of elements in within the sorted set within the
+lexicographical range between min and max. Returns 0, if the keys does not exist or if all the members do not have
+the same score. If the value held at key is not a sorted set, an error is returned.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Find the intersection between 2 sorted sets:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    count, err := vault.ZLexCount("key", "aa", "xx")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Find the intersection between 2 sorted sets:
+    ```
+    > ZLEXCOUNT key aa xx
+    ```
+  </TabItem>
+</Tabs>  

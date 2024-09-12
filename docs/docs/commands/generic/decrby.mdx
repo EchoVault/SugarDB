@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# DECRBY
+
+### Syntax
+```
+DECRBY key decrement
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">write</span>
+
+### Description
+The DECRBY command reduces the value stored at the specified key by the specified decrement.
+If the key does not exist, it is initialized with a value of 0 before performing the operation.
+If the key's value is not of the correct type or cannot be represented as an integer, an error is returned.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+  Decrement the value of the key `mykey` by 5:
+  ```go
+  vault, err := echovault.NewEchoVault()
+  if err != nil {
+    log.Fatal(err)
+  }
+  value, err := vault.DecrBy("mykey 5")
+  ```
+  </TabItem>
+  <TabItem value="cli">
+  Decrement the value of the key `mykey` by 5:
+  ```
+  > DECRBY mykey 5
+  ```
+  </TabItem>
+</Tabs> 

@@ -1,0 +1,123 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ACL SETUSER
+
+### Syntax
+```
+ACL SAVE
+```
+
+### Module
+<span className="acl-category">acl</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">slow</span>
+
+### Description
+Configure a new or existing user.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Save user:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    user := echovault.User{}
+    ok, err := server.ACLSetUser(user)
+    ```
+
+    The User struct takes the following shape:
+    ```go
+    type User struct {
+      // Username - string - the user's username.
+      Username string
+      
+      // Enabled - bool - whether the user should be enabled (i.e connections can authenticate with this user).
+      Enabled bool
+      
+      // NoPassword - bool - if true, this user can be authenticated against without a password.
+      NoPassword bool
+      
+      // NoKeys - bool - if true, this user will not be allowed to access any keys.
+      NoKeys bool
+      
+      // NoCommands - bool - if true, this user will not be allowed to execute any commands.
+      NoCommands bool
+
+      // ResetPass - bool - if true, all the user's configured passwords are removed and NoPassword is set to false.
+      ResetPass bool
+      
+      // ResetKeys - bool - if true, the user's NoKeys flag is set to true and all their currently accessible keys are cleared.
+      ResetKeys bool
+      
+      // ResetChannels - bool - if true, the user will be allowed to access all PubSub channels.
+      ResetChannels bool
+
+      // AddPlainPasswords - []string - the list of plaintext passwords to add to the user's passwords.
+      AddPlainPasswords []string
+      
+      // RemovePlainPasswords - []string - the list of plaintext passwords to remove from the user's passwords.
+      RemovePlainPasswords []string
+      
+      // AddHashPasswords - []string - the list of SHA256 password hashes to add to the user's passwords.
+      AddHashPasswords []string
+      
+      // RemoveHashPasswords - []string - the list of SHA256 password hashes to add to the user's passwords.
+      RemoveHashPasswords []string
+
+      // IncludeCategories - []string - the list of ACL command categories to allow this user to access, default is all.
+      IncludeCategories []string
+      
+      // ExcludeCategories - []string - the list of ACL command categories to bar the user from accessing. The default is none.
+      ExcludeCategories []string
+
+      // IncludeCommands - []string - the list of commands to allow the user to execute. The default is none. If you want to
+      // specify a subcommand, use the format "command|subcommand".
+      IncludeCommands []string
+      
+      // ExcludeCommands - []string - the list of commands to bar the user from executing.
+      // The default is none. If you want to specify a subcommand, use the format "command|subcommand".
+      ExcludeCommands []string
+
+      // IncludeReadWriteKeys - []string - the list of keys the user is allowed read and write access to. The default is all.
+      // This field accepts glob pattern strings.
+      IncludeReadWriteKeys []string
+      
+      // IncludeReadKeys - []string - the list of keys the user is allowed read access to. The default is all.
+      // This field accepts glob pattern strings.
+      IncludeReadKeys []string
+      
+      // IncludeWriteKeys - []string - the list of keys the user is allowed write access to. The default is all.
+      // This field accepts glob pattern strings.
+      IncludeWriteKeys []string
+
+      // IncludeChannels - []string - the list of PubSub channels the user is allowed to access ("Subscribe" and "Publish").
+      // This field accepts glob pattern strings.
+      IncludeChannels []string
+      
+      // ExcludeChannels - []string - the list of PubSub channels the user cannot access ("Subscribe" and "Publish").
+      // This field accepts glob pattern strings.
+      ExcludeChannels []string
+    }
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Checkout the <a href="/docs/acl">Access Control List documentation</a> for the list of rules.
+    ```
+    > ACL SETUSER username
+    ```  
+  </TabItem>
+</Tabs>

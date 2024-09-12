@@ -1,0 +1,61 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# DEL
+
+### Syntax
+```
+DEL key [key ...]
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories
+<span className="acl-category">fast</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">write</span>
+
+### Description
+Removes one or more keys from the store.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+  Delete a single key:
+  ```go
+  vault, err := echovault.NewEchoVault()
+  if err != nil {
+    log.Fatal(err)
+  }
+  noOfDeletedKeys, err = vault.Del("key1")
+  ```
+
+  Delete multiple keys:
+  ```go
+  vault, err := echovault.NewEchoVault()
+  if err != nil {
+    log.Fatal(err)
+  }
+  noOfDeletedKeys, err = vault.Del("key1", "key2", "key3")
+  ```
+  </TabItem>
+  <TabItem value="cli">
+  Delete a single key:
+  ```
+  > DEL key
+  ```
+
+  Delete multiple keys:
+  ```
+  > DEL key1 key2 key3
+  ```
+  </TabItem>
+</Tabs>

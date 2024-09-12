@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -785,6 +786,46 @@ func handleGetex(params internal.HandlerFuncParams) ([]byte, error) {
 
 }
 
+func handleType(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := getKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(params.Context, []string{key})[key]
+
+	if !keyExists {
+		return nil, fmt.Errorf("key %s does not exist", key)
+	}
+
+	value := params.GetValues(params.Context, []string{key})[key]
+	t := reflect.TypeOf(value)
+	type_string := ""
+	switch t.Kind() {
+	case reflect.String:
+		type_string = "string"
+	case reflect.Int:
+		type_string = "integer"
+	case reflect.Float64:
+		type_string = "float"
+	case reflect.Slice:
+		type_string = "list"
+	case reflect.Map:
+		type_string = "hash"
+	case reflect.Pointer:
+		if t.Elem().Name() == "Set" {
+			type_string = "set"
+		} else if t.Elem().Name() == "SortedSet" {
+			type_string = "zset"
+		} else {
+			type_string = t.Elem().Name()
+		}
+	default:
+		type_string = fmt.Sprintf("%T", value)
+	}
+	return []byte(fmt.Sprintf("+%v\r\n", type_string)), nil
+}
+
 func handleTouch(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := touchKeyFunc(params.Command)
 	if err != nil {
@@ -1128,6 +1169,15 @@ Delete all the keys in the currently selected database. This command is always s
 			Sync:              true,
 			KeyExtractionFunc: getExKeyFunc,
 			HandlerFunc:       handleGetex,
+		},
+		{
+			Command:           "type",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
+			Description:       "(TYPE key) Returns the string representation of the type of the value stored at key. The different types that can be returned are: string, integer, float, list, set, zset, and hash.",
+			Sync:              false,
+			KeyExtractionFunc: typeKeyFunc,
+			HandlerFunc:       handleType,
 		},
 		{
 			Command:    "touch",

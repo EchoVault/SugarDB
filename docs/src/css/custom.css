@@ -1,0 +1,121 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #9a9a9a;
+  --ifm-color-primary-dark: #9a9a9a;
+  --ifm-color-primary-darker: #9a9a9a;
+  --ifm-color-primary-darkest: #9a9a9a;
+  --ifm-color-primary-light: #9a9a9a;
+  --ifm-color-primary-lighter: #9a9a9a;
+  --ifm-color-primary-lightest: #9a9a9a;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #9a9a9a;
+  --ifm-color-primary-dark: #9a9a9a;
+  --ifm-color-primary-darker: #9a9a9a;
+  --ifm-color-primary-darkest: #9a9a9a;
+  --ifm-color-primary-light: #9a9a9a;
+  --ifm-color-primary-lighter: #9a9a9a;
+  --ifm-color-primary-lightest: #9a9a9a;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+.navbar {
+  background: black;
+}
+
+.footer {
+  background: black;
+}
+
+.home img {
+  float: right;
+}
+
+#commandPageContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#aclCategoryContainer {
+  display: inline-flex;
+  flex-direction: row;
+  gap: 4px;
+}
+
+.acl-category {
+  padding: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-weight: bold;
+  /* Special styles for acl category badges (default) */
+  background-color: black;
+  color: white;
+}
+
+[data-theme="dark"] .acl-category {
+  padding: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-weight: bold;
+  /* Special styles for acl category badges (dark) */
+  background-color: white;
+  color: black;
+}
+
+#commandExampleContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#commandExampleTabHeader{
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+.command-example-tab {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.command-example-tab.active {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  /* Special styles for active tabs (default) */
+  background-color: black;
+  color: white;
+}
+
+[data-theme="dark"] .command-example-tab.active {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  /* Special styles for active tabs (dark) */
+  background-color: white;
+  color: black;
+}
+

@@ -115,6 +115,34 @@ func (server *EchoVault) HGet(key string, fields ...string) ([]string, error) {
 	return internal.ParseStringArrayResponse(b)
 }
 
+// HMGet retrieves the values corresponding to the provided fields.
+//
+// Parameters:
+//
+// `key` - string - the key to the hash map.
+//
+// `fields` - ...string - the list of fields to fetch.
+//
+// Returns: A string slice of the values corresponding to the fields in the same order the fields were provided.
+//
+// Errors:
+//
+// "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
+func (server *EchoVault) HMGet(key string, fields ...string) ([]string, error) {
+	b, err := server.handleCommand(
+		server.context,
+		internal.EncodeCommand(append([]string{"HMGET", key}, fields...)),
+		nil,
+		false,
+		true,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return internal.ParseStringArrayResponse(b)
+}
+
 // HStrLen returns the length of the values held at the specified fields of a hash map.
 //
 // Parameters:

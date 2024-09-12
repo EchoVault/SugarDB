@@ -1,0 +1,47 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ACL USERS
+
+### Syntax
+```
+ACL USERS
+```
+
+### Module
+<span className="acl-category">acl</span>
+
+### Categories
+<span className="acl-category">admin</span>
+<span className="acl-category">dangerous</span>
+<span className="acl-category">slow</span>
+
+### Description
+Lists all usernames of the configured ACL users.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    List ACL usernames:
+    ```go
+    vault, err := echovault.NewEchoVault()
+    if err != nil {
+      log.Fatal(err)
+    }
+    users, err := vault.ACLUsers()
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    List ACL usersnames:
+    ```
+    > ACL USERS
+    ```  
+  </TabItem>
+</Tabs>

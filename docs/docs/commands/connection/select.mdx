@@ -1,0 +1,50 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# SELECT
+
+### Syntax
+```
+SELECT index
+```
+
+### Module
+<span className="acl-category">connection</span>
+
+### Categories 
+<span className="acl-category">connection</span>
+<span className="acl-category">fast</span>
+
+### Description
+Change the logical database that the current connection is operating from.
+If the database does not exist, it will be created.
+When this command is executed in a RAFT cluster, the database will be created in all the nodes of the cluster.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+  Select the database that the embedded instance is operating from:
+  ```go
+  vault, err := echovault.NewEchoVault()
+  if err != nil {
+    log.Fatal(err)
+  }	
+  err := vault.SelectDB(2)
+  ```
+  After successfully calling this method, all subsequent commands executed on that instance 
+  will be executed on the selected database. So you should to be careful when doing this in a multi-threaded environment.
+  </TabItem>
+  <TabItem value="cli">
+  Select the database with index 1:
+  ```
+  > SELECT 1
+  ```
+  </TabItem>
+</Tabs> 

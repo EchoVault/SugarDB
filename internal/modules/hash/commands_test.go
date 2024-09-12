@@ -597,6 +597,163 @@ func Test_Hash(t *testing.T) {
 		}
 	})
 
+	t.Run("Test_HandleHMGET", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			key              string
+			presetValue      interface{}
+			command          []string
+			expectedResponse []string // Change count
+			expectedValue    map[string]string
+			expectedError    error
+		}{
+			{
+				name:             "1. Get values from existing hash.",
+				key:              "HmgetKey1",
+				presetValue:      map[string]string{"field1": "value1", "field2": "365", "field3": "3.142"},
+				command:          []string{"HMGET", "HmgetKey1", "field1", "field2", "field3", "field4"},
+				expectedResponse: []string{"value1", "365", "3.142", ""},
+				expectedValue:    map[string]string{"field1": "value1", "field2": "365", "field3": "3.142"},
+				expectedError:    nil,
+			},
+			{
+				name:             "2. Return nil when attempting to get from non-existed key",
+				key:              "HmgetKey2",
+				presetValue:      nil,
+				command:          []string{"HMGET", "HmgetKey2", "field1"},
+				expectedResponse: nil,
+				expectedValue:    nil,
+				expectedError:    nil,
+			},
+			{
+				name:             "3. Error when trying to get from a value that is not a hash map",
+				key:              "HmgetKey3",
+				presetValue:      "Default Value",
+				command:          []string{"HMGET", "HmgetKey3", "field1"},
+				expectedResponse: nil,
+				expectedValue:    nil,
+				expectedError:    errors.New("value at HmgetKey3 is not a hash"),
+			},
+			{
+				name:             "4. Command too short",
+				key:              "HmgetKey4",
+				presetValue:      nil,
+				command:          []string{"HMGET", "HmgetKey4"},
+				expectedResponse: nil,
+				expectedValue:    nil,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				if test.presetValue != nil {
+					var command []resp.Value
+					var expected string
+
+					switch test.presetValue.(type) {
+					case string:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(test.key),
+							resp.StringValue(test.presetValue.(string)),
+						}
+						expected = "ok"
+					case map[string]string:
+						command = []resp.Value{resp.StringValue("HSET"), resp.StringValue(test.key)}
+						for key, value := range test.presetValue.(map[string]string) {
+							command = append(command, []resp.Value{
+								resp.StringValue(key),
+								resp.StringValue(value)}...,
+							)
+						}
+						expected = strconv.Itoa(len(test.presetValue.(map[string]string)))
+					}
+
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
+				}
+
+				command := make([]resp.Value, len(test.command))
+				for i, c := range test.command {
+					command[i] = resp.StringValue(c)
+				}
+
+				if err = client.WriteArray(command); err != nil {
+					t.Error(err)
+				}
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					}
+					return
+				}
+
+				if test.expectedResponse == nil {
+					if !res.IsNull() {
+						t.Errorf("expected nil response, got %+v", res)
+					}
+					return
+				}
+
+				for _, item := range res.Array() {
+					if !slices.Contains(test.expectedResponse, item.String()) {
+						t.Errorf("unexpected element \"%s\" in response", item.String())
+					}
+				}
+
+				// Check that all the values are what is expected
+				if err := client.WriteArray([]resp.Value{
+					resp.StringValue("HGETALL"),
+					resp.StringValue(test.key),
+				}); err != nil {
+					t.Error(err)
+				}
+
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				for idx, field := range res.Array() {
+					if idx%2 == 0 {
+						if res.Array()[idx+1].String() != test.expectedValue[field.String()] {
+							t.Errorf(
+								"expected value \"%+v\" for field \"%s\", got \"%+v\"",
+								test.expectedValue[field.String()], field.String(), res.Array()[idx+1].String(),
+							)
+						}
+					}
+				}
+			})
+		}
+	})
+
 	t.Run("Test_HandleHSTRLEN", func(t *testing.T) {
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
