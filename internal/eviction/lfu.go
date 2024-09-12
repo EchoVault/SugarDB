@@ -47,8 +47,8 @@ func NewCacheLFU() *CacheLFU {
 }
 
 func (cache *CacheLFU) GetCount(key string) (int, error) {
-	cache.Mutex.Lock()
-	defer cache.Mutex.Unlock()
+	// cache.Mutex.Lock()
+	// defer cache.Mutex.Unlock()
 
 	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLFU) bool {
 		return e.key == key
@@ -61,6 +61,11 @@ func (cache *CacheLFU) GetCount(key string) (int, error) {
 		return -1, errors.New(fmt.Sprintf("Key: %s does not exist.", key))
 	}
 
+}
+
+func (cache *CacheLFU) Flush() {
+	clear(cache.keys)
+	clear(cache.entries)
 }
 
 func (cache *CacheLFU) Len() int {

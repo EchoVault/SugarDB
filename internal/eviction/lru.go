@@ -46,8 +46,8 @@ func NewCacheLRU() *CacheLRU {
 }
 
 func (cache *CacheLRU) GetTime(key string) (int64, error) {
-	cache.Mutex.Lock()
-	defer cache.Mutex.Unlock()
+	// cache.Mutex.Lock()
+	// defer cache.Mutex.Unlock()
 
 	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLRU) bool {
 		return e.key == key
@@ -58,6 +58,11 @@ func (cache *CacheLRU) GetTime(key string) (int64, error) {
 	} else {
 		return -1, errors.New(fmt.Sprintf("Error: key %s does not exist.", key))
 	}
+}
+
+func (cache *CacheLRU) Flush() {
+	clear(cache.keys)
+	clear(cache.entries)
 }
 
 func (cache *CacheLRU) Len() int {

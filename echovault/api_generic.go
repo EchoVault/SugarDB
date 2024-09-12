@@ -15,6 +15,7 @@
 package echovault
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -656,7 +657,7 @@ func (server *EchoVault) GetEx(key string, opts GetExOptions) (string, error) {
 //
 // Returns: An integer representing the number of keys successfully touched. If a key doesn't exist it is simply ignored.
 func (server *EchoVault) Touch(keys []string) (int, error) {
-
+	fmt.Println("****Touch ", keys)
 	cmd := make([]string, len(keys)+1)
 	cmd[0] = "TOUCH"
 	for i, k := range keys {
@@ -679,6 +680,8 @@ func (server *EchoVault) Touch(keys []string) (int, error) {
 //
 // Returns: An integer representing the access frequency. If the the key doesn't exist -1 and an error is returned.
 func (server *EchoVault) ObjectFreq(key string) (int, error) {
+
+	fmt.Println("****Oject Freq ", key)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"OBJECTFREQ", key}), nil, false, true)
 	if err != nil {
 		return -1, err

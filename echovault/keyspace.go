@@ -82,11 +82,11 @@ func (server *EchoVault) Flush(database int) {
 	server.keysWithExpiry.rwMutex.Lock()
 	defer server.keysWithExpiry.rwMutex.Unlock()
 
-	server.lfuCache.mutex.Lock()
-	defer server.lfuCache.mutex.Unlock()
+	// server.lfuCache.mutex.Lock()
+	// defer server.lfuCache.mutex.Unlock()
 
-	server.lruCache.mutex.Lock()
-	defer server.lruCache.mutex.Unlock()
+	// server.lruCache.mutex.Lock()
+	// defer server.lruCache.mutex.Unlock()
 
 	if database == -1 {
 		for db, _ := range server.store {
@@ -95,9 +95,13 @@ func (server *EchoVault) Flush(database int) {
 			// Clear db volatile key tracker.
 			clear(server.keysWithExpiry.keys[db])
 			// Clear db LFU cache.
-			server.lfuCache.cache[db] = eviction.NewCacheLFU()
+			server.lfuCache.cache[db].Mutex.Lock()
+			server.lfuCache.cache[db].Flush()
+			server.lfuCache.cache[db].Mutex.Unlock()
 			// Clear db LRU cache.
-			server.lruCache.cache[db] = eviction.NewCacheLRU()
+			server.lruCache.cache[db].Mutex.Lock()
+			server.lruCache.cache[db].Flush()
+			server.lruCache.cache[db].Mutex.Unlock()
 		}
 		return
 	}
@@ -107,9 +111,13 @@ func (server *EchoVault) Flush(database int) {
 	// Clear db volatile key tracker.
 	clear(server.keysWithExpiry.keys[database])
 	// Clear db LFU cache.
-	server.lfuCache.cache[database] = eviction.NewCacheLFU()
+	server.lfuCache.cache[database].Mutex.Lock()
+	server.lfuCache.cache[database].Flush()
+	server.lfuCache.cache[database].Mutex.Unlock()
 	// Clear db LRU cache.
-	server.lruCache.cache[database] = eviction.NewCacheLRU()
+	server.lruCache.cache[database].Mutex.Lock()
+	server.lruCache.cache[database].Flush()
+	server.lruCache.cache[database].Mutex.Unlock()
 }
 
 func (server *EchoVault) keysExist(ctx context.Context, keys []string) map[string]bool {
@@ -344,6 +352,9 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) (
 		return touchCounter, nil
 	}
 
+	server.storeLock.Lock()
+	defer server.storeLock.Unlock()
+
 	for _, key := range keys {
 		// Verify key exists
 		if _, ok := server.store[database][key]; !ok {
@@ -375,9 +386,6 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) (
 			server.lruCache.cache[database].Mutex.Unlock()
 		}
 	}
-
-	server.storeLock.Lock()
-	defer server.storeLock.Unlock()
 
 	wg := sync.WaitGroup{}
 	errChan := make(chan error)
@@ -439,8 +447,8 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	case slices.Contains([]string{constants.AllKeysLFU, constants.VolatileLFU}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove keys from LFU cache until we're below the max memory limit or
 		// until the LFU cache is empty.
-		server.lfuCache.mutex.Lock()
-		defer server.lfuCache.mutex.Unlock()
+		server.lfuCache.cache[database].Mutex.Lock()
+		defer server.lfuCache.cache[database].Mutex.Unlock()
 		for {
 			// Return if cache is empty
 			if server.lfuCache.cache[database].Len() == 0 {
@@ -471,8 +479,8 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	case slices.Contains([]string{constants.AllKeysLRU, constants.VolatileLRU}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove keys from th LRU cache until we're below the max memory limit or
 		// until the LRU cache is empty.
-		server.lruCache.mutex.Lock()
-		defer server.lruCache.mutex.Unlock()
+		server.lruCache.cache[database].Mutex.Lock()
+		defer server.lruCache.cache[database].Mutex.Unlock()
 		for {
 			// Return if cache is empty
 			if server.lruCache.cache[database].Len() == 0 {
@@ -686,7 +694,9 @@ func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, er
 	var freq int
 	var err error
 	if server.lfuCache.cache != nil {
+		server.lfuCache.cache[database].Mutex.Lock()
 		freq, err = server.lfuCache.cache[database].GetCount(key)
+		server.lfuCache.cache[database].Mutex.Unlock()
 	} else {
 
 		return -1, errors.New("Error: Eviction policy must be one a type of LFU.")
@@ -707,7 +717,9 @@ func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (flo
 	var accessTime int64
 	var err error
 	if server.lruCache.cache != nil {
+		server.lruCache.cache[database].Mutex.Lock()
 		accessTime, err = server.lruCache.cache[database].GetTime(key)
+		server.lruCache.cache[database].Mutex.Unlock()
 	} else {
 		return -1, errors.New("Error: Eviction policy must be one a type of LRU.")
 	}

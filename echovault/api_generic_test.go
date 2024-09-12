@@ -1613,10 +1613,17 @@ func TestEchoVault_LFU_TOUCH(t *testing.T) {
 			}
 
 			// Another touch to help testing object freq
-			_, err = server.Touch(tt.keys)
+			got, err = server.Touch(tt.keys)
 			if err != nil {
 				t.Errorf("TOUCH() error - %v", err)
 			}
+
+			if got != tt.want {
+				t.Errorf("TOUCH() got %v, want %v, using keys %v setKeys %v", got, tt.want, tt.keys, tt.setKeys)
+			}
+
+			// Wait to avoid race
+			time.Sleep(1 * time.Second)
 
 			// Objectfreq
 			for i, key := range tt.keys {
@@ -1625,7 +1632,7 @@ func TestEchoVault_LFU_TOUCH(t *testing.T) {
 					t.Errorf("OBJECTFREQ() error: %v, wanted error: %v", err, tt.wantErrs[i])
 				}
 				if !tt.wantErrs[i] && actual != 3 {
-					t.Errorf("OBJECTFREQ() error - expected 3 got %v", actual)
+					t.Errorf("OBJECTFREQ() error - expected 3 got %v for key %v", actual, key)
 				}
 
 				// Check error for object idletime
