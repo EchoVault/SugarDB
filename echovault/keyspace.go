@@ -354,25 +354,25 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) (
 
 		switch strings.ToLower(server.config.EvictionPolicy) {
 		case constants.AllKeysLFU:
-			server.lfuCache.mutex.Lock()
+			server.lfuCache.cache[database].Mutex.Lock()
 			server.lfuCache.cache[database].Update(key)
-			server.lfuCache.mutex.Unlock()
+			server.lfuCache.cache[database].Mutex.Unlock()
 		case constants.AllKeysLRU:
-			server.lruCache.mutex.Lock()
+			server.lruCache.cache[database].Mutex.Lock()
 			server.lruCache.cache[database].Update(key)
-			server.lruCache.mutex.Unlock()
+			server.lruCache.cache[database].Mutex.Unlock()
 		case constants.VolatileLFU:
-			server.lfuCache.mutex.Lock()
+			server.lfuCache.cache[database].Mutex.Lock()
 			if server.store[database][key].ExpireAt != (time.Time{}) {
 				server.lfuCache.cache[database].Update(key)
 			}
-			server.lfuCache.mutex.Unlock()
+			server.lfuCache.cache[database].Mutex.Unlock()
 		case constants.VolatileLRU:
-			server.lruCache.mutex.Lock()
+			server.lruCache.cache[database].Mutex.Lock()
 			if server.store[database][key].ExpireAt != (time.Time{}) {
 				server.lruCache.cache[database].Update(key)
 			}
-			server.lruCache.mutex.Unlock()
+			server.lruCache.cache[database].Mutex.Unlock()
 		}
 	}
 
@@ -451,6 +451,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
 				if err := server.deleteKey(ctx, key); err != nil {
+					log.Printf("Evicting key %v from database %v \n", key, database)
 					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
 				}
 			} else if server.isInCluster() && server.raft.IsRaftLeader() {
@@ -482,6 +483,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key.
 				if err := server.deleteKey(ctx, key); err != nil {
+					log.Printf("Evicting key %v from database %v \n", key, database)
 					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
 				}
 			} else if server.isInCluster() && server.raft.IsRaftLeader() {
@@ -518,6 +520,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 							if !server.isInCluster() {
 								// If in standalone mode, directly delete the key
 								if err := server.deleteKey(ctx, key); err != nil {
+									log.Printf("Evicting key %v from database %v \n", key, db)
 									return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
 								}
 							} else if server.isInCluster() && server.raft.IsRaftLeader() {
@@ -551,6 +554,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
 				if err := server.deleteKey(ctx, key); err != nil {
+					log.Printf("Evicting key %v from database %v \n", key, database)
 					return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
 				}
 			} else if server.isInCluster() && server.raft.IsRaftLeader() {

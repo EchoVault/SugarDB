@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sync"
 	"time"
 )
 
@@ -32,18 +33,22 @@ type EntryLFU struct {
 type CacheLFU struct {
 	keys    map[string]bool
 	entries []*EntryLFU
+	Mutex   *sync.Mutex // Lock for retrieving count
 }
 
 func NewCacheLFU() *CacheLFU {
 	cache := CacheLFU{
 		keys:    make(map[string]bool),
 		entries: make([]*EntryLFU, 0),
+		Mutex:   &sync.Mutex{},
 	}
 	heap.Init(&cache)
 	return &cache
 }
 
 func (cache *CacheLFU) GetCount(key string) (int, error) {
+	cache.Mutex.Lock()
+	defer cache.Mutex.Unlock()
 
 	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLFU) bool {
 		return e.key == key
@@ -100,6 +105,7 @@ func (cache *CacheLFU) Pop() any {
 }
 
 func (cache *CacheLFU) Update(key string) {
+
 	// If the key is not contained in the cache, push it.
 	if !cache.contains(key) {
 		heap.Push(cache, key)

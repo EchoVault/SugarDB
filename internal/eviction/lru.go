@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sync"
 	"time"
 )
 
@@ -31,18 +32,22 @@ type EntryLRU struct {
 type CacheLRU struct {
 	keys    map[string]bool
 	entries []*EntryLRU
+	Mutex   *sync.Mutex // Lock for retrieving unixTime
 }
 
 func NewCacheLRU() *CacheLRU {
 	cache := CacheLRU{
 		keys:    make(map[string]bool),
 		entries: make([]*EntryLRU, 0),
+		Mutex:   &sync.Mutex{},
 	}
 	heap.Init(&cache)
 	return &cache
 }
 
 func (cache *CacheLRU) GetTime(key string) (int64, error) {
+	cache.Mutex.Lock()
+	defer cache.Mutex.Unlock()
 
 	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLRU) bool {
 		return e.key == key
@@ -90,6 +95,7 @@ func (cache *CacheLRU) Pop() any {
 }
 
 func (cache *CacheLRU) Update(key string) {
+
 	// If the key does not already exist in the cache, then push it
 	if !cache.contains(key) {
 		heap.Push(cache, key)

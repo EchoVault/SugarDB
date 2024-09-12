@@ -1549,7 +1549,7 @@ func TestEchoVault_LFU_TOUCH(t *testing.T) {
 		DataDir:          "",
 		EvictionPolicy:   constants.AllKeysLFU,
 		EvictionInterval: duration,
-		MaxMemory:        2000000,
+		MaxMemory:        4000000,
 	})
 
 	tests := []struct {
@@ -1649,7 +1649,7 @@ func TestEchoVault_LRU_TOUCH(t *testing.T) {
 		DataDir:          "",
 		EvictionPolicy:   constants.AllKeysLRU,
 		EvictionInterval: duration,
-		MaxMemory:        2000000,
+		MaxMemory:        4000000,
 	})
 
 	tests := []struct {

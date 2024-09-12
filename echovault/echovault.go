@@ -85,14 +85,14 @@ type EchoVault struct {
 	// LFU cache used when eviction policy is allkeys-lfu or volatile-lfu.
 	lfuCache struct {
 		// Mutex as only one goroutine can edit the LFU cache at a time.
-		mutex sync.Mutex
+		mutex *sync.Mutex
 		// LFU cache for each database represented by a min heap.
 		cache map[int]*eviction.CacheLFU
 	}
 	// LRU cache used when eviction policy is allkeys-lru or volatile-lru.
 	lruCache struct {
 		// Mutex as only one goroutine can edit the LRU at a time.
-		mutex sync.Mutex
+		mutex *sync.Mutex
 		// LRU cache represented by a max heap.
 		cache map[int]*eviction.CacheLRU
 	}
@@ -652,18 +652,18 @@ func (server *EchoVault) ShutDown() {
 func (server *EchoVault) initialiseCaches() {
 	// Set up LFU cache.
 	server.lfuCache = struct {
-		mutex sync.Mutex
+		mutex *sync.Mutex
 		cache map[int]*eviction.CacheLFU
 	}{
-		mutex: sync.Mutex{},
+		mutex: &sync.Mutex{},
 		cache: make(map[int]*eviction.CacheLFU),
 	}
 	// set up LRU cache.
 	server.lruCache = struct {
-		mutex sync.Mutex
+		mutex *sync.Mutex
 		cache map[int]*eviction.CacheLRU
 	}{
-		mutex: sync.Mutex{},
+		mutex: &sync.Mutex{},
 		cache: make(map[int]*eviction.CacheLRU),
 	}
 	// Initialise caches for each preloaded database.

@@ -3152,7 +3152,7 @@ func Test_Generic(t *testing.T) {
 
 // Certain commands will need to be tested in a server with an eviction policy.
 // This is for testing against an LFU evictiona policy.
-func Test_Generic_LFU(t *testing.T) {
+func Test_LFU_Generic(t *testing.T) {
 	// mockClock := clock.NewClock()
 	port, err := internal.GetFreePort()
 	if err != nil {
@@ -3169,7 +3169,7 @@ func Test_Generic_LFU(t *testing.T) {
 			DataDir:          "",
 			EvictionPolicy:   constants.AllKeysLFU,
 			EvictionInterval: duration,
-			MaxMemory:        2000000,
+			MaxMemory:        4000000,
 		}),
 	)
 	if err != nil {
@@ -3333,7 +3333,7 @@ func Test_Generic_LFU(t *testing.T) {
 
 // Certain commands will need to be tested in a server with an eviction policy.
 // This is for testing against an LRU evictiona policy.
-func Test_Generic_LRU(t *testing.T) {
+func Test_LRU_Generic(t *testing.T) {
 	// mockClock := clock.NewClock()
 	port, err := internal.GetFreePort()
 	if err != nil {
@@ -3350,7 +3350,7 @@ func Test_Generic_LRU(t *testing.T) {
 			DataDir:          "",
 			EvictionPolicy:   constants.AllKeysLRU,
 			EvictionInterval: duration,
-			MaxMemory:        2000000,
+			MaxMemory:        4000000,
 		}),
 	)
 	if err != nil {
