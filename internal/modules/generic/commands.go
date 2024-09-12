@@ -1133,7 +1133,7 @@ Delete all the keys in the currently selected database. This command is always s
 			Command:    "touch",
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
-			Description: `(TOUCH key [key ...]) Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used. 
+			Description: `(TOUCH keys [key ...]) Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used. 
 A key is ignored if it does not exist.`,
 			Sync:              true,
 			KeyExtractionFunc: touchKeyFunc,
@@ -1143,7 +1143,7 @@ A key is ignored if it does not exist.`,
 			Command:    "objectfreq",
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.SlowCategory},
-			Description: `This command returns the access frequency count of an object stored at <key>.
+			Description: `(OBJECTFREQ key) Get the access frequency count of an object stored at <key>.
 The command is only available when the maxmemory-policy configuration directive is set to one of the LFU policies.`,
 			Sync:              false,
 			KeyExtractionFunc: objFreqKeyFunc,
@@ -1153,7 +1153,7 @@ The command is only available when the maxmemory-policy configuration directive 
 			Command:    "objectidletime",
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.SlowCategory},
-			Description: `This command returns the time in seconds since the last access to the value stored at <key>.
+			Description: `(OBJECTIDLETIME key) Get the time in seconds since the last access to the value stored at <key>.
 The command is only available when the maxmemory-policy configuration directive is set to one of the LRU policies.`,
 			Sync:              false,
 			KeyExtractionFunc: objIdleTimeKeyFunc,
