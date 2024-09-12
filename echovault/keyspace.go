@@ -388,7 +388,7 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) (
 		ctx := context.WithValue(ctx, "Database", db)
 		go func(ctx context.Context, database int, wg *sync.WaitGroup, errChan *chan error) {
 			if err := server.adjustMemoryUsage(ctx); err != nil {
-				*errChan <- fmt.Errorf("adjustMemoryUsade database %d", database)
+				*errChan <- fmt.Errorf("adjustMemoryUsage database %d, error: %v", database, err)
 			}
 			wg.Done()
 		}(ctx, db, &wg, &errChan)
@@ -431,6 +431,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	if memStats.HeapInuse < server.config.MaxMemory {
 		return nil
 	}
+
 	// We've done a GC, but we're still at or above the max memory limit.
 	// Start a loop that evicts keys until either the heap is empty or
 	// we're below the max memory limit.
@@ -683,6 +684,7 @@ func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, er
 	if server.lfuCache.cache != nil {
 		freq, err = server.lfuCache.cache[database].GetCount(key)
 	} else {
+
 		return -1, errors.New("Error: Eviction policy must be one a type of LFU.")
 	}
 
@@ -694,7 +696,7 @@ func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, er
 
 }
 
-func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (int, error) {
+func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (float64, error) {
 
 	database := ctx.Value("Database").(int)
 
@@ -710,9 +712,9 @@ func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (int
 		return -1, err
 	}
 
-	lastAcess := time.UnixMilli(accessTime)
-	secs := lastAcess.Sub(time.Now())
+	lastAccess := time.UnixMilli(accessTime)
+	secs := time.Now().Sub(lastAccess).Seconds()
 
-	return int(secs), nil
+	return secs, nil
 
 }

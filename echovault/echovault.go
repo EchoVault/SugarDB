@@ -522,6 +522,7 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 			break
 		}
 		if err != nil {
+			log.Println(err)
 			if _, err = w.Write([]byte(fmt.Sprintf("-Error %s\r\n", err.Error()))); err != nil {
 				log.Println(err)
 			}

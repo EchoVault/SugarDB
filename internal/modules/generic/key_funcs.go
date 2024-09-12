@@ -236,23 +236,23 @@ func touchKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 }
 
 func objFreqKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
-	if len(cmd) != 3 {
+	if len(cmd) != 2 {
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
 	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
-		ReadKeys:  cmd[2:],
+		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
 
 func objIdleTimeKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
-	if len(cmd) != 3 {
+	if len(cmd) != 2 {
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
 	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
-		ReadKeys:  cmd[2:],
+		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }

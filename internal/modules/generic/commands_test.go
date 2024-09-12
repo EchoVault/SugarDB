@@ -3160,13 +3160,16 @@ func Test_Generic_LFU(t *testing.T) {
 		return
 	}
 
+	duration := time.Duration(30) * time.Second
+
 	mockServer, err := echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
-			BindAddr:       "localhost",
-			Port:           uint16(port),
-			DataDir:        "",
-			EvictionPolicy: constants.AllKeysLFU,
-			MaxMemory:      1000000,
+			BindAddr:         "localhost",
+			Port:             uint16(port),
+			DataDir:          "",
+			EvictionPolicy:   constants.AllKeysLFU,
+			EvictionInterval: duration,
+			MaxMemory:        2000000,
 		}),
 	)
 	if err != nil {
@@ -3182,6 +3185,7 @@ func Test_Generic_LFU(t *testing.T) {
 		mockServer.ShutDown()
 	})
 
+	// Tests TOUCH and OBJECT FREQ
 	t.Run("Test_HandleTOUCH", func(t *testing.T) {
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
@@ -3197,31 +3201,36 @@ func Test_Generic_LFU(t *testing.T) {
 		tests := []struct {
 			name     string
 			keys     []string
-			setKeys  bool
+			setKeys  []bool
+			wantErrs []bool
 			expected int64
 		}{
 			{
 				name:     "1. Touch key that exists.",
 				keys:     []string{"TouchKey1"},
-				setKeys:  true,
+				setKeys:  []bool{true},
+				wantErrs: []bool{false},
 				expected: 1,
 			},
 			{
 				name:     "2. Touch multiple keys that exist.",
 				keys:     []string{"TouchKey2", "TouchKey2.1", "TouchKey2.2"},
-				setKeys:  true,
+				setKeys:  []bool{true, true, true},
+				wantErrs: []bool{false, false, false},
 				expected: 3,
 			},
 			{
 				name:     "3. Touch multiple keys, some don't exist.",
 				keys:     []string{"TouchKey3", "TouchKey3.1", "TouchKey3.9", "TouchKey3.0"},
-				setKeys:  true,
+				setKeys:  []bool{true, true, false, false},
+				wantErrs: []bool{false, false, true, true},
 				expected: 2,
 			},
 			{
 				name:     "4. Touch key that doesn't exist.",
 				keys:     []string{"TouchKey4"},
-				setKeys:  false,
+				setKeys:  []bool{false},
+				wantErrs: []bool{true},
 				expected: 0,
 			},
 		}
@@ -3229,10 +3238,10 @@ func Test_Generic_LFU(t *testing.T) {
 		for _, tt := range tests {
 
 			t.Run(tt.name, func(t *testing.T) {
-				func(keys []string, setKeys bool, expected int64) {
-					if setKeys {
-						// Preset the values
-						for _, k := range keys {
+				func(keys []string, setKeys, wantErrs []bool, expected int64) {
+					// Preset the values
+					for i, k := range keys {
+						if setKeys[i] {
 							command := make([]resp.Value, 3)
 							command[0] = resp.StringValue("SET")
 							command[1] = resp.StringValue(k)
@@ -3274,14 +3283,52 @@ func Test_Generic_LFU(t *testing.T) {
 						t.Errorf("expected value %v, got %v", expected, res.Integer())
 					}
 
-					// Verify access count was updated in lfu cache
-					//TODO
+					// Touch one more time to test OBJRECT FREQ
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					_, _, err = client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
 
-				}(tt.keys, tt.setKeys, tt.expected)
+					// Verify access frequency (count field) was updated in lfu cache
+					for i, k := range keys {
+						cmd := []resp.Value{
+							resp.StringValue("OBJECTFREQ"),
+							resp.StringValue(k),
+						}
+
+						if err = client.WriteArray(cmd); err != nil {
+							t.Error(err)
+						}
+
+						res, _, err := client.ReadValue()
+						if wantErrs[i] {
+							if res.Error() == nil {
+								t.Errorf("OBJECTFREQ Expected error, got none with value: %v", res.Integer())
+							} else {
+								if res.Integer() != 0 {
+									t.Errorf("OBJECTFREQ key doesn't exist, expect frequency of 0, go %v", res.Integer())
+								}
+								continue
+							}
+						} else if err != nil {
+							t.Error(err)
+						}
+
+						if res.Integer() != 3 {
+							t.Errorf("OBJECTFREQ expected frequency of 3, got %v", res.Integer())
+						}
+
+					}
+
+				}(tt.keys, tt.setKeys, tt.wantErrs, tt.expected)
 			})
 
 		}
 	})
+
 }
 
 // Certain commands will need to be tested in a server with an eviction policy.
@@ -3294,13 +3341,16 @@ func Test_Generic_LRU(t *testing.T) {
 		return
 	}
 
+	duration := time.Duration(30) * time.Second
+
 	mockServer, err := echovault.NewEchoVault(
 		echovault.WithConfig(config.Config{
-			BindAddr:       "localhost",
-			Port:           uint16(port),
-			DataDir:        "",
-			EvictionPolicy: constants.AllKeysLRU,
-			MaxMemory:      1000000,
+			BindAddr:         "localhost",
+			Port:             uint16(port),
+			DataDir:          "",
+			EvictionPolicy:   constants.AllKeysLRU,
+			EvictionInterval: duration,
+			MaxMemory:        2000000,
 		}),
 	)
 	if err != nil {
@@ -3316,6 +3366,7 @@ func Test_Generic_LRU(t *testing.T) {
 		mockServer.ShutDown()
 	})
 
+	// Tests TOUCH and OBJECT IDLETIME
 	t.Run("Test_HandleTOUCH", func(t *testing.T) {
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
@@ -3331,31 +3382,36 @@ func Test_Generic_LRU(t *testing.T) {
 		tests := []struct {
 			name     string
 			keys     []string
-			setKeys  bool
+			setKeys  []bool
+			wantErrs []bool
 			expected int64
 		}{
 			{
 				name:     "1. Touch key that exists.",
 				keys:     []string{"TouchKey1"},
-				setKeys:  true,
+				setKeys:  []bool{true},
+				wantErrs: []bool{false},
 				expected: 1,
 			},
 			{
 				name:     "2. Touch multiple keys that exist.",
 				keys:     []string{"TouchKey2", "TouchKey2.1", "TouchKey2.2"},
-				setKeys:  true,
+				setKeys:  []bool{true, true, true},
+				wantErrs: []bool{false, false, false},
 				expected: 3,
 			},
 			{
 				name:     "3. Touch multiple keys, some don't exist.",
 				keys:     []string{"TouchKey3", "TouchKey3.1", "TouchKey3.9", "TouchKey3.0"},
-				setKeys:  true,
+				setKeys:  []bool{true, true, false, false},
+				wantErrs: []bool{false, false, true, true},
 				expected: 2,
 			},
 			{
 				name:     "4. Touch key that doesn't exist.",
 				keys:     []string{"TouchKey4"},
-				setKeys:  false,
+				setKeys:  []bool{false},
+				wantErrs: []bool{true},
 				expected: 0,
 			},
 		}
@@ -3363,10 +3419,10 @@ func Test_Generic_LRU(t *testing.T) {
 		for _, tt := range tests {
 
 			t.Run(tt.name, func(t *testing.T) {
-				func(keys []string, setKeys bool, expected int64) {
-					if setKeys {
-						// Preset the values
-						for _, k := range keys {
+				func(keys []string, setKeys, wantErrs []bool, expected int64) {
+					// Preset the values
+					for i, k := range keys {
+						if setKeys[i] {
 							command := make([]resp.Value, 3)
 							command[0] = resp.StringValue("SET")
 							command[1] = resp.StringValue(k)
@@ -3407,13 +3463,46 @@ func Test_Generic_LRU(t *testing.T) {
 					if int64(res.Integer()) != expected {
 						t.Errorf("expected value %v, got %v", expected, res.Integer())
 					}
-					// Verify access time (unixTime field) was updated in lru cache
-					// TODO
 
-				}(tt.keys, tt.setKeys, tt.expected)
+					// Allow some time to easily verify touch command is successful
+					time.Sleep(3 * time.Second)
+
+					// Verify access frequency (count field) was updated in lfu cache
+					for i, k := range keys {
+						cmd := []resp.Value{
+							resp.StringValue("OBJECTIDLETIME"),
+							resp.StringValue(k),
+						}
+
+						if err = client.WriteArray(cmd); err != nil {
+							t.Error(err)
+						}
+
+						res, _, err := client.ReadValue()
+						if wantErrs[i] {
+							if res.Error() == nil {
+								t.Errorf("OBJECTIDLETIME Expected error, got none with value: %v", res.Float())
+							} else {
+								if res.Float() != 0 {
+									t.Errorf("OBJECTIDLETIME key doesn't exist, expect idle time of 0, go %v", res.Float())
+								}
+								continue
+							}
+						} else if err != nil {
+							t.Error(err)
+						}
+
+						if res.Float() < 3 {
+							t.Errorf("OBJECTIDLETIME expected idle time of at least 3, got %v", res.Float())
+						}
+
+					}
+
+				}(tt.keys, tt.setKeys, tt.wantErrs, tt.expected)
 			})
 
 		}
+
 	})
 
 }
