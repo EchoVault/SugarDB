@@ -46,8 +46,6 @@ func NewCacheLRU() *CacheLRU {
 }
 
 func (cache *CacheLRU) GetTime(key string) (int64, error) {
-	// cache.Mutex.Lock()
-	// defer cache.Mutex.Unlock()
 
 	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLRU) bool {
 		return e.key == key

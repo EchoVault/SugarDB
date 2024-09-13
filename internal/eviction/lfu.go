@@ -47,8 +47,6 @@ func NewCacheLFU() *CacheLFU {
 }
 
 func (cache *CacheLFU) GetCount(key string) (int, error) {
-	// cache.Mutex.Lock()
-	// defer cache.Mutex.Unlock()
 
 	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLFU) bool {
 		return e.key == key

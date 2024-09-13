@@ -82,12 +82,6 @@ func (server *EchoVault) Flush(database int) {
 	server.keysWithExpiry.rwMutex.Lock()
 	defer server.keysWithExpiry.rwMutex.Unlock()
 
-	// server.lfuCache.mutex.Lock()
-	// defer server.lfuCache.mutex.Unlock()
-
-	// server.lruCache.mutex.Lock()
-	// defer server.lruCache.mutex.Unlock()
-
 	if database == -1 {
 		for db, _ := range server.store {
 			// Clear db store.
