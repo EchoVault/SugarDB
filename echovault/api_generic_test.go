@@ -24,6 +24,8 @@ import (
 
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/clock"
+	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/echovault/internal/constants"
 )
 
 func TestEchoVault_DEL(t *testing.T) {
@@ -1377,7 +1379,7 @@ func TestEchoVault_GETDEL(t *testing.T) {
 					return
 				}
 			}
-			//Check value received
+			// Check value received
 			got, err := server.GetDel(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GETDEL() error = %v, wantErr %v", err, tt.wantErr)
@@ -1386,7 +1388,7 @@ func TestEchoVault_GETDEL(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("GETDEL() got = %v, want %v", got, tt.want)
 			}
-			//Check key was deleted
+			// Check key was deleted
 			if tt.presetValue != nil {
 				got, err := server.Get(tt.key)
 				if (err != nil) != tt.wantErr {
@@ -1514,7 +1516,7 @@ func TestEchoVault_GETEX(t *testing.T) {
 					return
 				}
 			}
-			//Check value received
+			// Check value received
 			got, err := server.GetEx(tt.key, tt.getExOpts)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GETEX() GET error = %v, wantErr %v", err, tt.wantErr)
@@ -1523,7 +1525,7 @@ func TestEchoVault_GETEX(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("GETEX() GET - got = %v, want %v", got, tt.want)
 			}
-			//Check expiry was set
+			// Check expiry was set
 			if tt.presetValue != nil {
 				actual, err := server.TTL(tt.key)
 				if (err != nil) != tt.wantErr {
@@ -1534,6 +1536,214 @@ func TestEchoVault_GETEX(t *testing.T) {
 					t.Errorf("GETEX() EXPIRY - got = %v, want %v", actual, tt.wantEx)
 				}
 			}
+		})
+	}
+}
+
+// Tests Touch and OBJECTFREQ commands
+func TestEchoVault_LFU_TOUCH(t *testing.T) {
+
+	duration := time.Duration(30) * time.Second
+
+	server := createEchoVaultWithConfig(config.Config{
+		DataDir:          "",
+		EvictionPolicy:   constants.AllKeysLFU,
+		EvictionInterval: duration,
+		MaxMemory:        4000000,
+	})
+
+	tests := []struct {
+		name     string
+		keys     []string
+		setKeys  []bool
+		want     int
+		wantErrs []bool
+	}{
+		{
+			name:     "1. Touch key that exists.",
+			keys:     []string{"Key1"},
+			setKeys:  []bool{true},
+			want:     1,
+			wantErrs: []bool{false},
+		},
+		{
+			name:     "2. Touch key that doesn't exist.",
+			keys:     []string{"Key2"},
+			setKeys:  []bool{false},
+			want:     0,
+			wantErrs: []bool{true},
+		},
+		{
+			name:     "3. Touch multiple keys that all exist.",
+			keys:     []string{"Key3", "Key3.1"},
+			setKeys:  []bool{true, true},
+			want:     2,
+			wantErrs: []bool{false, false},
+		},
+		{
+			name:     "4. Touch multiple keys, some don't exist.",
+			keys:     []string{"Key4", "Key4.9"},
+			setKeys:  []bool{true, false},
+			want:     1,
+			wantErrs: []bool{false, true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Preset values
+			for i, key := range tt.keys {
+				if tt.setKeys[i] {
+					err := presetValue(server, context.Background(), key, "___")
+					if err != nil {
+						t.Error(err)
+						return
+					}
+				}
+			}
+
+			// Touch keys
+			got, err := server.Touch(tt.keys...)
+			if err != nil {
+				t.Errorf("TOUCH() error - %v", err)
+			}
+
+			if got != tt.want {
+				t.Errorf("TOUCH() got %v, want %v, using keys %v setKeys %v", got, tt.want, tt.keys, tt.setKeys)
+			}
+
+			// Another touch to help testing object freq
+			got, err = server.Touch(tt.keys...)
+			if err != nil {
+				t.Errorf("TOUCH() error - %v", err)
+			}
+
+			if got != tt.want {
+				t.Errorf("TOUCH() got %v, want %v, using keys %v setKeys %v", got, tt.want, tt.keys, tt.setKeys)
+			}
+
+			// Wait to avoid race
+			ticker := time.NewTicker(200 * time.Millisecond)
+			<-ticker.C
+			ticker.Stop()
+
+			// Objectfreq
+			for i, key := range tt.keys {
+				actual, err := server.ObjectFreq(key)
+				if (err != nil) != tt.wantErrs[i] {
+					t.Errorf("OBJECTFREQ() error: %v, wanted error: %v", err, tt.wantErrs[i])
+				}
+				if !tt.wantErrs[i] && actual != 3 {
+					t.Errorf("OBJECTFREQ() error - expected 3 got %v for key %v", actual, key)
+				}
+
+				// Check error for object idletime
+				_, err = server.ObjectIdleTime(key)
+				if err == nil {
+					t.Errorf("OBJECTIDLETIME() error - expected error when used on server with lfu eviction policy but got none.")
+				}
+
+			}
+
+		})
+	}
+}
+
+// Tests Touch and OBJECTIDLETIME commands
+func TestEchoVault_LRU_TOUCH(t *testing.T) {
+
+	duration := time.Duration(30) * time.Second
+
+	server := createEchoVaultWithConfig(config.Config{
+		DataDir:          "",
+		EvictionPolicy:   constants.AllKeysLRU,
+		EvictionInterval: duration,
+		MaxMemory:        4000000,
+	})
+
+	tests := []struct {
+		name     string
+		keys     []string
+		setKeys  []bool
+		want     int
+		wantErrs []bool
+	}{
+		{
+			name:     "1. Touch key that exists.",
+			keys:     []string{"Key1"},
+			setKeys:  []bool{true},
+			want:     1,
+			wantErrs: []bool{false},
+		},
+		{
+			name:     "2. Touch key that doesn't exist.",
+			keys:     []string{"Key2"},
+			setKeys:  []bool{false},
+			want:     0,
+			wantErrs: []bool{true},
+		},
+		{
+			name:     "3. Touch multiple keys that all exist.",
+			keys:     []string{"Key3", "Key3.1"},
+			setKeys:  []bool{true, true},
+			want:     2,
+			wantErrs: []bool{false, false},
+		},
+		{
+			name:     "4. Touch multiple keys, some don't exist.",
+			keys:     []string{"Key4", "Key4.9"},
+			setKeys:  []bool{true, false},
+			want:     1,
+			wantErrs: []bool{false, true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Preset values
+			for i, key := range tt.keys {
+				if tt.setKeys[i] {
+					err := presetValue(server, context.Background(), key, "___")
+					if err != nil {
+						t.Error(err)
+						return
+					}
+				}
+			}
+
+			// Touch keys
+			got, err := server.Touch(tt.keys...)
+			if err != nil {
+				t.Errorf("TOUCH() error - %v", err)
+			}
+
+			if got != tt.want {
+				t.Errorf("TOUCH() got %v, want %v, using keys %v setKeys %v", got, tt.want, tt.keys, tt.setKeys)
+			}
+
+			// Sleep to more easily test Object idle time
+			ticker := time.NewTicker(200 * time.Millisecond)
+			<-ticker.C
+			ticker.Stop()
+
+			// Objectidletime
+			for i, key := range tt.keys {
+				actual, err := server.ObjectIdleTime(key)
+				if (err != nil) != tt.wantErrs[i] {
+					t.Errorf("OBJECTIDLETIME() error: %v, wanted error: %v", err, tt.wantErrs[i])
+				}
+				if !tt.wantErrs[i] && actual < 0.2 {
+					t.Errorf("OBJECTIDLETIME() error - expected 0.2 got %v", actual)
+				}
+
+				// Check error for object freq
+				_, err = server.ObjectFreq(key)
+				if err == nil {
+					t.Errorf("OBJECTFREQ() error - expected error when used on server with lru eviction policy but got none.")
+				}
+
+			}
+
 		})
 	}
 }

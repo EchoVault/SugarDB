@@ -37,6 +37,7 @@ type KeyData struct {
 	ExpireAt time.Time
 }
 
+// Testing against a server with no eviction policy.
 func Test_Generic(t *testing.T) {
 	mockClock := clock.NewClock()
 	port, err := internal.GetFreePort()
@@ -3172,69 +3173,69 @@ func Test_Generic(t *testing.T) {
 		}{
 			{
 				name:             "Test TYPE with preset string value",
-				key:              "TypeTestString",
+				key:              "TypeKeyString",
 				presetValue:      "Hello",
-				command:          []string{"TYPE", "TypeTestString"},
+				command:          []string{"TYPE", "TypeKeyString"},
 				expectedResponse: "string",
 				expectedError:    nil,
 			},
 			{
 				name:             "Test TYPE with preset integer value",
-				key:              "TypeTestInteger",
+				key:              "TypeKeyInteger",
 				presetValue:      1,
-				command:          []string{"TYPE", "TypeTestInteger"},
+				command:          []string{"TYPE", "TypeKeyInteger"},
 				expectedResponse: "integer",
 				expectedError:    nil,
 			},
 			{
 				name:             "Test TYPE with preset float value",
-				key:              "TypeTestFloat",
+				key:              "TypeKeyFloat",
 				presetValue:      1.12,
-				command:          []string{"TYPE", "TypeTestFloat"},
+				command:          []string{"TYPE", "TypeKeyFloat"},
 				expectedResponse: "float",
 				expectedError:    nil,
 			},
 			{
 				name:             "Test TYPE with preset set value",
-				key:              "TypeTestSet",
+				key:              "TypeKeySet",
 				presetValue:      set.NewSet([]string{"one", "two", "three", "four"}),
-				command:          []string{"TYPE", "TypeTestSet"},
+				command:          []string{"TYPE", "TypeKeySet"},
 				expectedResponse: "set",
 				expectedError:    nil,
 			},
 			{
 				name:             "Test TYPE with preset list value",
-				key:              "TypeTestList",
+				key:              "TypeKeyList",
 				presetValue:      []string{"value1", "value2", "value3", "value4"},
-				command:          []string{"TYPE", "TypeTestList"},
+				command:          []string{"TYPE", "TypeKeyList"},
 				expectedResponse: "list",
 				expectedError:    nil,
 			},
 			{
 				name:             "Test TYPE with preset list of integers value",
-				key:              "TypeTestList2",
+				key:              "TypeKeyList2",
 				presetValue:      []int{1, 2, 3, 4},
-				command:          []string{"TYPE", "TypeTestList2"},
+				command:          []string{"TYPE", "TypeKeyList2"},
 				expectedResponse: "list",
 				expectedError:    nil,
 			},
 			{
 				name: "Test TYPE with preset zset of integers value",
-				key:  "TypeTestZSet",
+				key:  "TypeKeyZSet",
 				presetValue: sorted_set.NewSortedSet([]sorted_set.MemberParam{
 					{Value: "member1", Score: sorted_set.Score(5.5)},
 					{Value: "member2", Score: sorted_set.Score(67.77)},
 					{Value: "member3", Score: sorted_set.Score(10)},
 				}),
-				command:          []string{"TYPE", "TypeTestZSet"},
+				command:          []string{"TYPE", "TypeKeyZSet"},
 				expectedResponse: "zset",
 				expectedError:    nil,
 			},
 			{
 				name:             "Test TYPE with preset hash of map[string]string",
-				key:              "TypeTestHash",
+				key:              "TypeKeyHash",
 				presetValue:      map[string]string{"field1": "value1"},
-				command:          []string{"TYPE", "TypeTestHash"},
+				command:          []string{"TYPE", "TypeKeyHash"},
 				expectedResponse: "hash",
 				expectedError:    nil,
 			},
@@ -3331,4 +3332,361 @@ func Test_Generic(t *testing.T) {
 			})
 		}
 	})
+}
+
+// Certain commands will need to be tested in a server with an eviction policy.
+// This is for testing against an LFU evictiona policy.
+func Test_LFU_Generic(t *testing.T) {
+	// mockClock := clock.NewClock()
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	duration := time.Duration(30) * time.Second
+
+	mockServer, err := echovault.NewEchoVault(
+		echovault.WithConfig(config.Config{
+			BindAddr:         "localhost",
+			Port:             uint16(port),
+			DataDir:          "",
+			EvictionPolicy:   constants.AllKeysLFU,
+			EvictionInterval: duration,
+			MaxMemory:        4000000,
+		}),
+	)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	go func() {
+		mockServer.Start()
+	}()
+
+	t.Cleanup(func() {
+		mockServer.ShutDown()
+	})
+
+	// Tests TOUCH and OBJECT FREQ
+	t.Run("Test_HandleTOUCH", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name     string
+			keys     []string
+			setKeys  []bool
+			wantErrs []bool
+			expected int64
+		}{
+			{
+				name:     "1. Touch key that exists.",
+				keys:     []string{"TouchKey1"},
+				setKeys:  []bool{true},
+				wantErrs: []bool{false},
+				expected: 1,
+			},
+			{
+				name:     "2. Touch multiple keys that exist.",
+				keys:     []string{"TouchKey2", "TouchKey2.1", "TouchKey2.2"},
+				setKeys:  []bool{true, true, true},
+				wantErrs: []bool{false, false, false},
+				expected: 3,
+			},
+			{
+				name:     "3. Touch multiple keys, some don't exist.",
+				keys:     []string{"TouchKey3", "TouchKey3.1", "TouchKey3.9", "TouchKey3.0"},
+				setKeys:  []bool{true, true, false, false},
+				wantErrs: []bool{false, false, true, true},
+				expected: 2,
+			},
+			{
+				name:     "4. Touch key that doesn't exist.",
+				keys:     []string{"TouchKey4"},
+				setKeys:  []bool{false},
+				wantErrs: []bool{true},
+				expected: 0,
+			},
+		}
+
+		for _, tt := range tests {
+
+			t.Run(tt.name, func(t *testing.T) {
+				func(keys []string, setKeys, wantErrs []bool, expected int64) {
+					// Preset the values
+					for i, k := range keys {
+						if setKeys[i] {
+							command := make([]resp.Value, 3)
+							command[0] = resp.StringValue("SET")
+							command[1] = resp.StringValue(k)
+							command[2] = resp.StringValue("___")
+							err = client.WriteArray(command)
+							if err != nil {
+								t.Error(err)
+							}
+
+							res, _, err := client.ReadValue()
+							if err != nil {
+								t.Error(err)
+							}
+
+							if !strings.EqualFold(res.String(), "ok") {
+								t.Errorf("expected preset response to be \"OK\", got %s", res.String())
+							}
+						}
+					}
+
+					// Verify correct value returned
+					command := make([]resp.Value, len(keys)+1)
+					command[0] = resp.StringValue("TOUCH")
+					for i := 1; i < len(command); i++ {
+						ki := i - 1
+						command[i] = resp.StringValue(keys[ki])
+					}
+
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if int64(res.Integer()) != expected {
+						t.Errorf("expected value %v, got %v", expected, res.Integer())
+					}
+
+					// Touch one more time to test OBJRECT FREQ
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					_, _, err = client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					// Verify access frequency (count field) was updated in lfu cache
+					for i, k := range keys {
+						cmd := []resp.Value{
+							resp.StringValue("OBJECTFREQ"),
+							resp.StringValue(k),
+						}
+
+						if err = client.WriteArray(cmd); err != nil {
+							t.Error(err)
+						}
+
+						res, _, err := client.ReadValue()
+						if wantErrs[i] {
+							if res.Error() == nil {
+								t.Errorf("OBJECTFREQ Expected error, got none with value: %v", res.Integer())
+							} else {
+								if res.Integer() != 0 {
+									t.Errorf("OBJECTFREQ key doesn't exist, expect frequency of 0, go %v", res.Integer())
+								}
+								continue
+							}
+						} else if err != nil {
+							t.Error(err)
+						}
+
+						if res.Integer() != 3 {
+							t.Errorf("OBJECTFREQ expected frequency of 3, got %v", res.Integer())
+						}
+
+					}
+
+				}(tt.keys, tt.setKeys, tt.wantErrs, tt.expected)
+			})
+
+		}
+	})
+
+}
+
+// Certain commands will need to be tested in a server with an eviction policy.
+// This is for testing against an LRU evictiona policy.
+func Test_LRU_Generic(t *testing.T) {
+	// mockClock := clock.NewClock()
+	port, err := internal.GetFreePort()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	duration := time.Duration(30) * time.Second
+
+	mockServer, err := echovault.NewEchoVault(
+		echovault.WithConfig(config.Config{
+			BindAddr:         "localhost",
+			Port:             uint16(port),
+			DataDir:          "",
+			EvictionPolicy:   constants.AllKeysLRU,
+			EvictionInterval: duration,
+			MaxMemory:        4000000,
+		}),
+	)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	go func() {
+		mockServer.Start()
+	}()
+
+	t.Cleanup(func() {
+		mockServer.ShutDown()
+	})
+
+	// Tests TOUCH and OBJECT IDLETIME
+	t.Run("Test_HandleTOUCH", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name     string
+			keys     []string
+			setKeys  []bool
+			wantErrs []bool
+			expected int64
+		}{
+			{
+				name:     "1. Touch key that exists.",
+				keys:     []string{"TouchKey1"},
+				setKeys:  []bool{true},
+				wantErrs: []bool{false},
+				expected: 1,
+			},
+			{
+				name:     "2. Touch multiple keys that exist.",
+				keys:     []string{"TouchKey2", "TouchKey2.1", "TouchKey2.2"},
+				setKeys:  []bool{true, true, true},
+				wantErrs: []bool{false, false, false},
+				expected: 3,
+			},
+			{
+				name:     "3. Touch multiple keys, some don't exist.",
+				keys:     []string{"TouchKey3", "TouchKey3.1", "TouchKey3.9", "TouchKey3.0"},
+				setKeys:  []bool{true, true, false, false},
+				wantErrs: []bool{false, false, true, true},
+				expected: 2,
+			},
+			{
+				name:     "4. Touch key that doesn't exist.",
+				keys:     []string{"TouchKey4"},
+				setKeys:  []bool{false},
+				wantErrs: []bool{true},
+				expected: 0,
+			},
+		}
+
+		for _, tt := range tests {
+
+			t.Run(tt.name, func(t *testing.T) {
+				func(keys []string, setKeys, wantErrs []bool, expected int64) {
+					// Preset the values
+					for i, k := range keys {
+						if setKeys[i] {
+							command := make([]resp.Value, 3)
+							command[0] = resp.StringValue("SET")
+							command[1] = resp.StringValue(k)
+							command[2] = resp.StringValue("___")
+							err = client.WriteArray(command)
+							if err != nil {
+								t.Error(err)
+							}
+
+							res, _, err := client.ReadValue()
+							if err != nil {
+								t.Error(err)
+							}
+
+							if !strings.EqualFold(res.String(), "ok") {
+								t.Errorf("expected preset response to be \"OK\", got %s", res.String())
+							}
+						}
+					}
+
+					// Verify correct value returned
+					command := make([]resp.Value, len(keys)+1)
+					command[0] = resp.StringValue("TOUCH")
+					for i := 1; i < len(command); i++ {
+						ki := i - 1
+						command[i] = resp.StringValue(keys[ki])
+					}
+
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if int64(res.Integer()) != expected {
+						t.Errorf("expected value %v, got %v", expected, res.Integer())
+					}
+
+					// Allow some time to easily verify touch command is successful
+					time.Sleep(3 * time.Second)
+
+					// Verify access frequency (count field) was updated in lfu cache
+					for i, k := range keys {
+						cmd := []resp.Value{
+							resp.StringValue("OBJECTIDLETIME"),
+							resp.StringValue(k),
+						}
+
+						if err = client.WriteArray(cmd); err != nil {
+							t.Error(err)
+						}
+
+						res, _, err := client.ReadValue()
+						if wantErrs[i] {
+							if res.Error() == nil {
+								t.Errorf("OBJECTIDLETIME Expected error, got none with value: %v", res.Float())
+							} else {
+								if res.Float() != 0 {
+									t.Errorf("OBJECTIDLETIME key doesn't exist, expect idle time of 0, go %v", res.Float())
+								}
+								continue
+							}
+						} else if err != nil {
+							t.Error(err)
+						}
+
+						if res.Float() < 3 {
+							t.Errorf("OBJECTIDLETIME expected idle time of at least 3, got %v", res.Float())
+						}
+
+					}
+
+				}(tt.keys, tt.setKeys, tt.wantErrs, tt.expected)
+			})
+
+		}
+
+	})
+
 }

@@ -826,6 +826,49 @@ func handleType(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("+%v\r\n", type_string)), nil
 }
 
+func handleTouch(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := touchKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	touchedKeys, err := params.Touchkey(params.Context, keys.ReadKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(fmt.Sprintf("+%v\r\n", touchedKeys)), nil
+}
+
+func handleObjFreq(params internal.HandlerFuncParams) ([]byte, error) {
+	key, err := objFreqKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	freq, err := params.GetObjectFrequency(params.Context, key.ReadKeys[0])
+
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(fmt.Sprintf("+%v\r\n", freq)), nil
+}
+
+func handleObjIdleTime(params internal.HandlerFuncParams) ([]byte, error) {
+	key, err := objIdleTimeKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	idletime, err := params.GetObjectIdleTime(params.Context, key.ReadKeys[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(fmt.Sprintf("+%v\r\n", idletime)), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -1135,6 +1178,36 @@ Delete all the keys in the currently selected database. This command is always s
 			Sync:              false,
 			KeyExtractionFunc: typeKeyFunc,
 			HandlerFunc:       handleType,
+		},
+		{
+			Command:    "touch",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
+			Description: `(TOUCH keys [key ...]) Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used. 
+A key is ignored if it does not exist. This commands returns the number of keys that were touched.`,
+			Sync:              true,
+			KeyExtractionFunc: touchKeyFunc,
+			HandlerFunc:       handleTouch,
+		},
+		{
+			Command:    "objectfreq",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.SlowCategory},
+			Description: `(OBJECTFREQ key) Get the access frequency count of an object stored at <key>.
+The command is only available when the maxmemory-policy configuration directive is set to one of the LFU policies.`,
+			Sync:              false,
+			KeyExtractionFunc: objFreqKeyFunc,
+			HandlerFunc:       handleObjFreq,
+		},
+		{
+			Command:    "objectidletime",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.SlowCategory},
+			Description: `(OBJECTIDLETIME key) Get the time in seconds since the last access to the value stored at <key>.
+The command is only available when the maxmemory-policy configuration directive is set to one of the LRU policies.`,
+			Sync:              false,
+			KeyExtractionFunc: objIdleTimeKeyFunc,
+			HandlerFunc:       handleObjIdleTime,
 		},
 	}
 }
