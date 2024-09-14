@@ -699,7 +699,6 @@ func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, er
 	}
 
 	return freq, nil
-
 }
 
 func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (float64, error) {
@@ -723,5 +722,4 @@ func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (flo
 	secs := time.Now().Sub(lastAccess).Seconds()
 
 	return secs, nil
-
 }
