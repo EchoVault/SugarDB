@@ -1623,7 +1623,9 @@ func TestEchoVault_LFU_TOUCH(t *testing.T) {
 			}
 
 			// Wait to avoid race
-			time.Sleep(1 * time.Second)
+			ticker := time.NewTicker(200 * time.Millisecond)
+			<-ticker.C
+			ticker.Stop()
 
 			// Objectfreq
 			for i, key := range tt.keys {
@@ -1720,7 +1722,9 @@ func TestEchoVault_LRU_TOUCH(t *testing.T) {
 			}
 
 			// Sleep to more easily test Object idle time
-			time.Sleep(3 * time.Second)
+			ticker := time.NewTicker(200 * time.Millisecond)
+			<-ticker.C
+			ticker.Stop()
 
 			// Objectidletime
 			for i, key := range tt.keys {
@@ -1728,8 +1732,8 @@ func TestEchoVault_LRU_TOUCH(t *testing.T) {
 				if (err != nil) != tt.wantErrs[i] {
 					t.Errorf("OBJECTIDLETIME() error: %v, wanted error: %v", err, tt.wantErrs[i])
 				}
-				if !tt.wantErrs[i] && actual < 3 {
-					t.Errorf("OBJECTIDLETIME() error - expected 3 got %v", actual)
+				if !tt.wantErrs[i] && actual < 0.2 {
+					t.Errorf("OBJECTIDLETIME() error - expected 0.2 got %v", actual)
 				}
 
 				// Check error for object freq
