@@ -1515,7 +1515,7 @@ func TestEchoVault_GETEX(t *testing.T) {
 				}
 			}
 			//Check value received
-			got, err := server.GetEx(tt.key, tt.getExOpts)
+			got, err := server.GetEx(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GETEX() GET error = %v, wantErr %v", err, tt.wantErr)
 				return

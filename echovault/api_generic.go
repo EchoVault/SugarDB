@@ -15,42 +15,68 @@
 package echovault
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/echovault/echovault/internal"
 )
 
-// SetOptions modifies the behaviour for the Set command
+// SetWriteOption constants
+type SetWriteOpt string
+
+const (
+	SETNX = "NX"
+	SETXX = "XX"
+)
+
+// SetWriteOption modifies the behavior of Set.
 //
 // NX - Only set if the key does not exist. NX is higher priority than XX.
 //
 // XX - Only set if the key exists.
-//
-// GET - Return the old value stored at key, or nil if the value does not exist.
-//
-// EX - Expire the key after the specified number of seconds (positive integer).
-// EX has the highest priority
-//
-// PX - Expire the key after the specified number of milliseconds (positive integer).
-// PX has the second-highest priority.
-//
-// EXAT - Expire at the exact time in unix seconds (positive integer).
-// EXAT has the third-highest priority.
-//
-// PXAT - Expire at the exat time in unix milliseconds (positive integer).
-// PXAT has the least priority.
-type SetOptions struct {
-	NX   bool
-	XX   bool
-	GET  bool
-	EX   int
-	PX   int
-	EXAT int
-	PXAT int
+type SetWriteOption interface {
+	IsSetWriteOpt() SetWriteOpt
 }
 
-// ExpireOptions modifies the behaviour of the Expire, PExpire, ExpireAt, PExpireAt.
+func (w SetWriteOpt) IsSetWriteOpt() SetWriteOpt { return w }
+
+// SetExOption constants
+type SetExOpt string
+
+const (
+	SETEX   = "EX"
+	SETPX   = "PX"
+	SETEXAT = "EXAT"
+	SETPXAT = "PXAT"
+)
+
+// SetExOption modifies the behavior of Set.
+//
+// EX - Expire the key after the specified number of seconds (positive integer).
+//
+// PX - Expire the key after the specified number of milliseconds (positive integer).
+//
+// EXAT - Expire at the exact time in unix seconds (positive integer).
+//
+// PXAT - Expire at the exat time in unix milliseconds (positive integer).
+type SetExOption interface {
+	IsSetExOpt() SetExOpt
+}
+
+func (x SetExOpt) IsSetExOpt() SetExOpt { return x }
+
+// ExpireOptions constants
+type ExOpt string
+
+const (
+	NX ExOpt = "NX"
+	XX ExOpt = "XX"
+	LT ExOpt = "LT"
+	GT ExOpt = "GT"
+)
+
+// ExpireOptions modifies the behavior of Expire, PExpire, ExpireAt, PExpireAt.
 //
 // NX - Only set the expiry time if the key has no associated expiry.
 //
@@ -59,17 +85,26 @@ type SetOptions struct {
 // GT - Only set the expiry time if the new expiry time is greater than the current one.
 //
 // LT - Only set the expiry time if the new expiry time is less than the current one.
-type ExpireOptions struct {
-	NX bool
-	XX bool
-	LT bool
-	GT bool
+//
+// NX, GT, and LT are mutually exclusive. XX can additionally be passed in with either GT or LT.
+type ExpireOptions interface {
+	IsExOpt() ExOpt
 }
-type PExpireOptions ExpireOptions
-type ExpireAtOptions ExpireOptions
-type PExpireAtOptions ExpireOptions
 
-// GetExOptions modifies the behaviour of
+func (x ExOpt) IsExOpt() ExOpt { return x }
+
+// GetExOption constants
+type GetExOpt string
+
+const (
+	EX      GetExOpt = "EX"
+	PX      GetExOpt = "PX"
+	EXAT    GetExOpt = "EXAT"
+	PXAT    GetExOpt = "PXAT"
+	PERSIST GetExOpt = "PERSIST"
+)
+
+// GetExOption modifies the behavior of GetEx.
 //
 // EX - Set the specified expire time, in seconds.
 //
@@ -80,16 +115,11 @@ type PExpireAtOptions ExpireOptions
 // PXAT - Set the specified Unix time at which the key will expire, in milliseconds.
 //
 // PERSIST - Remove the time to live associated with the key.
-//
-// UNIXTIME - Number of seconds or miliseconds from now
-type GetExOptions struct {
-	EX       bool
-	PX       bool
-	EXAT     bool
-	PXAT     bool
-	PERSIST  bool
-	UNIXTIME int
+type GetExOption interface {
+	isGetExOpt() GetExOpt
 }
+
+func (x GetExOpt) isGetExOpt() GetExOpt { return x }
 
 // Set creates or modifies the value at the given key.
 //
@@ -99,7 +129,11 @@ type GetExOptions struct {
 //
 // `value` - string - the value to place at the key.
 //
-// `options` - SetOptions.
+// `writeOpt` - SetWriteOption - One of NX or XX.
+//
+// `exOpt` - SetExOption - One of EX, PX, EXAT, or PXAT.
+//
+// `exTime` - int - Time in seconds or milliseconds depending on what exOpt was passed.
 //
 // Returns: true if the set is successful, If the "Get" flag in SetOptions is set to true, the previous value is returned.
 //
@@ -108,28 +142,18 @@ type GetExOptions struct {
 // "key <key> does not exist"" - when the XX flag is set to true and the key does not exist.
 //
 // "key <key> does already exists" - when the NX flag is set to true and the key already exists.
-func (server *EchoVault) Set(key, value string, options SetOptions) (string, bool, error) {
+func (server *EchoVault) Set(key, value string, writeOpt SetWriteOption, exOpt SetExOption, exTime int, GET bool) (string, bool, error) {
 	cmd := []string{"SET", key, value}
 
-	switch {
-	case options.NX:
-		cmd = append(cmd, "NX")
-	case options.XX:
-		cmd = append(cmd, "XX")
+	if writeOpt != nil {
+		cmd = append(cmd, fmt.Sprint(writeOpt))
 	}
 
-	switch {
-	case options.EX != 0:
-		cmd = append(cmd, []string{"EX", strconv.Itoa(options.EX)}...)
-	case options.PX != 0:
-		cmd = append(cmd, []string{"PX", strconv.Itoa(options.PX)}...)
-	case options.EXAT != 0:
-		cmd = append(cmd, []string{"EXAT", strconv.Itoa(options.EXAT)}...)
-	case options.PXAT != 0:
-		cmd = append(cmd, []string{"PXAT", strconv.Itoa(options.PXAT)}...)
+	if exOpt != nil {
+		cmd = append(cmd, []string{fmt.Sprint(exOpt), strconv.Itoa(exTime)}...)
 	}
 
-	if options.GET {
+	if GET {
 		cmd = append(cmd, "GET")
 	}
 
@@ -142,7 +166,7 @@ func (server *EchoVault) Set(key, value string, options SetOptions) (string, boo
 	if err != nil {
 		return "", false, err
 	}
-	if !options.GET {
+	if !GET {
 		previousValue = ""
 	}
 
@@ -313,21 +337,14 @@ func (server *EchoVault) PTTL(key string) (int, error) {
 //
 // `seconds` - int - number of seconds from now.
 //
-// `options` - ExpireOptions
+// `options` - ExpireOptions - One of NX, GT, LT. XX can be passed with GT OR LT optionally.
 //
 // Returns: true if the key's expiry was successfully updated.
-func (server *EchoVault) Expire(key string, seconds int, options ExpireOptions) (bool, error) {
+func (server *EchoVault) Expire(key string, seconds int, options ...ExpireOptions) (bool, error) {
 	cmd := []string{"EXPIRE", key, strconv.Itoa(seconds)}
 
-	switch {
-	case options.NX:
-		cmd = append(cmd, "NX")
-	case options.XX:
-		cmd = append(cmd, "XX")
-	case options.LT:
-		cmd = append(cmd, "LT")
-	case options.GT:
-		cmd = append(cmd, "GT")
+	for _, opt := range options {
+		cmd = append(cmd, fmt.Sprint(opt))
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -350,18 +367,11 @@ func (server *EchoVault) Expire(key string, seconds int, options ExpireOptions) 
 // `options` - PExpireOptions
 //
 // Returns: true if the key's expiry was successfully updated.
-func (server *EchoVault) PExpire(key string, milliseconds int, options PExpireOptions) (bool, error) {
+func (server *EchoVault) PExpire(key string, milliseconds int, options ...ExpireOptions) (bool, error) {
 	cmd := []string{"PEXPIRE", key, strconv.Itoa(milliseconds)}
 
-	switch {
-	case options.NX:
-		cmd = append(cmd, "NX")
-	case options.XX:
-		cmd = append(cmd, "XX")
-	case options.LT:
-		cmd = append(cmd, "LT")
-	case options.GT:
-		cmd = append(cmd, "GT")
+	for _, opt := range options {
+		cmd = append(cmd, fmt.Sprint(opt))
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -384,18 +394,11 @@ func (server *EchoVault) PExpire(key string, milliseconds int, options PExpireOp
 // `options` - ExpireAtOptions
 //
 // Returns: true if the key's expiry was successfully updated.
-func (server *EchoVault) ExpireAt(key string, unixSeconds int, options ExpireAtOptions) (int, error) {
+func (server *EchoVault) ExpireAt(key string, unixSeconds int, options ...ExpireOptions) (int, error) {
 	cmd := []string{"EXPIREAT", key, strconv.Itoa(unixSeconds)}
 
-	switch {
-	case options.NX:
-		cmd = append(cmd, "NX")
-	case options.XX:
-		cmd = append(cmd, "XX")
-	case options.LT:
-		cmd = append(cmd, "LT")
-	case options.GT:
-		cmd = append(cmd, "GT")
+	for _, opt := range options {
+		cmd = append(cmd, fmt.Sprint(opt))
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -418,18 +421,11 @@ func (server *EchoVault) ExpireAt(key string, unixSeconds int, options ExpireAtO
 // `options` - PExpireAtOptions
 //
 // Returns: true if the key's expiry was successfully updated.
-func (server *EchoVault) PExpireAt(key string, unixMilliseconds int, options PExpireAtOptions) (int, error) {
+func (server *EchoVault) PExpireAt(key string, unixMilliseconds int, options ...ExpireOptions) (int, error) {
 	cmd := []string{"PEXPIREAT", key, strconv.Itoa(unixMilliseconds)}
 
-	switch {
-	case options.NX:
-		cmd = append(cmd, "NX")
-	case options.XX:
-		cmd = append(cmd, "XX")
-	case options.LT:
-		cmd = append(cmd, "LT")
-	case options.GT:
-		cmd = append(cmd, "GT")
+	for _, opt := range options {
+		cmd = append(cmd, fmt.Sprint(opt))
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -607,37 +603,25 @@ func (server *EchoVault) GetDel(key string) (string, error) {
 //
 // `key` - string - the key whose value should be retrieved and expiry set.
 //
-// `opts` - GetExOptions.
+// `option` - GetExOption - one of EX, PX, EXAT, PXAT, PERSIST. Can be nil.
+//
+// `unixtime` - Number of seconds or miliseconds from now.
 //
 // Returns: A string representing the value at the specified key. If the value does not exist, an empty string is returned.
-func (server *EchoVault) GetEx(key string, opts GetExOptions) (string, error) {
+func (server *EchoVault) GetEx(key string, option GetExOption, unixtime int) (string, error) {
 
 	cmd := make([]string, 2)
 
 	cmd[0] = "GETEX"
 	cmd[1] = key
 
-	var command string
-
-	switch {
-	case opts.EX:
-		command = "EX"
-	case opts.PX:
-		command = "PX"
-	case opts.EXAT:
-		command = "EXAT"
-	case opts.PXAT:
-		command = "PXAT"
-	case opts.PERSIST:
-		command = "PERSIST"
-	default:
+	if option != nil {
+		opt := fmt.Sprint(option)
+		cmd = append(cmd, opt)
 	}
 
-	if command != "" {
-		cmd = append(cmd, command)
-	}
-	if opts.UNIXTIME != 0 {
-		cmd = append(cmd, strconv.Itoa(opts.UNIXTIME))
+	if unixtime != 0 {
+		cmd = append(cmd, strconv.Itoa(unixtime))
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
