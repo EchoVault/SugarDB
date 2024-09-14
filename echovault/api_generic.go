@@ -676,7 +676,7 @@ func (server *EchoVault) Touch(keys []string) (int, error) {
 //
 // `key` - string - the key whose access frequency should be retrieved.
 //
-// Returns: An integer representing the access frequency. If the the key doesn't exist -1 and an error is returned.
+// Returns: An integer representing the access frequency. If the key doesn't exist -1 and an error is returned.
 func (server *EchoVault) ObjectFreq(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"OBJECTFREQ", key}), nil, false, true)
 	if err != nil {
