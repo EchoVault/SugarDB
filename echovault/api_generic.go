@@ -15,7 +15,6 @@
 package echovault
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -650,14 +649,13 @@ func (server *EchoVault) GetEx(key string, opts GetExOptions) (string, error) {
 
 // Touch Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used.
 // A key is ignored if it does not exist.
-
+//
 // Parameters:
 //
 // `keys` - []string - the keys whose access time or access count should be incremented based on eviction policy.
 //
 // Returns: An integer representing the number of keys successfully touched. If a key doesn't exist it is simply ignored.
 func (server *EchoVault) Touch(keys []string) (int, error) {
-	fmt.Println("****Touch ", keys)
 	cmd := make([]string, len(keys)+1)
 	cmd[0] = "TOUCH"
 	for i, k := range keys {
@@ -673,15 +671,13 @@ func (server *EchoVault) Touch(keys []string) (int, error) {
 
 // ObjectFreq retrieves the access frequency count of an object stored at <key>.
 // The command is only available when the maxmemory-policy configuration directive is set to one of the LFU policies.
-
+//
 // Parameters:
 //
 // `key` - string - the key whose access frequency should be retrieved.
 //
 // Returns: An integer representing the access frequency. If the the key doesn't exist -1 and an error is returned.
 func (server *EchoVault) ObjectFreq(key string) (int, error) {
-
-	fmt.Println("****Oject Freq ", key)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"OBJECTFREQ", key}), nil, false, true)
 	if err != nil {
 		return -1, err
@@ -691,7 +687,7 @@ func (server *EchoVault) ObjectFreq(key string) (int, error) {
 
 // ObjectIdleTime retrieves the time in seconds since the last access to the value stored at <key>.
 // The command is only available when the maxmemory-policy configuration directive is set to one of the LRU policies.
-
+//
 // Parameters:
 //
 // `key` - string - the key whose last access time should be retrieved.
