@@ -652,10 +652,10 @@ func (server *EchoVault) GetEx(key string, opts GetExOptions) (string, error) {
 //
 // Parameters:
 //
-// `keys` - []string - the keys whose access time or access count should be incremented based on eviction policy.
+// `keys` - ...string - the keys whose access time or access count should be incremented based on eviction policy.
 //
 // Returns: An integer representing the number of keys successfully touched. If a key doesn't exist it is simply ignored.
-func (server *EchoVault) Touch(keys []string) (int, error) {
+func (server *EchoVault) Touch(keys ...string) (int, error) {
 	cmd := make([]string, len(keys)+1)
 	cmd[0] = "TOUCH"
 	for i, k := range keys {

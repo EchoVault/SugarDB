@@ -1379,7 +1379,7 @@ func TestEchoVault_GETDEL(t *testing.T) {
 					return
 				}
 			}
-			//Check value received
+			// Check value received
 			got, err := server.GetDel(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GETDEL() error = %v, wantErr %v", err, tt.wantErr)
@@ -1388,7 +1388,7 @@ func TestEchoVault_GETDEL(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("GETDEL() got = %v, want %v", got, tt.want)
 			}
-			//Check key was deleted
+			// Check key was deleted
 			if tt.presetValue != nil {
 				got, err := server.Get(tt.key)
 				if (err != nil) != tt.wantErr {
@@ -1516,7 +1516,7 @@ func TestEchoVault_GETEX(t *testing.T) {
 					return
 				}
 			}
-			//Check value received
+			// Check value received
 			got, err := server.GetEx(tt.key, tt.getExOpts)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GETEX() GET error = %v, wantErr %v", err, tt.wantErr)
@@ -1525,7 +1525,7 @@ func TestEchoVault_GETEX(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("GETEX() GET - got = %v, want %v", got, tt.want)
 			}
-			//Check expiry was set
+			// Check expiry was set
 			if tt.presetValue != nil {
 				actual, err := server.TTL(tt.key)
 				if (err != nil) != tt.wantErr {
@@ -1603,7 +1603,7 @@ func TestEchoVault_LFU_TOUCH(t *testing.T) {
 			}
 
 			// Touch keys
-			got, err := server.Touch(tt.keys)
+			got, err := server.Touch(tt.keys...)
 			if err != nil {
 				t.Errorf("TOUCH() error - %v", err)
 			}
@@ -1613,7 +1613,7 @@ func TestEchoVault_LFU_TOUCH(t *testing.T) {
 			}
 
 			// Another touch to help testing object freq
-			got, err = server.Touch(tt.keys)
+			got, err = server.Touch(tt.keys...)
 			if err != nil {
 				t.Errorf("TOUCH() error - %v", err)
 			}
@@ -1710,7 +1710,7 @@ func TestEchoVault_LRU_TOUCH(t *testing.T) {
 			}
 
 			// Touch keys
-			got, err := server.Touch(tt.keys)
+			got, err := server.Touch(tt.keys...)
 			if err != nil {
 				t.Errorf("TOUCH() error - %v", err)
 			}

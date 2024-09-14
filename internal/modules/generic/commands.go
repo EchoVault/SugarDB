@@ -1184,7 +1184,7 @@ Delete all the keys in the currently selected database. This command is always s
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
 			Description: `(TOUCH keys [key ...]) Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used. 
-A key is ignored if it does not exist.`,
+A key is ignored if it does not exist. This commands returns the number of keys that were touched.`,
 			Sync:              true,
 			KeyExtractionFunc: touchKeyFunc,
 			HandlerFunc:       handleTouch,
