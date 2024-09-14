@@ -682,7 +682,6 @@ func (server *EchoVault) randomKey(ctx context.Context) string {
 }
 
 func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, error) {
-
 	database := ctx.Value("Database").(int)
 
 	var freq int
@@ -692,8 +691,7 @@ func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, er
 		freq, err = server.lfuCache.cache[database].GetCount(key)
 		server.lfuCache.cache[database].Mutex.Unlock()
 	} else {
-
-		return -1, errors.New("Error: Eviction policy must be one a type of LFU.")
+		return -1, errors.New("error: eviction policy must be a type of LFU")
 	}
 
 	if err != nil {
@@ -705,7 +703,6 @@ func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, er
 }
 
 func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (float64, error) {
-
 	database := ctx.Value("Database").(int)
 
 	var accessTime int64
@@ -715,7 +712,7 @@ func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (flo
 		accessTime, err = server.lruCache.cache[database].GetTime(key)
 		server.lruCache.cache[database].Mutex.Unlock()
 	} else {
-		return -1, errors.New("Error: Eviction policy must be one a type of LRU.")
+		return -1, errors.New("error: eviction policy must be a type of LRU")
 	}
 
 	if err != nil {
