@@ -776,7 +776,7 @@ func Test_AdminCommands(t *testing.T) {
 
 				// Trigger some write commands
 				for key, value := range test.values {
-					if _, _, err = mockServer.Set(key, value, echovault.SetOptions{}); err != nil {
+					if _, _, err = mockServer.Set(key, value, nil, nil, 0, false); err != nil {
 						t.Error(err)
 						return
 					}

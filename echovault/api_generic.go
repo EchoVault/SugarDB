@@ -26,15 +26,15 @@ import (
 type SetWriteOpt string
 
 const (
-	SETNX = "NX"
-	SETXX = "XX"
+	SETNX SetWriteOpt = "NX"
+	SETXX SetWriteOpt = "XX"
 )
 
 // SetWriteOption modifies the behavior of Set.
 //
-// NX - Only set if the key does not exist. NX is higher priority than XX.
+// SETNX - Only set if the key does not exist. NX is higher priority than XX.
 //
-// XX - Only set if the key exists.
+// SETXX - Only set if the key exists.
 type SetWriteOption interface {
 	IsSetWriteOpt() SetWriteOpt
 }
@@ -45,21 +45,21 @@ func (w SetWriteOpt) IsSetWriteOpt() SetWriteOpt { return w }
 type SetExOpt string
 
 const (
-	SETEX   = "EX"
-	SETPX   = "PX"
-	SETEXAT = "EXAT"
-	SETPXAT = "PXAT"
+	SETEX   SetExOpt = "EX"
+	SETPX   SetExOpt = "PX"
+	SETEXAT SetExOpt = "EXAT"
+	SETPXAT SetExOpt = "PXAT"
 )
 
 // SetExOption modifies the behavior of Set.
 //
-// EX - Expire the key after the specified number of seconds (positive integer).
+// SETEX - Expire the key after the specified number of seconds (positive integer).
 //
-// PX - Expire the key after the specified number of milliseconds (positive integer).
+// SETPX - Expire the key after the specified number of milliseconds (positive integer).
 //
-// EXAT - Expire at the exact time in unix seconds (positive integer).
+// SETEXAT - Expire at the exact time in unix seconds (positive integer).
 //
-// PXAT - Expire at the exat time in unix milliseconds (positive integer).
+// SETPXAT - Expire at the exat time in unix milliseconds (positive integer).
 type SetExOption interface {
 	IsSetExOpt() SetExOpt
 }
@@ -134,6 +134,8 @@ func (x GetExOpt) isGetExOpt() GetExOpt { return x }
 // `exOpt` - SetExOption - One of EX, PX, EXAT, or PXAT.
 //
 // `exTime` - int - Time in seconds or milliseconds depending on what exOpt was passed.
+//
+// `GET` - bool - Whether or not to return previous value if there was one.
 //
 // Returns: true if the set is successful, If the "Get" flag in SetOptions is set to true, the previous value is returned.
 //
@@ -343,8 +345,10 @@ func (server *EchoVault) PTTL(key string) (int, error) {
 func (server *EchoVault) Expire(key string, seconds int, options ...ExpireOptions) (bool, error) {
 	cmd := []string{"EXPIRE", key, strconv.Itoa(seconds)}
 
-	for _, opt := range options {
-		cmd = append(cmd, fmt.Sprint(opt))
+	if options != nil {
+		for _, opt := range options {
+			cmd = append(cmd, fmt.Sprint(opt))
+		}
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -370,8 +374,10 @@ func (server *EchoVault) Expire(key string, seconds int, options ...ExpireOption
 func (server *EchoVault) PExpire(key string, milliseconds int, options ...ExpireOptions) (bool, error) {
 	cmd := []string{"PEXPIRE", key, strconv.Itoa(milliseconds)}
 
-	for _, opt := range options {
-		cmd = append(cmd, fmt.Sprint(opt))
+	if options != nil {
+		for _, opt := range options {
+			cmd = append(cmd, fmt.Sprint(opt))
+		}
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -397,8 +403,10 @@ func (server *EchoVault) PExpire(key string, milliseconds int, options ...Expire
 func (server *EchoVault) ExpireAt(key string, unixSeconds int, options ...ExpireOptions) (int, error) {
 	cmd := []string{"EXPIREAT", key, strconv.Itoa(unixSeconds)}
 
-	for _, opt := range options {
-		cmd = append(cmd, fmt.Sprint(opt))
+	if options != nil {
+		for _, opt := range options {
+			cmd = append(cmd, fmt.Sprint(opt))
+		}
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -423,9 +431,10 @@ func (server *EchoVault) ExpireAt(key string, unixSeconds int, options ...Expire
 // Returns: true if the key's expiry was successfully updated.
 func (server *EchoVault) PExpireAt(key string, unixMilliseconds int, options ...ExpireOptions) (int, error) {
 	cmd := []string{"PEXPIREAT", key, strconv.Itoa(unixMilliseconds)}
-
-	for _, opt := range options {
-		cmd = append(cmd, fmt.Sprint(opt))
+	if options != nil {
+		for _, opt := range options {
+			cmd = append(cmd, fmt.Sprint(opt))
+		}
 	}
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)

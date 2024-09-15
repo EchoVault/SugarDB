@@ -80,7 +80,6 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 		key          string
 		time         int
 		expireOpts   ExpireOptions
-		pexpireOpts  PExpireOptions
 		want         bool
 		wantErr      bool
 	}{
@@ -89,7 +88,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			cmd:        "EXPIRE",
 			key:        "key1",
 			time:       100,
-			expireOpts: ExpireOptions{},
+			expireOpts: nil,
 			presetValues: map[string]internal.KeyData{
 				"key1": {Value: "value1", ExpireAt: time.Time{}},
 			},
@@ -97,11 +96,11 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "Set new expire by milliseconds",
-			cmd:         "PEXPIRE",
-			key:         "key2",
-			time:        1000,
-			pexpireOpts: PExpireOptions{},
+			name:       "Set new expire by milliseconds",
+			cmd:        "PEXPIRE",
+			key:        "key2",
+			time:       1000,
+			expireOpts: nil,
 			presetValues: map[string]internal.KeyData{
 				"key2": {Value: "value2", ExpireAt: time.Time{}},
 			},
@@ -113,7 +112,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			cmd:        "EXPIRE",
 			key:        "key3",
 			time:       1000,
-			expireOpts: ExpireOptions{NX: true},
+			expireOpts: NX,
 			presetValues: map[string]internal.KeyData{
 				"key3": {Value: "value3", ExpireAt: time.Time{}},
 			},
@@ -125,7 +124,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			cmd:        "EXPIRE",
 			key:        "key4",
 			time:       1000,
-			expireOpts: ExpireOptions{NX: true},
+			expireOpts: NX,
 			presetValues: map[string]internal.KeyData{
 				"key4": {Value: "value4", ExpireAt: mockClock.Now().Add(1000 * time.Second)},
 			},
@@ -137,7 +136,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			cmd:        "EXPIRE",
 			key:        "key5",
 			time:       1000,
-			expireOpts: ExpireOptions{XX: true},
+			expireOpts: XX,
 			presetValues: map[string]internal.KeyData{
 				"key5": {Value: "value5", ExpireAt: mockClock.Now().Add(30 * time.Second)},
 			},
@@ -148,7 +147,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			name:       "Return false when key does not have an expiry and the XX flag is provided",
 			cmd:        "EXPIRE",
 			time:       1000,
-			expireOpts: ExpireOptions{XX: true},
+			expireOpts: XX,
 			key:        "key6",
 			presetValues: map[string]internal.KeyData{
 				"key6": {Value: "value6", ExpireAt: time.Time{}},
@@ -161,7 +160,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			cmd:        "EXPIRE",
 			key:        "key7",
 			time:       100000,
-			expireOpts: ExpireOptions{GT: true},
+			expireOpts: GT,
 			presetValues: map[string]internal.KeyData{
 				"key7": {Value: "value7", ExpireAt: mockClock.Now().Add(30 * time.Second)},
 			},
@@ -173,7 +172,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			cmd:        "EXPIRE",
 			key:        "key8",
 			time:       1000,
-			expireOpts: ExpireOptions{GT: true},
+			expireOpts: GT,
 			presetValues: map[string]internal.KeyData{
 				"key8": {Value: "value8", ExpireAt: mockClock.Now().Add(3000 * time.Second)},
 			},
@@ -185,7 +184,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			cmd:        "EXPIRE",
 			key:        "key9",
 			time:       1000,
-			expireOpts: ExpireOptions{GT: true},
+			expireOpts: GT,
 			presetValues: map[string]internal.KeyData{
 				"key9": {Value: "value9", ExpireAt: time.Time{}},
 			},
@@ -197,7 +196,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			cmd:        "EXPIRE",
 			key:        "key10",
 			time:       1000,
-			expireOpts: ExpireOptions{LT: true},
+			expireOpts: LT,
 			presetValues: map[string]internal.KeyData{
 				"key10": {Value: "value10", ExpireAt: mockClock.Now().Add(3000 * time.Second)},
 			},
@@ -209,7 +208,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			cmd:        "EXPIRE",
 			key:        "key11",
 			time:       50000,
-			expireOpts: ExpireOptions{LT: true},
+			expireOpts: LT,
 			presetValues: map[string]internal.KeyData{
 				"key11": {Value: "value11", ExpireAt: mockClock.Now().Add(30 * time.Second)},
 			},
@@ -227,7 +226,7 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 			var got bool
 			var err error
 			if strings.EqualFold(tt.cmd, "PEXPIRE") {
-				got, err = server.PExpire(tt.key, tt.time, tt.pexpireOpts)
+				got, err = server.PExpire(tt.key, tt.time, tt.expireOpts)
 			} else {
 				got, err = server.Expire(tt.key, tt.time, tt.expireOpts)
 			}
@@ -248,21 +247,20 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 	server := createEchoVault()
 
 	tests := []struct {
-		name          string
-		presetValues  map[string]internal.KeyData
-		cmd           string
-		key           string
-		time          int
-		expireAtOpts  ExpireAtOptions
-		pexpireAtOpts PExpireAtOptions
-		want          int
-		wantErr       bool
+		name         string
+		presetValues map[string]internal.KeyData
+		cmd          string
+		key          string
+		time         int
+		expireAtOpts ExpireOptions
+		want         int
+		wantErr      bool
 	}{
 		{
 			name:         "Set new expire by unix seconds",
 			cmd:          "EXPIREAT",
 			key:          "key1",
-			expireAtOpts: ExpireAtOptions{},
+			expireAtOpts: nil,
 			time:         int(mockClock.Now().Add(1000 * time.Second).Unix()),
 			presetValues: map[string]internal.KeyData{
 				"key1": {Value: "value1", ExpireAt: time.Time{}},
@@ -271,11 +269,11 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:          "Set new expire by milliseconds",
-			cmd:           "PEXPIREAT",
-			key:           "key2",
-			pexpireAtOpts: PExpireAtOptions{},
-			time:          int(mockClock.Now().Add(1000 * time.Second).UnixMilli()),
+			name:         "Set new expire by milliseconds",
+			cmd:          "PEXPIREAT",
+			key:          "key2",
+			expireAtOpts: nil,
+			time:         int(mockClock.Now().Add(1000 * time.Second).UnixMilli()),
 			presetValues: map[string]internal.KeyData{
 				"key2": {Value: "value2", ExpireAt: time.Time{}},
 			},
@@ -287,7 +285,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			cmd:          "EXPIREAT",
 			key:          "key3",
 			time:         int(mockClock.Now().Add(1000 * time.Second).Unix()),
-			expireAtOpts: ExpireAtOptions{NX: true},
+			expireAtOpts: NX,
 			presetValues: map[string]internal.KeyData{
 				"key3": {Value: "value3", ExpireAt: time.Time{}},
 			},
@@ -298,7 +296,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			name:         "Return 0, when NX flag is provided and key already has an expiry time",
 			cmd:          "EXPIREAT",
 			time:         int(mockClock.Now().Add(1000 * time.Second).Unix()),
-			expireAtOpts: ExpireAtOptions{NX: true},
+			expireAtOpts: NX,
 			key:          "key4",
 			presetValues: map[string]internal.KeyData{
 				"key4": {Value: "value4", ExpireAt: mockClock.Now().Add(1000 * time.Second)},
@@ -311,7 +309,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			cmd:          "EXPIREAT",
 			time:         int(mockClock.Now().Add(1000 * time.Second).Unix()),
 			key:          "key5",
-			expireAtOpts: ExpireAtOptions{XX: true},
+			expireAtOpts: XX,
 			presetValues: map[string]internal.KeyData{
 				"key5": {Value: "value5", ExpireAt: mockClock.Now().Add(30 * time.Second)},
 			},
@@ -323,7 +321,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			cmd:          "EXPIREAT",
 			key:          "key6",
 			time:         int(mockClock.Now().Add(1000 * time.Second).Unix()),
-			expireAtOpts: ExpireAtOptions{XX: true},
+			expireAtOpts: XX,
 			presetValues: map[string]internal.KeyData{
 				"key6": {Value: "value6", ExpireAt: time.Time{}},
 			},
@@ -335,7 +333,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			cmd:          "EXPIREAT",
 			key:          "key7",
 			time:         int(mockClock.Now().Add(1000 * time.Second).Unix()),
-			expireAtOpts: ExpireAtOptions{GT: true},
+			expireAtOpts: GT,
 			presetValues: map[string]internal.KeyData{
 				"key7": {Value: "value7", ExpireAt: mockClock.Now().Add(30 * time.Second)},
 			},
@@ -347,7 +345,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			cmd:          "EXPIREAT",
 			key:          "key8",
 			time:         int(mockClock.Now().Add(1000 * time.Second).Unix()),
-			expireAtOpts: ExpireAtOptions{GT: true},
+			expireAtOpts: GT,
 			presetValues: map[string]internal.KeyData{
 				"key8": {Value: "value8", ExpireAt: mockClock.Now().Add(3000 * time.Second)},
 			},
@@ -359,7 +357,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			cmd:          "EXPIREAT",
 			key:          "key9",
 			time:         int(mockClock.Now().Add(1000 * time.Second).Unix()),
-			expireAtOpts: ExpireAtOptions{GT: true},
+			expireAtOpts: GT,
 			presetValues: map[string]internal.KeyData{
 				"key9": {Value: "value9", ExpireAt: time.Time{}},
 			},
@@ -370,7 +368,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			cmd:          "EXPIREAT",
 			key:          "key10",
 			time:         int(mockClock.Now().Add(1000 * time.Second).Unix()),
-			expireAtOpts: ExpireAtOptions{LT: true},
+			expireAtOpts: LT,
 			presetValues: map[string]internal.KeyData{
 				"key10": {Value: "value10", ExpireAt: mockClock.Now().Add(3000 * time.Second)},
 			},
@@ -382,7 +380,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			cmd:          "EXPIREAT",
 			key:          "key11",
 			time:         int(mockClock.Now().Add(3000 * time.Second).Unix()),
-			expireAtOpts: ExpireAtOptions{LT: true},
+			expireAtOpts: LT,
 			presetValues: map[string]internal.KeyData{
 				"key11": {Value: "value11", ExpireAt: mockClock.Now().Add(1000 * time.Second)},
 			},
@@ -394,7 +392,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			cmd:          "EXPIREAT",
 			key:          "key12",
 			time:         int(mockClock.Now().Add(1000 * time.Second).Unix()),
-			expireAtOpts: ExpireAtOptions{LT: true},
+			expireAtOpts: LT,
 			presetValues: map[string]internal.KeyData{
 				"key12": {Value: "value12", ExpireAt: time.Time{}},
 			},
@@ -412,7 +410,7 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 			var got int
 			var err error
 			if strings.EqualFold(tt.cmd, "PEXPIREAT") {
-				got, err = server.PExpireAt(tt.key, tt.time, tt.pexpireAtOpts)
+				got, err = server.PExpireAt(tt.key, tt.time, tt.expireAtOpts)
 			} else {
 				got, err = server.ExpireAt(tt.key, tt.time, tt.expireAtOpts)
 			}
@@ -604,22 +602,46 @@ func TestEchoVault_SET(t *testing.T) {
 
 	server := createEchoVault()
 
+	SetOptions := func(W SetWriteOption, EX SetExOption, EXTIME int, GET bool) struct {
+		W      SetWriteOption
+		EX     SetExOption
+		EXTIME int
+		GET    bool
+	} {
+		return struct {
+			W      SetWriteOption
+			EX     SetExOption
+			EXTIME int
+			GET    bool
+		}{
+			W:      W,
+			EX:     EX,
+			EXTIME: EXTIME,
+			GET:    GET,
+		}
+	}
+
 	tests := []struct {
 		name         string
 		presetValues map[string]internal.KeyData
 		key          string
 		value        string
-		options      SetOptions
-		wantOk       bool
-		wantPrev     string
-		wantErr      bool
+		options      struct {
+			W      SetWriteOption
+			EX     SetExOption
+			EXTIME int
+			GET    bool
+		}
+		wantOk   bool
+		wantPrev string
+		wantErr  bool
 	}{
 		{
 			name:         "Set normal value",
 			presetValues: nil,
 			key:          "key1",
 			value:        "value1",
-			options:      SetOptions{},
+			options:      SetOptions(nil, nil, 0, false),
 			wantOk:       true,
 			wantPrev:     "",
 			wantErr:      false,
@@ -629,7 +651,7 @@ func TestEchoVault_SET(t *testing.T) {
 			presetValues: nil,
 			key:          "key2",
 			value:        "value2",
-			options:      SetOptions{NX: true},
+			options:      SetOptions(SETNX, nil, 0, false),
 			wantOk:       true,
 			wantPrev:     "",
 			wantErr:      false,
@@ -644,7 +666,7 @@ func TestEchoVault_SET(t *testing.T) {
 			},
 			key:      "key3",
 			value:    "value3",
-			options:  SetOptions{NX: true},
+			options:  SetOptions(SETNX, nil, 0, false),
 			wantOk:   false,
 			wantPrev: "",
 			wantErr:  true,
@@ -659,7 +681,7 @@ func TestEchoVault_SET(t *testing.T) {
 			},
 			key:      "key4",
 			value:    "value4",
-			options:  SetOptions{XX: true},
+			options:  SetOptions(SETXX, nil, 0, false),
 			wantOk:   true,
 			wantPrev: "",
 			wantErr:  false,
@@ -669,7 +691,7 @@ func TestEchoVault_SET(t *testing.T) {
 			presetValues: nil,
 			key:          "key5",
 			value:        "value5",
-			options:      SetOptions{XX: true},
+			options:      SetOptions(SETXX, nil, 0, false),
 			wantOk:       false,
 			wantPrev:     "",
 			wantErr:      true,
@@ -679,7 +701,7 @@ func TestEchoVault_SET(t *testing.T) {
 			presetValues: nil,
 			key:          "key6",
 			value:        "value6",
-			options:      SetOptions{EX: 100},
+			options:      SetOptions(nil, SETEX, 100, false),
 			wantOk:       true,
 			wantPrev:     "",
 			wantErr:      false,
@@ -689,7 +711,7 @@ func TestEchoVault_SET(t *testing.T) {
 			presetValues: nil,
 			key:          "key7",
 			value:        "value7",
-			options:      SetOptions{PX: 4096},
+			options:      SetOptions(nil, SETPX, 4096, false),
 			wantOk:       true,
 			wantPrev:     "",
 			wantErr:      false,
@@ -699,7 +721,7 @@ func TestEchoVault_SET(t *testing.T) {
 			presetValues: nil,
 			key:          "key8",
 			value:        "value8",
-			options:      SetOptions{EXAT: int(mockClock.Now().Add(200 * time.Second).Unix())},
+			options:      SetOptions(nil, SETEXAT, int(mockClock.Now().Add(200*time.Second).Unix()), false),
 			wantOk:       true,
 			wantPrev:     "",
 			wantErr:      false,
@@ -708,7 +730,7 @@ func TestEchoVault_SET(t *testing.T) {
 			name:         "Set exact expiry time in milliseconds from unix epoch",
 			key:          "key9",
 			value:        "value9",
-			options:      SetOptions{PXAT: int(mockClock.Now().Add(4096 * time.Millisecond).UnixMilli())},
+			options:      SetOptions(nil, SETPXAT, int(mockClock.Now().Add(4096*time.Millisecond).UnixMilli()), false),
 			presetValues: nil,
 			wantOk:       true,
 			wantPrev:     "",
@@ -724,7 +746,7 @@ func TestEchoVault_SET(t *testing.T) {
 			},
 			key:      "key10",
 			value:    "value10",
-			options:  SetOptions{GET: true, EX: 1000},
+			options:  SetOptions(nil, SETEX, 1000, true),
 			wantOk:   true,
 			wantPrev: "previous-value",
 			wantErr:  false,
@@ -734,7 +756,7 @@ func TestEchoVault_SET(t *testing.T) {
 			presetValues: nil,
 			key:          "key11",
 			value:        "value11",
-			options:      SetOptions{GET: true, EX: 1000},
+			options:      SetOptions(nil, SETEX, 1000, true),
 			wantOk:       true,
 			wantPrev:     "",
 			wantErr:      false,
@@ -747,7 +769,14 @@ func TestEchoVault_SET(t *testing.T) {
 					presetKeyData(server, context.Background(), k, d)
 				}
 			}
-			previousValue, ok, err := server.Set(tt.key, tt.value, tt.options)
+			previousValue, ok, err := server.Set(
+				tt.key,
+				tt.value,
+				tt.options.W,
+				tt.options.EX,
+				tt.options.EXTIME,
+				tt.options.GET,
+			)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SET() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1406,90 +1435,97 @@ func TestEchoVault_GETEX(t *testing.T) {
 	server := createEchoVault()
 
 	tests := []struct {
-		name        string
-		presetValue interface{}
-		getExOpts   GetExOptions
-		key         string
-		want        string
-		wantEx      int
-		wantErr     bool
+		name         string
+		presetValue  interface{}
+		getExOpt     GetExOption
+		getExOptTime int
+		key          string
+		want         string
+		wantEx       int
+		wantErr      bool
 	}{
 		{
 			name:        "1. Return string from existing key, no expire options",
 			presetValue: "value1",
-			getExOpts:   GetExOptions{},
+			getExOpt:    nil,
 			key:         "key1",
 			want:        "value1",
 			wantEx:      -1,
 			wantErr:     false,
 		},
 		{
-			name:        "2. Return empty string if the key does not exist",
-			presetValue: nil,
-			getExOpts:   GetExOptions{EX: true, UNIXTIME: int(mockClock.Now().Add(100 * time.Second).Unix())},
-			key:         "key2",
-			want:        "",
-			wantEx:      0,
-			wantErr:     false,
+			name:         "2. Return empty string if the key does not exist",
+			presetValue:  nil,
+			getExOpt:     EX,
+			getExOptTime: int(mockClock.Now().Add(100 * time.Second).Unix()),
+			key:          "key2",
+			want:         "",
+			wantEx:       0,
+			wantErr:      false,
 		},
 		{
-			name:        "3. Return key set expiry with EX",
-			presetValue: "value3",
-			getExOpts:   GetExOptions{EX: true, UNIXTIME: 100},
-			key:         "key3",
-			want:        "value3",
-			wantEx:      100,
-			wantErr:     false,
+			name:         "3. Return key set expiry with EX",
+			presetValue:  "value3",
+			getExOpt:     EX,
+			getExOptTime: 100,
+			key:          "key3",
+			want:         "value3",
+			wantEx:       100,
+			wantErr:      false,
 		},
 		{
-			name:        "4. Return key set expiry with PX",
-			presetValue: "value4",
-			getExOpts:   GetExOptions{PX: true, UNIXTIME: 100000},
-			key:         "key4",
-			want:        "value4",
-			wantEx:      100,
-			wantErr:     false,
+			name:         "4. Return key set expiry with PX",
+			presetValue:  "value4",
+			getExOpt:     PX,
+			getExOptTime: 100000,
+			key:          "key4",
+			want:         "value4",
+			wantEx:       100,
+			wantErr:      false,
 		},
 		{
-			name:        "5. Return key set expiry with EXAT",
-			presetValue: "value5",
-			getExOpts:   GetExOptions{EXAT: true, UNIXTIME: int(mockClock.Now().Add(100 * time.Second).Unix())},
-			key:         "key5",
-			want:        "value5",
-			wantEx:      100,
-			wantErr:     false,
+			name:         "5. Return key set expiry with EXAT",
+			presetValue:  "value5",
+			getExOpt:     EXAT,
+			getExOptTime: int(mockClock.Now().Add(100 * time.Second).Unix()),
+			key:          "key5",
+			want:         "value5",
+			wantEx:       100,
+			wantErr:      false,
 		},
 		{
-			name:        "6. Return key set expiry with PXAT",
-			presetValue: "value6",
-			getExOpts:   GetExOptions{PXAT: true, UNIXTIME: int(mockClock.Now().Add(100 * time.Second).UnixMilli())},
-			key:         "key6",
-			want:        "value6",
-			wantEx:      100,
-			wantErr:     false,
+			name:         "6. Return key set expiry with PXAT",
+			presetValue:  "value6",
+			getExOpt:     PXAT,
+			getExOptTime: int(mockClock.Now().Add(100 * time.Second).UnixMilli()),
+			key:          "key6",
+			want:         "value6",
+			wantEx:       100,
+			wantErr:      false,
 		},
 		{
 			name:        "7. Return key passing PERSIST",
 			presetValue: "value7",
-			getExOpts:   GetExOptions{PERSIST: true},
+			getExOpt:    PERSIST,
 			key:         "key7",
 			want:        "value7",
 			wantEx:      -1,
 			wantErr:     false,
 		},
 		{
-			name:        "8. Return key passing PERSIST, and include a UNIXTIME",
-			presetValue: "value8",
-			getExOpts:   GetExOptions{PERSIST: true, UNIXTIME: int(mockClock.Now().Add(100 * time.Second).Unix())},
-			key:         "key8",
-			want:        "value8",
-			wantEx:      -1,
-			wantErr:     false,
+			name:         "8. Return key passing PERSIST, and include a UNIXTIME",
+			presetValue:  "value8",
+			getExOpt:     PERSIST,
+			getExOptTime: int(mockClock.Now().Add(100 * time.Second).Unix()),
+			key:          "key8",
+			want:         "value8",
+			wantEx:       -1,
+			wantErr:      false,
 		},
 		{
 			name:        "9. Return key and attempt to set expiry with EX without providing UNIXTIME",
 			presetValue: "value9",
-			getExOpts:   GetExOptions{EX: true},
+			getExOpt:    EX,
 			key:         "key9",
 			want:        "value9",
 			wantEx:      -1,
@@ -1498,7 +1534,7 @@ func TestEchoVault_GETEX(t *testing.T) {
 		{
 			name:        "10. Return key and attempt to set expiry with PXAT without providing UNIXTIME",
 			presetValue: "value10",
-			getExOpts:   GetExOptions{PXAT: true},
+			getExOpt:    PXAT,
 			key:         "key10",
 			want:        "value10",
 			wantEx:      -1,
@@ -1515,7 +1551,7 @@ func TestEchoVault_GETEX(t *testing.T) {
 				}
 			}
 			//Check value received
-			got, err := server.GetEx(tt.key)
+			got, err := server.GetEx(tt.key, tt.getExOpt, tt.getExOptTime)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GETEX() GET error = %v, wantErr %v", err, tt.wantErr)
 				return
