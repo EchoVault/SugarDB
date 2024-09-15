@@ -345,8 +345,8 @@ func (server *EchoVault) PTTL(key string) (int, error) {
 func (server *EchoVault) Expire(key string, seconds int, options ...ExpireOptions) (bool, error) {
 	cmd := []string{"EXPIRE", key, strconv.Itoa(seconds)}
 
-	if options != nil {
-		for _, opt := range options {
+	for _, opt := range options {
+		if opt != nil {
 			cmd = append(cmd, fmt.Sprint(opt))
 		}
 	}
@@ -374,8 +374,8 @@ func (server *EchoVault) Expire(key string, seconds int, options ...ExpireOption
 func (server *EchoVault) PExpire(key string, milliseconds int, options ...ExpireOptions) (bool, error) {
 	cmd := []string{"PEXPIRE", key, strconv.Itoa(milliseconds)}
 
-	if options != nil {
-		for _, opt := range options {
+	for _, opt := range options {
+		if opt != nil {
 			cmd = append(cmd, fmt.Sprint(opt))
 		}
 	}
@@ -403,8 +403,8 @@ func (server *EchoVault) PExpire(key string, milliseconds int, options ...Expire
 func (server *EchoVault) ExpireAt(key string, unixSeconds int, options ...ExpireOptions) (int, error) {
 	cmd := []string{"EXPIREAT", key, strconv.Itoa(unixSeconds)}
 
-	if options != nil {
-		for _, opt := range options {
+	for _, opt := range options {
+		if opt != nil {
 			cmd = append(cmd, fmt.Sprint(opt))
 		}
 	}
@@ -431,8 +431,9 @@ func (server *EchoVault) ExpireAt(key string, unixSeconds int, options ...Expire
 // Returns: true if the key's expiry was successfully updated.
 func (server *EchoVault) PExpireAt(key string, unixMilliseconds int, options ...ExpireOptions) (int, error) {
 	cmd := []string{"PEXPIREAT", key, strconv.Itoa(unixMilliseconds)}
-	if options != nil {
-		for _, opt := range options {
+
+	for _, opt := range options {
+		if opt != nil {
 			cmd = append(cmd, fmt.Sprint(opt))
 		}
 	}
