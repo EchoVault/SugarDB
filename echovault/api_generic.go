@@ -639,3 +639,57 @@ func (server *EchoVault) GetEx(key string, option GetExOption, unixtime int) (st
 	}
 	return internal.ParseStringResponse(b)
 }
+
+// Touch Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used.
+// A key is ignored if it does not exist.
+//
+// Parameters:
+//
+// `keys` - ...string - the keys whose access time or access count should be incremented based on eviction policy.
+//
+// Returns: An integer representing the number of keys successfully touched. If a key doesn't exist it is simply ignored.
+func (server *EchoVault) Touch(keys ...string) (int, error) {
+	cmd := make([]string, len(keys)+1)
+	cmd[0] = "TOUCH"
+	for i, k := range keys {
+		cmd[i+1] = k
+	}
+
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return -1, err
+	}
+	return internal.ParseIntegerResponse(b)
+}
+
+// ObjectFreq retrieves the access frequency count of an object stored at <key>.
+// The command is only available when the maxmemory-policy configuration directive is set to one of the LFU policies.
+//
+// Parameters:
+//
+// `key` - string - the key whose access frequency should be retrieved.
+//
+// Returns: An integer representing the access frequency. If the key doesn't exist -1 and an error is returned.
+func (server *EchoVault) ObjectFreq(key string) (int, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"OBJECTFREQ", key}), nil, false, true)
+	if err != nil {
+		return -1, err
+	}
+	return internal.ParseIntegerResponse(b)
+}
+
+// ObjectIdleTime retrieves the time in seconds since the last access to the value stored at <key>.
+// The command is only available when the maxmemory-policy configuration directive is set to one of the LRU policies.
+//
+// Parameters:
+//
+// `key` - string - the key whose last access time should be retrieved.
+//
+// Returns: A float64 representing the seconds since the key was last accessed. If the key doesn't exist -1 and an error is returned.
+func (server *EchoVault) ObjectIdleTime(key string) (float64, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"OBJECTIDLETIME", key}), nil, false, true)
+	if err != nil {
+		return -1, err
+	}
+	return internal.ParseFloatResponse(b)
+}

@@ -16,7 +16,10 @@ package eviction
 
 import (
 	"container/heap"
+	"errors"
+	"fmt"
 	"slices"
+	"sync"
 	"time"
 )
 
@@ -30,15 +33,37 @@ type EntryLFU struct {
 type CacheLFU struct {
 	keys    map[string]bool
 	entries []*EntryLFU
+	Mutex   *sync.Mutex // Lock for retrieving count
 }
 
 func NewCacheLFU() *CacheLFU {
 	cache := CacheLFU{
 		keys:    make(map[string]bool),
 		entries: make([]*EntryLFU, 0),
+		Mutex:   &sync.Mutex{},
 	}
 	heap.Init(&cache)
 	return &cache
+}
+
+func (cache *CacheLFU) GetCount(key string) (int, error) {
+
+	entryIdx := slices.IndexFunc(cache.entries, func(e *EntryLFU) bool {
+		return e.key == key
+	})
+
+	if entryIdx > -1 {
+		entry := cache.entries[entryIdx]
+		return entry.count, nil
+	} else {
+		return -1, errors.New(fmt.Sprintf("Key: %s does not exist.", key))
+	}
+
+}
+
+func (cache *CacheLFU) Flush() {
+	clear(cache.keys)
+	clear(cache.entries)
 }
 
 func (cache *CacheLFU) Len() int {
@@ -83,6 +108,7 @@ func (cache *CacheLFU) Pop() any {
 }
 
 func (cache *CacheLFU) Update(key string) {
+
 	// If the key is not contained in the cache, push it.
 	if !cache.contains(key) {
 		heap.Push(cache, key)

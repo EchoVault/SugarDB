@@ -82,12 +82,6 @@ func (server *EchoVault) Flush(database int) {
 	server.keysWithExpiry.rwMutex.Lock()
 	defer server.keysWithExpiry.rwMutex.Unlock()
 
-	server.lfuCache.mutex.Lock()
-	defer server.lfuCache.mutex.Unlock()
-
-	server.lruCache.mutex.Lock()
-	defer server.lruCache.mutex.Unlock()
-
 	if database == -1 {
 		for db, _ := range server.store {
 			// Clear db store.
@@ -95,9 +89,13 @@ func (server *EchoVault) Flush(database int) {
 			// Clear db volatile key tracker.
 			clear(server.keysWithExpiry.keys[db])
 			// Clear db LFU cache.
-			server.lfuCache.cache[db] = eviction.NewCacheLFU()
+			server.lfuCache.cache[db].Mutex.Lock()
+			server.lfuCache.cache[db].Flush()
+			server.lfuCache.cache[db].Mutex.Unlock()
 			// Clear db LRU cache.
-			server.lruCache.cache[db] = eviction.NewCacheLRU()
+			server.lruCache.cache[db].Mutex.Lock()
+			server.lruCache.cache[db].Flush()
+			server.lruCache.cache[db].Mutex.Unlock()
 		}
 		return
 	}
@@ -107,9 +105,13 @@ func (server *EchoVault) Flush(database int) {
 	// Clear db volatile key tracker.
 	clear(server.keysWithExpiry.keys[database])
 	// Clear db LFU cache.
-	server.lfuCache.cache[database] = eviction.NewCacheLFU()
+	server.lfuCache.cache[database].Mutex.Lock()
+	server.lfuCache.cache[database].Flush()
+	server.lfuCache.cache[database].Mutex.Unlock()
 	// Clear db LRU cache.
-	server.lruCache.cache[database] = eviction.NewCacheLRU()
+	server.lruCache.cache[database].Mutex.Lock()
+	server.lruCache.cache[database].Flush()
+	server.lruCache.cache[database].Mutex.Unlock()
 }
 
 func (server *EchoVault) keysExist(ctx context.Context, keys []string) map[string]bool {
@@ -185,7 +187,7 @@ func (server *EchoVault) getValues(ctx context.Context, keys []string) map[strin
 
 	// Asynchronously update the keys in the cache.
 	go func(ctx context.Context, keys []string) {
-		if err := server.updateKeysInCache(ctx, keys); err != nil {
+		if _, err := server.updateKeysInCache(ctx, keys); err != nil {
 			log.Printf("getValues error: %+v\n", err)
 		}
 	}(ctx, keys)
@@ -225,7 +227,7 @@ func (server *EchoVault) setValues(ctx context.Context, entries map[string]inter
 	// Asynchronously update the keys in the cache.
 	go func(ctx context.Context, entries map[string]interface{}) {
 		for key, _ := range entries {
-			err := server.updateKeysInCache(ctx, []string{key})
+			_, err := server.updateKeysInCache(ctx, []string{key})
 			if err != nil {
 				log.Printf("setValues error: %+v\n", err)
 			}
@@ -256,7 +258,7 @@ func (server *EchoVault) setExpiry(ctx context.Context, key string, expireAt tim
 	// If touch is true, update the keys status in the cache.
 	if touch {
 		go func(ctx context.Context, key string) {
-			err := server.updateKeysInCache(ctx, []string{key})
+			_, err := server.updateKeysInCache(ctx, []string{key})
 			if err != nil {
 				log.Printf("setExpiry error: %+v\n", err)
 			}
@@ -331,44 +333,53 @@ func (server *EchoVault) getState() map[int]map[string]interface{} {
 
 // updateKeysInCache updates either the key access count or the most recent access time in the cache
 // depending on whether an LFU or LRU strategy was used.
-func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) error {
+func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) (int64, error) {
 	database := ctx.Value("Database").(int)
+	var touchCounter int64
 
-	for _, key := range keys {
-		// Only update cache when in standalone mode or when raft leader.
-		if server.isInCluster() || (server.isInCluster() && !server.raft.IsRaftLeader()) {
-			return nil
-		}
-		// If max memory is 0, there's no max so no need to update caches.
-		if server.config.MaxMemory == 0 {
-			return nil
-		}
-		switch strings.ToLower(server.config.EvictionPolicy) {
-		case constants.AllKeysLFU:
-			server.lfuCache.mutex.Lock()
-			server.lfuCache.cache[database].Update(key)
-			server.lfuCache.mutex.Unlock()
-		case constants.AllKeysLRU:
-			server.lruCache.mutex.Lock()
-			server.lruCache.cache[database].Update(key)
-			server.lruCache.mutex.Unlock()
-		case constants.VolatileLFU:
-			server.lfuCache.mutex.Lock()
-			if server.store[database][key].ExpireAt != (time.Time{}) {
-				server.lfuCache.cache[database].Update(key)
-			}
-			server.lfuCache.mutex.Unlock()
-		case constants.VolatileLRU:
-			server.lruCache.mutex.Lock()
-			if server.store[database][key].ExpireAt != (time.Time{}) {
-				server.lruCache.cache[database].Update(key)
-			}
-			server.lruCache.mutex.Unlock()
-		}
+	// Only update cache when in standalone mode or when raft leader.
+	if server.isInCluster() || (server.isInCluster() && !server.raft.IsRaftLeader()) {
+		return touchCounter, nil
+	}
+	// If max memory is 0, there's no max so no need to update caches.
+	if server.config.MaxMemory == 0 {
+		return touchCounter, nil
 	}
 
 	server.storeLock.Lock()
 	defer server.storeLock.Unlock()
+
+	for _, key := range keys {
+		// Verify key exists
+		if _, ok := server.store[database][key]; !ok {
+			continue
+		}
+
+		touchCounter++
+
+		switch strings.ToLower(server.config.EvictionPolicy) {
+		case constants.AllKeysLFU:
+			server.lfuCache.cache[database].Mutex.Lock()
+			server.lfuCache.cache[database].Update(key)
+			server.lfuCache.cache[database].Mutex.Unlock()
+		case constants.AllKeysLRU:
+			server.lruCache.cache[database].Mutex.Lock()
+			server.lruCache.cache[database].Update(key)
+			server.lruCache.cache[database].Mutex.Unlock()
+		case constants.VolatileLFU:
+			server.lfuCache.cache[database].Mutex.Lock()
+			if server.store[database][key].ExpireAt != (time.Time{}) {
+				server.lfuCache.cache[database].Update(key)
+			}
+			server.lfuCache.cache[database].Mutex.Unlock()
+		case constants.VolatileLRU:
+			server.lruCache.cache[database].Mutex.Lock()
+			if server.store[database][key].ExpireAt != (time.Time{}) {
+				server.lruCache.cache[database].Update(key)
+			}
+			server.lruCache.cache[database].Mutex.Unlock()
+		}
+	}
 
 	wg := sync.WaitGroup{}
 	errChan := make(chan error)
@@ -379,7 +390,7 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) e
 		ctx := context.WithValue(ctx, "Database", db)
 		go func(ctx context.Context, database int, wg *sync.WaitGroup, errChan *chan error) {
 			if err := server.adjustMemoryUsage(ctx); err != nil {
-				*errChan <- fmt.Errorf("adjustMemoryUsade database %d", database)
+				*errChan <- fmt.Errorf("adjustMemoryUsage database %d, error: %v", database, err)
 			}
 			wg.Done()
 		}(ctx, db, &wg, &errChan)
@@ -392,11 +403,11 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) e
 
 	select {
 	case err := <-errChan:
-		return fmt.Errorf("adjustMemoryUsage error: %+v", err)
+		return touchCounter, fmt.Errorf("adjustMemoryUsage error: %+v", err)
 	case <-doneChan:
 	}
 
-	return nil
+	return touchCounter, nil
 }
 
 // adjustMemoryUsage should only be called from standalone echovault or from raft cluster leader.
@@ -422,6 +433,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	if memStats.HeapInuse < server.config.MaxMemory {
 		return nil
 	}
+
 	// We've done a GC, but we're still at or above the max memory limit.
 	// Start a loop that evicts keys until either the heap is empty or
 	// we're below the max memory limit.
@@ -429,8 +441,8 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	case slices.Contains([]string{constants.AllKeysLFU, constants.VolatileLFU}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove keys from LFU cache until we're below the max memory limit or
 		// until the LFU cache is empty.
-		server.lfuCache.mutex.Lock()
-		defer server.lfuCache.mutex.Unlock()
+		server.lfuCache.cache[database].Mutex.Lock()
+		defer server.lfuCache.cache[database].Mutex.Unlock()
 		for {
 			// Return if cache is empty
 			if server.lfuCache.cache[database].Len() == 0 {
@@ -441,6 +453,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
 				if err := server.deleteKey(ctx, key); err != nil {
+					log.Printf("Evicting key %v from database %v \n", key, database)
 					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
 				}
 			} else if server.isInCluster() && server.raft.IsRaftLeader() {
@@ -460,8 +473,8 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 	case slices.Contains([]string{constants.AllKeysLRU, constants.VolatileLRU}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove keys from th LRU cache until we're below the max memory limit or
 		// until the LRU cache is empty.
-		server.lruCache.mutex.Lock()
-		defer server.lruCache.mutex.Unlock()
+		server.lruCache.cache[database].Mutex.Lock()
+		defer server.lruCache.cache[database].Mutex.Unlock()
 		for {
 			// Return if cache is empty
 			if server.lruCache.cache[database].Len() == 0 {
@@ -472,6 +485,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key.
 				if err := server.deleteKey(ctx, key); err != nil {
+					log.Printf("Evicting key %v from database %v \n", key, database)
 					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
 				}
 			} else if server.isInCluster() && server.raft.IsRaftLeader() {
@@ -508,6 +522,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 							if !server.isInCluster() {
 								// If in standalone mode, directly delete the key
 								if err := server.deleteKey(ctx, key); err != nil {
+									log.Printf("Evicting key %v from database %v \n", key, db)
 									return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
 								}
 							} else if server.isInCluster() && server.raft.IsRaftLeader() {
@@ -541,6 +556,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
 				if err := server.deleteKey(ctx, key); err != nil {
+					log.Printf("Evicting key %v from database %v \n", key, database)
 					return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
 				}
 			} else if server.isInCluster() && server.raft.IsRaftLeader() {
@@ -663,4 +679,47 @@ func (server *EchoVault) randomKey(ctx context.Context) string {
 	}
 
 	return randkey
+}
+
+func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, error) {
+	database := ctx.Value("Database").(int)
+
+	var freq int
+	var err error
+	if server.lfuCache.cache != nil {
+		server.lfuCache.cache[database].Mutex.Lock()
+		freq, err = server.lfuCache.cache[database].GetCount(key)
+		server.lfuCache.cache[database].Mutex.Unlock()
+	} else {
+		return -1, errors.New("error: eviction policy must be a type of LFU")
+	}
+
+	if err != nil {
+		return -1, err
+	}
+
+	return freq, nil
+}
+
+func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (float64, error) {
+	database := ctx.Value("Database").(int)
+
+	var accessTime int64
+	var err error
+	if server.lruCache.cache != nil {
+		server.lruCache.cache[database].Mutex.Lock()
+		accessTime, err = server.lruCache.cache[database].GetTime(key)
+		server.lruCache.cache[database].Mutex.Unlock()
+	} else {
+		return -1, errors.New("error: eviction policy must be a type of LRU")
+	}
+
+	if err != nil {
+		return -1, err
+	}
+
+	lastAccess := time.UnixMilli(accessTime)
+	secs := time.Now().Sub(lastAccess).Seconds()
+
+	return secs, nil
 }
