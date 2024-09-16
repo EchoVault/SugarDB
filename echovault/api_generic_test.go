@@ -604,17 +604,12 @@ func TestEchoVault_SET(t *testing.T) {
 
 	server := createEchoVault()
 
-	SetOptions := func(W SetWriteOption, EX SetExOption, EXTIME int, GET boo) SETOptions {
-		return struct {
-			W      SetWriteOption
-			EX     SetExOption
-			EXTIME int
-			GET    bool
-		}{
-			W:      W,
-			EX:     EX,
-			EXTIME: EXTIME,
-			GET:    GET,
+	SetOptions := func(W SetWriteOption, EX SetExOption, EXTIME int, GET bool) SETOptions {
+		return SETOptions{
+			WriteOpt:   W,
+			ExpireOpt:  EX,
+			ExpireTime: EXTIME,
+			Get:        GET,
 		}
 	}
 
@@ -623,15 +618,10 @@ func TestEchoVault_SET(t *testing.T) {
 		presetValues map[string]internal.KeyData
 		key          string
 		value        string
-		options      struct {
-			W      SetWriteOption
-			EX     SetExOption
-			EXTIME int
-			GET    bool
-		}
-		wantOk   bool
-		wantPrev string
-		wantErr  bool
+		options      SETOptions
+		wantOk       bool
+		wantPrev     string
+		wantErr      bool
 	}{
 		{
 			name:         "Set normal value",
@@ -769,10 +759,7 @@ func TestEchoVault_SET(t *testing.T) {
 			previousValue, ok, err := server.Set(
 				tt.key,
 				tt.value,
-				tt.options.W,
-				tt.options.EX,
-				tt.options.EXTIME,
-				tt.options.GET,
+				tt.options,
 			)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SET() error = %v, wantErr %v", err, tt.wantErr)
