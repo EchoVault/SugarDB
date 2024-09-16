@@ -29,6 +29,23 @@ const config: Config = {
     locales: ["en"],
   },
 
+  // Custom plugin for hot reloading
+  plugins: [
+    function hotReload() {
+      return {
+        name: 'hot-reload',
+        configureWebpack() {
+          return {
+            watchOptions: {
+              poll: 1000, // Check for changes every second
+              aggregateTimeout: 300, // Delay before rebuilding
+            },
+          };
+        },
+      };
+    },
+  ],
+
   presets: [
     [
       "classic",

@@ -604,12 +604,7 @@ func TestEchoVault_SET(t *testing.T) {
 
 	server := createEchoVault()
 
-	SetOptions := func(W SetWriteOption, EX SetExOption, EXTIME int, GET bool) struct {
-		W      SetWriteOption
-		EX     SetExOption
-		EXTIME int
-		GET    bool
-	} {
+	SetOptions := func(W SetWriteOption, EX SetExOption, EXTIME int, GET boo) SETOptions {
 		return struct {
 			W      SetWriteOption
 			EX     SetExOption

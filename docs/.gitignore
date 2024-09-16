@@ -8,6 +8,7 @@
 .docusaurus
 .cache-loader
 .next
+package-lock.json
 
 # Misc
 .DS_Store

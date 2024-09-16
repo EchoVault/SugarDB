@@ -32,7 +32,7 @@ const (
 
 // SetWriteOption modifies the behavior of Set.
 //
-// SETNX - Only set if the key does not exist. NX is higher priority than XX.
+// SETNX - Only set if the key does not exist.
 //
 // SETXX - Only set if the key exists.
 type SetWriteOption interface {
@@ -59,12 +59,28 @@ const (
 //
 // SETEXAT - Expire at the exact time in unix seconds (positive integer).
 //
-// SETPXAT - Expire at the exat time in unix milliseconds (positive integer).
+// SETPXAT - Expire at the exact time in unix milliseconds (positive integer).
 type SetExOption interface {
 	IsSetExOpt() SetExOpt
 }
 
 func (x SetExOpt) IsSetExOpt() SetExOpt { return x }
+
+// SETOptions is a struct wrapper for all optional parameters of the Set command.
+//
+// `WriteOpt` - SetWriteOption - One of SETNX or SETXX.
+//
+// `ExpireOpt` - SetExOption - One of SETEX, SETPX, SETEXAT, or SETPXAT.
+//
+// `ExpireTime` - int - Time in seconds or milliseconds depending on what ExpireOpt was provided.
+//
+// `GET` - bool - Whether or not to return previous value if there was one.
+type SETOptions struct {
+	WriteOpt   SetWriteOption
+	ExpireOpt  SetExOption
+	ExpireTime int
+	Get        bool
+}
 
 // ExpireOptions constants
 type ExOpt string
@@ -129,14 +145,6 @@ func (x GetExOpt) isGetExOpt() GetExOpt { return x }
 //
 // `value` - string - the value to place at the key.
 //
-// `writeOpt` - SetWriteOption - One of NX or XX.
-//
-// `exOpt` - SetExOption - One of EX, PX, EXAT, or PXAT.
-//
-// `exTime` - int - Time in seconds or milliseconds depending on what exOpt was passed.
-//
-// `GET` - bool - Whether or not to return previous value if there was one.
-//
 // Returns: true if the set is successful, If the "Get" flag in SetOptions is set to true, the previous value is returned.
 //
 // Errors:
@@ -144,18 +152,18 @@ func (x GetExOpt) isGetExOpt() GetExOpt { return x }
 // "key <key> does not exist"" - when the XX flag is set to true and the key does not exist.
 //
 // "key <key> does already exists" - when the NX flag is set to true and the key already exists.
-func (server *EchoVault) Set(key, value string, writeOpt SetWriteOption, exOpt SetExOption, exTime int, GET bool) (string, bool, error) {
+func (server *EchoVault) Set(key, value string, options SETOptions) (string, bool, error) {
 	cmd := []string{"SET", key, value}
 
-	if writeOpt != nil {
-		cmd = append(cmd, fmt.Sprint(writeOpt))
+	if options.WriteOpt != nil {
+		cmd = append(cmd, fmt.Sprint(options.WriteOpt))
 	}
 
-	if exOpt != nil {
-		cmd = append(cmd, []string{fmt.Sprint(exOpt), strconv.Itoa(exTime)}...)
+	if options.ExpireOpt != nil {
+		cmd = append(cmd, []string{fmt.Sprint(options.ExpireOpt), strconv.Itoa(options.ExpireTime)}...)
 	}
 
-	if GET {
+	if options.Get {
 		cmd = append(cmd, "GET")
 	}
 
@@ -168,7 +176,7 @@ func (server *EchoVault) Set(key, value string, writeOpt SetWriteOption, exOpt S
 	if err != nil {
 		return "", false, err
 	}
-	if !GET {
+	if !options.Get {
 		previousValue = ""
 	}
 

@@ -1,11 +1,11 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# EXPIRE
+# EXPIREAT
 
 ### Syntax
 ```
-EXPIRE key seconds [NX | XX | GT | LT]
+EXPIREAT key unix-time-seconds [NX | XX | GT | LT]
 ```
 
 ### Module
@@ -17,7 +17,7 @@ EXPIRE key seconds [NX | XX | GT | LT]
 <span className="acl-category">write</span>
 
 ### Description
-Expire the key in the specified number of seconds. This commands turns a key into a volatile one.
+Expire the key at the provided unix-time. This commands turns a key into a volatile one.
 
 ### Options
 
@@ -52,7 +52,7 @@ Add an expiration to a key:
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Expire("key", 10, nil)
+    ok, err := vault.Expire("key", 1767160800, nil)
     ```
 
     Add an expiration to a key only if it does not have one already:
@@ -61,7 +61,7 @@ Add an expiration to a key:
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Expire("key", 10, echovault.NX)
+    ok, err := vault.Expire("key", 1767160800, echovault.NX)
     ```
 
     Add an expiration to a key only if it has one already:
@@ -70,7 +70,7 @@ Add an expiration to a key:
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Expire("key", 10, echovault.XX)
+    ok, err := vault.Expire("key", 1767160800, echovault.XX)
     ```
 
     Add an expiration to a key only if it already has one that is less than the current expiry:
@@ -79,28 +79,28 @@ Add an expiration to a key:
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Expire("key", 10, echovault.XX, echovault.LT)
+    ok, err := vault.Expire("key", 1767160800, echovault.XX, echovault.LT)
     ```
   </TabItem>
   <TabItem value="cli">
     Add an expiration to a key:
     ```
-    > EXPIRE key 10
+    > EXPIRE key 1767160800
     ```
 
     Add an expiration to a key only if it does not have one already:
     ```
-    > EXPIRE key 10 NX
+    > EXPIRE key 1767160800 NX
     ```
 
     Add an expiration to a key only if it has one already:
     ```
-    > EXPIRE key 10 XX
+    > EXPIRE key 1767160800 XX
     ```
 
     Add an expiration to a key only if it already has one that is less than the current expiry:
     ```
-    > EXPIRE key 10 XX LT
+    > EXPIRE key 1767160800 XX LT
     ```
   </TabItem>
 </Tabs>
