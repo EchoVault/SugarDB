@@ -28,6 +28,7 @@ Set the value of a key, considering the value's type. If the key already exists,
 - `PXAT` - Expire at the exat time in unix milliseconds (positive integer).
 
 
+
 ### Examples
 
 <Tabs
@@ -38,13 +39,35 @@ Set the value of a key, considering the value's type. If the key already exists,
   ]}
 >
   <TabItem value="go">
+    The embedded API organizes the SET command options into constants wrapped in interfaces.
+    <br></br>
+        SetWriteOption
+            - `SETNX` - Only set if the key does not exist.
+            - `SETXX` - Only set if the key exists.
+    <br></br>
+        SetExOption
+            - `SETEX` - Expire the key after the specified number of seconds.
+            - `SETPX` - Expire the key after the specified number of milliseconds.
+            - `SETEXAT` - Expire at the exact time in unix seconds.
+            - `SETPXAT` - Expire at the exact time in unix milliseconds.
+    <br></br>
+    The API provides a struct called SETOptions that wraps these options in a convenient object.
+        ```go
+        type SETOptions struct {        
+            WriteOpt   SetWriteOption
+            ExpireOpt  SetExOption
+            ExpireTime int
+            Get        bool
+        }
+        ```
+<br></br>
     Set a value at a key:
     ```go
     vault, err := echovault.NewEchoVault()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Set("name", "EchoVault", echovault.SetOptions{})
+    ok, err := vault.Set("name", "EchoVault", echovault.SETOptions{})
     ```
 
     Set a value only if the key does not exist:
@@ -53,7 +76,7 @@ Set the value of a key, considering the value's type. If the key already exists,
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Set("name", "EchoVault", echovault.SetOptions{NX: true})
+    ok, err := vault.Set("name", "EchoVault", echovault.SETOptions{WriteOpt: echovault.SETNX})
     ```
 
     Set a value if key already exists and get the previous value:
@@ -62,7 +85,7 @@ Set the value of a key, considering the value's type. If the key already exists,
     if err != nil {
       log.Fatal(err)
     }
-    previousValue, err := vault.Set("name", "EchoVault", echovault.SetOptions{XX: true, GET: true})
+    previousValue, err := vault.Set("name", "EchoVault", echovault.SetOptions{WriteOpt: echovault.SETXX, Get: true})
     ```
 
     Set a value if the key already exists, return the previous value, and expire after 10 seconds:
@@ -71,7 +94,7 @@ Set the value of a key, considering the value's type. If the key already exists,
     if err != nil {
       log.Fatal(err)
     }
-    previousValue, err := vault.Set("name", "EchoVault", echovault.SetOptions{XX: true, GET: true, EX: 10})
+    previousValue, err := vault.Set("name", "EchoVault", echovault.SetOptions{WriteOpt: echovault.SETXX, ExpireOpt: echovault.SETEX, ExpireTime 10, Get: true})
     ```
   </TabItem>
   <TabItem value="cli">

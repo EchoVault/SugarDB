@@ -311,7 +311,7 @@ func Test_Cluster(t *testing.T) {
 		// Write all the data to the cluster leader.
 		for i, test := range tests {
 			node := nodes[0]
-			_, ok, err := node.server.Set(test.key, test.value, SetOptions{})
+			_, ok, err := node.server.Set(test.key, test.value, SETOptions{})
 			if err != nil {
 				t.Errorf("could not write command to leader node (test %d): %v", i, err)
 			}
@@ -411,7 +411,7 @@ func Test_Cluster(t *testing.T) {
 		// Write all the data to the cluster leader.
 		for i, test := range tests {
 			node := nodes[0]
-			_, ok, err := node.server.Set(test.key, test.value, SetOptions{})
+			_, ok, err := node.server.Set(test.key, test.value, SETOptions{})
 			if err != nil {
 				t.Errorf("could not write command to leader node (test %d): %v", i, err)
 			}
@@ -999,7 +999,7 @@ func Test_Standalone(t *testing.T) {
 				for database, data := range test.values {
 					_ = mockServer.SelectDB(database)
 					for key, value := range data {
-						if _, _, err = mockServer.Set(key, value, SetOptions{}); err != nil {
+						if _, _, err = mockServer.Set(key, value, SETOptions{}); err != nil {
 							t.Error(err)
 							return
 						}
@@ -1101,7 +1101,7 @@ func Test_Standalone(t *testing.T) {
 
 		// Perform write commands from "before-rewrite"
 		for key, value := range data["before-rewrite"] {
-			if _, _, err := mockServer.Set(key, value, SetOptions{}); err != nil {
+			if _, _, err := mockServer.Set(key, value, SETOptions{}); err != nil {
 				t.Error(err)
 				return
 			}
@@ -1118,7 +1118,7 @@ func Test_Standalone(t *testing.T) {
 
 		// Perform write commands from "after-rewrite"
 		for key, value := range data["after-rewrite"] {
-			if _, _, err := mockServer.Set(key, value, SetOptions{}); err != nil {
+			if _, _, err := mockServer.Set(key, value, SETOptions{}); err != nil {
 				t.Error(err)
 				return
 			}

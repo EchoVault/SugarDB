@@ -2662,7 +2662,7 @@ func Test_Generic(t *testing.T) {
 				_, _, _ = mockServer.Set(
 					fmt.Sprintf("key%d", k),
 					fmt.Sprintf("value%d", k),
-					echovault.SetOptions{},
+					echovault.SETOptions{},
 				)
 			}
 		}
@@ -2768,7 +2768,7 @@ func Test_Generic(t *testing.T) {
 			_, _, err := mockServer.Set(
 				fmt.Sprintf("RandomKey%d", i),
 				fmt.Sprintf("Value%d", i),
-				echovault.SetOptions{},
+				echovault.SETOptions{},
 			)
 			if err != nil {
 				t.Error(err)
