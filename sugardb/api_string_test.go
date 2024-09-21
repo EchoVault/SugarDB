@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
 	"testing"
 )
 
-func TestEchoVault_SUBSTR(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SUBSTR(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -178,8 +178,8 @@ func TestEchoVault_SUBSTR(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SETRANGE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SETRANGE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -266,8 +266,8 @@ func TestEchoVault_SETRANGE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_STRLEN(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_STRLEN(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -312,8 +312,8 @@ func TestEchoVault_STRLEN(t *testing.T) {
 	}
 }
 
-func TestEchoVault_APPEND(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_APPEND(t *testing.T) {
+	server := createSugarDB()
 	tests := []struct {
 		name        string
 		presetValue interface{}

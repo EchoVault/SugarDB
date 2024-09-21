@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"bytes"
@@ -31,7 +31,7 @@ import (
 	"time"
 )
 
-func TestEchoVault_AddCommand(t *testing.T) {
+func TestSugarDB_AddCommand(t *testing.T) {
 	type args struct {
 		command CommandOptions
 	}
@@ -176,7 +176,7 @@ The value passed must be an integer.`,
 		},
 	}
 	for _, tt := range tests {
-		server := createEchoVault()
+		server := createSugarDB()
 		t.Run(tt.name, func(t *testing.T) {
 			if err := server.AddCommand(tt.args.command); (err != nil) != tt.wantErr {
 				t.Errorf("AddCommand() error = %v, wantErr %v", err, tt.wantErr)
@@ -199,7 +199,7 @@ The value passed must be an integer.`,
 	}
 }
 
-func TestEchoVault_ExecuteCommand(t *testing.T) {
+func TestSugarDB_ExecuteCommand(t *testing.T) {
 	type args struct {
 		key         string
 		presetValue []string
@@ -233,7 +233,7 @@ func TestEchoVault_ExecuteCommand(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		server := createEchoVault()
+		server := createSugarDB()
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.args.presetValue != nil {
 				_, _ = server.LPush(tt.args.key, tt.args.presetValue...)
@@ -253,7 +253,7 @@ func TestEchoVault_ExecuteCommand(t *testing.T) {
 	}
 }
 
-func TestEchoVault_RemoveCommand(t *testing.T) {
+func TestSugarDB_RemoveCommand(t *testing.T) {
 	type args struct {
 		removeCommand  []string
 		executeCommand []string
@@ -289,7 +289,7 @@ func TestEchoVault_RemoveCommand(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		server := createEchoVault()
+		server := createSugarDB()
 		t.Run(tt.name, func(t *testing.T) {
 			server.RemoveCommand(tt.args.removeCommand...)
 			_, err := server.ExecuteCommand(tt.args.executeCommand...)
@@ -302,12 +302,12 @@ func TestEchoVault_RemoveCommand(t *testing.T) {
 	}
 }
 
-func TestEchoVault_Plugins(t *testing.T) {
+func TestSugarDB_Plugins(t *testing.T) {
 	t.Cleanup(func() {
 		_ = os.RemoveAll("./testdata/modules")
 	})
 
-	server := createEchoVault()
+	server := createSugarDB()
 
 	moduleSet := path.Join(".", "testdata", "modules", "module_set", "module_set.so")
 	moduleGet := path.Join(".", "testdata", "modules", "module_get", "module_get.so")
@@ -378,8 +378,8 @@ func TestEchoVault_Plugins(t *testing.T) {
 	}
 }
 
-func TestEchoVault_CommandList(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_CommandList(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name    string
@@ -468,8 +468,8 @@ func TestEchoVault_CommandList(t *testing.T) {
 	}
 }
 
-func TestEchoVault_CommandCount(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_CommandCount(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name    string
@@ -508,11 +508,11 @@ func TestEchoVault_CommandCount(t *testing.T) {
 	}
 }
 
-func TestEchoVault_Save(t *testing.T) {
+func TestSugarDB_Save(t *testing.T) {
 	conf := DefaultConfig()
 	conf.DataDir = path.Join(".", "testdata", "data")
 	conf.EvictionPolicy = constants.NoEviction
-	server := createEchoVaultWithConfig(conf)
+	server := createSugarDBWithConfig(conf)
 
 	tests := []struct {
 		name    string
@@ -539,8 +539,8 @@ func TestEchoVault_Save(t *testing.T) {
 	}
 }
 
-func TestEchoVault_LastSave(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_LastSave(t *testing.T) {
+	server := createSugarDB()
 	server.setLatestSnapshot(clock.NewClock().Now().Add(5 * time.Minute).UnixMilli())
 
 	tests := []struct {

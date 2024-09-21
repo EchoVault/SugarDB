@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"bytes"
@@ -75,7 +75,7 @@ func establishConnections(tag string) (*net.Conn, *net.Conn, error) {
 //
 // Returns: ReadPubSubMessage function which reads the next message sent to the subscription instance.
 // This function is blocking.
-func (server *EchoVault) Subscribe(tag string, channels ...string) (ReadPubSubMessage, error) {
+func (server *SugarDB) Subscribe(tag string, channels ...string) (ReadPubSubMessage, error) {
 	readConn, writeConn, err := establishConnections(tag)
 	if err != nil {
 		return func() []string {
@@ -109,7 +109,7 @@ func (server *EchoVault) Subscribe(tag string, channels ...string) (ReadPubSubMe
 // `tag` - string - The tag used to identify this subscription instance.
 //
 // `channels` - ...string - The list of channels to unsubscribe from.
-func (server *EchoVault) Unsubscribe(tag string, channels ...string) {
+func (server *SugarDB) Unsubscribe(tag string, channels ...string) {
 	c, ok := connections.Load(tag)
 	if !ok {
 		return
@@ -128,7 +128,7 @@ func (server *EchoVault) Unsubscribe(tag string, channels ...string) {
 //
 // Returns: ReadPubSubMessage function which reads the next message sent to the subscription instance.
 // This function is blocking.
-func (server *EchoVault) PSubscribe(tag string, patterns ...string) (ReadPubSubMessage, error) {
+func (server *SugarDB) PSubscribe(tag string, patterns ...string) (ReadPubSubMessage, error) {
 	readConn, writeConn, err := establishConnections(tag)
 	if err != nil {
 		return func() []string {
@@ -162,7 +162,7 @@ func (server *EchoVault) PSubscribe(tag string, patterns ...string) (ReadPubSubM
 // `tag` - string - The tag used to identify this subscription instance.
 //
 // `patterns` - ...string - The list of glob patterns to unsubscribe from.
-func (server *EchoVault) PUnsubscribe(tag string, patterns ...string) {
+func (server *SugarDB) PUnsubscribe(tag string, patterns ...string) {
 	c, ok := connections.Load(tag)
 	if !ok {
 		return
@@ -181,7 +181,7 @@ func (server *EchoVault) PUnsubscribe(tag string, patterns ...string) {
 //
 // Returns: true when the publish is successful. This does not indicate whether each subscriber has received the message,
 // only that the message has been published.
-func (server *EchoVault) Publish(channel, message string) (bool, error) {
+func (server *SugarDB) Publish(channel, message string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PUBLISH", channel, message}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -197,7 +197,7 @@ func (server *EchoVault) Publish(channel, message string) (bool, error) {
 // `pattern` - string - The glob pattern used to match the channel names.
 //
 // Returns: A string slice of all the active channels and patterns (i.e. channels and patterns that have 1 or more subscribers).
-func (server *EchoVault) PubSubChannels(pattern string) ([]string, error) {
+func (server *SugarDB) PubSubChannels(pattern string) ([]string, error) {
 	cmd := []string{"PUBSUB", "CHANNELS"}
 	if pattern != "" {
 		cmd = append(cmd, pattern)
@@ -212,7 +212,7 @@ func (server *EchoVault) PubSubChannels(pattern string) ([]string, error) {
 // PubSubNumPat returns the list of active patterns.
 //
 // Returns: An integer representing the number of all the active patterns (i.e. patterns that have 1 or more subscribers).
-func (server *EchoVault) PubSubNumPat() (int, error) {
+func (server *SugarDB) PubSubNumPat() (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PUBSUB", "NUMPAT"}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -227,7 +227,7 @@ func (server *EchoVault) PubSubNumPat() (int, error) {
 // `channels` - ...string - The list of channels whose number of subscribers is to be checked.
 //
 // Returns: A map of map[string]int where the key is the channel name and the value is the number of subscribers.
-func (server *EchoVault) PubSubNumSub(channels ...string) (map[string]int, error) {
+func (server *SugarDB) PubSubNumSub(channels ...string) (map[string]int, error) {
 	cmd := append([]string{"PUBSUB", "NUMSUB"}, channels...)
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
@@ -20,8 +20,8 @@ import (
 	"testing"
 )
 
-func TestEchoVault_LLEN(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_LLEN(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		preset      bool
@@ -77,8 +77,8 @@ func TestEchoVault_LLEN(t *testing.T) {
 	}
 }
 
-func TestEchoVault_LINDEX(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_LINDEX(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		preset      bool
@@ -165,8 +165,8 @@ func TestEchoVault_LINDEX(t *testing.T) {
 	}
 }
 
-func TestEchoVault_LMOVE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_LMOVE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -335,8 +335,8 @@ func TestEchoVault_LMOVE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_POP(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_POP(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -410,8 +410,8 @@ func TestEchoVault_POP(t *testing.T) {
 	}
 }
 
-func TestEchoVault_LPUSH(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_LPUSH(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -485,8 +485,8 @@ func TestEchoVault_LPUSH(t *testing.T) {
 	}
 }
 
-func TestEchoVault_RPUSH(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_RPUSH(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -540,8 +540,8 @@ func TestEchoVault_RPUSH(t *testing.T) {
 	}
 }
 
-func TestEchoVault_LRANGE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_LRANGE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -659,8 +659,8 @@ func TestEchoVault_LRANGE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_LREM(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_LREM(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -724,8 +724,8 @@ func TestEchoVault_LREM(t *testing.T) {
 	}
 }
 
-func TestEchoVault_LSET(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_LSET(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -829,8 +829,8 @@ func TestEchoVault_LSET(t *testing.T) {
 	}
 }
 
-func TestEchoVault_LTRIM(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_LTRIM(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string

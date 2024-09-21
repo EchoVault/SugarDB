@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 	"strings"
 )
 
-// LoadModule loads an external module into EchoVault ar runtime.
+// LoadModule loads an external module into SugarDB ar runtime.
 //
 // Parameters:
 //
@@ -34,7 +34,7 @@ import (
 //
 // `args` - ...string - A list of args that will be passed unmodified to the plugins command's
 // KeyExtractionFunc and HandlerFunc
-func (server *EchoVault) LoadModule(path string, args ...string) error {
+func (server *SugarDB) LoadModule(path string, args ...string) error {
 	server.commandsRWMut.Lock()
 	defer server.commandsRWMut.Unlock()
 
@@ -162,7 +162,7 @@ func (server *EchoVault) LoadModule(path string, args ...string) error {
 // Parameters:
 //
 // `module` - string - module name as displayed by the ListModules method.
-func (server *EchoVault) UnloadModule(module string) {
+func (server *SugarDB) UnloadModule(module string) {
 	server.commandsRWMut.Lock()
 	defer server.commandsRWMut.Unlock()
 	server.commands = slices.DeleteFunc(server.commands, func(command internal.Command) bool {
@@ -173,7 +173,7 @@ func (server *EchoVault) UnloadModule(module string) {
 // ListModules lists the currently loaded modules
 //
 // Returns: a string slice representing all the currently loaded modules.
-func (server *EchoVault) ListModules() []string {
+func (server *SugarDB) ListModules() []string {
 	server.commandsRWMut.RLock()
 	defer server.commandsRWMut.RUnlock()
 	var modules []string

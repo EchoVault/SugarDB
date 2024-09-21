@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
@@ -22,11 +22,11 @@ import (
 	"time"
 )
 
-func (server *EchoVault) isInCluster() bool {
+func (server *SugarDB) isInCluster() bool {
 	return server.config.BootstrapCluster || server.config.JoinAddr != ""
 }
 
-func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) error {
+func (server *SugarDB) raftApplyDeleteKey(ctx context.Context, key string) error {
 	serverId, _ := ctx.Value(internal.ContextServerID("ServerID")).(string)
 	protocol, _ := ctx.Value("Protocol").(int)
 	database, _ := ctx.Value("Database").(int)
@@ -64,7 +64,7 @@ func (server *EchoVault) raftApplyDeleteKey(ctx context.Context, key string) err
 	return nil
 }
 
-func (server *EchoVault) raftApplyCommand(ctx context.Context, cmd []string) ([]byte, error) {
+func (server *SugarDB) raftApplyCommand(ctx context.Context, cmd []string) ([]byte, error) {
 	serverId, _ := ctx.Value(internal.ContextServerID("ServerID")).(string)
 	connectionId, _ := ctx.Value(internal.ContextConnID("ConnectionID")).(string)
 	protocol, _ := ctx.Value("Protocol").(int)

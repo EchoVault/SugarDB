@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"bytes"
@@ -117,13 +117,13 @@ type User struct {
 // `category` - ...string - an optional string specifying the category. If more than one category is passed,
 // only the first one will be used.
 //
-// Returns: string slice of categories loaded in EchoVault if category is not specified. Otherwise, returns string
+// Returns: string slice of categories loaded in SugarDB if category is not specified. Otherwise, returns string
 // slice of commands within the specified category.
 //
 // Errors:
 //
 // "category <category> not found" - when the provided category is not found in the loaded commands.
-func (server *EchoVault) ACLCat(category ...string) ([]string, error) {
+func (server *SugarDB) ACLCat(category ...string) ([]string, error) {
 	cmd := []string{"ACL", "CAT"}
 	if len(category) > 0 {
 		cmd = append(cmd, category[0])
@@ -136,7 +136,7 @@ func (server *EchoVault) ACLCat(category ...string) ([]string, error) {
 }
 
 // ACLUsers returns a string slice containing the usernames of all the loaded users in the ACL module.
-func (server *EchoVault) ACLUsers() ([]string, error) {
+func (server *SugarDB) ACLUsers() ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "USERS"}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -152,7 +152,7 @@ func (server *EchoVault) ACLUsers() ([]string, error) {
 // `user` - User - The user object to add/update.
 //
 // Returns: true if the user is successfully created/updated.
-func (server *EchoVault) ACLSetUser(user User) (bool, error) {
+func (server *SugarDB) ACLSetUser(user User) (bool, error) {
 	cmd := []string{"ACL", "SETUSER", user.Username}
 
 	if user.Enabled {
@@ -290,7 +290,7 @@ func (server *EchoVault) ACLSetUser(user User) (bool, error) {
 // Errors:
 //
 // "user not found" - if the user requested does not exist in the ACL rules.
-func (server *EchoVault) ACLGetUser(username string) (map[string][]string, error) {
+func (server *SugarDB) ACLGetUser(username string) (map[string][]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "GETUSER", username}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -327,7 +327,7 @@ func (server *EchoVault) ACLGetUser(username string) (map[string][]string, error
 // `usernames` - ...string - A string of usernames to delete from the ACL module.
 //
 // Returns: true if the deletion is successful.
-func (server *EchoVault) ACLDelUser(usernames ...string) (bool, error) {
+func (server *SugarDB) ACLDelUser(usernames ...string) (bool, error) {
 	cmd := append([]string{"ACL", "DELUSER"}, usernames...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -338,7 +338,7 @@ func (server *EchoVault) ACLDelUser(usernames ...string) (bool, error) {
 }
 
 // ACLList lists all the currently loaded ACL users and their rules.
-func (server *EchoVault) ACLList() ([]string, error) {
+func (server *SugarDB) ACLList() ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "LIST"}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -354,7 +354,7 @@ func (server *EchoVault) ACLList() ([]string, error) {
 // `options` - ACLLoadOptions - modifies the load behaviour.
 //
 // Returns: true if the load is successful.
-func (server *EchoVault) ACLLoad(options ACLLoadOptions) (bool, error) {
+func (server *SugarDB) ACLLoad(options ACLLoadOptions) (bool, error) {
 	cmd := []string{"ACL", "LOAD"}
 	switch {
 	case options.Merge:
@@ -377,7 +377,7 @@ func (server *EchoVault) ACLLoad(options ACLLoadOptions) (bool, error) {
 // ACLSave saves the current ACL configuration to the configured ACL file.
 //
 // Returns: true if the save is successful.
-func (server *EchoVault) ACLSave() (bool, error) {
+func (server *SugarDB) ACLSave() (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ACL", "SAVE"}), nil, false, true)
 	if err != nil {
 		return false, err

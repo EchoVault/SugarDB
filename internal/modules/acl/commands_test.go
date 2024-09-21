@@ -18,10 +18,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/echovault/sugardb"
 	"github.com/tidwall/resp"
 	"os"
 	"path"
@@ -31,7 +31,7 @@ import (
 	"testing"
 )
 
-func setUpServer(port int, requirePass bool, aclConfig string) (*echovault.EchoVault, error) {
+func setUpServer(port int, requirePass bool, aclConfig string) (*sugardb.SugarDB, error) {
 	conf := config.Config{
 		BindAddr:       "localhost",
 		Port:           uint16(port),
@@ -42,8 +42,8 @@ func setUpServer(port int, requirePass bool, aclConfig string) (*echovault.EchoV
 		AclConfig:      aclConfig,
 	}
 
-	mockServer, err := echovault.NewEchoVault(
-		echovault.WithConfig(conf),
+	mockServer, err := sugardb.NewSugarDB(
+		sugardb.WithConfig(conf),
 	)
 	if err != nil {
 		return nil, err
@@ -67,8 +67,8 @@ func setUpServer(port int, requirePass bool, aclConfig string) (*echovault.EchoV
 	return mockServer, nil
 }
 
-func generateInitialTestUsers() []echovault.User {
-	return []echovault.User{
+func generateInitialTestUsers() []sugardb.User {
+	return []sugardb.User{
 		{
 			// User with both hash password and plaintext password.
 			Username:          "with_password_user",
@@ -215,7 +215,7 @@ func Test_ACL(t *testing.T) {
 		})
 
 		// Add users to be used in test cases.
-		users := []echovault.User{
+		users := []sugardb.User{
 			{
 				// User with nokeys flag enables.
 				Username:          "test_nokeys",
@@ -648,7 +648,7 @@ func Test_ACL(t *testing.T) {
 
 		tests := []struct {
 			name       string
-			presetUser *echovault.User
+			presetUser *sugardb.User
 			cmd        []resp.Value
 			wantRes    string
 			wantErr    string
@@ -720,7 +720,7 @@ func Test_ACL(t *testing.T) {
 			},
 			{
 				name: "4. Remove plaintext and SHA256 password from existing user",
-				presetUser: &echovault.User{
+				presetUser: &sugardb.User{
 					Username:          "set_user_4",
 					Enabled:           true,
 					AddPlainPasswords: []string{"set_user_4_plaintext_password_1", "set_user_4_plaintext_password_2"},
@@ -1033,7 +1033,7 @@ func Test_ACL(t *testing.T) {
 			},
 			{
 				name: "17. Delete all existing users passwords using 'nopass'",
-				presetUser: &echovault.User{
+				presetUser: &sugardb.User{
 					Username:          "set_user_17",
 					Enabled:           true,
 					NoPassword:        true,
@@ -1060,7 +1060,7 @@ func Test_ACL(t *testing.T) {
 			},
 			{
 				name: "18. Clear all of an existing user's passwords using 'resetpass'",
-				presetUser: &echovault.User{
+				presetUser: &sugardb.User{
 					Username:          "set_user_18",
 					Enabled:           true,
 					NoPassword:        true,
@@ -1087,7 +1087,7 @@ func Test_ACL(t *testing.T) {
 			},
 			{
 				name: "19. Clear all of an existing user's command privileges using 'nocommands'",
-				presetUser: &echovault.User{
+				presetUser: &sugardb.User{
 					Username:        "set_user_19",
 					Enabled:         true,
 					IncludeCommands: []string{"acl|getuser", "acl|setuser", "acl|deluser"},
@@ -1113,7 +1113,7 @@ func Test_ACL(t *testing.T) {
 			},
 			{
 				name: "20. Clear all of an existing user's allowed keys using 'resetkeys'",
-				presetUser: &echovault.User{
+				presetUser: &sugardb.User{
 					Username:         "set_user_20",
 					Enabled:          true,
 					IncludeWriteKeys: []string{"key1", "key2", "key3", "key4", "key5", "key6"},
@@ -1139,7 +1139,7 @@ func Test_ACL(t *testing.T) {
 			},
 			{
 				name: "21. Allow user to access all channels using 'resetchannels'",
-				presetUser: &echovault.User{
+				presetUser: &sugardb.User{
 					Username:        "set_user_21",
 					Enabled:         true,
 					IncludeChannels: []string{"channel1", "channel2"},
@@ -1242,14 +1242,14 @@ func Test_ACL(t *testing.T) {
 
 		tests := []struct {
 			name       string
-			presetUser *echovault.User
+			presetUser *sugardb.User
 			cmd        []resp.Value
 			wantRes    []resp.Value
 			wantErr    string
 		}{
 			{
 				name: "1. Get the user and all their details",
-				presetUser: &echovault.User{
+				presetUser: &sugardb.User{
 					Username:          "get_user_1",
 					Enabled:           true,
 					NoPassword:        false,
@@ -1410,14 +1410,14 @@ func Test_ACL(t *testing.T) {
 
 		tests := []struct {
 			name       string
-			presetUser *echovault.User
+			presetUser *sugardb.User
 			cmd        []resp.Value
 			wantRes    string
 			wantErr    string
 		}{
 			{
 				name: "1. Delete existing user while skipping default user and non-existent user",
-				presetUser: &echovault.User{
+				presetUser: &sugardb.User{
 					Username: "user_to_delete",
 					Enabled:  true,
 				},
@@ -1592,14 +1592,14 @@ func Test_ACL(t *testing.T) {
 
 		tests := []struct {
 			name        string
-			presetUsers []*echovault.User
+			presetUsers []*sugardb.User
 			cmd         []resp.Value
 			wantRes     []string
 			wantErr     string
 		}{
 			{
 				name: "1. Get the user and all their details",
-				presetUsers: []*echovault.User{
+				presetUsers: []*sugardb.User{
 					{
 						Username:          "list_user_1",
 						Enabled:           true,
@@ -1762,7 +1762,7 @@ func Test_ACL(t *testing.T) {
 			},
 		}
 
-		servers := make([]*echovault.EchoVault, len(tests))
+		servers := make([]*sugardb.SugarDB, len(tests))
 		mut := sync.Mutex{}
 		t.Cleanup(func() {
 			_ = os.RemoveAll(baseDir)
@@ -1896,14 +1896,14 @@ func Test_ACL(t *testing.T) {
 		tests := []struct {
 			name  string
 			path  string
-			users []echovault.User // Add users after server startup.
-			cmd   []resp.Value     // Command to load users from ACL config.
+			users []sugardb.User // Add users after server startup.
+			cmd   []resp.Value   // Command to load users from ACL config.
 			want  []string
 		}{
 			{
 				name: "1. Load config from the .json file",
 				path: path.Join(baseDir, "json_test.json"),
-				users: []echovault.User{
+				users: []sugardb.User{
 					{Username: "user1", Enabled: true},
 				},
 				cmd: []resp.Value{resp.StringValue("ACL"), resp.StringValue("LOAD"), resp.StringValue("REPLACE")},
@@ -1919,7 +1919,7 @@ func Test_ACL(t *testing.T) {
 			{
 				name: "2. Load users from the .yaml file",
 				path: path.Join(baseDir, "yaml_test.yaml"),
-				users: []echovault.User{
+				users: []sugardb.User{
 					{Username: "user1", Enabled: true},
 				},
 				cmd: []resp.Value{resp.StringValue("ACL"), resp.StringValue("LOAD"), resp.StringValue("REPLACE")},
@@ -1935,7 +1935,7 @@ func Test_ACL(t *testing.T) {
 			{
 				name: "3. Load users from the .yml file",
 				path: path.Join(baseDir, "yml_test.yml"),
-				users: []echovault.User{
+				users: []sugardb.User{
 					{Username: "user1", Enabled: true},
 				},
 				cmd: []resp.Value{resp.StringValue("ACL"), resp.StringValue("LOAD"), resp.StringValue("REPLACE")},
@@ -1951,7 +1951,7 @@ func Test_ACL(t *testing.T) {
 			{
 				name: "4. Merge loaded users",
 				path: path.Join(baseDir, "merge.yml"),
-				users: []echovault.User{
+				users: []sugardb.User{
 					{ // Disable user1.
 						Username: "user1",
 						Enabled:  false,
@@ -1979,7 +1979,7 @@ func Test_ACL(t *testing.T) {
 			{
 				name: "5. Replace loaded users",
 				path: path.Join(baseDir, "replace.yml"),
-				users: []echovault.User{
+				users: []sugardb.User{
 					{ // Disable user1.
 						Username: "user1",
 						Enabled:  false,
@@ -2006,7 +2006,7 @@ func Test_ACL(t *testing.T) {
 			},
 		}
 
-		servers := make([]*echovault.EchoVault, len(tests))
+		servers := make([]*sugardb.SugarDB, len(tests))
 		mut := sync.Mutex{}
 		t.Cleanup(func() {
 			_ = os.RemoveAll(baseDir)

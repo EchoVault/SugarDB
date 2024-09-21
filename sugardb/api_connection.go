@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"errors"
@@ -29,7 +29,7 @@ import (
 // Errors:
 //
 // "protocol must be either 2 or 3" - When the provided protocol is not either 2 or 3.
-func (server *EchoVault) SetProtocol(protocol int) error {
+func (server *SugarDB) SetProtocol(protocol int) error {
 	if !slices.Contains([]int{2, 3}, protocol) {
 		return errors.New("protocol must be either 2 or 3")
 	}
@@ -50,7 +50,7 @@ func (server *EchoVault) SetProtocol(protocol int) error {
 // Errors:
 //
 // "database index must be 0 or higher" - When the database index is less than 0.
-func (server *EchoVault) SelectDB(database int) error {
+func (server *SugarDB) SelectDB(database int) error {
 	if database < 0 {
 		return errors.New("database index must be 0 or higher")
 	}

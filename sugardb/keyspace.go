@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"container/heap"
@@ -35,7 +35,7 @@ import (
 // It also swaps every TCP client connection from database2 over to database1.
 // This only affects TCP connections, it does not swap the logical database currently
 // being used by the embedded API.
-func (server *EchoVault) SwapDBs(database1, database2 int) {
+func (server *SugarDB) SwapDBs(database1, database2 int) {
 	// If the databases are the same, skip the swap.
 	if database1 == database2 {
 		return
@@ -75,7 +75,7 @@ func (server *EchoVault) SwapDBs(database1, database2 int) {
 
 // Flush flushes all the data from the database at the specified index.
 // When -1 is passed, all the logical databases are cleared.
-func (server *EchoVault) Flush(database int) {
+func (server *SugarDB) Flush(database int) {
 	server.storeLock.Lock()
 	defer server.storeLock.Unlock()
 
@@ -114,7 +114,7 @@ func (server *EchoVault) Flush(database int) {
 	server.lruCache.cache[database].Mutex.Unlock()
 }
 
-func (server *EchoVault) keysExist(ctx context.Context, keys []string) map[string]bool {
+func (server *SugarDB) keysExist(ctx context.Context, keys []string) map[string]bool {
 	server.storeLock.RLock()
 	defer server.storeLock.RUnlock()
 
@@ -130,7 +130,7 @@ func (server *EchoVault) keysExist(ctx context.Context, keys []string) map[strin
 	return exists
 }
 
-func (server *EchoVault) getExpiry(ctx context.Context, key string) time.Time {
+func (server *SugarDB) getExpiry(ctx context.Context, key string) time.Time {
 	server.storeLock.RLock()
 	defer server.storeLock.RUnlock()
 
@@ -144,7 +144,7 @@ func (server *EchoVault) getExpiry(ctx context.Context, key string) time.Time {
 	return entry.ExpireAt
 }
 
-func (server *EchoVault) getValues(ctx context.Context, keys []string) map[string]interface{} {
+func (server *SugarDB) getValues(ctx context.Context, keys []string) map[string]interface{} {
 	server.storeLock.Lock()
 	defer server.storeLock.Unlock()
 
@@ -195,7 +195,7 @@ func (server *EchoVault) getValues(ctx context.Context, keys []string) map[strin
 	return values
 }
 
-func (server *EchoVault) setValues(ctx context.Context, entries map[string]interface{}) error {
+func (server *SugarDB) setValues(ctx context.Context, entries map[string]interface{}) error {
 	server.storeLock.Lock()
 	defer server.storeLock.Unlock()
 
@@ -237,7 +237,7 @@ func (server *EchoVault) setValues(ctx context.Context, entries map[string]inter
 	return nil
 }
 
-func (server *EchoVault) setExpiry(ctx context.Context, key string, expireAt time.Time, touch bool) {
+func (server *SugarDB) setExpiry(ctx context.Context, key string, expireAt time.Time, touch bool) {
 	server.storeLock.Lock()
 	defer server.storeLock.Unlock()
 
@@ -266,7 +266,7 @@ func (server *EchoVault) setExpiry(ctx context.Context, key string, expireAt tim
 	}
 }
 
-func (server *EchoVault) deleteKey(ctx context.Context, key string) error {
+func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
 	database := ctx.Value("Database").(int)
 
 	// Delete the key from keyLocks and store.
@@ -292,7 +292,7 @@ func (server *EchoVault) deleteKey(ctx context.Context, key string) error {
 	return nil
 }
 
-func (server *EchoVault) createDatabase(database int) {
+func (server *SugarDB) createDatabase(database int) {
 	// Create database store.
 	server.store[database] = make(map[string]internal.KeyData)
 
@@ -312,7 +312,7 @@ func (server *EchoVault) createDatabase(database int) {
 	server.lruCache.cache[database] = eviction.NewCacheLRU()
 }
 
-func (server *EchoVault) getState() map[int]map[string]interface{} {
+func (server *SugarDB) getState() map[int]map[string]interface{} {
 	// Wait unit there's no state mutation or copy in progress before starting a new copy process.
 	for {
 		if !server.stateCopyInProgress.Load() && !server.stateMutationInProgress.Load() {
@@ -333,7 +333,7 @@ func (server *EchoVault) getState() map[int]map[string]interface{} {
 
 // updateKeysInCache updates either the key access count or the most recent access time in the cache
 // depending on whether an LFU or LRU strategy was used.
-func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) (int64, error) {
+func (server *SugarDB) updateKeysInCache(ctx context.Context, keys []string) (int64, error) {
 	database := ctx.Value("Database").(int)
 	var touchCounter int64
 
@@ -411,7 +411,7 @@ func (server *EchoVault) updateKeysInCache(ctx context.Context, keys []string) (
 }
 
 // adjustMemoryUsage should only be called from standalone echovault or from raft cluster leader.
-func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
+func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 	// If max memory is 0, there's no need to adjust memory usage.
 	if server.config.MaxMemory == 0 {
 		return nil
@@ -583,7 +583,7 @@ func (server *EchoVault) adjustMemoryUsage(ctx context.Context) error {
 // This function will sample 20 keys from the list of keys with an associated TTL,
 // if the key is expired, it will be evicted.
 // This function is only executed in standalone mode or by the raft cluster leader.
-func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
+func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 	// Only execute this if we're in standalone mode, or raft cluster leader.
 	if server.isInCluster() && !server.raft.IsRaftLeader() {
 		return nil
@@ -653,7 +653,7 @@ func (server *EchoVault) evictKeysWithExpiredTTL(ctx context.Context) error {
 	return nil
 }
 
-func (server *EchoVault) randomKey(ctx context.Context) string {
+func (server *SugarDB) randomKey(ctx context.Context) string {
 	server.storeLock.RLock()
 	defer server.storeLock.RUnlock()
 
@@ -681,7 +681,7 @@ func (server *EchoVault) randomKey(ctx context.Context) string {
 	return randkey
 }
 
-func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, error) {
+func (server *SugarDB) getObjectFreq(ctx context.Context, key string) (int, error) {
 	database := ctx.Value("Database").(int)
 
 	var freq int
@@ -701,7 +701,7 @@ func (server *EchoVault) getObjectFreq(ctx context.Context, key string) (int, er
 	return freq, nil
 }
 
-func (server *EchoVault) getObjectIdleTime(ctx context.Context, key string) (float64, error) {
+func (server *SugarDB) getObjectIdleTime(ctx context.Context, key string) (float64, error) {
 	database := ctx.Value("Database").(int)
 
 	var accessTime int64

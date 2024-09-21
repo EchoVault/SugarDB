@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
@@ -22,8 +22,8 @@ import (
 	"testing"
 )
 
-func TestEchoVault_SADD(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SADD(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -79,8 +79,8 @@ func TestEchoVault_SADD(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SCARD(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SCARD(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -132,8 +132,8 @@ func TestEchoVault_SCARD(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SDIFF(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SDIFF(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -224,8 +224,8 @@ func TestEchoVault_SDIFF(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SDIFFSTORE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SDIFFSTORE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -317,8 +317,8 @@ func TestEchoVault_SDIFFSTORE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SINTER(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SINTER(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -409,8 +409,8 @@ func TestEchoVault_SINTER(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SINTERCARD(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SINTERCARD(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -512,8 +512,8 @@ func TestEchoVault_SINTERCARD(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SINTERSTORE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SINTERSTORE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -605,8 +605,8 @@ func TestEchoVault_SINTERSTORE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SISMEMBER(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SISMEMBER(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -662,8 +662,8 @@ func TestEchoVault_SISMEMBER(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SMEMBERS(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SMEMBERS(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -720,8 +720,8 @@ func TestEchoVault_SMEMBERS(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SMISMEMBER(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SMISMEMBER(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -796,8 +796,8 @@ func TestEchoVault_SMISMEMBER(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SMOVE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SMOVE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -880,8 +880,8 @@ func TestEchoVault_SMOVE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SPOP(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SPOP(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -931,8 +931,8 @@ func TestEchoVault_SPOP(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SRANDMEMBER(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SRANDMEMBER(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -998,8 +998,8 @@ func TestEchoVault_SRANDMEMBER(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SREM(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SREM(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -1055,8 +1055,8 @@ func TestEchoVault_SREM(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SUNION(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SUNION(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -1140,8 +1140,8 @@ func TestEchoVault_SUNION(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SUNIONSTORE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_SUNIONSTORE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string

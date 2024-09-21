@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"bufio"
@@ -25,7 +25,7 @@ import (
 	"testing"
 )
 
-func TestEchoVault_Hello(t *testing.T) {
+func TestSugarDB_Hello(t *testing.T) {
 	t.Parallel()
 
 	port, err := internal.GetFreePort()
@@ -38,7 +38,7 @@ func TestEchoVault_Hello(t *testing.T) {
 	conf.Port = uint16(port)
 	conf.RequirePass = false
 
-	mockServer := createEchoVaultWithConfig(conf)
+	mockServer := createSugarDBWithConfig(conf)
 	if err != nil {
 		t.Error(err)
 		return
@@ -147,7 +147,7 @@ func TestEchoVault_Hello(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SelectDB(t *testing.T) {
+func TestSugarDB_SelectDB(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name         string
@@ -184,7 +184,7 @@ func TestEchoVault_SelectDB(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			server := createEchoVault()
+			server := createSugarDB()
 
 			if tt.presetValues != nil {
 				for db, data := range tt.presetValues {
@@ -237,9 +237,9 @@ func TestEchoVault_SelectDB(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SetProtocol(t *testing.T) {
+func TestSugarDB_SetProtocol(t *testing.T) {
 	t.Parallel()
-	server := createEchoVault()
+	server := createSugarDB()
 	tests := []struct {
 		name     string
 		protocol int

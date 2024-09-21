@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
@@ -28,8 +28,8 @@ import (
 	"github.com/echovault/echovault/internal/constants"
 )
 
-func TestEchoVault_DEL(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_DEL(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -70,10 +70,10 @@ func TestEchoVault_DEL(t *testing.T) {
 	}
 }
 
-func TestEchoVault_EXPIRE(t *testing.T) {
+func TestSugarDB_EXPIRE(t *testing.T) {
 	mockClock := clock.NewClock()
 
-	server := createEchoVault()
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -243,10 +243,10 @@ func TestEchoVault_EXPIRE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_EXPIREAT(t *testing.T) {
+func TestSugarDB_EXPIREAT(t *testing.T) {
 	mockClock := clock.NewClock()
 
-	server := createEchoVault()
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -427,10 +427,10 @@ func TestEchoVault_EXPIREAT(t *testing.T) {
 	}
 }
 
-func TestEchoVault_EXPIRETIME(t *testing.T) {
+func TestSugarDB_EXPIRETIME(t *testing.T) {
 	mockClock := clock.NewClock()
 
-	server := createEchoVault()
+	server := createSugarDB()
 
 	tests := []struct {
 		name           string
@@ -497,8 +497,8 @@ func TestEchoVault_EXPIRETIME(t *testing.T) {
 	}
 }
 
-func TestEchoVault_GET(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_GET(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -543,8 +543,8 @@ func TestEchoVault_GET(t *testing.T) {
 	}
 }
 
-func TestEchoVault_MGET(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_MGET(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -599,10 +599,10 @@ func TestEchoVault_MGET(t *testing.T) {
 	}
 }
 
-func TestEchoVault_SET(t *testing.T) {
+func TestSugarDB_SET(t *testing.T) {
 	mockClock := clock.NewClock()
 
-	server := createEchoVault()
+	server := createSugarDB()
 
 	SetOptions := func(W SetWriteOption, EX SetExOption, EXTIME int, GET bool) SETOptions {
 		return SETOptions{
@@ -775,8 +775,8 @@ func TestEchoVault_SET(t *testing.T) {
 	}
 }
 
-func TestEchoVault_MSET(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_MSET(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name    string
@@ -805,10 +805,10 @@ func TestEchoVault_MSET(t *testing.T) {
 	}
 }
 
-func TestEchoVault_PERSIST(t *testing.T) {
+func TestSugarDB_PERSIST(t *testing.T) {
 	mockClock := clock.NewClock()
 
-	server := createEchoVault()
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -862,10 +862,10 @@ func TestEchoVault_PERSIST(t *testing.T) {
 	}
 }
 
-func TestEchoVault_TTL(t *testing.T) {
+func TestSugarDB_TTL(t *testing.T) {
 	mockClock := clock.NewClock()
 
-	server := createEchoVault()
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -933,8 +933,8 @@ func TestEchoVault_TTL(t *testing.T) {
 	}
 }
 
-func TestEchoVault_INCR(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_INCR(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -997,8 +997,8 @@ func TestEchoVault_INCR(t *testing.T) {
 	}
 }
 
-func TestEchoVault_DECR(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_DECR(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -1061,8 +1061,8 @@ func TestEchoVault_DECR(t *testing.T) {
 	}
 }
 
-func TestEchoVault_INCRBY(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_INCRBY(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -1130,8 +1130,8 @@ func TestEchoVault_INCRBY(t *testing.T) {
 	}
 }
 
-func TestEchoVault_INCRBYFLOAT(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_INCRBYFLOAT(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -1199,8 +1199,8 @@ func TestEchoVault_INCRBYFLOAT(t *testing.T) {
 	}
 }
 
-func TestEchoVault_DECRBY(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_DECRBY(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -1267,8 +1267,8 @@ func TestEchoVault_DECRBY(t *testing.T) {
 	}
 }
 
-func TestEchoVault_Rename(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_Rename(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -1322,8 +1322,8 @@ func TestEchoVault_Rename(t *testing.T) {
 	}
 }
 
-func TestEchoVault_RANDOMKEY(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_RANDOMKEY(t *testing.T) {
+	server := createSugarDB()
 
 	// test without keys
 	got, err := server.RandomKey()
@@ -1356,8 +1356,8 @@ func TestEchoVault_RANDOMKEY(t *testing.T) {
 
 }
 
-func TestEchoVault_GETDEL(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_GETDEL(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -1414,9 +1414,9 @@ func TestEchoVault_GETDEL(t *testing.T) {
 	}
 }
 
-func TestEchoVault_GETEX(t *testing.T) {
+func TestSugarDB_GETEX(t *testing.T) {
 	mockClock := clock.NewClock()
-	server := createEchoVault()
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -1534,7 +1534,7 @@ func TestEchoVault_GETEX(t *testing.T) {
 					return
 				}
 			}
-			//Check value received
+			// Check value received
 			got, err := server.GetEx(tt.key, tt.getExOpt, tt.getExOptTime)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GETEX() GET error = %v, wantErr %v", err, tt.wantErr)
@@ -1559,11 +1559,11 @@ func TestEchoVault_GETEX(t *testing.T) {
 }
 
 // Tests Touch and OBJECTFREQ commands
-func TestEchoVault_LFU_TOUCH(t *testing.T) {
+func TestSugarDB_LFU_TOUCH(t *testing.T) {
 
 	duration := time.Duration(30) * time.Second
 
-	server := createEchoVaultWithConfig(config.Config{
+	server := createSugarDBWithConfig(config.Config{
 		DataDir:          "",
 		EvictionPolicy:   constants.AllKeysLFU,
 		EvictionInterval: duration,
@@ -1668,11 +1668,11 @@ func TestEchoVault_LFU_TOUCH(t *testing.T) {
 }
 
 // Tests Touch and OBJECTIDLETIME commands
-func TestEchoVault_LRU_TOUCH(t *testing.T) {
+func TestSugarDB_LRU_TOUCH(t *testing.T) {
 
 	duration := time.Duration(30) * time.Second
 
-	server := createEchoVaultWithConfig(config.Config{
+	server := createSugarDBWithConfig(config.Config{
 		DataDir:          "",
 		EvictionPolicy:   constants.AllKeysLRU,
 		EvictionInterval: duration,

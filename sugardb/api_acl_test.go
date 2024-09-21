@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"crypto/sha256"
@@ -124,8 +124,8 @@ func generateSHA256Password(plain string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func TestEchoVault_ACLCat(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ACLCat(t *testing.T) {
+	server := createSugarDB()
 
 	getCategoryCommands := func(category string) []string {
 		var commands []string
@@ -264,8 +264,8 @@ func TestEchoVault_ACLCat(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ACLUsers(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ACLUsers(t *testing.T) {
+	server := createSugarDB()
 
 	// Set Users
 	users := []User{
@@ -369,7 +369,7 @@ func TestEchoVault_ACLUsers(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ACLConfig(t *testing.T) {
+func TestSugarDB_ACLConfig(t *testing.T) {
 	t.Run("Test_HandleSave", func(t *testing.T) {
 		baseDir := path.Join(".", "testdata", "save")
 		t.Cleanup(func() {
@@ -422,7 +422,7 @@ func TestEchoVault_ACLConfig(t *testing.T) {
 				conf := DefaultConfig()
 				conf.DataDir = ""
 				conf.AclConfig = test.path
-				server := createEchoVaultWithConfig(conf)
+				server := createSugarDBWithConfig(conf)
 				// Add the initial test users to the ACL module.
 				for _, user := range generateInitialTestUsers() {
 					if _, err := server.ACLSetUser(user); err != nil {
@@ -444,7 +444,7 @@ func TestEchoVault_ACLConfig(t *testing.T) {
 				server.ShutDown()
 
 				// Restart server
-				server = createEchoVaultWithConfig(conf)
+				server = createSugarDBWithConfig(conf)
 
 				// Get users rules list.
 				list, err := server.ACLList()
@@ -474,8 +474,8 @@ func TestEchoVault_ACLConfig(t *testing.T) {
 		tests := []struct {
 			name     string
 			path     string
-			users    []User                                // Add users after server startup.
-			loadFunc func(server *EchoVault) (bool, error) // Function to load users from ACL config.
+			users    []User                              // Add users after server startup.
+			loadFunc func(server *SugarDB) (bool, error) // Function to load users from ACL config.
 			want     []string
 		}{
 			{
@@ -484,7 +484,7 @@ func TestEchoVault_ACLConfig(t *testing.T) {
 				users: []User{
 					{Username: "user1", Enabled: true},
 				},
-				loadFunc: func(server *EchoVault) (bool, error) {
+				loadFunc: func(server *SugarDB) (bool, error) {
 					return server.ACLLoad(ACLLoadOptions{})
 				},
 				want: []string{
@@ -502,7 +502,7 @@ func TestEchoVault_ACLConfig(t *testing.T) {
 				users: []User{
 					{Username: "user1", Enabled: true},
 				},
-				loadFunc: func(server *EchoVault) (bool, error) {
+				loadFunc: func(server *SugarDB) (bool, error) {
 					return server.ACLLoad(ACLLoadOptions{})
 				},
 				want: []string{
@@ -520,7 +520,7 @@ func TestEchoVault_ACLConfig(t *testing.T) {
 				users: []User{
 					{Username: "user1", Enabled: true},
 				},
-				loadFunc: func(server *EchoVault) (bool, error) {
+				loadFunc: func(server *SugarDB) (bool, error) {
 					return server.ACLLoad(ACLLoadOptions{})
 				},
 				want: []string{
@@ -550,7 +550,7 @@ func TestEchoVault_ACLConfig(t *testing.T) {
 						ExcludeChannels:      []string{"channel[34]"},
 					},
 				},
-				loadFunc: func(server *EchoVault) (bool, error) {
+				loadFunc: func(server *SugarDB) (bool, error) {
 					return server.ACLLoad(ACLLoadOptions{Merge: true, Replace: false})
 				},
 				want: []string{
@@ -580,7 +580,7 @@ func TestEchoVault_ACLConfig(t *testing.T) {
 						ExcludeChannels:      []string{"channel[34]"},
 					},
 				},
-				loadFunc: func(server *EchoVault) (bool, error) {
+				loadFunc: func(server *SugarDB) (bool, error) {
 					return server.ACLLoad(ACLLoadOptions{Replace: true, Merge: false})
 				},
 				want: []string{
@@ -600,7 +600,7 @@ func TestEchoVault_ACLConfig(t *testing.T) {
 				conf := DefaultConfig()
 				conf.DataDir = ""
 				conf.AclConfig = test.path
-				server := createEchoVaultWithConfig(conf)
+				server := createSugarDBWithConfig(conf)
 				// Add the initial test users to the ACL module.
 				for _, user := range generateInitialTestUsers() {
 					if _, err := server.ACLSetUser(user); err != nil {

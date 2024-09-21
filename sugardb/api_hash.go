@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"github.com/echovault/echovault/internal"
@@ -43,7 +43,7 @@ type HRandFieldOptions struct {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key exists but is not a hash.
-func (server *EchoVault) HSet(key string, fieldValuePairs map[string]string) (int, error) {
+func (server *SugarDB) HSet(key string, fieldValuePairs map[string]string) (int, error) {
 	cmd := []string{"HSET", key}
 
 	for k, v := range fieldValuePairs {
@@ -73,7 +73,7 @@ func (server *EchoVault) HSet(key string, fieldValuePairs map[string]string) (in
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HSetNX(key string, fieldValuePairs map[string]string) (int, error) {
+func (server *SugarDB) HSetNX(key string, fieldValuePairs map[string]string) (int, error) {
 	cmd := []string{"HSETNX", key}
 
 	for k, v := range fieldValuePairs {
@@ -101,7 +101,7 @@ func (server *EchoVault) HSetNX(key string, fieldValuePairs map[string]string) (
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HGet(key string, fields ...string) ([]string, error) {
+func (server *SugarDB) HGet(key string, fields ...string) ([]string, error) {
 	b, err := server.handleCommand(
 		server.context,
 		internal.EncodeCommand(append([]string{"HGET", key}, fields...)),
@@ -128,7 +128,7 @@ func (server *EchoVault) HGet(key string, fields ...string) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HMGet(key string, fields ...string) ([]string, error) {
+func (server *SugarDB) HMGet(key string, fields ...string) ([]string, error) {
 	b, err := server.handleCommand(
 		server.context,
 		internal.EncodeCommand(append([]string{"HMGET", key}, fields...)),
@@ -157,7 +157,7 @@ func (server *EchoVault) HMGet(key string, fields ...string) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HStrLen(key string, fields ...string) ([]int, error) {
+func (server *SugarDB) HStrLen(key string, fields ...string) ([]int, error) {
 	cmd := append([]string{"HSTRLEN", key}, fields...)
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
@@ -179,7 +179,7 @@ func (server *EchoVault) HStrLen(key string, fields ...string) ([]int, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HVals(key string) ([]string, error) {
+func (server *SugarDB) HVals(key string) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HVALS", key}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func (server *EchoVault) HVals(key string) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HRandField(key string, options HRandFieldOptions) ([]string, error) {
+func (server *SugarDB) HRandField(key string, options HRandFieldOptions) ([]string, error) {
 	cmd := []string{"HRANDFIELD", key}
 
 	if options.Count == 0 {
@@ -232,7 +232,7 @@ func (server *EchoVault) HRandField(key string, options HRandFieldOptions) ([]st
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HLen(key string) (int, error) {
+func (server *SugarDB) HLen(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HLEN", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -251,7 +251,7 @@ func (server *EchoVault) HLen(key string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HKeys(key string) ([]string, error) {
+func (server *SugarDB) HKeys(key string) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HKEYS", key}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -275,7 +275,7 @@ func (server *EchoVault) HKeys(key string) ([]string, error) {
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
 //
 // "value at field <field> is not a number" - when the field holds a value that is not a number.
-func (server *EchoVault) HIncrBy(key, field string, increment int) (float64, error) {
+func (server *SugarDB) HIncrBy(key, field string, increment int) (float64, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HINCRBY", key, field, strconv.Itoa(increment)}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -284,7 +284,7 @@ func (server *EchoVault) HIncrBy(key, field string, increment int) (float64, err
 }
 
 // HIncrByFloat behaves like HIncrBy but with a float increment instead of an integer increment.
-func (server *EchoVault) HIncrByFloat(key, field string, increment float64) (float64, error) {
+func (server *SugarDB) HIncrByFloat(key, field string, increment float64) (float64, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HINCRBYFLOAT", key, field, strconv.FormatFloat(increment, 'f', -1, 64)}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -304,7 +304,7 @@ func (server *EchoVault) HIncrByFloat(key, field string, increment float64) (flo
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HGetAll(key string) ([]string, error) {
+func (server *SugarDB) HGetAll(key string) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HGETALL", key}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -325,7 +325,7 @@ func (server *EchoVault) HGetAll(key string) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HExists(key, field string) (bool, error) {
+func (server *SugarDB) HExists(key, field string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"HEXISTS", key, field}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -346,7 +346,7 @@ func (server *EchoVault) HExists(key, field string) (bool, error) {
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key does not exist or is not a hash.
-func (server *EchoVault) HDel(key string, fields ...string) (int, error) {
+func (server *SugarDB) HDel(key string, fields ...string) (int, error) {
 	cmd := append([]string{"HDEL", key}, fields...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {

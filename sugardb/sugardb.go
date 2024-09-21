@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
@@ -48,7 +48,7 @@ import (
 	"time"
 )
 
-type EchoVault struct {
+type SugarDB struct {
 	// clock is an implementation of a time interface that allows mocking of time functions during testing.
 	clock clock.Clock
 
@@ -122,28 +122,28 @@ type EchoVault struct {
 	stopTTL  chan struct{} // Channel that signals the TTL sampling goroutine to stop execution.
 }
 
-// WithContext is an options that for the NewEchoVault function that allows you to
-// configure a custom context object to be used in EchoVault.
-// If you don't provide this option, EchoVault will create its own internal context object.
-func WithContext(ctx context.Context) func(echovault *EchoVault) {
-	return func(echovault *EchoVault) {
+// WithContext is an options that for the NewSugarDB function that allows you to
+// configure a custom context object to be used in SugarDB.
+// If you don't provide this option, SugarDB will create its own internal context object.
+func WithContext(ctx context.Context) func(echovault *SugarDB) {
+	return func(echovault *SugarDB) {
 		echovault.context = ctx
 	}
 }
 
-// WithConfig is an option for the NewEchoVault function that allows you to pass a
-// custom configuration to EchoVault.
-// If not specified, EchoVault will use the default configuration from config.DefaultConfig().
-func WithConfig(config config.Config) func(echovault *EchoVault) {
-	return func(echovault *EchoVault) {
+// WithConfig is an option for the NewSugarDB function that allows you to pass a
+// custom configuration to SugarDB.
+// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
+func WithConfig(config config.Config) func(echovault *SugarDB) {
+	return func(echovault *SugarDB) {
 		echovault.config = config
 	}
 }
 
-// NewEchoVault creates a new EchoVault instance.
+// NewSugarDB creates a new SugarDB instance.
 // This functions accepts the WithContext, WithConfig and WithCommands options.
-func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
-	echovault := &EchoVault{
+func NewSugarDB(options ...func(sugarDB *SugarDB)) (*SugarDB, error) {
+	sugarDB := &SugarDB{
 		clock:   clock.NewClock(),
 		context: context.Background(),
 		config:  config.DefaultConfig(),
@@ -190,17 +190,17 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	}
 
 	for _, option := range options {
-		option(echovault)
+		option(sugarDB)
 	}
 
-	echovault.context = context.WithValue(
-		echovault.context, "ServerID",
-		internal.ContextServerID(echovault.config.ServerID),
+	sugarDB.context = context.WithValue(
+		sugarDB.context, "ServerID",
+		internal.ContextServerID(sugarDB.config.ServerID),
 	)
 
 	// Load .so modules from config
-	for _, path := range echovault.config.Modules {
-		if err := echovault.LoadModule(path); err != nil {
+	for _, path := range sugarDB.config.Modules {
+		if err := sugarDB.LoadModule(path); err != nil {
 			log.Printf("%s %v\n", path, err)
 			continue
 		}
@@ -208,29 +208,29 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 	}
 
 	// Set up ACL module
-	echovault.acl = acl.NewACL(echovault.config)
+	sugarDB.acl = acl.NewACL(sugarDB.config)
 
 	// Set up Pub/Sub module
-	echovault.pubSub = pubsub.NewPubSub()
+	sugarDB.pubSub = pubsub.NewPubSub()
 
-	if echovault.isInCluster() {
-		echovault.raft = raft.NewRaft(raft.Opts{
-			Config:                echovault.config,
-			GetCommand:            echovault.getCommand,
-			SetValues:             echovault.setValues,
-			SetExpiry:             echovault.setExpiry,
-			StartSnapshot:         echovault.startSnapshot,
-			FinishSnapshot:        echovault.finishSnapshot,
-			SetLatestSnapshotTime: echovault.setLatestSnapshot,
-			GetHandlerFuncParams:  echovault.getHandlerFuncParams,
+	if sugarDB.isInCluster() {
+		sugarDB.raft = raft.NewRaft(raft.Opts{
+			Config:                sugarDB.config,
+			GetCommand:            sugarDB.getCommand,
+			SetValues:             sugarDB.setValues,
+			SetExpiry:             sugarDB.setExpiry,
+			StartSnapshot:         sugarDB.startSnapshot,
+			FinishSnapshot:        sugarDB.finishSnapshot,
+			SetLatestSnapshotTime: sugarDB.setLatestSnapshot,
+			GetHandlerFuncParams:  sugarDB.getHandlerFuncParams,
 			DeleteKey: func(ctx context.Context, key string) error {
-				echovault.storeLock.Lock()
-				defer echovault.storeLock.Unlock()
-				return echovault.deleteKey(ctx, key)
+				sugarDB.storeLock.Lock()
+				defer sugarDB.storeLock.Unlock()
+				return sugarDB.deleteKey(ctx, key)
 			},
 			GetState: func() map[int]map[string]internal.KeyData {
 				state := make(map[int]map[string]internal.KeyData)
-				for database, store := range echovault.getState() {
+				for database, store := range sugarDB.getState() {
 					for k, v := range store {
 						if data, ok := v.(internal.KeyData); ok {
 							state[database][k] = data
@@ -240,29 +240,29 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 				return state
 			},
 		})
-		echovault.memberList = memberlist.NewMemberList(memberlist.Opts{
-			Config:           echovault.config,
-			HasJoinedCluster: echovault.raft.HasJoinedCluster,
-			AddVoter:         echovault.raft.AddVoter,
-			RemoveRaftServer: echovault.raft.RemoveServer,
-			IsRaftLeader:     echovault.raft.IsRaftLeader,
-			ApplyMutate:      echovault.raftApplyCommand,
-			ApplyDeleteKey:   echovault.raftApplyDeleteKey,
+		sugarDB.memberList = memberlist.NewMemberList(memberlist.Opts{
+			Config:           sugarDB.config,
+			HasJoinedCluster: sugarDB.raft.HasJoinedCluster,
+			AddVoter:         sugarDB.raft.AddVoter,
+			RemoveRaftServer: sugarDB.raft.RemoveServer,
+			IsRaftLeader:     sugarDB.raft.IsRaftLeader,
+			ApplyMutate:      sugarDB.raftApplyCommand,
+			ApplyDeleteKey:   sugarDB.raftApplyDeleteKey,
 		})
 	} else {
 		// Set up standalone snapshot engine
-		echovault.snapshotEngine = snapshot.NewSnapshotEngine(
-			snapshot.WithClock(echovault.clock),
-			snapshot.WithDirectory(echovault.config.DataDir),
-			snapshot.WithThreshold(echovault.config.SnapShotThreshold),
-			snapshot.WithInterval(echovault.config.SnapshotInterval),
-			snapshot.WithStartSnapshotFunc(echovault.startSnapshot),
-			snapshot.WithFinishSnapshotFunc(echovault.finishSnapshot),
-			snapshot.WithSetLatestSnapshotTimeFunc(echovault.setLatestSnapshot),
-			snapshot.WithGetLatestSnapshotTimeFunc(echovault.getLatestSnapshotTime),
+		sugarDB.snapshotEngine = snapshot.NewSnapshotEngine(
+			snapshot.WithClock(sugarDB.clock),
+			snapshot.WithDirectory(sugarDB.config.DataDir),
+			snapshot.WithThreshold(sugarDB.config.SnapShotThreshold),
+			snapshot.WithInterval(sugarDB.config.SnapshotInterval),
+			snapshot.WithStartSnapshotFunc(sugarDB.startSnapshot),
+			snapshot.WithFinishSnapshotFunc(sugarDB.finishSnapshot),
+			snapshot.WithSetLatestSnapshotTimeFunc(sugarDB.setLatestSnapshot),
+			snapshot.WithGetLatestSnapshotTimeFunc(sugarDB.getLatestSnapshotTime),
 			snapshot.WithGetStateFunc(func() map[int]map[string]internal.KeyData {
 				state := make(map[int]map[string]internal.KeyData)
-				for database, data := range echovault.getState() {
+				for database, data := range sugarDB.getState() {
 					state[database] = make(map[string]internal.KeyData)
 					for key, value := range data {
 						if keyData, ok := value.(internal.KeyData); ok {
@@ -274,23 +274,23 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			}),
 			snapshot.WithSetKeyDataFunc(func(database int, key string, data internal.KeyData) {
 				ctx := context.WithValue(context.Background(), "Database", database)
-				if err := echovault.setValues(ctx, map[string]interface{}{key: data.Value}); err != nil {
+				if err := sugarDB.setValues(ctx, map[string]interface{}{key: data.Value}); err != nil {
 					log.Println(err)
 				}
-				echovault.setExpiry(ctx, key, data.ExpireAt, false)
+				sugarDB.setExpiry(ctx, key, data.ExpireAt, false)
 			}),
 		)
 
 		// Set up standalone AOF engine
 		aofEngine, err := aof.NewAOFEngine(
-			aof.WithClock(echovault.clock),
-			aof.WithDirectory(echovault.config.DataDir),
-			aof.WithStrategy(echovault.config.AOFSyncStrategy),
-			aof.WithStartRewriteFunc(echovault.startRewriteAOF),
-			aof.WithFinishRewriteFunc(echovault.finishRewriteAOF),
+			aof.WithClock(sugarDB.clock),
+			aof.WithDirectory(sugarDB.config.DataDir),
+			aof.WithStrategy(sugarDB.config.AOFSyncStrategy),
+			aof.WithStartRewriteFunc(sugarDB.startRewriteAOF),
+			aof.WithFinishRewriteFunc(sugarDB.finishRewriteAOF),
 			aof.WithGetStateFunc(func() map[int]map[string]internal.KeyData {
 				state := make(map[int]map[string]internal.KeyData)
-				for database, data := range echovault.getState() {
+				for database, data := range sugarDB.getState() {
 					state[database] = make(map[string]internal.KeyData)
 					for key, value := range data {
 						if keyData, ok := value.(internal.KeyData); ok {
@@ -302,15 +302,15 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 			}),
 			aof.WithSetKeyDataFunc(func(database int, key string, value internal.KeyData) {
 				ctx := context.WithValue(context.Background(), "Database", database)
-				if err := echovault.setValues(ctx, map[string]interface{}{key: value.Value}); err != nil {
+				if err := sugarDB.setValues(ctx, map[string]interface{}{key: value.Value}); err != nil {
 					log.Println(err)
 				}
-				echovault.setExpiry(ctx, key, value.ExpireAt, false)
+				sugarDB.setExpiry(ctx, key, value.ExpireAt, false)
 			}),
 			aof.WithHandleCommandFunc(func(database int, command []byte) {
 				ctx := context.WithValue(context.Background(), "Protocol", 2)
 				ctx = context.WithValue(ctx, "Database", database)
-				_, err := echovault.handleCommand(ctx, command, nil, true, false)
+				_, err := sugarDB.handleCommand(ctx, command, nil, true, false)
 				if err != nil {
 					log.Println(err)
 				}
@@ -319,13 +319,13 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 		if err != nil {
 			return nil, err
 		}
-		echovault.aofEngine = aofEngine
+		sugarDB.aofEngine = aofEngine
 	}
 
 	// If eviction policy is not noeviction, start a goroutine to evict keys at the configured interval.
-	if echovault.config.EvictionPolicy != constants.NoEviction {
+	if sugarDB.config.EvictionPolicy != constants.NoEviction {
 		go func() {
-			ticker := time.NewTicker(echovault.config.EvictionInterval)
+			ticker := time.NewTicker(sugarDB.config.EvictionInterval)
 			defer func() {
 				ticker.Stop()
 			}()
@@ -334,59 +334,59 @@ func NewEchoVault(options ...func(echovault *EchoVault)) (*EchoVault, error) {
 				case <-ticker.C:
 					// Run key eviction for each database that has volatile keys.
 					wg := sync.WaitGroup{}
-					for database, _ := range echovault.keysWithExpiry.keys {
+					for database, _ := range sugarDB.keysWithExpiry.keys {
 						wg.Add(1)
 						ctx := context.WithValue(context.Background(), "Database", database)
 						go func(ctx context.Context, wg *sync.WaitGroup) {
-							if err := echovault.evictKeysWithExpiredTTL(ctx); err != nil {
+							if err := sugarDB.evictKeysWithExpiredTTL(ctx); err != nil {
 								log.Printf("evict with ttl: %v\n", err)
 							}
 							wg.Done()
 						}(ctx, &wg)
 					}
 					wg.Wait()
-				case <-echovault.stopTTL:
+				case <-sugarDB.stopTTL:
 					break
 				}
 			}
 		}()
 	}
 
-	if echovault.config.TLS && len(echovault.config.CertKeyPairs) <= 0 {
+	if sugarDB.config.TLS && len(sugarDB.config.CertKeyPairs) <= 0 {
 		return nil, errors.New("must provide certificate and key file paths for TLS mode")
 	}
 
-	if echovault.isInCluster() {
+	if sugarDB.isInCluster() {
 		// Initialise raft and memberlist
-		echovault.raft.RaftInit(echovault.context)
-		echovault.memberList.MemberListInit(echovault.context)
+		sugarDB.raft.RaftInit(sugarDB.context)
+		sugarDB.memberList.MemberListInit(sugarDB.context)
 		// Initialise caches
-		echovault.initialiseCaches()
+		sugarDB.initialiseCaches()
 	}
 
-	if !echovault.isInCluster() {
-		echovault.initialiseCaches()
+	if !sugarDB.isInCluster() {
+		sugarDB.initialiseCaches()
 		// Restore from AOF by default if it's enabled
-		if echovault.config.RestoreAOF {
-			err := echovault.aofEngine.Restore()
+		if sugarDB.config.RestoreAOF {
+			err := sugarDB.aofEngine.Restore()
 			if err != nil {
 				log.Println(err)
 			}
 		}
 
 		// Restore from snapshot if snapshot restore is enabled and AOF restore is disabled
-		if echovault.config.RestoreSnapshot && !echovault.config.RestoreAOF {
-			err := echovault.snapshotEngine.Restore()
+		if sugarDB.config.RestoreSnapshot && !sugarDB.config.RestoreAOF {
+			err := sugarDB.snapshotEngine.Restore()
 			if err != nil {
 				log.Println(err)
 			}
 		}
 	}
 
-	return echovault, nil
+	return sugarDB, nil
 }
 
-func (server *EchoVault) startTCP() {
+func (server *SugarDB) startTCP() {
 	conf := server.config
 
 	listenConfig := net.ListenConfig{
@@ -473,7 +473,7 @@ func (server *EchoVault) startTCP() {
 	}
 }
 
-func (server *EchoVault) handleConnection(conn net.Conn) {
+func (server *SugarDB) handleConnection(conn net.Conn) {
 	// If ACL module is loaded, register the connection with the ACL
 	if server.acl != nil {
 		server.acl.RegisterConnection(&conn)
@@ -561,17 +561,17 @@ func (server *EchoVault) handleConnection(conn net.Conn) {
 	}
 }
 
-// Start starts the EchoVault instance's TCP listener.
+// Start starts the SugarDB instance's TCP listener.
 // This allows the instance to accept connections handle client commands over TCP.
 //
-// You can still use command functions like echovault.Set if you're embedding EchoVault in your application.
+// You can still use command functions like echovault.Set if you're embedding SugarDB in your application.
 // However, if you'd like to also accept TCP request on the same instance, you must call this function.
-func (server *EchoVault) Start() {
+func (server *SugarDB) Start() {
 	server.startTCP()
 }
 
 // takeSnapshot triggers a snapshot when called.
-func (server *EchoVault) takeSnapshot() error {
+func (server *SugarDB) takeSnapshot() error {
 	if server.snapshotInProgress.Load() {
 		return errors.New("snapshot already in progress")
 	}
@@ -593,33 +593,33 @@ func (server *EchoVault) takeSnapshot() error {
 	return nil
 }
 
-func (server *EchoVault) startSnapshot() {
+func (server *SugarDB) startSnapshot() {
 	server.snapshotInProgress.Store(true)
 }
 
-func (server *EchoVault) finishSnapshot() {
+func (server *SugarDB) finishSnapshot() {
 	server.snapshotInProgress.Store(false)
 }
 
-func (server *EchoVault) setLatestSnapshot(msec int64) {
+func (server *SugarDB) setLatestSnapshot(msec int64) {
 	server.latestSnapshotMilliseconds.Store(msec)
 }
 
 // getLatestSnapshotTime returns the latest snapshot time in unix epoch milliseconds.
-func (server *EchoVault) getLatestSnapshotTime() int64 {
+func (server *SugarDB) getLatestSnapshotTime() int64 {
 	return server.latestSnapshotMilliseconds.Load()
 }
 
-func (server *EchoVault) startRewriteAOF() {
+func (server *SugarDB) startRewriteAOF() {
 	server.rewriteAOFInProgress.Store(true)
 }
 
-func (server *EchoVault) finishRewriteAOF() {
+func (server *SugarDB) finishRewriteAOF() {
 	server.rewriteAOFInProgress.Store(false)
 }
 
 // rewriteAOF triggers an AOF compaction when running in standalone mode.
-func (server *EchoVault) rewriteAOF() error {
+func (server *SugarDB) rewriteAOF() error {
 	if server.rewriteAOFInProgress.Load() {
 		return errors.New("aof rewrite in progress")
 	}
@@ -629,9 +629,9 @@ func (server *EchoVault) rewriteAOF() error {
 	return nil
 }
 
-// ShutDown gracefully shuts down the EchoVault instance.
+// ShutDown gracefully shuts down the SugarDB instance.
 // This function shuts down the memberlist and raft layers.
-func (server *EchoVault) ShutDown() {
+func (server *SugarDB) ShutDown() {
 	if server.listener.Load() != nil {
 		go func() { server.quit <- struct{}{} }()
 		go func() { server.stopTTL <- struct{}{} }()
@@ -649,7 +649,7 @@ func (server *EchoVault) ShutDown() {
 	}
 }
 
-func (server *EchoVault) initialiseCaches() {
+func (server *SugarDB) initialiseCaches() {
 	// Set up LFU cache.
 	server.lfuCache = struct {
 		mutex *sync.Mutex

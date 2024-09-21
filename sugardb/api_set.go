@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"github.com/echovault/echovault/internal"
@@ -33,7 +33,7 @@ import (
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SAdd(key string, members ...string) (int, error) {
+func (server *SugarDB) SAdd(key string, members ...string) (int, error) {
 	cmd := append([]string{"SADD", key}, members...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -53,7 +53,7 @@ func (server *EchoVault) SAdd(key string, members ...string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SCard(key string) (int, error) {
+func (server *SugarDB) SCard(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SCARD", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -75,7 +75,7 @@ func (server *EchoVault) SCard(key string) (int, error) {
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 //
 // "key for base set <key> does not exist" - if the first key is not a set.
-func (server *EchoVault) SDiff(keys ...string) ([]string, error) {
+func (server *SugarDB) SDiff(keys ...string) ([]string, error) {
 	cmd := append([]string{"SDIFF"}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -88,7 +88,7 @@ func (server *EchoVault) SDiff(keys ...string) ([]string, error) {
 // at the 'destination' key.
 //
 // Returns: an integer representing the cardinality of the new set.
-func (server *EchoVault) SDiffStore(destination string, keys ...string) (int, error) {
+func (server *SugarDB) SDiffStore(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SDIFFSTORE", destination}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -111,7 +111,7 @@ func (server *EchoVault) SDiffStore(destination string, keys ...string) (int, er
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 //
 // "not enough sets in the keys provided" - when only one of the provided keys is a valid set.
-func (server *EchoVault) SInter(keys ...string) ([]string, error) {
+func (server *SugarDB) SInter(keys ...string) ([]string, error) {
 	cmd := append([]string{"SINTER"}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -135,7 +135,7 @@ func (server *EchoVault) SInter(keys ...string) ([]string, error) {
 // "value at <key> is not a set" - when the provided key exists but is not a set.
 //
 // "not enough sets in the keys provided" - when only one of the provided keys is a valid set.
-func (server *EchoVault) SInterCard(keys []string, limit uint) (int, error) {
+func (server *SugarDB) SInterCard(keys []string, limit uint) (int, error) {
 	cmd := append([]string{"SINTERCARD"}, keys...)
 	if limit > 0 {
 		cmd = append(cmd, []string{"LIMIT", strconv.Itoa(int(limit))}...)
@@ -149,7 +149,7 @@ func (server *EchoVault) SInterCard(keys []string, limit uint) (int, error) {
 
 // SInterStore works the same as SInter but instead of returning the elements in the resulting set, it is stored
 // at the 'destination' key and the cardinality of the resulting set is returned.
-func (server *EchoVault) SInterStore(destination string, keys ...string) (int, error) {
+func (server *SugarDB) SInterStore(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SINTERSTORE", destination}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -171,7 +171,7 @@ func (server *EchoVault) SInterStore(destination string, keys ...string) (int, e
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SisMember(key, member string) (bool, error) {
+func (server *SugarDB) SisMember(key, member string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SISMEMBER", key, member}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -190,7 +190,7 @@ func (server *EchoVault) SisMember(key, member string) (bool, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SMembers(key string) ([]string, error) {
+func (server *SugarDB) SMembers(key string) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SMEMBERS", key}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -212,7 +212,7 @@ func (server *EchoVault) SMembers(key string) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SMisMember(key string, members ...string) ([]bool, error) {
+func (server *SugarDB) SMisMember(key string, members ...string) ([]bool, error) {
 	cmd := append([]string{"SMISMEMBER", key}, members...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -240,7 +240,7 @@ func (server *EchoVault) SMisMember(key string, members ...string) ([]bool, erro
 // "source is not a set" - when the source key does not hold a set.
 //
 // "destination is not a set" - when the destination key does not hold a set.
-func (server *EchoVault) SMove(source, destination, member string) (bool, error) {
+func (server *SugarDB) SMove(source, destination, member string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SMOVE", source, destination, member}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -261,7 +261,7 @@ func (server *EchoVault) SMove(source, destination, member string) (bool, error)
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SPop(key string, count uint) ([]string, error) {
+func (server *SugarDB) SPop(key string, count uint) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SPOP", key, strconv.Itoa(int(count))}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -283,7 +283,7 @@ func (server *EchoVault) SPop(key string, count uint) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SRandMember(key string, count int) ([]string, error) {
+func (server *SugarDB) SRandMember(key string, count int) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SRANDMEMBER", key, strconv.Itoa(count)}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -304,7 +304,7 @@ func (server *EchoVault) SRandMember(key string, count int) ([]string, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SRem(key string, members ...string) (int, error) {
+func (server *SugarDB) SRem(key string, members ...string) (int, error) {
 	cmd := append([]string{"SREM", key}, members...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -325,7 +325,7 @@ func (server *EchoVault) SRem(key string, members ...string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a set" - when the provided key exists but is not a set.
-func (server *EchoVault) SUnion(keys ...string) ([]string, error) {
+func (server *SugarDB) SUnion(keys ...string) ([]string, error) {
 	cmd := append([]string{"SUNION"}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -338,7 +338,7 @@ func (server *EchoVault) SUnion(keys ...string) ([]string, error) {
 // set at the 'destination' key. The return value is an integer representing the cardinality of the new set.
 //
 // Returns: an integer representing the cardinality of the new union set.
-func (server *EchoVault) SUnionStore(destination string, keys ...string) (int, error) {
+func (server *SugarDB) SUnionStore(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"SUNIONSTORE", destination}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {

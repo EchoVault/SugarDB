@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"fmt"
@@ -152,7 +152,7 @@ func (x GetExOpt) isGetExOpt() GetExOpt { return x }
 // "key <key> does not exist"" - when the XX flag is set to true and the key does not exist.
 //
 // "key <key> does already exists" - when the NX flag is set to true and the key already exists.
-func (server *EchoVault) Set(key, value string, options SETOptions) (string, bool, error) {
+func (server *SugarDB) Set(key, value string, options SETOptions) (string, bool, error) {
 	cmd := []string{"SET", key, value}
 
 	if options.WriteOpt != nil {
@@ -195,7 +195,7 @@ func (server *EchoVault) Set(key, value string, options SETOptions) (string, boo
 // Errors:
 //
 // "key <key> already exists" - when the NX flag is set to true and the key already exists.
-func (server *EchoVault) MSet(kvPairs map[string]string) (bool, error) {
+func (server *SugarDB) MSet(kvPairs map[string]string) (bool, error) {
 	cmd := []string{"MSET"}
 
 	for k, v := range kvPairs {
@@ -223,7 +223,7 @@ func (server *EchoVault) MSet(kvPairs map[string]string) (bool, error) {
 //
 // Returns: A string representing the value at the specified key. If the value does not exist, an empty
 // string is returned.
-func (server *EchoVault) Get(key string) (string, error) {
+func (server *SugarDB) Get(key string) (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"GET", key}), nil, false, true)
 	if err != nil {
 		return "", err
@@ -239,7 +239,7 @@ func (server *EchoVault) Get(key string) (string, error) {
 // `keys` - []string - a string slice of all the keys.
 //
 // Returns: a string slice of all the values.
-func (server *EchoVault) MGet(keys ...string) ([]string, error) {
+func (server *SugarDB) MGet(keys ...string) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(append([]string{"MGET"}, keys...)), nil, false, true)
 	if err != nil {
 		return []string{}, err
@@ -254,7 +254,7 @@ func (server *EchoVault) MGet(keys ...string) ([]string, error) {
 // `keys` - []string - the keys to delete from the store.
 //
 // Returns: The number of keys that were successfully deleted.
-func (server *EchoVault) Del(keys ...string) (int, error) {
+func (server *SugarDB) Del(keys ...string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(append([]string{"DEL"}, keys...)), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -270,7 +270,7 @@ func (server *EchoVault) Del(keys ...string) (int, error) {
 // `key` - string - the key to persist.
 //
 // Returns: true if the keys is successfully persisted.
-func (server *EchoVault) Persist(key string) (bool, error) {
+func (server *SugarDB) Persist(key string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PERSIST", key}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -285,7 +285,7 @@ func (server *EchoVault) Persist(key string) (bool, error) {
 // `key` - string.
 //
 // Returns: -2 if the keys does not exist, -1 if the key exists but has no expiry time, seconds if the key has an expiry.
-func (server *EchoVault) ExpireTime(key string) (int, error) {
+func (server *SugarDB) ExpireTime(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"EXPIRETIME", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -300,7 +300,7 @@ func (server *EchoVault) ExpireTime(key string) (int, error) {
 // `key` - string.
 //
 // Returns: -2 if the keys does not exist, -1 if the key exists but has no expiry time, seconds if the key has an expiry.
-func (server *EchoVault) PExpireTime(key string) (int, error) {
+func (server *SugarDB) PExpireTime(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PEXPIRETIME", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -315,7 +315,7 @@ func (server *EchoVault) PExpireTime(key string) (int, error) {
 // `key` - string.
 //
 // Returns: -2 if the keys does not exist, -1 if the key exists but has no expiry time, seconds if the key has an expiry.
-func (server *EchoVault) TTL(key string) (int, error) {
+func (server *SugarDB) TTL(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"TTL", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -330,7 +330,7 @@ func (server *EchoVault) TTL(key string) (int, error) {
 // `key` - string.
 //
 // Returns: -2 if the keys does not exist, -1 if the key exists but has no expiry time, seconds if the key has an expiry.
-func (server *EchoVault) PTTL(key string) (int, error) {
+func (server *SugarDB) PTTL(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"PTTL", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -350,7 +350,7 @@ func (server *EchoVault) PTTL(key string) (int, error) {
 // `options` - ExpireOptions - One of NX, GT, LT. XX can be passed with GT OR LT optionally.
 //
 // Returns: true if the key's expiry was successfully updated.
-func (server *EchoVault) Expire(key string, seconds int, options ...ExpireOptions) (bool, error) {
+func (server *SugarDB) Expire(key string, seconds int, options ...ExpireOptions) (bool, error) {
 	cmd := []string{"EXPIRE", key, strconv.Itoa(seconds)}
 
 	for _, opt := range options {
@@ -379,7 +379,7 @@ func (server *EchoVault) Expire(key string, seconds int, options ...ExpireOption
 // `options` - PExpireOptions
 //
 // Returns: true if the key's expiry was successfully updated.
-func (server *EchoVault) PExpire(key string, milliseconds int, options ...ExpireOptions) (bool, error) {
+func (server *SugarDB) PExpire(key string, milliseconds int, options ...ExpireOptions) (bool, error) {
 	cmd := []string{"PEXPIRE", key, strconv.Itoa(milliseconds)}
 
 	for _, opt := range options {
@@ -408,7 +408,7 @@ func (server *EchoVault) PExpire(key string, milliseconds int, options ...Expire
 // `options` - ExpireAtOptions
 //
 // Returns: true if the key's expiry was successfully updated.
-func (server *EchoVault) ExpireAt(key string, unixSeconds int, options ...ExpireOptions) (int, error) {
+func (server *SugarDB) ExpireAt(key string, unixSeconds int, options ...ExpireOptions) (int, error) {
 	cmd := []string{"EXPIREAT", key, strconv.Itoa(unixSeconds)}
 
 	for _, opt := range options {
@@ -437,7 +437,7 @@ func (server *EchoVault) ExpireAt(key string, unixSeconds int, options ...Expire
 // `options` - PExpireAtOptions
 //
 // Returns: true if the key's expiry was successfully updated.
-func (server *EchoVault) PExpireAt(key string, unixMilliseconds int, options ...ExpireOptions) (int, error) {
+func (server *SugarDB) PExpireAt(key string, unixMilliseconds int, options ...ExpireOptions) (int, error) {
 	cmd := []string{"PEXPIREAT", key, strconv.Itoa(unixMilliseconds)}
 
 	for _, opt := range options {
@@ -462,7 +462,7 @@ func (server *EchoVault) PExpireAt(key string, unixMilliseconds int, options ...
 // `key` - string
 //
 // Returns: The new value as an integer.
-func (server *EchoVault) Incr(key string) (int, error) {
+func (server *SugarDB) Incr(key string) (int, error) {
 	// Construct the command
 	cmd := []string{"INCR", key}
 
@@ -484,7 +484,7 @@ func (server *EchoVault) Incr(key string) (int, error) {
 // `key` - string
 //
 // Returns: The new value as an integer.
-func (server *EchoVault) Decr(key string) (int, error) {
+func (server *SugarDB) Decr(key string) (int, error) {
 	// Construct the command
 	cmd := []string{"DECR", key}
 
@@ -509,7 +509,7 @@ func (server *EchoVault) Decr(key string) (int, error) {
 // `increment` - int -  The amount by which to increment the key's value. This can be a positive or negative integer.
 //
 // Returns: The new value of the key after the increment operation as an integer.
-func (server *EchoVault) IncrBy(key string, value string) (int, error) {
+func (server *SugarDB) IncrBy(key string, value string) (int, error) {
 	// Construct the command
 	cmd := []string{"INCRBY", key, value}
 	// Execute the command
@@ -532,7 +532,7 @@ func (server *EchoVault) IncrBy(key string, value string) (int, error) {
 // `increment` - float64 - The amount by which to increment the key's value. This can be a positive or negative float.
 //
 // Returns: The new value of the key after the increment operation as a float64.
-func (server *EchoVault) IncrByFloat(key string, value string) (float64, error) {
+func (server *SugarDB) IncrByFloat(key string, value string) (float64, error) {
 	// Construct the command
 	cmd := []string{"INCRBYFLOAT", key, value}
 	// Execute the command
@@ -555,7 +555,7 @@ func (server *EchoVault) IncrByFloat(key string, value string) (float64, error) 
 // `increment` - int - The amount by which to decrement the key's value. This can be a positive or negative integer.
 //
 // Returns: The new value of the key after the decrement operation as an integer.
-func (server *EchoVault) DecrBy(key string, value string) (int, error) {
+func (server *SugarDB) DecrBy(key string, value string) (int, error) {
 	// Construct the command
 	cmd := []string{"DECRBY", key, value}
 	// Execute the command
@@ -577,7 +577,7 @@ func (server *EchoVault) DecrBy(key string, value string) (int, error) {
 // `newKey` - string - The new name for the key.
 //
 // Returns: A string indicating the success of the operation.
-func (server *EchoVault) Rename(oldKey string, newKey string) (string, error) {
+func (server *SugarDB) Rename(oldKey string, newKey string) (string, error) {
 	// Construct the command
 	cmd := []string{"RENAME", oldKey, newKey}
 	// Execute the command
@@ -591,7 +591,7 @@ func (server *EchoVault) Rename(oldKey string, newKey string) (string, error) {
 
 // RandomKey returns a random key from the current active database.
 // If no keys present in db returns an empty string.
-func (server *EchoVault) RandomKey() (string, error) {
+func (server *SugarDB) RandomKey() (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"RANDOMKEY"}), nil, false, true)
 	if err != nil {
 		return "", err
@@ -607,7 +607,7 @@ func (server *EchoVault) RandomKey() (string, error) {
 //
 // Returns: A string representing the value at the specified key. If the value does not exist, an empty
 // string is returned.
-func (server *EchoVault) GetDel(key string) (string, error) {
+func (server *SugarDB) GetDel(key string) (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"GETDEL", key}), nil, false, true)
 	if err != nil {
 		return "", err
@@ -626,7 +626,7 @@ func (server *EchoVault) GetDel(key string) (string, error) {
 // `unixtime` - Number of seconds or miliseconds from now.
 //
 // Returns: A string representing the value at the specified key. If the value does not exist, an empty string is returned.
-func (server *EchoVault) GetEx(key string, option GetExOption, unixtime int) (string, error) {
+func (server *SugarDB) GetEx(key string, option GetExOption, unixtime int) (string, error) {
 
 	cmd := make([]string, 2)
 
@@ -657,7 +657,7 @@ func (server *EchoVault) GetEx(key string, option GetExOption, unixtime int) (st
 // `keys` - ...string - the keys whose access time or access count should be incremented based on eviction policy.
 //
 // Returns: An integer representing the number of keys successfully touched. If a key doesn't exist it is simply ignored.
-func (server *EchoVault) Touch(keys ...string) (int, error) {
+func (server *SugarDB) Touch(keys ...string) (int, error) {
 	cmd := make([]string, len(keys)+1)
 	cmd[0] = "TOUCH"
 	for i, k := range keys {
@@ -679,7 +679,7 @@ func (server *EchoVault) Touch(keys ...string) (int, error) {
 // `key` - string - the key whose access frequency should be retrieved.
 //
 // Returns: An integer representing the access frequency. If the key doesn't exist -1 and an error is returned.
-func (server *EchoVault) ObjectFreq(key string) (int, error) {
+func (server *SugarDB) ObjectFreq(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"OBJECTFREQ", key}), nil, false, true)
 	if err != nil {
 		return -1, err
@@ -695,7 +695,7 @@ func (server *EchoVault) ObjectFreq(key string) (int, error) {
 // `key` - string - the key whose last access time should be retrieved.
 //
 // Returns: A float64 representing the seconds since the key was last accessed. If the key doesn't exist -1 and an error is returned.
-func (server *EchoVault) ObjectIdleTime(key string) (float64, error) {
+func (server *SugarDB) ObjectIdleTime(key string) (float64, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"OBJECTIDLETIME", key}), nil, false, true)
 	if err != nil {
 		return -1, err

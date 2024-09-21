@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"github.com/echovault/echovault/internal"
@@ -31,7 +31,7 @@ import (
 // Errors:
 //
 // "LLen command on non-list item" - when the provided key exists but is not a list.
-func (server *EchoVault) LLen(key string) (int, error) {
+func (server *SugarDB) LLen(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LLEN", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -55,7 +55,7 @@ func (server *EchoVault) LLen(key string) (int, error) {
 // Errors:
 //
 // "LRange command on non-list item" - when the provided key exists but is not a list.
-func (server *EchoVault) LRange(key string, start, end int) ([]string, error) {
+func (server *SugarDB) LRange(key string, start, end int) ([]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LRANGE", key, strconv.Itoa(start), strconv.Itoa(end)}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (server *EchoVault) LRange(key string, start, end int) ([]string, error) {
 // Errors:
 //
 // "LIndex command on non-list item" - when the provided key exists but is not a list.
-func (server *EchoVault) LIndex(key string, index uint) (string, error) {
+func (server *SugarDB) LIndex(key string, index uint) (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LINDEX", key, strconv.Itoa(int(index))}), nil, false, true)
 	if err != nil {
 		return "", err
@@ -101,7 +101,7 @@ func (server *EchoVault) LIndex(key string, index uint) (string, error) {
 // "LSet command on non-list item" - when the provided key exists but is not a list.
 //
 // "index must be within list range" - when the index is not within the list boundary.
-func (server *EchoVault) LSet(key string, index int, value string) (bool, error) {
+func (server *SugarDB) LSet(key string, index int, value string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LSET", key, strconv.Itoa(index), value}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -114,7 +114,7 @@ func (server *EchoVault) LSet(key string, index int, value string) (bool, error)
 // trimmed list.
 //
 // Returns: true if the trim is successful.
-func (server *EchoVault) LTrim(key string, start int, end int) (bool, error) {
+func (server *SugarDB) LTrim(key string, start int, end int) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LTRIM", key, strconv.Itoa(start), strconv.Itoa(end)}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -138,7 +138,7 @@ func (server *EchoVault) LTrim(key string, start int, end int) (bool, error) {
 // Errors:
 //
 // "LRem command on non-list item" - when the provided key exists but is not a list.
-func (server *EchoVault) LRem(key string, count int, value string) (int, error) {
+func (server *SugarDB) LRem(key string, count int, value string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{
 		"LREM", key, strconv.Itoa(count), value}),
 		nil,
@@ -172,7 +172,7 @@ func (server *EchoVault) LRem(key string, count int, value string) (int, error) 
 // "both source and destination must be lists" - when either source or destination are not lists.
 //
 // "wherefrom and whereto arguments must be either LEFT or RIGHT" - if whereFrom or whereTo are not either "LEFT" or "RIGHT".
-func (server *EchoVault) LMove(source, destination, whereFrom, whereTo string) (bool, error) {
+func (server *SugarDB) LMove(source, destination, whereFrom, whereTo string) (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LMOVE", source, destination, whereFrom, whereTo}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -192,7 +192,7 @@ func (server *EchoVault) LMove(source, destination, whereFrom, whereTo string) (
 // Errors:
 //
 // "LPOP command on non-list item" - when the provided key is not a list.
-func (server *EchoVault) LPop(key string, count uint) ([]string, error) {
+func (server *SugarDB) LPop(key string, count uint) ([]string, error) {
 	b, err := server.handleCommand(
 		server.context,
 		internal.EncodeCommand([]string{"LPOP", key, strconv.Itoa(int(count))}),
@@ -217,7 +217,7 @@ func (server *EchoVault) LPop(key string, count uint) ([]string, error) {
 // Errors:
 //
 // "RPOP command on non-list item" - when the provided key is not a list.
-func (server *EchoVault) RPop(key string, count uint) ([]string, error) {
+func (server *SugarDB) RPop(key string, count uint) ([]string, error) {
 	b, err := server.handleCommand(
 		server.context,
 		internal.EncodeCommand([]string{"RPOP", key, strconv.Itoa(int(count))}),
@@ -245,7 +245,7 @@ func (server *EchoVault) RPop(key string, count uint) ([]string, error) {
 // Errors:
 //
 // "LPush command on non-list item" - when the provided key is not a list.
-func (server *EchoVault) LPush(key string, values ...string) (int, error) {
+func (server *SugarDB) LPush(key string, values ...string) (int, error) {
 	cmd := append([]string{"LPUSH", key}, values...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -267,7 +267,7 @@ func (server *EchoVault) LPush(key string, values ...string) (int, error) {
 // Errors:
 //
 // "LPushX command on non-list item" - when the provided key is not a list or doesn't exist.
-func (server *EchoVault) LPushX(key string, values ...string) (int, error) {
+func (server *SugarDB) LPushX(key string, values ...string) (int, error) {
 	cmd := append([]string{"LPUSHX", key}, values...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -290,7 +290,7 @@ func (server *EchoVault) LPushX(key string, values ...string) (int, error) {
 // Errors:
 //
 // "RPush command on non-list item" - when the provided key is not a list.
-func (server *EchoVault) RPush(key string, values ...string) (int, error) {
+func (server *SugarDB) RPush(key string, values ...string) (int, error) {
 	cmd := append([]string{"RPUSH", key}, values...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -312,7 +312,7 @@ func (server *EchoVault) RPush(key string, values ...string) (int, error) {
 // Errors:
 //
 // "RPushX command on non-list item" - when the provided key is not a list or doesn't exist.
-func (server *EchoVault) RPushX(key string, values ...string) (int, error) {
+func (server *SugarDB) RPushX(key string, values ...string) (int, error) {
 	cmd := append([]string{"RPUSHX", key}, values...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {

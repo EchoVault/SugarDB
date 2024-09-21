@@ -17,7 +17,6 @@ package admin_test
 import (
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/clock"
 	"github.com/echovault/echovault/internal/constants"
@@ -31,6 +30,7 @@ import (
 	"github.com/echovault/echovault/internal/modules/set"
 	"github.com/echovault/echovault/internal/modules/sorted_set"
 	str "github.com/echovault/echovault/internal/modules/string"
+	"github.com/echovault/echovault/sugardb"
 	"github.com/tidwall/resp"
 	"os"
 	"path"
@@ -40,13 +40,13 @@ import (
 	"time"
 )
 
-func setupServer(port uint16) (*echovault.EchoVault, error) {
-	cfg := echovault.DefaultConfig()
+func setupServer(port uint16) (*sugardb.SugarDB, error) {
+	cfg := sugardb.DefaultConfig()
 	cfg.DataDir = ""
 	cfg.BindAddr = "localhost"
 	cfg.Port = port
 	cfg.EvictionPolicy = constants.NoEviction
-	return echovault.NewEchoVault(echovault.WithConfig(cfg))
+	return sugardb.NewSugarDB(sugardb.WithConfig(cfg))
 }
 
 func Test_AdminCommands(t *testing.T) {
@@ -688,8 +688,8 @@ func Test_AdminCommands(t *testing.T) {
 			name         string
 			dataDir      string
 			values       map[string]string
-			snapshotFunc func(mockServer *echovault.EchoVault, port int) error
-			lastSaveFunc func(mockServer *echovault.EchoVault, port int) (int, error)
+			snapshotFunc func(mockServer *sugardb.SugarDB, port int) error
+			lastSaveFunc func(mockServer *sugardb.SugarDB, port int) (int, error)
 			wantLastSave int
 		}{
 			{
@@ -701,7 +701,7 @@ func Test_AdminCommands(t *testing.T) {
 					"key3": "value3",
 					"key4": "value4",
 				},
-				snapshotFunc: func(mockServer *echovault.EchoVault, port int) error {
+				snapshotFunc: func(mockServer *sugardb.SugarDB, port int) error {
 					// Start the server's TCP listener
 					go func() {
 						mockServer.Start()
@@ -726,7 +726,7 @@ func Test_AdminCommands(t *testing.T) {
 					}
 					return nil
 				},
-				lastSaveFunc: func(mockServer *echovault.EchoVault, port int) (int, error) {
+				lastSaveFunc: func(mockServer *sugardb.SugarDB, port int) (int, error) {
 					conn, err := internal.GetConnection("localhost", port)
 					if err != nil {
 						return 0, err
@@ -758,13 +758,13 @@ func Test_AdminCommands(t *testing.T) {
 					return
 				}
 
-				conf := echovault.DefaultConfig()
+				conf := sugardb.DefaultConfig()
 				conf.DataDir = test.dataDir
 				conf.BindAddr = "localhost"
 				conf.Port = uint16(port)
 				conf.RestoreSnapshot = true
 
-				mockServer, err := echovault.NewEchoVault(echovault.WithConfig(conf))
+				mockServer, err := sugardb.NewSugarDB(sugardb.WithConfig(conf))
 				if err != nil {
 					t.Error(err)
 					return
@@ -776,7 +776,7 @@ func Test_AdminCommands(t *testing.T) {
 
 				// Trigger some write commands
 				for key, value := range test.values {
-					if _, _, err = mockServer.Set(key, value, echovault.SETOptions{}); err != nil {
+					if _, _, err = mockServer.Set(key, value, sugardb.SETOptions{}); err != nil {
 						t.Error(err)
 						return
 					}
@@ -793,7 +793,7 @@ func Test_AdminCommands(t *testing.T) {
 				ticker.Stop()
 
 				// Restart server with the same config. This should restore the snapshot
-				mockServer, err = echovault.NewEchoVault(echovault.WithConfig(conf))
+				mockServer, err = sugardb.NewSugarDB(sugardb.WithConfig(conf))
 				if err != nil {
 					t.Error(err)
 					return
@@ -867,7 +867,7 @@ func Test_AdminCommands(t *testing.T) {
 			return
 		}
 
-		conf := echovault.DefaultConfig()
+		conf := sugardb.DefaultConfig()
 		conf.BindAddr = "localhost"
 		conf.Port = uint16(port)
 		conf.RestoreAOF = true
@@ -875,7 +875,7 @@ func Test_AdminCommands(t *testing.T) {
 		conf.AOFSyncStrategy = "always"
 
 		// Start new server
-		mockServer, err := echovault.NewEchoVault(echovault.WithConfig(conf))
+		mockServer, err := sugardb.NewSugarDB(sugardb.WithConfig(conf))
 		if err != nil {
 			t.Error(err)
 			return
@@ -952,12 +952,12 @@ func Test_AdminCommands(t *testing.T) {
 		// Yield
 		<-ticker.C
 
-		// Shutdown the EchoVault instance and close current client connection
+		// Shutdown the SugarDB instance and close current client connection
 		mockServer.ShutDown()
 		_ = conn.Close()
 
-		// Start another instance of EchoVault
-		mockServer, err = echovault.NewEchoVault(echovault.WithConfig(conf))
+		// Start another instance of SugarDB
+		mockServer, err = sugardb.NewSugarDB(sugardb.WithConfig(conf))
 		if err != nil {
 			t.Error(err)
 			return

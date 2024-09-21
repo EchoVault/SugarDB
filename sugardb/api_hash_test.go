@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
@@ -21,8 +21,8 @@ import (
 	"testing"
 )
 
-func TestEchoVault_HDEL(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HDEL(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -86,8 +86,8 @@ func TestEchoVault_HDEL(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HEXISTS(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HEXISTS(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -143,8 +143,8 @@ func TestEchoVault_HEXISTS(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HGETALL(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HGETALL(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -203,8 +203,8 @@ func TestEchoVault_HGETALL(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HINCRBY(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HINCRBY(t *testing.T) {
+	server := createSugarDB()
 
 	const (
 		HINCRBY      = "HINCRBY"
@@ -315,8 +315,8 @@ func TestEchoVault_HINCRBY(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HKEYS(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HKEYS(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -373,8 +373,8 @@ func TestEchoVault_HKEYS(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HLEN(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HLEN(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -426,8 +426,8 @@ func TestEchoVault_HLEN(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HRANDFIELD(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HRANDFIELD(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -558,8 +558,8 @@ func TestEchoVault_HRANDFIELD(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HSET(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HSET(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name            string
@@ -646,8 +646,8 @@ func TestEchoVault_HSET(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HSTRLEN(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HSTRLEN(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -713,8 +713,8 @@ func TestEchoVault_HSTRLEN(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HVALS(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HVALS(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -771,8 +771,8 @@ func TestEchoVault_HVALS(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HGet(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HGet(t *testing.T) {
+	server := createSugarDB()
 	tests := []struct {
 		name        string
 		presetValue interface{}
@@ -827,8 +827,8 @@ func TestEchoVault_HGet(t *testing.T) {
 	}
 }
 
-func TestEchoVault_HMGet(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_HMGet(t *testing.T) {
+	server := createSugarDB()
 	tests := []struct {
 		name        string
 		presetValue interface{}

@@ -16,10 +16,10 @@ package list_test
 
 import (
 	"errors"
-	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/echovault/sugardb"
 	"github.com/tidwall/resp"
 	"go/types"
 	"slices"
@@ -35,8 +35,8 @@ func Test_List(t *testing.T) {
 		return
 	}
 
-	mockServer, err := echovault.NewEchoVault(
-		echovault.WithConfig(config.Config{
+	mockServer, err := sugardb.NewSugarDB(
+		sugardb.WithConfig(config.Config{
 			BindAddr:       "localhost",
 			Port:           uint16(port),
 			DataDir:        "",

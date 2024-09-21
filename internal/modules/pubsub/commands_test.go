@@ -15,10 +15,10 @@
 package pubsub_test
 
 import (
-	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/echovault/sugardb"
 	"github.com/tidwall/resp"
 	"net"
 	"slices"
@@ -27,9 +27,9 @@ import (
 	"testing"
 )
 
-func setUpServer(port int) (*echovault.EchoVault, error) {
-	return echovault.NewEchoVault(
-		echovault.WithConfig(config.Config{
+func setUpServer(port int) (*sugardb.SugarDB, error) {
+	return sugardb.NewSugarDB(
+		sugardb.WithConfig(config.Config{
 			BindAddr:       "localhost",
 			Port:           uint16(port),
 			DataDir:        "",

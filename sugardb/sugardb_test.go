@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"bufio"
@@ -48,7 +48,7 @@ type ClientServerPair struct {
 	joinAddr         string
 	raw              net.Conn
 	client           *resp.Conn
-	server           *EchoVault
+	server           *SugarDB
 }
 
 var bindLock sync.Mutex
@@ -80,7 +80,7 @@ func setupServer(
 	joinAddr string,
 	port,
 	discoveryPort int,
-) (*EchoVault, error) {
+) (*SugarDB, error) {
 	conf := DefaultConfig()
 	conf.DataDir = dataDir
 	conf.ForwardCommand = forwardCommand
@@ -92,7 +92,7 @@ func setupServer(
 	conf.BootstrapCluster = bootstrapCluster
 	conf.EvictionPolicy = constants.NoEviction
 
-	return NewEchoVault(
+	return NewSugarDB(
 		WithContext(context.Background()),
 		WithConfig(conf),
 	)
@@ -660,7 +660,7 @@ func Test_Standalone(t *testing.T) {
 		return
 	}
 
-	mockServer, err := NewEchoVault(
+	mockServer, err := NewSugarDB(
 		WithConfig(config.Config{
 			BindAddr:       "localhost",
 			Port:           uint16(port),
@@ -732,7 +732,7 @@ func Test_Standalone(t *testing.T) {
 			},
 		}
 
-		server, err := NewEchoVault(WithConfig(conf))
+		server, err := NewSugarDB(WithConfig(conf))
 		if err != nil {
 			t.Error(err)
 			return
@@ -837,7 +837,7 @@ func Test_Standalone(t *testing.T) {
 			},
 		}
 
-		server, err := NewEchoVault(WithConfig(conf))
+		server, err := NewSugarDB(WithConfig(conf))
 		if err != nil {
 			t.Error(err)
 			return
@@ -945,8 +945,8 @@ func Test_Standalone(t *testing.T) {
 			name         string
 			dataDir      string
 			values       map[int]map[string]string
-			snapshotFunc func(mockServer *EchoVault) error
-			lastSaveFunc func(mockServer *EchoVault) (int, error)
+			snapshotFunc func(mockServer *SugarDB) error
+			lastSaveFunc func(mockServer *SugarDB) (int, error)
 			wantLastSave int
 		}{
 			{
@@ -956,13 +956,13 @@ func Test_Standalone(t *testing.T) {
 					0: {"key5": "value-05", "key6": "value-06", "key7": "value-07", "key8": "value-08"},
 					1: {"key5": "value-15", "key6": "value-16", "key7": "value-17", "key8": "value-18"},
 				},
-				snapshotFunc: func(mockServer *EchoVault) error {
+				snapshotFunc: func(mockServer *SugarDB) error {
 					if _, err := mockServer.Save(); err != nil {
 						return err
 					}
 					return nil
 				},
-				lastSaveFunc: func(mockServer *EchoVault) (int, error) {
+				lastSaveFunc: func(mockServer *SugarDB) (int, error) {
 					return mockServer.LastSave()
 				},
 				wantLastSave: int(clock.NewClock().Now().UnixMilli()),
@@ -985,7 +985,7 @@ func Test_Standalone(t *testing.T) {
 				conf.Port = uint16(port)
 				conf.RestoreSnapshot = true
 
-				mockServer, err := NewEchoVault(WithConfig(conf))
+				mockServer, err := NewSugarDB(WithConfig(conf))
 				if err != nil {
 					t.Error(err)
 					return
@@ -1017,7 +1017,7 @@ func Test_Standalone(t *testing.T) {
 				ticker.Stop()
 
 				// Restart server with the same config. This should restore the snapshot
-				mockServer, err = NewEchoVault(WithConfig(conf))
+				mockServer, err = NewSugarDB(WithConfig(conf))
 				if err != nil {
 					t.Error(err)
 					return
@@ -1093,7 +1093,7 @@ func Test_Standalone(t *testing.T) {
 		conf.DataDir = dataDir
 		conf.AOFSyncStrategy = "always"
 
-		mockServer, err := NewEchoVault(WithConfig(conf))
+		mockServer, err := NewSugarDB(WithConfig(conf))
 		if err != nil {
 			t.Error(err)
 			return
@@ -1127,11 +1127,11 @@ func Test_Standalone(t *testing.T) {
 		// Yield
 		<-ticker.C
 
-		// Shutdown the EchoVault instance
+		// Shutdown the SugarDB instance
 		mockServer.ShutDown()
 
-		// Start another instance of EchoVault
-		mockServer, err = NewEchoVault(WithConfig(conf))
+		// Start another instance of SugarDB
+		mockServer, err = NewSugarDB(WithConfig(conf))
 		if err != nil {
 			t.Error(err)
 			return

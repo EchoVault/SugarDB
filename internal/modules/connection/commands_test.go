@@ -27,14 +27,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/echovault/echovault/echovault"
 	"github.com/echovault/echovault/internal"
 	"github.com/echovault/echovault/internal/config"
 	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/echovault/sugardb"
 	"github.com/tidwall/resp"
 )
 
-func setUpServer(port int, requirePass bool, aclConfig string) (*echovault.EchoVault, error) {
+func setUpServer(port int, requirePass bool, aclConfig string) (*sugardb.SugarDB, error) {
 	conf := config.Config{
 		BindAddr:       "localhost",
 		Port:           uint16(port),
@@ -45,8 +45,8 @@ func setUpServer(port int, requirePass bool, aclConfig string) (*echovault.EchoV
 		AclConfig:      aclConfig,
 	}
 
-	mockServer, err := echovault.NewEchoVault(
-		echovault.WithConfig(conf),
+	mockServer, err := sugardb.NewSugarDB(
+		sugardb.WithConfig(conf),
 	)
 	if err != nil {
 		return nil, err
@@ -62,8 +62,8 @@ func setUpServer(port int, requirePass bool, aclConfig string) (*echovault.EchoV
 	return mockServer, nil
 }
 
-func generateInitialTestUsers() []echovault.User {
-	return []echovault.User{
+func generateInitialTestUsers() []sugardb.User {
+	return []sugardb.User{
 		{
 			// User with both hash password and plaintext password.
 			Username:          "with_password_user",
@@ -323,8 +323,8 @@ func Test_Connection(t *testing.T) {
 			expectedErr error
 		}{
 			{
-				command:     []resp.Value{resp.StringValue("ECHO"), resp.StringValue("Hello, EchoVault!")},
-				expected:    "Hello, EchoVault!",
+				command:     []resp.Value{resp.StringValue("ECHO"), resp.StringValue("Hello, SugarDB!")},
+				expected:    "Hello, SugarDB!",
 				expectedErr: nil,
 			},
 			{
@@ -335,7 +335,7 @@ func Test_Connection(t *testing.T) {
 			{
 				command: []resp.Value{
 					resp.StringValue("ECHO"),
-					resp.StringValue("Hello, EchoVault!"),
+					resp.StringValue("Hello, SugarDB!"),
 					resp.StringValue("Once more"),
 				},
 				expected:    "",

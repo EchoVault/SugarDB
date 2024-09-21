@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
@@ -24,8 +24,8 @@ import (
 	"testing"
 )
 
-func TestEchoVault_ZADD(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZADD(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -248,8 +248,8 @@ func TestEchoVault_ZADD(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZCARD(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZCARD(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -309,8 +309,8 @@ func TestEchoVault_ZCARD(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZCOUNT(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZCOUNT(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -408,8 +408,8 @@ func TestEchoVault_ZCOUNT(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZDIFF(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZDIFF(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -558,8 +558,8 @@ func TestEchoVault_ZDIFF(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZDIFFSTORE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZDIFFSTORE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -677,8 +677,8 @@ func TestEchoVault_ZDIFFSTORE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZINCRBY(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZINCRBY(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -825,8 +825,8 @@ func TestEchoVault_ZINCRBY(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZINTER(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZINTER(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -1136,8 +1136,8 @@ func TestEchoVault_ZINTER(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZINTERSTORE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZINTERSTORE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -1461,8 +1461,8 @@ func TestEchoVault_ZINTERSTORE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZLEXCOUNT(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZLEXCOUNT(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -1552,8 +1552,8 @@ func TestEchoVault_ZLEXCOUNT(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZMPOP(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZMPOP(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -1706,8 +1706,8 @@ func TestEchoVault_ZMPOP(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZMSCORE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZMSCORE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -1785,8 +1785,8 @@ func TestEchoVault_ZMSCORE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZPOP(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZPOP(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -1891,8 +1891,8 @@ func TestEchoVault_ZPOP(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZRANDMEMBER(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZRANDMEMBER(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -1965,8 +1965,8 @@ func TestEchoVault_ZRANDMEMBER(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZRANGE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZRANGE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -2128,8 +2128,8 @@ func TestEchoVault_ZRANGE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZRANGESTORE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZRANGESTORE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -2340,8 +2340,8 @@ func TestEchoVault_ZRANGESTORE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZRANK(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZRANK(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -2437,8 +2437,8 @@ func TestEchoVault_ZRANK(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZREM(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZREM(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -2506,8 +2506,8 @@ func TestEchoVault_ZREM(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZREMRANGEBYSCORE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZREMRANGEBYSCORE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -2576,8 +2576,8 @@ func TestEchoVault_ZREMRANGEBYSCORE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZSCORE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZSCORE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -2654,8 +2654,8 @@ func TestEchoVault_ZSCORE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZUNION(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZUNION(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -2990,8 +2990,8 @@ func TestEchoVault_ZUNION(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZUNIONSTORE(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZUNIONSTORE(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name         string
@@ -3300,8 +3300,8 @@ func TestEchoVault_ZUNIONSTORE(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZRevRank(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZRevRank(t *testing.T) {
+	server := createSugarDB()
 
 	tests := []struct {
 		name        string
@@ -3397,8 +3397,8 @@ func TestEchoVault_ZRevRank(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZRemRangeByLex(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZRemRangeByLex(t *testing.T) {
+	server := createSugarDB()
 	tests := []struct {
 		name        string
 		key         string
@@ -3478,8 +3478,8 @@ func TestEchoVault_ZRemRangeByLex(t *testing.T) {
 	}
 }
 
-func TestEchoVault_ZRemRangeByRank(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_ZRemRangeByRank(t *testing.T) {
+	server := createSugarDB()
 	tests := []struct {
 		name        string
 		key         string

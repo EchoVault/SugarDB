@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 	"strings"
 )
 
-func (server *EchoVault) getCommand(cmd string) (internal.Command, error) {
+func (server *SugarDB) getCommand(cmd string) (internal.Command, error) {
 	server.commandsRWMut.RLock()
 	defer server.commandsRWMut.RUnlock()
 	for _, command := range server.commands {
@@ -37,7 +37,7 @@ func (server *EchoVault) getCommand(cmd string) (internal.Command, error) {
 	return internal.Command{}, fmt.Errorf("command %s not supported", cmd)
 }
 
-func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) internal.HandlerFuncParams {
+func (server *SugarDB) getHandlerFuncParams(ctx context.Context, cmd []string, conn *net.Conn) internal.HandlerFuncParams {
 	return internal.HandlerFuncParams{
 		Context:               ctx,
 		Command:               cmd,
@@ -103,7 +103,7 @@ func (server *EchoVault) getHandlerFuncParams(ctx context.Context, cmd []string,
 	}
 }
 
-func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool, embedded bool) ([]byte, error) {
+func (server *SugarDB) handleCommand(ctx context.Context, message []byte, conn *net.Conn, replay bool, embedded bool) ([]byte, error) {
 	// Prepare context before processing the command.
 	server.connInfo.mut.RLock()
 	if embedded && !replay {
@@ -207,18 +207,18 @@ func (server *EchoVault) handleCommand(ctx context.Context, message []byte, conn
 	return nil, errors.New("not cluster leader, cannot carry out command")
 }
 
-func (server *EchoVault) getCommands() []internal.Command {
+func (server *SugarDB) getCommands() []internal.Command {
 	return server.commands
 }
 
-func (server *EchoVault) getACL() interface{} {
+func (server *SugarDB) getACL() interface{} {
 	return server.acl
 }
 
-func (server *EchoVault) getPubSub() interface{} {
+func (server *SugarDB) getPubSub() interface{} {
 	return server.pubSub
 }
 
-func (server *EchoVault) getClock() clock.Clock {
+func (server *SugarDB) getClock() clock.Clock {
 	return server.clock
 }

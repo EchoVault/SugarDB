@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"github.com/echovault/echovault/internal"
@@ -68,9 +68,9 @@ type ZUnionStoreOptions ZInterOptions
 
 // ZMPopOptions allows you to modify the result of the ZMPop command.
 //
-// Min instructs EchoVault to pop the minimum score elements. Min is higher priority than Max.
+// Min instructs SugarDB to pop the minimum score elements. Min is higher priority than Max.
 //
-// Max instructs EchoVault to pop the maximum score elements.
+// Max instructs SugarDB to pop the maximum score elements.
 //
 // Count specifies the number of elements to pop.
 type ZMPopOptions struct {
@@ -139,7 +139,7 @@ func buildMemberScoreMap(arr [][]string, withscores bool) (map[string]float64, e
 // one member-score pair.
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set
-func (server *EchoVault) ZAdd(key string, members map[string]float64, options ZAddOptions) (int, error) {
+func (server *SugarDB) ZAdd(key string, members map[string]float64, options ZAddOptions) (int, error) {
 	cmd := []string{"ZADD", key}
 
 	switch {
@@ -187,7 +187,7 @@ func (server *EchoVault) ZAdd(key string, members map[string]float64, options ZA
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set
-func (server *EchoVault) ZCard(key string) (int, error) {
+func (server *SugarDB) ZCard(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ZCARD", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -210,7 +210,7 @@ func (server *EchoVault) ZCard(key string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set
-func (server *EchoVault) ZCount(key string, min, max float64) (int, error) {
+func (server *SugarDB) ZCount(key string, min, max float64) (int, error) {
 	cmd := []string{
 		"ZCOUNT",
 		key,
@@ -239,7 +239,7 @@ func (server *EchoVault) ZCount(key string, min, max float64) (int, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set.
-func (server *EchoVault) ZDiff(withscores bool, keys ...string) (map[string]float64, error) {
+func (server *SugarDB) ZDiff(withscores bool, keys ...string) (map[string]float64, error) {
 	cmd := append([]string{"ZDIFF"}, keys...)
 	if withscores {
 		cmd = append(cmd, "WITHSCORES")
@@ -271,7 +271,7 @@ func (server *EchoVault) ZDiff(withscores bool, keys ...string) (map[string]floa
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZDiffStore(destination string, keys ...string) (int, error) {
+func (server *SugarDB) ZDiffStore(destination string, keys ...string) (int, error) {
 	cmd := append([]string{"ZDIFFSTORE", destination}, keys...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -294,7 +294,7 @@ func (server *EchoVault) ZDiffStore(destination string, keys ...string) (int, er
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set.
-func (server *EchoVault) ZInter(keys []string, options ZInterOptions) (map[string]float64, error) {
+func (server *SugarDB) ZInter(keys []string, options ZInterOptions) (map[string]float64, error) {
 	cmd := append([]string{"ZINTER"}, keys...)
 
 	if len(options.Weights) > 0 {
@@ -341,7 +341,7 @@ func (server *EchoVault) ZInter(keys []string, options ZInterOptions) (map[strin
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZInterStore(destination string, keys []string, options ZInterStoreOptions) (int, error) {
+func (server *SugarDB) ZInterStore(destination string, keys []string, options ZInterStoreOptions) (int, error) {
 	cmd := append([]string{"ZINTERSTORE", destination}, keys...)
 
 	if len(options.Weights) > 0 {
@@ -381,7 +381,7 @@ func (server *EchoVault) ZInterStore(destination string, keys []string, options 
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set.
-func (server *EchoVault) ZUnion(keys []string, options ZUnionOptions) (map[string]float64, error) {
+func (server *SugarDB) ZUnion(keys []string, options ZUnionOptions) (map[string]float64, error) {
 	cmd := append([]string{"ZUNION"}, keys...)
 
 	if len(options.Weights) > 0 {
@@ -428,7 +428,7 @@ func (server *EchoVault) ZUnion(keys []string, options ZUnionOptions) (map[strin
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZUnionStore(destination string, keys []string, options ZUnionStoreOptions) (int, error) {
+func (server *SugarDB) ZUnionStore(destination string, keys []string, options ZUnionStoreOptions) (int, error) {
 	cmd := append([]string{"ZUNIONSTORE", destination}, keys...)
 
 	if len(options.Weights) > 0 {
@@ -470,7 +470,7 @@ func (server *EchoVault) ZUnionStore(destination string, keys []string, options 
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZIncrBy(key string, increment float64, member string) (float64, error) {
+func (server *SugarDB) ZIncrBy(key string, increment float64, member string) (float64, error) {
 	cmd := []string{"ZINCRBY", key, strconv.FormatFloat(increment, 'f', -1, 64), member}
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -497,7 +497,7 @@ func (server *EchoVault) ZIncrBy(key string, increment float64, member string) (
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZMPop(keys []string, options ZMPopOptions) ([][]string, error) {
+func (server *SugarDB) ZMPop(keys []string, options ZMPopOptions) ([][]string, error) {
 	cmd := append([]string{"ZMPOP"}, keys...)
 
 	switch {
@@ -539,7 +539,7 @@ func (server *EchoVault) ZMPop(keys []string, options ZMPopOptions) ([][]string,
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZMScore(key string, members ...string) ([]interface{}, error) {
+func (server *SugarDB) ZMScore(key string, members ...string) ([]interface{}, error) {
 	cmd := []string{"ZMSCORE", key}
 	for _, member := range members {
 		cmd = append(cmd, member)
@@ -588,7 +588,7 @@ func (server *EchoVault) ZMScore(key string, members ...string) ([]interface{}, 
 // Errors:
 //
 // "value at <key> is not a sorted set" - when the provided key exists but is not a sorted set
-func (server *EchoVault) ZLexCount(key, min, max string) (int, error) {
+func (server *SugarDB) ZLexCount(key, min, max string) (int, error) {
 	cmd := []string{"ZLEXCOUNT", key, min, max}
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -613,7 +613,7 @@ func (server *EchoVault) ZLexCount(key, min, max string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZPopMax(key string, count uint) ([][]string, error) {
+func (server *SugarDB) ZPopMax(key string, count uint) ([][]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ZPOPMAX", key, strconv.Itoa(int(count))}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -637,7 +637,7 @@ func (server *EchoVault) ZPopMax(key string, count uint) ([][]string, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZPopMin(key string, count uint) ([][]string, error) {
+func (server *SugarDB) ZPopMin(key string, count uint) ([][]string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"ZPOPMIN", key, strconv.Itoa(int(count))}), nil, false, true)
 	if err != nil {
 		return nil, err
@@ -666,7 +666,7 @@ func (server *EchoVault) ZPopMin(key string, count uint) ([][]string, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRandMember(key string, count int, withscores bool) ([][]string, error) {
+func (server *SugarDB) ZRandMember(key string, count int, withscores bool) ([][]string, error) {
 	cmd := []string{"ZRANDMEMBER", key}
 	if count != 0 {
 		cmd = append(cmd, strconv.Itoa(count))
@@ -701,7 +701,7 @@ func (server *EchoVault) ZRandMember(key string, count int, withscores bool) ([]
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRank(key string, member string, withscores bool) (map[int]float64, error) {
+func (server *SugarDB) ZRank(key string, member string, withscores bool) (map[int]float64, error) {
 	cmd := []string{"ZRANK", key, member}
 	if withscores {
 		cmd = append(cmd, "WITHSCORES")
@@ -738,7 +738,7 @@ func (server *EchoVault) ZRank(key string, member string, withscores bool) (map[
 
 // ZRevRank works the same as ZRank but derives the member's rank based on ascending order of
 // the members' scores.
-func (server *EchoVault) ZRevRank(key string, member string, withscores bool) (map[int]float64, error) {
+func (server *SugarDB) ZRevRank(key string, member string, withscores bool) (map[int]float64, error) {
 	cmd := []string{"ZREVRANK", key, member}
 	if withscores {
 		cmd = append(cmd, "WITHSCORES")
@@ -787,7 +787,7 @@ func (server *EchoVault) ZRevRank(key string, member string, withscores bool) (m
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZScore(key string, member string) (interface{}, error) {
+func (server *SugarDB) ZScore(key string, member string) (interface{}, error) {
 	cmd := []string{"ZSCORE", key, member}
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
@@ -824,7 +824,7 @@ func (server *EchoVault) ZScore(key string, member string) (interface{}, error) 
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRem(key string, members ...string) (int, error) {
+func (server *SugarDB) ZRem(key string, members ...string) (int, error) {
 	cmd := []string{"ZREM", key}
 	for _, member := range members {
 		cmd = append(cmd, member)
@@ -851,7 +851,7 @@ func (server *EchoVault) ZRem(key string, members ...string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRemRangeByScore(key string, min float64, max float64) (int, error) {
+func (server *SugarDB) ZRemRangeByScore(key string, min float64, max float64) (int, error) {
 	cmd := []string{
 		"ZREMRANGEBYSCORE",
 		key,
@@ -882,7 +882,7 @@ func (server *EchoVault) ZRemRangeByScore(key string, min float64, max float64) 
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRemRangeByLex(key, min, max string) (int, error) {
+func (server *SugarDB) ZRemRangeByLex(key, min, max string) (int, error) {
 	b, err := server.handleCommand(
 		server.context, internal.EncodeCommand([]string{"ZREMRANGEBYLEX", key, min, max}),
 		nil,
@@ -910,7 +910,7 @@ func (server *EchoVault) ZRemRangeByLex(key, min, max string) (int, error) {
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRemRangeByRank(key string, min, max int) (int, error) {
+func (server *SugarDB) ZRemRangeByRank(key string, min, max int) (int, error) {
 	b, err := server.handleCommand(
 		server.context, internal.EncodeCommand([]string{"ZREMRANGEBYRANK", key, strconv.Itoa(min), strconv.Itoa(max)}),
 		nil,
@@ -940,7 +940,7 @@ func (server *EchoVault) ZRemRangeByRank(key string, min, max int) (int, error) 
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRange(key, start, stop string, options ZRangeOptions) (map[string]float64, error) {
+func (server *SugarDB) ZRange(key, start, stop string, options ZRangeOptions) (map[string]float64, error) {
 	cmd := []string{"ZRANGE", key, start, stop}
 
 	switch {
@@ -994,7 +994,7 @@ func (server *EchoVault) ZRange(key, start, stop string, options ZRangeOptions) 
 // Errors:
 //
 // "value at <key> is not a sorted set" - when a key exists but is not a sorted set.
-func (server *EchoVault) ZRangeStore(destination, source, start, stop string, options ZRangeStoreOptions) (int, error) {
+func (server *SugarDB) ZRangeStore(destination, source, start, stop string, options ZRangeStoreOptions) (int, error) {
 	cmd := []string{"ZRANGESTORE", destination, source, start, stop}
 
 	switch {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"strconv"
@@ -28,7 +28,7 @@ import (
 // Errors:
 //
 // - "value at key <key> is not a string" when the key provided does not hold a string.
-func (server *EchoVault) SetRange(key string, offset int, new string) (int, error) {
+func (server *SugarDB) SetRange(key string, offset int, new string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SETRANGE", key, strconv.Itoa(offset), new}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -43,7 +43,7 @@ func (server *EchoVault) SetRange(key string, offset int, new string) (int, erro
 // Errors:
 //
 // - "value at key <key> is not a string" - when the value at the keys is not a string.
-func (server *EchoVault) StrLen(key string) (int, error) {
+func (server *SugarDB) StrLen(key string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"STRLEN", key}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -61,7 +61,7 @@ func (server *EchoVault) StrLen(key string) (int, error) {
 // - "key <key> does not exist" - when the key does not exist.
 //
 // - "value at key <key> is not a string" - when the value at the keys is not a string.
-func (server *EchoVault) SubStr(key string, start, end int) (string, error) {
+func (server *SugarDB) SubStr(key string, start, end int) (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SUBSTR", key, strconv.Itoa(start), strconv.Itoa(end)}), nil, false, true)
 	if err != nil {
 		return "", err
@@ -70,7 +70,7 @@ func (server *EchoVault) SubStr(key string, start, end int) (string, error) {
 }
 
 // GetRange works the same as SubStr.
-func (server *EchoVault) GetRange(key string, start, end int) (string, error) {
+func (server *SugarDB) GetRange(key string, start, end int) (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"GETRANGE", key, strconv.Itoa(start), strconv.Itoa(end)}), nil, false, true)
 	if err != nil {
 		return "", err
@@ -86,7 +86,7 @@ func (server *EchoVault) GetRange(key string, start, end int) (string, error) {
 // Errors:
 //
 // - "value at key <key> is not a string" - when the value at the keys is not a string.
-func (server *EchoVault) Append(key string, value string) (int, error) {
+func (server *SugarDB) Append(key string, value string) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"APPEND", key, value}), nil, false, true)
 	if err != nil {
 		return 0, err

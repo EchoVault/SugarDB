@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ import (
 )
 
 func Test_Subscribe(t *testing.T) {
-	server := createEchoVault()
+	server := createSugarDB()
 
 	// Subscribe to channels.
 	tag := "tag"
@@ -73,8 +73,8 @@ func Test_Subscribe(t *testing.T) {
 	server.Unsubscribe(tag, channels...)
 }
 
-func TestEchoVault_PSubscribe(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_PSubscribe(t *testing.T) {
+	server := createSugarDB()
 
 	// Subscribe to channels.
 	tag := "tag"
@@ -126,8 +126,8 @@ func TestEchoVault_PSubscribe(t *testing.T) {
 	server.PUnsubscribe(tag, patterns...)
 }
 
-func TestEchoVault_PubSubChannels(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_PubSubChannels(t *testing.T) {
+	server := createSugarDB()
 	tests := []struct {
 		name     string
 		tag      string
@@ -184,8 +184,8 @@ func TestEchoVault_PubSubChannels(t *testing.T) {
 	}
 }
 
-func TestEchoVault_PubSubNumPat(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_PubSubNumPat(t *testing.T) {
+	server := createSugarDB()
 	tests := []struct {
 		name     string
 		tag      string
@@ -223,8 +223,8 @@ func TestEchoVault_PubSubNumPat(t *testing.T) {
 	}
 }
 
-func TestEchoVault_PubSubNumSub(t *testing.T) {
-	server := createEchoVault()
+func TestSugarDB_PubSubNumSub(t *testing.T) {
+	server := createSugarDB()
 	tests := []struct {
 		name          string
 		subscriptions map[string]struct {

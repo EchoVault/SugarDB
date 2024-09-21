@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package echovault
+package sugardb
 
 import (
 	"context"
@@ -53,7 +53,7 @@ type CommandKeyExtractionFunc func(cmd []string) (CommandKeyExtractionFuncResult
 // This function must return a byte slice containing a valid RESP2 response, or an error.
 type CommandHandlerFunc func(params CommandHandlerFuncParams) ([]byte, error)
 
-// CommandHandlerFuncParams contains the helper parameters passed to the command's handler by EchoVault.
+// CommandHandlerFuncParams contains the helper parameters passed to the command's handler by SugarDB.
 //
 // Command is the string slice command containing the command that triggered this handler.
 //
@@ -71,7 +71,7 @@ type CommandHandlerFuncParams struct {
 	SetValues func(ctx context.Context, entries map[string]interface{}) error
 }
 
-// CommandOptions provides the specification of the command to be added to the EchoVault instance.
+// CommandOptions provides the specification of the command to be added to the SugarDB instance.
 //
 // Command is the keyword used to trigger this command (e.g. LPUSH, ZADD, ACL ...).
 //
@@ -132,14 +132,14 @@ type SubCommandOptions struct {
 	HandlerFunc       CommandHandlerFunc
 }
 
-// CommandList returns the list of commands currently loaded in the EchoVault instance.
+// CommandList returns the list of commands currently loaded in the SugarDB instance.
 //
 // Parameters:
 //
 // `options` - CommandListOptions.
 //
 // Returns: a string slice of all the loaded commands. SubCommands are represented as "command|subcommand".
-func (server *EchoVault) CommandList(options ...CommandListOptions) ([]string, error) {
+func (server *SugarDB) CommandList(options ...CommandListOptions) ([]string, error) {
 	cmd := []string{"COMMAND", "LIST"}
 
 	if len(options) > 0 {
@@ -161,10 +161,10 @@ func (server *EchoVault) CommandList(options ...CommandListOptions) ([]string, e
 	return internal.ParseStringArrayResponse(b)
 }
 
-// CommandCount returns the number of commands currently loaded in the EchoVault instance.
+// CommandCount returns the number of commands currently loaded in the SugarDB instance.
 //
 // Returns: integer representing the count of all available commands.
-func (server *EchoVault) CommandCount() (int, error) {
+func (server *SugarDB) CommandCount() (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"COMMAND", "COUNT"}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -176,7 +176,7 @@ func (server *EchoVault) CommandCount() (int, error) {
 //
 // Returns: true if the save was started. The OK response does not confirm that the save was successfully synced to
 // file. Only that the background process has started.
-func (server *EchoVault) Save() (bool, error) {
+func (server *SugarDB) Save() (bool, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"SAVE"}), nil, false, true)
 	if err != nil {
 		return false, err
@@ -186,7 +186,7 @@ func (server *EchoVault) Save() (bool, error) {
 }
 
 // LastSave returns the unix epoch milliseconds timestamp of the last save.
-func (server *EchoVault) LastSave() (int, error) {
+func (server *SugarDB) LastSave() (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"LASTSAVE"}), nil, false, true)
 	if err != nil {
 		return 0, err
@@ -195,7 +195,7 @@ func (server *EchoVault) LastSave() (int, error) {
 }
 
 // RewriteAOF triggers a compaction of the AOF file.
-func (server *EchoVault) RewriteAOF() (string, error) {
+func (server *SugarDB) RewriteAOF() (string, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"REWRITEAOF"}), nil, false, true)
 	if err != nil {
 		return "", err
@@ -203,7 +203,7 @@ func (server *EchoVault) RewriteAOF() (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
-// AddCommand adds a new command to EchoVault. The added command can be executed using the ExecuteCommand method.
+// AddCommand adds a new command to SugarDB. The added command can be executed using the ExecuteCommand method.
 //
 // Parameters:
 //
@@ -212,7 +212,7 @@ func (server *EchoVault) RewriteAOF() (string, error) {
 // Errors:
 //
 // "command <command> already exists" - If a command with the same command name as the passed command already exists.
-func (server *EchoVault) AddCommand(command CommandOptions) error {
+func (server *SugarDB) AddCommand(command CommandOptions) error {
 	server.commandsRWMut.Lock()
 	defer server.commandsRWMut.Unlock()
 	// Check if command already exists
@@ -330,8 +330,8 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 	return nil
 }
 
-// ExecuteCommand executes the command passed to it. If 1 string is passed, EchoVault will try to
-// execute the command. If 2 strings are passed, EchoVault will attempt to execute the subcommand of the command.
+// ExecuteCommand executes the command passed to it. If 1 string is passed, SugarDB will try to
+// execute the command. If 2 strings are passed, SugarDB will attempt to execute the subcommand of the command.
 // If more than 2 strings are provided, all additional strings will be ignored.
 //
 // This method returns the raw RESP response from the command handler. You will have to parse the RESP response if
@@ -353,11 +353,11 @@ func (server *EchoVault) AddCommand(command CommandOptions) error {
 // "command <command> not supported" - If the command does not exist.
 //
 // "command <command> <subcommand> not supported" - If the command exists but the subcommand does not exist for that command.
-func (server *EchoVault) ExecuteCommand(command ...string) ([]byte, error) {
+func (server *SugarDB) ExecuteCommand(command ...string) ([]byte, error) {
 	return server.handleCommand(server.context, internal.EncodeCommand(command), nil, false, true)
 }
 
-// RemoveCommand removes the specified command or subcommand from EchoVault.
+// RemoveCommand removes the specified command or subcommand from SugarDB.
 // When commands are removed, they will no longer be available for both the embedded instance and for TCP clients.
 //
 // Note: If a command is removed, the API wrapper for the command will also be unusable.
@@ -371,7 +371,7 @@ func (server *EchoVault) ExecuteCommand(command ...string) ([]byte, error) {
 // Parameters:
 //
 // `command` - ...string.
-func (server *EchoVault) RemoveCommand(command ...string) {
+func (server *SugarDB) RemoveCommand(command ...string) {
 	server.commandsRWMut.Lock()
 	defer server.commandsRWMut.Unlock()
 
