@@ -22,10 +22,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/clock"
-	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/clock"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 func TestSugarDB_DEL(t *testing.T) {

@@ -16,7 +16,7 @@ package eviction_test
 
 import (
 	"container/heap"
-	"github.com/echovault/echovault/internal/eviction"
+	"github.com/echovault/sugardb/internal/eviction"
 	"sync"
 	"testing"
 )

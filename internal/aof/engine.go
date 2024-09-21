@@ -18,10 +18,10 @@ package aof
 
 import (
 	"fmt"
-	"github.com/echovault/echovault/internal"
-	logstore "github.com/echovault/echovault/internal/aof/log"
-	"github.com/echovault/echovault/internal/aof/preamble"
-	"github.com/echovault/echovault/internal/clock"
+	"github.com/echovault/sugardb/internal"
+	logstore "github.com/echovault/sugardb/internal/aof/log"
+	"github.com/echovault/sugardb/internal/aof/preamble"
+	"github.com/echovault/sugardb/internal/clock"
 	"log"
 	"sync"
 )

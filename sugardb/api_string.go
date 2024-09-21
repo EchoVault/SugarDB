@@ -17,7 +17,7 @@ package sugardb
 import (
 	"strconv"
 
-	"github.com/echovault/echovault/internal"
+	"github.com/echovault/sugardb/internal"
 )
 
 // SetRange replaces a portion of the string at the provided key starting at the offset with a new string.

@@ -17,9 +17,9 @@ package sugardb
 import (
 	"bufio"
 	"bytes"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/constants"
-	"github.com/echovault/echovault/internal/modules/connection"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
+	"github.com/echovault/sugardb/internal/modules/connection"
 	"github.com/tidwall/resp"
 	"reflect"
 	"testing"

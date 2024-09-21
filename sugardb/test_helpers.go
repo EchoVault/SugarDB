@@ -2,9 +2,9 @@ package sugardb
 
 import (
 	"context"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 func createSugarDB() *SugarDB {

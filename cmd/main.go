@@ -16,9 +16,9 @@ package main
 
 import (
 	"context"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/sugardb"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/sugardb"
 	"log"
 	"os"
 	"os/signal"

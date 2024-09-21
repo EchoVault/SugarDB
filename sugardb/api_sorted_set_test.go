@@ -16,8 +16,8 @@ package sugardb
 
 import (
 	"context"
-	"github.com/echovault/echovault/internal"
-	ss "github.com/echovault/echovault/internal/modules/sorted_set"
+	"github.com/echovault/sugardb/internal"
+	ss "github.com/echovault/sugardb/internal/modules/sorted_set"
 	"math"
 	"reflect"
 	"strconv"

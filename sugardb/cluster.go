@@ -18,7 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/echovault/echovault/internal"
+	"github.com/echovault/sugardb/internal"
 	"time"
 )
 

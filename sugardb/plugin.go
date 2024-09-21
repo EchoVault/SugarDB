@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/internal"
+	"github.com/echovault/sugardb/internal"
 	"io/fs"
 	"os"
 	"plugin"

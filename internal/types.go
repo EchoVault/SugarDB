@@ -16,7 +16,7 @@ package internal
 
 import (
 	"context"
-	"github.com/echovault/echovault/internal/clock"
+	"github.com/echovault/sugardb/internal/clock"
 	"net"
 	"time"
 )

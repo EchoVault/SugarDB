@@ -15,10 +15,10 @@
 package pubsub_test
 
 import (
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/constants"
-	"github.com/echovault/echovault/sugardb"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/internal/constants"
+	"github.com/echovault/sugardb/sugardb"
 	"github.com/tidwall/resp"
 	"net"
 	"slices"

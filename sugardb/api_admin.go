@@ -17,7 +17,7 @@ package sugardb
 import (
 	"context"
 	"fmt"
-	"github.com/echovault/echovault/internal"
+	"github.com/echovault/sugardb/internal"
 	"slices"
 	"strings"
 )

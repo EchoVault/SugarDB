@@ -16,8 +16,8 @@ package sorted_set
 
 import (
 	"errors"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
 	"slices"
 	"strings"
 )

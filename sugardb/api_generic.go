@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/echovault/echovault/internal"
+	"github.com/echovault/sugardb/internal"
 )
 
 // SetWriteOption constants

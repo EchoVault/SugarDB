@@ -22,11 +22,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/constants"
-	"github.com/echovault/echovault/internal/modules/sorted_set"
-	"github.com/echovault/echovault/sugardb"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/internal/constants"
+	"github.com/echovault/sugardb/internal/modules/sorted_set"
+	"github.com/echovault/sugardb/sugardb"
 	"github.com/tidwall/resp"
 )
 

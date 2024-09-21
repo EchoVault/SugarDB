@@ -18,7 +18,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal/constants"
 	"os"
 	"path"
 	"slices"

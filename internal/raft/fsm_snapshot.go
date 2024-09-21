@@ -16,8 +16,8 @@ package raft
 
 import (
 	"encoding/json"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/config"
 	"github.com/hashicorp/raft"
 	"strconv"
 	"strings"
