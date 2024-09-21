@@ -12,8 +12,6 @@
 
 <hr/>
 
-<img alt="echovault_logo" src="./images/EchoVault GitHub Cover.png" width="5062" />
-
 # Table of Contents
 1. [What is EchoVault](#what-is-echovault)
 2. [Features](#features)
