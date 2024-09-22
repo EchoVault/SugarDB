@@ -31,11 +31,11 @@ List the ACL rules of a user.
   <TabItem value="go">
     Retrieve user:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    rules, err := vault.ACLGetUser("username")
+    rules, err := db.ACLGetUser("username")
     ```
 
     Returns a map[string][]string map where each key is the rule category and each value is a string slice of relevant values.

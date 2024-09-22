@@ -31,11 +31,11 @@ Configure a new or existing user.
   <TabItem value="go">
     Save user:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    user := echovault.User{}
+    user := sugardb.User{}
     ok, err := server.ACLSetUser(user)
     ```
 

@@ -31,11 +31,11 @@ Returns all the values of the hash at key.
   <TabItem value="go">
     Returns all the values of the hash at key:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    values, err := vault.HVals("key")
+    values, err := db.HVals("key")
     ```
   </TabItem>
   <TabItem value="cli">

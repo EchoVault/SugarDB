@@ -17,8 +17,8 @@ package pubsub
 import (
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
 	"strings"
 )
 

@@ -15,7 +15,7 @@
 package set
 
 import (
-	"github.com/echovault/echovault/internal"
+	"github.com/echovault/sugardb/internal"
 	"math/rand"
 	"slices"
 )

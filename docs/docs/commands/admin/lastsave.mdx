@@ -31,11 +31,11 @@ Get unix timestamp for the latest snapshot in milliseconds.
   <TabItem value="go">
     Get last snapshot timestamp:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    count, err := vault.LastSave()
+    count, err := db.LastSave()
     ```
   </TabItem>
   <TabItem value="cli">

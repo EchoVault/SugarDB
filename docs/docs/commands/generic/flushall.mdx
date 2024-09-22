@@ -32,11 +32,11 @@ Delete all the keys in all the existing databases. This command is always synchr
   <TabItem value="go">
   In order to delete all the keys in all the databases, you need to pass -1 to the `Flush` method:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  vault.Flush(-1)
+  db.Flush(-1)
   ```
   </TabItem>
   <TabItem value="cli">

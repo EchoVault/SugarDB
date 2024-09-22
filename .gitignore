@@ -5,5 +5,5 @@ internal/volumes/nodes
 dist/
 dump.rdb
 **/*/testdata
-echovault/aof
+sugardb/aof
 aof

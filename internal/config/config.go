@@ -19,8 +19,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
 	"log"
 	"os"
 	"path"
@@ -135,7 +135,7 @@ There is no limit by default.`, func(memory string) error {
 	var modules []string
 	flag.Func(
 		"loadmodule",
-		`Path to shared object library to extend EchoVault commands (e.g. /path/to/plugin.so)`,
+		`Path to shared object library to extend SugarDB commands (e.g. /path/to/plugin.so)`,
 		func(p string) error {
 			if !strings.HasSuffix(p, ".so") {
 				return fmt.Errorf("\"%s\" is not a .so file", p)
@@ -147,7 +147,7 @@ There is no limit by default.`, func(memory string) error {
 	tls := flag.Bool("tls", false, "Start the echovault in TLS mode. Default is false.")
 	mtls := flag.Bool("mtls", false, "Use mTLS to verify the client.")
 	port := flag.Int("port", 7480, "Port to use. Default is 7480")
-	serverId := flag.String("server-id", "1", "EchoVault ID in raft cluster. Leave empty for client.")
+	serverId := flag.String("server-id", "1", "SugarDB ID in raft cluster. Leave empty for client.")
 	joinAddr := flag.String("join-addr", "", "Address of cluster member in a cluster to you want to join.")
 	bindAddr := flag.String("bind-addr", "127.0.0.1", "Address to bind the echovault to.")
 	discoveryPort := flag.Uint("discovery-port", 7946, "Port to use for memberlist cluster discovery.")

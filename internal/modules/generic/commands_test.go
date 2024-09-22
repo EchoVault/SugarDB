@@ -22,13 +22,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/echovault/echovault/echovault"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/clock"
-	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/constants"
-	"github.com/echovault/echovault/internal/modules/set"
-	"github.com/echovault/echovault/internal/modules/sorted_set"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/clock"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/internal/constants"
+	"github.com/echovault/sugardb/internal/modules/set"
+	"github.com/echovault/sugardb/internal/modules/sorted_set"
+	"github.com/echovault/sugardb/sugardb"
 	"github.com/tidwall/resp"
 )
 
@@ -46,8 +46,8 @@ func Test_Generic(t *testing.T) {
 		return
 	}
 
-	mockServer, err := echovault.NewEchoVault(
-		echovault.WithConfig(config.Config{
+	mockServer, err := sugardb.NewSugarDB(
+		sugardb.WithConfig(config.Config{
 			BindAddr:       "localhost",
 			Port:           uint16(port),
 			DataDir:        "",
@@ -2634,8 +2634,8 @@ func Test_Generic(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		mockServer, err := echovault.NewEchoVault(
-			echovault.WithConfig(config.Config{
+		mockServer, err := sugardb.NewSugarDB(
+			sugardb.WithConfig(config.Config{
 				BindAddr:       "localhost",
 				Port:           uint16(port),
 				DataDir:        "",
@@ -2662,7 +2662,7 @@ func Test_Generic(t *testing.T) {
 				_, _, _ = mockServer.Set(
 					fmt.Sprintf("key%d", k),
 					fmt.Sprintf("value%d", k),
-					echovault.SETOptions{},
+					sugardb.SETOptions{},
 				)
 			}
 		}
@@ -2768,7 +2768,7 @@ func Test_Generic(t *testing.T) {
 			_, _, err := mockServer.Set(
 				fmt.Sprintf("RandomKey%d", i),
 				fmt.Sprintf("Value%d", i),
-				echovault.SETOptions{},
+				sugardb.SETOptions{},
 			)
 			if err != nil {
 				t.Error(err)
@@ -3346,8 +3346,8 @@ func Test_LFU_Generic(t *testing.T) {
 
 	duration := time.Duration(30) * time.Second
 
-	mockServer, err := echovault.NewEchoVault(
-		echovault.WithConfig(config.Config{
+	mockServer, err := sugardb.NewSugarDB(
+		sugardb.WithConfig(config.Config{
 			BindAddr:         "localhost",
 			Port:             uint16(port),
 			DataDir:          "",
@@ -3527,8 +3527,8 @@ func Test_LRU_Generic(t *testing.T) {
 
 	duration := time.Duration(30) * time.Second
 
-	mockServer, err := echovault.NewEchoVault(
-		echovault.WithConfig(config.Config{
+	mockServer, err := sugardb.NewSugarDB(
+		sugardb.WithConfig(config.Config{
 			BindAddr:         "localhost",
 			Port:             uint16(port),
 			DataDir:          "",

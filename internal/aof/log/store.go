@@ -16,8 +16,8 @@ package log
 
 import (
 	"fmt"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/clock"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/clock"
 	"github.com/tidwall/resp"
 	"io"
 	"log"

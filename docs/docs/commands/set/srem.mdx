@@ -31,11 +31,11 @@ Remove one or more members from a set.
   <TabItem value="go">
     Remove members from the set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    deletedCount, err := vault.SRem("key", "member1", "member2")
+    deletedCount, err := db.SRem("key", "member1", "member2")
     ```
   </TabItem>
   <TabItem value="cli">

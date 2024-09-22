@@ -31,11 +31,11 @@ Prepends a value to the beginning of a list only if the list exists.
   <TabItem value="go">
     Prepends a value to the beginning of a list only if the list exists:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    length, err := vault.LPushX("key", "element1", "element2")
+    length, err := db.LPushX("key", "element1", "element2")
     ```
   </TabItem>
   <TabItem value="cli">

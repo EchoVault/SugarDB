@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 type KeyObject struct {

@@ -3,20 +3,20 @@ import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
-  title: "EchoVault",
+  title: "SugarDB",
   tagline: "Embeddable distributed in-memory data store.",
-  favicon: "img/echovault-logo.png",
+  favicon: "img/logo.png",
 
   // Set the production url of your site here
-  url: "https://echovault.io",
+  url: "https://sugardb.io",
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: "/",
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: "EchoVault", // Usually your GitHub org/user name.
-  projectName: "EchoVault", // Usually your repo name.
+  organizationName: "", // Usually your GitHub org/user name.
+  projectName: "SugarDB", // Usually your repo name.
 
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
@@ -78,8 +78,8 @@ const config: Config = {
       title: "",
       style: "dark",
       logo: {
-        alt: "EchoVault Logo",
-        src: "img/echovault-logo.png",
+        alt: "SugarDB Logo",
+        src: "img/logo.png",
       },
       items: [
         {
@@ -89,7 +89,7 @@ const config: Config = {
           label: "Documentation",
         },
         {
-          href: "https://github.com/EchoVault/EchoVault",
+          href: "https://github.com//SugarDB",
           label: "GitHub",
           position: "right",
         },
@@ -121,12 +121,12 @@ const config: Config = {
           items: [
             {
               label: "GitHub",
-              href: "https://github.com/EchoVault/EchoVault",
+              href: "https://github.com/EchoVault/SugarDB",
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} EchoVault.`,
+      copyright: `Copyright © ${new Date().getFullYear()} SugarDB.`,
     },
     prism: {
       theme: prismThemes.github,

@@ -31,11 +31,11 @@ Returns the number of fields in the hash.
   <TabItem value="go">
     Retrieve the number of fields in the hash:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    length, err := vault.HLen("key")
+    length, err := db.HLen("key")
     ```
   </TabItem>
   <TabItem value="cli">

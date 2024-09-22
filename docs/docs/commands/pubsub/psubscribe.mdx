@@ -39,11 +39,11 @@ Subscribe to one or more patterns. This command accepts glob patterns.
     event type at index 0 (e.g. subscribe, message), pattern at index 1,
     message/subscription index at index 2.
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    readMessage := vault.PSubscribe("subscribe_tag_1", "pattern_[12]", "pattern_h[ae]llo") // Return lazy readMessage function
+    readMessage := db.PSubscribe("subscribe_tag_1", "pattern_[12]", "pattern_h[ae]llo") // Return lazy readMessage function
     for i := 0; i < 2; i++ {
       message := readMessage() // Call the readMessage function for each channel subscription.
     }

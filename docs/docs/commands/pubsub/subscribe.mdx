@@ -39,11 +39,11 @@ Subscribe to one or more channels.
     event type at index 0 (e.g. subscribe, message), channel name at index 1,
     message/subscription index at index 2.
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    readMessage := vault.Subscribe("subscribe_tag_1", "channel1", "channel2") // Return lazy readMessage function
+    readMessage := db.Subscribe("subscribe_tag_1", "channel1", "channel2") // Return lazy readMessage function
     for i := 0; i < 2; i++ {
       message := readMessage() // Call the readMessage function for each channel subscription.
     }

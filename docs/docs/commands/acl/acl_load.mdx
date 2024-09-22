@@ -33,15 +33,15 @@ When 'REPLACE' is passed, users from config file who share a username with users
   <TabItem value="go">
     Load ACL config:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
     // Load config and merge with currently loaded ACL config
-    ok, err := vault.ACLLoad(echovault.ACLLoadOptions{Merge: true})
+    ok, err := db.ACLLoad(sugardb.ACLLoadOptions{Merge: true})
 
     // Load config and replace currently loaded ACL config
-    ok, err := vault.ACLLoad(echovault.ACLLoadOptions{Replace: true})`
+    ok, err := db.ACLLoad(sugardb.ACLLoadOptions{Replace: true})`
     ```
   </TabItem>
   <TabItem value="cli">

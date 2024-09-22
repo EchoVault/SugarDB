@@ -15,9 +15,9 @@
 package preamble_test
 
 import (
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/aof/preamble"
-	"github.com/echovault/echovault/internal/clock"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/aof/preamble"
+	"github.com/echovault/sugardb/internal/clock"
 	"os"
 	"path"
 	"testing"

@@ -30,11 +30,11 @@ Renames key to newkey. If newkey already exists, it is overwritten. If key does 
   <TabItem value="go">
   Rename the key `mykey` to `newkey`:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  err = vault.Rename("mykey", "newkey")
+  err = db.Rename("mykey", "newkey")
   ```
   </TabItem>
   <TabItem value="cli">

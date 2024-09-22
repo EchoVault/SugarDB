@@ -21,7 +21,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal/constants"
 	"io"
 	"log"
 	"math/big"

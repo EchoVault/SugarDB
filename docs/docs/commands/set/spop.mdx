@@ -31,20 +31,20 @@ Returns and removes one or more random members from the set.
   <TabItem value="go">
     Pop one element from the set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    elements, err := vault.SPop("key", 1)
+    elements, err := db.SPop("key", 1)
     ```
 
     Pop 5 elements from the set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    elements, err := vault.SPop("key", 5)
+    elements, err := db.SPop("key", 5)
     ```
   </TabItem>
   <TabItem value="cli">

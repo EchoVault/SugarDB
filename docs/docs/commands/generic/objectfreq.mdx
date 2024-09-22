@@ -33,11 +33,11 @@ This command returns an integer representing the access frequency. If the key do
     <TabItem value="go">
         Get a key's access frequency:
         ```go
-        vault, err := echovault.NewEchoVault()
+        db, err := sugardb.NewSugarDB()
         if err != nil {
         log.Fatal(err)
     }
-        freq, err := vault.ObjectFreq("key")
+        freq, err := db.ObjectFreq("key")
         ```
     </TabItem>
     <TabItem value="cli">

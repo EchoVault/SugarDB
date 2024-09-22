@@ -31,20 +31,20 @@ Removes one or more keys from the store.
   <TabItem value="go">
   Delete a single key:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  noOfDeletedKeys, err = vault.Del("key1")
+  noOfDeletedKeys, err = db.Del("key1")
   ```
 
   Delete multiple keys:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  noOfDeletedKeys, err = vault.Del("key1", "key2", "key3")
+  noOfDeletedKeys, err = db.Del("key1", "key2", "key3")
   ```
   </TabItem>
   <TabItem value="cli">

@@ -32,11 +32,11 @@ Returns an array containing the list of channels that
     match the given pattern. If no pattern is provided, all active channels are returned. Active channels are 
     channels with 1 or more subscribers.
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    channels, err := vault.PubSubChannels("channel*")
+    channels, err := db.PubSubChannels("channel*")
     ```
   </TabItem>
   <TabItem value="cli">

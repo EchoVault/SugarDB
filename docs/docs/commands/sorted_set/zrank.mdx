@@ -35,11 +35,11 @@ WITHSCORE modifies the result to also return the score.
   <TabItem value="go">
     Get the rank of the specified member in the sorted set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    member, err := vault.ZRank("key", "member", true)
+    member, err := db.ZRank("key", "member", true)
     ```
   </TabItem>
   <TabItem value="cli">

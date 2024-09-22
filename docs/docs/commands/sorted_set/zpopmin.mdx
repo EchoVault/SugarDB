@@ -32,11 +32,11 @@ Default count is 1.
   <TabItem value="go">
     Remove and return 'count' number of members in the sorted set with the lowest scores:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    members, err := vault.ZPopMin("key", 2)
+    members, err := db.ZPopMin("key", 2)
     ```
   </TabItem>
   <TabItem value="cli">

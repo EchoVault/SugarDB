@@ -31,11 +31,11 @@ Returns length of the key's value if it's a string.
   <TabItem value="go">
     Get the substring of a string value:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    length, err := vault.StrLen("key")
+    length, err := db.StrLen("key")
     ```
   </TabItem>
   <TabItem value="cli">

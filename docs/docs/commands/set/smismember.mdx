@@ -31,11 +31,11 @@ Returns if multiple members are in the set.
   <TabItem value="go">
     Returns if multiple members are in the set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    isMemberSlice, err := vault.SMisMember("key", "member1", "member2")
+    isMemberSlice, err := db.SMisMember("key", "member1", "member2")
     ```
   </TabItem>
   <TabItem value="cli">

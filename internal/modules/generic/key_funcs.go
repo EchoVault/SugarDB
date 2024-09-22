@@ -17,8 +17,8 @@ package generic
 import (
 	"errors"
 
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 func setKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {

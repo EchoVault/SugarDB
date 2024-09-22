@@ -45,38 +45,38 @@ Expire the key in the specified number of milliseconds. This commands turns a ke
     <br></br>
     Add an expiration to a key:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    updated, err := vault.PExpire("key", 10000, nil)
+    updated, err := db.PExpire("key", 10000, nil)
     ```    
 
     Add an expiration to a key only if it does not have one already:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    updated, err := vault.PExpire("key", 10000, echovault.NX)
+    updated, err := db.PExpire("key", 10000, db.NX)
     ```
 
     Add an expiration to a key only if it has one already:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    updated, err := vault.PExpire("key", 10000, echovault.XX)
+    updated, err := db.PExpire("key", 10000, db.XX)
     ```
 
     Add an expiration to a key only if it already has one that is less than the current expiry:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    updated, err := vault.PExpire("key", 10000, echovault.XX, echovault.LT)
+    updated, err := db.PExpire("key", 10000, db.XX, db.LT)
     ```
   </TabItem>
   <TabItem value="cli">

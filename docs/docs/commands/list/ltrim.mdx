@@ -31,11 +31,11 @@ Trims a list using the specified range.
   <TabItem value="go">
     Trims a list using the specified range:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.LTrim("key", 2, 6)
+    ok, err := db.LTrim("key", 2, 6)
     ```
   </TabItem>
   <TabItem value="cli">

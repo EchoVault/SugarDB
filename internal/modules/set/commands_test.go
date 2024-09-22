@@ -16,11 +16,11 @@ package set_test
 
 import (
 	"errors"
-	"github.com/echovault/echovault/echovault"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/constants"
-	"github.com/echovault/echovault/internal/modules/set"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/internal/constants"
+	"github.com/echovault/sugardb/internal/modules/set"
+	"github.com/echovault/sugardb/sugardb"
 	"github.com/tidwall/resp"
 	"slices"
 	"strconv"
@@ -35,8 +35,8 @@ func Test_Set(t *testing.T) {
 		return
 	}
 
-	mockServer, err := echovault.NewEchoVault(
-		echovault.WithConfig(config.Config{
+	mockServer, err := sugardb.NewSugarDB(
+		sugardb.WithConfig(config.Config{
 			BindAddr:       "localhost",
 			Port:           uint16(port),
 			DataDir:        "",

@@ -1,15 +1,15 @@
 # Embedded
 
-EchoVault allows you to programmetically extend its list of commands ar runtime.
+SugarDB allows you to programmatically extend its list of commands ar runtime.
 
-The <a target="_blank" href="https://pkg.go.dev/github.com/echovault/echovault@v0.10.1/echovault#EchoVault.AddCommand">`AddCommand`</a> method allows you to extend the EchoVault server by adding new commands and subcommands.
+The <a target="_blank" href="https://pkg.go.dev/github.com//@v0.10.1/#SugarDB.AddCommand">`AddCommand`</a> method allows you to extend the SugarDB server by adding new commands and subcommands.
 
 Each command can have its own handler and key extraction logic. This method ensures that commands are unique within the server and properly integrated with the existing command handling infrastructure.
 
 ## Method Definition
 
 ```go
-func (server *EchoVault) AddCommand(command CommandOptions) error
+func (server *SugarDB) AddCommand(command CommandOptions) error
 ```
 
 ## Parameters
@@ -42,21 +42,21 @@ The command will have the following format: `COPYDEFAULT key1 key2`.
 
 ```go
 // Define the key extraction function
-func myKeyExtractionFunc(cmd []string) (echovault.CommandKeyExtractionFuncResult, error) {
+func myKeyExtractionFunc(cmd []string) (db.CommandKeyExtractionFuncResult, error) {
   if len(cmd) != 3 {
-    return echovault.CommandKeyExtractionFuncResult{}, errors.New("command must be length 3")
+    return db.CommandKeyExtractionFuncResult{}, errors.New("command must be length 3")
   }
   if cmd[1] == cmd[2] {
-    return echovault.CommandKeyExtractionFuncResult{}, errors.New("keys must be different")
+    return db.CommandKeyExtractionFuncResult{}, errors.New("keys must be different")
   }
-  return echovault.CommandKeyExtractionFuncResult{
+  return db.CommandKeyExtractionFuncResult{
     ReadKeys:  []string{cmd[1]},
     WriteKeys: []string{cmd[2]},
   }, nil
 }
 
 // Define the command handler function
-func myCommandHandler(params echovault.CommandHandlerFuncParams) ([]byte, error) {
+func myCommandHandler(params db.CommandHandlerFuncParams) ([]byte, error) {
   // Extract keys
   keys, err := myKeyExtractionFunc(params.Command)
   if err != nil {
@@ -87,7 +87,7 @@ func myCommandHandler(params echovault.CommandHandlerFuncParams) ([]byte, error)
 }
 
 func main() {
-  server, err := echovault.NewEchoVault()
+  server, err := db.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
@@ -98,7 +98,7 @@ func main() {
   })
 
   // Define the command options
-  command := echovault.CommandOptions{
+  command := db.CommandOptions{
     Command:    "COPYDEFAULT",             // Command keyword
     Module:     "generic",                 // Add command to generic module, can be a new custom module.
     Categories: []string{"write", "fast"}, // Can be custom categories here.
@@ -127,27 +127,27 @@ of `CommandOptions`.
 
 ```go
 // Define the key extraction function for subcommands
-func mySubCommandKeyExtractionFunc(cmd []string) (echovault.CommandKeyExtractionFuncResult, error) {
-  return echovault.CommandKeyExtractionFuncResult{
+func mySubCommandKeyExtractionFunc(cmd []string) (db.CommandKeyExtractionFuncResult, error) {
+  return db.CommandKeyExtractionFuncResult{
     ReadKeys:  []string{"subkey1"},
     WriteKeys: []string{"subkey2"},
   }, nil
 }
 
 // Define the subcommand handler function
-func mySubCommandHandler(params echovault.CommandHandlerFuncParams) ([]byte, error) {
+func mySubCommandHandler(params db.CommandHandlerFuncParams) ([]byte, error) {
   fmt.Println("Subcommand executed:", strings.Join(params.Command, " "))
   return []byte("+OK\r\n"), nil
 }
 
 func main() {
-  server, err := echovault.NewEchoVault()
+  server, err := db.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
 
   // Define the subcommands
-  subCommands := []echovault.SubCommandOptions{
+  subCommands := []db.SubCommandOptions{
     {
       Command:           "SUB1",
       Module:            "mymodule",
@@ -169,7 +169,7 @@ func main() {
   }
 
   // Define the main command options
-  command := echovault.CommandOptions{
+  command := db.CommandOptions{
     Command:     "MYCOMMAND",
     Module:      "mymodule",
     Categories:  []string{"category1"},
@@ -191,18 +191,18 @@ func main() {
 Although the example above shows subcommands that share a handler and key extraction function, in practice, each subcommand should provide its own unique key extraction and handler functions.
 
 Note: If you provide a command handler for the top, level command, it will be ignored. Whenever
-a command has subcommands, EchoVault will try to look for subcommands that match the second element
+a command has subcommands, SugarDB will try to look for subcommands that match the second element
 of the subcommand slice. If a subcommand cannot be found, an error is returned.
 
 ## Executing Custom Commands
 
-You can use the custom command using the `ExecuteCommand` method. The method has the following definition:
+You can use the custom command using the `ExecuteCommand` method. The method has the following signature:
 
 ```go
-func (server *EchoVault) ExecuteCommand(command ...string) ([]byte, error)
+func (server *SugarDB) ExecuteCommand(command ...string) ([]byte, error)
 ```
 
-It accepts a command of varying length to accomodate any custom command. The command passed is case insensitive. So "COPYDEFAULT" is considered the same as "copydefault".
+It accepts a command of varying length to accomodate any custom command. The command passed is case-insensitive. So "COPYDEFAULT" is considered the same as "copydefault".
 
 The returned values are:
 
@@ -275,17 +275,17 @@ To execute one of the subcommands:
 
 ## Removing Commands
 
-You can remove commands using the `RemoveCommand` method. This methods does not only remove programmatically added commands but any commands loaded into the EchoVault instance. Including built-in commands and commands loaded from shared object files.
+You can remove commands using the `RemoveCommand` method. This methods does not only remove programmatically added commands but any commands loaded into the SugarDB instance. Including built-in commands and commands loaded from shared object files.
 
 The method has the following signature:
 
 ```go
-func (server *EchoVault) RemoveCommand(command ...string)
+func (server *SugarDB) RemoveCommand(command ...string)
 ```
 
 It accepts a command or subcommand to remove. If you'd like to remove an entire command, including all it's subcommands, you can pass only the command name. If you'd like to remove a particular subcommand but retain the command and it's other subcommands, then you must pass the names of command and the subcommand you'd like to delete.
 
-### Remove Command with no Subcommandsa
+### Remove Command with no Subcommands
 
 Example demonstrating how to remove the "COPYDEFAULT" command created previously.
 
@@ -315,9 +315,9 @@ server.RemoveCommand("MYCOMMAND")
 
 ## Important considerations
 
-Programmatically extending EchoVault like this brings some challenges:
+Programmatically extending SugarDB like this brings some challenges:
 
 - If you're running in cluster mode, you have to make sure the custom command is added to all the nodes and that the command's key extraction and handler function implementations are exactly identical. Otherwise, the cluster will not be able to accurately sync the command's side effects across the cluster.
-- When removing commands programmetically, you must make sure to remove the commands accross the entire cluster otherwise, the nodes with the missing command will not be able to replicate the command's side effects.
+- When removing commands programmatically, you must make sure to remove the commands accross the entire cluster otherwise, the nodes with the missing command will not be able to replicate the command's side effects.
 
 Due to the reasons above, it's recommended that programmatically adding/removing commands should be done in standalone mode. It can be done in a cluster, but you must be careful and take into account the considerations above.

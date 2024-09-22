@@ -17,7 +17,7 @@ package generic
 import (
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/internal/clock"
+	"github.com/echovault/sugardb/internal/clock"
 	"strconv"
 	"strings"
 	"time"

@@ -31,11 +31,11 @@ Sets the value of an element in a list by its index.
   <TabItem value="go">
     Sets the value of an element in a list by its index:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.LSet("key", 2, "element")
+    ok, err := db.LSet("key", 2, "element")
     ```
   </TabItem>
   <TabItem value="cli">

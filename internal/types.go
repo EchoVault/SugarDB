@@ -16,7 +16,7 @@ package internal
 
 import (
 	"context"
-	"github.com/echovault/echovault/internal/clock"
+	"github.com/echovault/sugardb/internal/clock"
 	"net"
 	"time"
 )
@@ -81,10 +81,10 @@ type KeyExtractionFuncResult struct {
 type KeyExtractionFunc func(cmd []string) (KeyExtractionFuncResult, error)
 
 // HandlerFuncParams is the object passed to a command handler when a command is triggered.
-// These params are provided to commands by the EchoVault engine to help the command hook into functions from the
+// These params are provided to commands by the SugarDB engine to help the command hook into functions from the
 // echovault package.
 type HandlerFuncParams struct {
-	// Context is the context passed from the EchoVault instance.
+	// Context is the context passed from the SugarDB instance.
 	Context context.Context
 	// Command is the string slice contains the command (e.g []string{"SET", "key", "value"})
 	Command []string
@@ -108,19 +108,19 @@ type HandlerFuncParams struct {
 	// Use this when making use of time methods like .Now and .After.
 	// This inversion of control is a helper for testing as the clock is automatically mocked in tests.
 	GetClock func() clock.Clock
-	// GetAllCommands returns all the commands loaded in the EchoVault instance.
+	// GetAllCommands returns all the commands loaded in the SugarDB instance.
 	GetAllCommands func() []Command
-	// GetACL returns the EchoVault instance's ACL engine.
+	// GetACL returns the SugarDB instance's ACL engine.
 	// There's no need to use this outside of the acl package,
-	// ACL authorizations for all commands will be handled automatically by the EchoVault instance as long as the
+	// ACL authorizations for all commands will be handled automatically by the SugarDB instance as long as the
 	// commands KeyExtractionFunc returns the correct keys.
 	GetACL func() interface{}
-	// GetPubSub returns the EchoVault instance's PubSub engine.
+	// GetPubSub returns the SugarDB instance's PubSub engine.
 	// There's no need to use this outside of the pubsub package.
 	GetPubSub func() interface{}
-	// TakeSnapshot triggers a snapshot by the EchoVault instance.
+	// TakeSnapshot triggers a snapshot by the SugarDB instance.
 	TakeSnapshot func() error
-	// RewriteAOF triggers a compaction of the commands logs by the EchoVault instance.
+	// RewriteAOF triggers a compaction of the commands logs by the SugarDB instance.
 	RewriteAOF func() error
 	// GetLatestSnapshotTime returns the latest snapshot timestamp.
 	GetLatestSnapshotTime func() int64
@@ -130,7 +130,7 @@ type HandlerFuncParams struct {
 	// UnloadModule removes the specified module.
 	// This unloads both custom modules and internal modules.
 	UnloadModule func(module string)
-	// ListModules returns the list of modules loaded in the EchoVault instance.
+	// ListModules returns the list of modules loaded in the SugarDB instance.
 	ListModules func() []string
 	// SetConnectionInfo sets the connection's protocol and clientname.
 	SetConnectionInfo func(conn *net.Conn, clientname string, protocol int, database int)

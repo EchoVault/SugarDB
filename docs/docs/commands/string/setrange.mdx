@@ -31,11 +31,11 @@ Overwrites part of a string value with another by offset. Creates the key if it 
   <TabItem value="go">
     Overwrite part of a string value:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    length, err := vault.SetRange("key", 2, "replacement string")
+    length, err := db.SetRange("key", 2, "replacement string")
     ```
   </TabItem>
   <TabItem value="cli">

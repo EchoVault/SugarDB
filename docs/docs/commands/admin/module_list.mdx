@@ -17,7 +17,7 @@ MODULE LIST
 <span className="acl-category">fast</span>
 
 ### Description
-List all the modules that are currently loaded in the server.
+List all the modules that are currently loaded in the server/instance.
 
 ### Examples
 
@@ -29,13 +29,13 @@ List all the modules that are currently loaded in the server.
   ]}
 >
   <TabItem value="go">
-    List all the modules that are currently loaded in the server:
+    List all the modules that are currently loaded in the instance:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    modules := server.ListModules()
+    modules := db.ListModules()
     ```
   </TabItem>
   <TabItem value="cli">

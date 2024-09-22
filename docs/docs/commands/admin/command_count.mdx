@@ -16,7 +16,7 @@ COMMAND COUNT
 <span className="acl-category">slow</span>
 
 ### Description
-Get the dumber of commands in the echovault instance.
+Get the number of commands in the SugarDB instance.
 
 ### Examples
 
@@ -30,11 +30,11 @@ Get the dumber of commands in the echovault instance.
   <TabItem value="go">
     Get server command count:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    count, err := vault.CommandCount()
+    count, err := db.CommandCount()
     ```
   </TabItem>
   <TabItem value="cli">

@@ -41,22 +41,22 @@ is 1 for all sorted sets.
   <TabItem value="go">
     Find the union between 2 sorted sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    sortedSet, err := vault.ZUnion([]string{"key1", "key2"}, echovault.ZUnionOptions{})
+    sortedSet, err := db.ZUnion([]string{"key1", "key2"}, db.ZUnionOptions{})
     ```
 
     Find the union between 2 sorted sets with a sum of the weighted scores:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    sortedSet, err := vault.ZUnion(
+    sortedSet, err := db.ZUnion(
       []string{"key1", "key2"},
-      echovault.ZUnionOptions{Weights: []float64{2, 4}, Aggregate: "SUM", WithScores: true},
+      db.ZUnionOptions{Weights: []float64{2, 4}, Aggregate: "SUM", WithScores: true},
     )
     ```
   </TabItem>
