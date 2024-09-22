@@ -1,5 +1,8 @@
+// @ts-ignore
 import { themes as prismThemes } from "prism-react-renderer";
+// @ts-ignore
 import type { Config } from "@docusaurus/types";
+// @ts-ignore
 import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {

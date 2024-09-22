@@ -97,15 +97,14 @@ You can access all of SugarDB's commands using an ergonomic API.
 ```go
 func main() {
   server, err := sugardb.NewSugarDB()
-
   if err != nil {
     log.Fatal(err)
   }
 
-  _, _, _ = server.Set("key", "Hello, world!", sugardb.SETOptions{})
+  _, _, _ = server.Set("key", "Hello, SugarDB!", sugardb.SETOptions{})
 
   v, _ := server.Get("key")
-  fmt.Println(v) // Hello, world!
+  fmt.Println(v) // Hello, SugarDB!
 
   // (Optional): Listen for TCP connections on this SugarDB instance.
   server.Start()
@@ -122,18 +121,18 @@ from the API will be consistent across the cluster.
 ### Homebrew
 
 To install via homebrew, run:
-1) `brew tap echovault/echovault`
-2) `brew install echovault/echovault/echovault`
+1) `brew tap echovault/sugardb`
+2) `brew install echovault/echovault/sugardb`
 
 Once installed, you can run the server with the following command:
-`echovault --bind-addr=localhost --data-dir="path/to/persistence/directory"`
+`sugardb --bind-addr=localhost --data-dir="path/to/persistence/directory"`
 
 <a name="usage-docker"></a>
 ### Docker
 
 `docker pull echovault/sugardb`
 
-The full list of tags can be found [here](https://hub.docker.com/r/echovault/echovault/tags).
+The full list of tags can be found [here](https://hub.docker.com/r/echovault/sugardb/tags).
 
 <a name="usage-container-registry"></a>
 ### Container Registry
