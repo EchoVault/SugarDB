@@ -1,9 +1,9 @@
-[![Go](https://github.com/EchoVault/EchoVault/workflows/Go/badge.svg)]() 
+[![Go](https://github.com/EchoVault/SugarDB/workflows/Go/badge.svg)]() 
 [![Go Report Card](https://goreportcard.com/badge/github.com/echovault/echovault)](https://goreportcard.com/report/github.com/echovault/echovault)
-[![codecov](https://codecov.io/gh/EchoVault/EchoVault/graph/badge.svg?token=CHWTW0IUNV)](https://codecov.io/gh/EchoVault/EchoVault)
+[![codecov](https://codecov.io/gh/EchoVault/SugarDB/graph/badge.svg?token=CHWTW0IUNV)](https://codecov.io/gh/EchoVault/SugarDB)
 <br/>
-[![Go Reference](https://pkg.go.dev/badge/github.com/echovault/echovault.svg)](https://pkg.go.dev/github.com/echovault/echovault)
-[![GitHub Release](https://img.shields.io/github/v/release/EchoVault/EchoVault)]()
+[![Go Reference](https://pkg.go.dev/badge/github.com/echovault/echovault.svg)](https://pkg.go.dev/github.com/echovault/sugardb)
+[![GitHub Release](https://img.shields.io/github/v/release/EchoVault/SugarDB)]()
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 <br/>
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go) 
@@ -13,7 +13,7 @@
 <hr/>
 
 # Table of Contents
-1. [What is EchoVault](#what-is-echovault)
+1. [What is SugarDB](#what-is-sugardb)
 2. [Features](#features)
 3. [Usage (Embedded)](#usage-embedded)
 4. [Usage (Client-Server)](#usage-client-server)
@@ -35,32 +35,32 @@
    9. [SORTED SET](#commands-sortedset)
    10. [STRING](#commands-string)
 
-<a name="what-is-echovault"></a>
-# What is EchoVault?
+<a name="what-is-sugardb"></a>
+# What is SugarDB?
 
-EchoVault is a highly configurable, distributed, in-memory data store and cache implemented in Go.
+SugarDB is a highly configurable, distributed, in-memory data store and cache implemented in Go.
 It can be imported as a Go library or run as an independent service.
 
-EchoVault aims to provide a rich set of data structures and functions for
+SugarDB aims to provide a rich set of data structures and functions for
 manipulating data in memory. These data structures include, but are not limited to:
 Lists, Sets, Sorted Sets, Hashes, and much more to come soon.
 
-EchoVault provides a persistence layer for increased reliability. Both Append-Only files 
+SugarDB provides a persistence layer for increased reliability. Both Append-Only files 
 and snapshots can be used to persist data in the disk for recovery in case of unexpected shutdowns.
 
-Replication is a core feature of EchoVault and is implemented using the RAFT algorithm, 
-allowing you to create a fault-tolerant cluster of EchoVault nodes to improve reliability.
-If you do not need a replication cluster, you can always run EchoVault
+Replication is a core feature of SugarDB and is implemented using the RAFT algorithm, 
+allowing you to create a fault-tolerant cluster of SugarDB nodes to improve reliability.
+If you do not need a replication cluster, you can always run SugarDB
 in standalone mode and have a fully capable single node.
 
-EchoVault aims to not only be a server but to be importable to existing 
-projects to enhance them with EchoVault features, this 
+SugarDB aims to not only be a server but to be importable to existing 
+projects to enhance them with SugarDB features, this 
 capability is always being worked on and improved.
 
 <a name="features"></a>
 # Features
 
-Features offered by EchoVault include:
+Features offered by SugarDB include:
 
 1) TLS and mTLS support for multiple server and client RootCAs.
 2) Replication cluster support using the RAFT algorithm.
@@ -73,7 +73,7 @@ Features offered by EchoVault include:
 9) Command extension via embedded API.
 10) Multi-database support for key namespacing.
 
-We are working hard to add more features to EchoVault to make it
+We are working hard to add more features to SugarDB to make it
 much more powerful. Features in the roadmap include:
 
 1) Sharding
@@ -89,14 +89,14 @@ much more powerful. Features in the roadmap include:
 <a name="usage-embedded"></a>
 # Usage (Embedded)
 
-Install EchoVault with: `go get github.com/echovault/echovault`.
+Install SugarDB with: `go get github.com/echovault/sugardb`.
 
-Here's an example of using EchoVault as an embedded library.
-You can access all of EchoVault's commands using an ergonomic API.
+Here's an example of using SugarDB as an embedded library.
+You can access all of SugarDB's commands using an ergonomic API.
 
 ```go
 func main() {
-  server, err := echovault.NewEchoVault()
+  server, err := sugardb.NewSugarDB()
 
   if err != nil {
     log.Fatal(err)
@@ -107,12 +107,12 @@ func main() {
   v, _ := server.Get("key")
   fmt.Println(v) // Hello, world!
 
-  // (Optional): Listen for TCP connections on this EchoVault instance.
+  // (Optional): Listen for TCP connections on this SugarDB instance.
   server.Start()
 }
 ```
 
-An embedded EchoVault instance can still be part of a cluster, and the changes triggered 
+An embedded SugarDB instance can still be part of a cluster, and the changes triggered 
 from the API will be consistent across the cluster.
 
 <a name="usage-client-server"></a>
@@ -140,7 +140,7 @@ The full list of tags can be found [here](https://hub.docker.com/r/echovault/ech
 
 `docker pull ghcr.io/echovault/echovault`
 
-The full list of tags can be found [here](https://github.com/EchoVault/EchoVault/pkgs/container/echovault).
+The full list of tags can be found [here](https://github.com/EchoVault/SugarDB/pkgs/container/echovault).
 
 <a name="usage-binaries"></a>
 ### Binaries
@@ -151,7 +151,7 @@ the binary for your system.
 <a name="clients"></a>
 # Clients
 
-EchoVault uses RESP, which makes it compatible with existing 
+SugarDB uses RESP, which makes it compatible with existing 
 Redis clients.
 
 <a name="benchmarks"></a>
