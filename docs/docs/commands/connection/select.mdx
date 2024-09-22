@@ -32,11 +32,11 @@ When this command is executed in a RAFT cluster, the database will be created in
   <TabItem value="go">
   Select the database that the embedded instance is operating from:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }	
-  err := vault.SelectDB(2)
+  err := db.SelectDB(2)
   ```
   After successfully calling this method, all subsequent commands executed on that instance 
   will be executed on the selected database. So you should to be careful when doing this in a multi-threaded environment.

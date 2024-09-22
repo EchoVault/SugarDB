@@ -31,11 +31,11 @@ Works the same as SDIFF but stores the result at 'destination'.
   <TabItem value="go">
     Store the difference between 2 sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.SDiffStore("destination", "key1", "key2")
+    cardinality, err := db.SDiffStore("destination", "key1", "key2")
     ```
   </TabItem>
   <TabItem value="cli">

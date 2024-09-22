@@ -31,27 +31,27 @@ Returns one or more random members from the set without removing them.
   <TabItem value="go">
     Return one random element from the set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    elements, err := vault.SRandMember("key", 1)
+    elements, err := db.SRandMember("key", 1)
     ```
     Return 5 unique random elements from the set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    elements, err := vault.SRandMember("key", 5)
+    elements, err := db.SRandMember("key", 5)
     ```
     Return 5 random elements from the set allowing duplicates:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    elements, err := vault.SRandMember("key", -5)
+    elements, err := db.SRandMember("key", -5)
     ```
   </TabItem>
   <TabItem value="cli">

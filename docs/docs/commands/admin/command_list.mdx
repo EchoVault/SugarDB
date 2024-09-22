@@ -22,7 +22,7 @@ Get the list of command names. Allows for filtering by ACL category or glob patt
 
 FILTERBY - An optional condition used to filter the response. ACLCAT filters by the provided acl
 category string. PATTERN filters the response by the provided glob pattern. 
-MODULE filters the response by the provided EchoVault module.
+MODULE filters the response by the provided SugarDB module.
 
 ### Examples
 
@@ -36,38 +36,38 @@ MODULE filters the response by the provided EchoVault module.
   <TabItem value="go">
     Get a list of all the loaded commands:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    commands, err := vault.CommandList(echovault.CommandListOptions{})
+    commands, err := db.CommandList(sugardb.CommandListOptions{})
     ```
 
     Get a list of all commands with the \"fast\" ACL category:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    commands, err := vault.CommandList(echovault.CommandListOptions{ACLCAT: "fast"})
+    commands, err := db.CommandList(sugardb.CommandListOptions{ACLCAT: "fast"})
     ```
 
     Get a list of all commands which satisfy the \"z*\" glob pattern:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    commands, err := vault.CommandList(echovault.CommandListOptions{PATTERN: "z*"})
+    commands, err := db.CommandList(sugardb.CommandListOptions{PATTERN: "z*"})
     ```
 
     Get a list of all the commands in the \"set\" module:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    commands, err := vault.CommandList(echovault.CommandListOptions{MODULE: "set"})
+    commands, err := db.CommandList(sugardb.CommandListOptions{MODULE: "set"})
     ```
   </TabItem>
   <TabItem value="cli">

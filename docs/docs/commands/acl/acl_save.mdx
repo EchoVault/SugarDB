@@ -33,7 +33,7 @@ in-memory ACL configuration.
   <TabItem value="go">
     Save ACL rules:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }

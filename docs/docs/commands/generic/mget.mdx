@@ -31,11 +31,11 @@ Get multiple values from the specified keys.
   <TabItem value="go">
     Get the values at the specified keys:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    values, err := vault.MGet("key1", "key2", "key3")
+    values, err := db.MGet("key1", "key2", "key3")
     ```
   </TabItem>
   <TabItem value="cli">

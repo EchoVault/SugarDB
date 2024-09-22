@@ -33,11 +33,11 @@ If the key holds a value that is not a sorted set, this command will return an e
   <TabItem value="go">
     Get the cardinality of the sorted set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.ZCard("key")
+    cardinality, err := db.ZCard("key")
     ```
   </TabItem>
   <TabItem value="cli">

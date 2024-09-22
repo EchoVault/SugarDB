@@ -31,11 +31,11 @@ Returns the cardinality of the set.
   <TabItem value="go">
     Get the set's cardinality:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.SCard("key")
+    cardinality, err := db.SCard("key")
     ```
   </TabItem>
   <TabItem value="cli">

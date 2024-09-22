@@ -74,7 +74,7 @@ func (x SetExOpt) IsSetExOpt() SetExOpt { return x }
 //
 // `ExpireTime` - int - Time in seconds or milliseconds depending on what ExpireOpt was provided.
 //
-// `GET` - bool - Whether or not to return previous value if there was one.
+// `GET` - bool - Whether to return previous value if there was one.
 type SETOptions struct {
 	WriteOpt   SetWriteOption
 	ExpireOpt  SetExOption

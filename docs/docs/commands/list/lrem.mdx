@@ -31,11 +31,11 @@ Remove `<count>` elements from list.
   <TabItem value="go">
     Remove 2 instances if "value1" from the list at key:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Lrem("key", 2, "value1")
+    ok, err := db.Lrem("key", 2, "value1")
     ```
   </TabItem>
   <TabItem value="cli">

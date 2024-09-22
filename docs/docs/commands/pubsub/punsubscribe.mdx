@@ -33,19 +33,19 @@ it's currently subscribed to.
   <TabItem value="go">
     Unsubscribe from all patterns:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    vault.PUnsubscribe()
+    db.PUnsubscribe()
     ```
     Unsubscribe from specific patterns:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    vault.PUnsubscribe("pattern_[12]", "pattern_h[ae]llo")
+    db.PUnsubscribe("pattern_[12]", "pattern_h[ae]llo")
     ```
   </TabItem>
   <TabItem value="cli">

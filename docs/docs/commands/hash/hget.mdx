@@ -31,11 +31,11 @@ Retrieve the value of each of the listed fields from the hash.
   <TabItem value="go">
     Retrieve values from a hash:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    values, err := vault.HGet("key", "field1", "field2", "field3")
+    values, err := db.HGet("key", "field1", "field2", "field3")
     ```
   </TabItem>
   <TabItem value="cli">

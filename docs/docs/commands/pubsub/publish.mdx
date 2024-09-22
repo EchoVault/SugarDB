@@ -30,11 +30,11 @@ Publish a message to the specified channel.
   <TabItem value="go">
     Publish a message to the specified channel:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Publish("channel1", "Hello, world!")
+    ok, err := db.Publish("channel1", "Hello, world!")
     ```
   </TabItem>
   <TabItem value="cli">

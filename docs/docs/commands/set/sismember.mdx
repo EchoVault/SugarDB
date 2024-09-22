@@ -31,11 +31,11 @@ Returns if member is contained in the set.
   <TabItem value="go">
     Check if a member is in the set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.SisMember("key", "member")
+    ok, err := db.SisMember("key", "member")
     ```
   </TabItem>
   <TabItem value="cli">

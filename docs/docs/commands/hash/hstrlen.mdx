@@ -32,11 +32,11 @@ Returns 0 if the value does not exist.
   <TabItem value="go">
     Return the string length of the values stored at the specified fields:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    lengths, err := vault.HStrLen("key", "field1", "field2", "field3")
+    lengths, err := db.HStrLen("key", "field1", "field2", "field3")
     ```
   </TabItem>
   <TabItem value="cli">

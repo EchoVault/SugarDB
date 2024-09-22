@@ -35,20 +35,20 @@ is terminated.
   <TabItem value="go">
     Get the difference between 2 sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.SInterCard([]string{"key1", "key2"}, 0)
+    cardinality, err := db.SInterCard([]string{"key1", "key2"}, 0)
     ```
 
     Get the intersection only upto an intersection cardinality of 5:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.SInterCard([]string{"key1", "key2"}, 5)
+    cardinality, err := db.SInterCard([]string{"key1", "key2"}, 5)
     ```
   </TabItem>
   <TabItem value="cli">

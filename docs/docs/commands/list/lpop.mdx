@@ -31,11 +31,11 @@ Removes and returns the first element of a list.
   <TabItem value="go">
     Removes and returns the first element of a list:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    element, err := vault.LPop("key")
+    element, err := db.LPop("key")
     ```
   </TabItem>
   <TabItem value="cli">

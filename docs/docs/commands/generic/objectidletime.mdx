@@ -34,11 +34,11 @@ and an error is returned.
     <TabItem value="go">
         Get a key's idle time:
         ```go
-        vault, err := echovault.NewEchoVault()
+        db, err := sugardb.NewSugarDB()
         if err != nil {
         log.Fatal(err)
     }
-        idletime, err := vault.ObjectIdleTime("key")
+        idletime, err := db.ObjectIdleTime("key")
         ```
     </TabItem>
     <TabItem value="cli">

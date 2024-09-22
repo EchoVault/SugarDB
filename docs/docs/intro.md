@@ -6,41 +6,41 @@ sidebar_position: 1
 
 ## Embedded
 
-Install EchoVault with: `go get github.com/echovault/echovault`.
+Install SugarDB with: `go get github.com/echovault/sugardb`.
 
-Here's an example of using EchoVault as an embedded library.
-You can access all of EchoVault's commands using an ergonomic API.
+Here's an example of using SugarDB as an embedded library.
+You can access all of SugarDB's commands using an ergonomic API.
 
 ```go
 func main() {
-  server, err := echovault.NewEchoVault()
+  server, err := db.NewSugarDB()
 
   if err != nil {
     log.Fatal(err)
   }
 
-  _, _, _ = server.Set("key", "Hello, world!", echovault.SETOptions{})
+  _, _, _ = server.Set("key", "Hello, world!", db.SETOptions{})
 
   v, _ := server.Get("key")
   fmt.Println(v) // Hello, world!
 
-  // (Optional): Listen for TCP connections on this EchoVault instance.
+  // (Optional): Listen for TCP connections on this SugarDB instance.
   server.Start()
 }
 ```
 
-An embedded EchoVault instance can still be part of a cluster, and the changes triggered 
+An embedded SugarDB instance can still be part of a cluster, and the changes triggered 
 from the API will be consistent across the cluster.
 
-If you want to configure the EchoVault instance, you can modify retrieve the default config and 
+If you want to configure the SugarDB instance, you can modify retrieve the default config and 
 update its properties to suit your requirements.
 
 ```go
-conf := echovault.DefaultConfig()
+conf := db.DefaultConfig()
 conf.ServerID = "ServerInstance1"
 
-server, err := echovault.NewEchoVault(
-  echovault.WithConfig(conf),
+server, err := db.NewSugarDB(
+  db.WithConfig(conf),
 )
 
 if err != nil {
@@ -56,8 +56,8 @@ You can also pass in a custom context using the `WithContext` option.
 ```go
 ctx := context.WithValue(context.Background(), "name", "default")
 
-server, err := echovault.NewEchoVault(
-  echovault.WithContext(ctx),
+server, err := db.NewSugarDB(
+  db.WithContext(ctx),
 )
 
 if err != nil {
@@ -78,15 +78,15 @@ Once installed, you can run the server with the following command:
 
 ### Docker
 
-`docker pull echovault/echovault`
+`docker pull echovault/sugardb`
 
-The full list of tags can be found [here](https://hub.docker.com/r/echovault/echovault/tags).
+The full list of tags can be found [here](https://hub.docker.com/r/echovault/sugardb/tags).
 
 ### Container Registry
 
-`docker pull ghcr.io/echovault/echovault`
+`docker pull ghcr.io/echovault/sugardb`
 
-The full list of tags can be found [here](https://github.com/EchoVault/EchoVault/pkgs/container/echovault).
+The full list of tags can be found [here](https://github.com/EchoVault/SugarDB/pkgs/container/echovault).
 
 ### Binaries
 
@@ -95,4 +95,4 @@ the binary for your system.
 
 ### Clients
 
-EchoVault uses RESP, which makes it compatible with existing Redis clients.
+SugarDB uses RESP, which makes it compatible with existing Redis clients.

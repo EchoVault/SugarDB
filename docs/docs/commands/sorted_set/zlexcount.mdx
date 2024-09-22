@@ -33,7 +33,7 @@ the same score. If the value held at key is not a sorted set, an error is return
   <TabItem value="go">
     Find the intersection between 2 sorted sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }

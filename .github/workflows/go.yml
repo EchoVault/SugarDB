@@ -40,7 +40,7 @@ jobs:
       with:
         directory: ./coverage
         token: ${{ secrets.CODECOV_TOKEN }}
-        slug: EchoVault/EchoVault
+        slug: EchoVault/SugarDB
 
     - name: Go report card
       uses: creekorful/goreportcard-action@v1.0

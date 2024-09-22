@@ -32,11 +32,11 @@ If the key's value is not of the correct type or cannot be represented as an int
   <TabItem value="go">
   Decrement the value of the key `mykey` by 5:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  value, err := vault.DecrBy("mykey 5")
+  value, err := db.DecrBy("mykey 5")
   ```
   </TabItem>
   <TabItem value="cli">

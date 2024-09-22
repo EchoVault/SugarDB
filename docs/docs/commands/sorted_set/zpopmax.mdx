@@ -32,11 +32,11 @@ Default count is 1.
   <TabItem value="go">
     Remove and return 'count' number of members in the sorted set with the highest scores:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    members, err := vault.ZPopMax("key", 2)
+    members, err := db.ZPopMax("key", 2)
     ```
   </TabItem>
   <TabItem value="cli">

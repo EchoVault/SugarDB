@@ -35,7 +35,7 @@ If the key does not exist, it is created with new sorted set and the member adde
   <TabItem value="go">
     Increment the score of the sorted set's member:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }

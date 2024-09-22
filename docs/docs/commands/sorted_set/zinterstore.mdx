@@ -40,23 +40,23 @@ SUM will add the scores, MIN will choose the minimum score, and MAX will choose 
   <TabItem value="go">
     Store the intersection between 2 sorted sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.ZInterStore("destination", []string{"key1", "key2"}, echovault.ZInterStoreOptions{})
+    cardinality, err := vault.ZInterStore("destination", []string{"key1", "key2"}, db.ZInterStoreOptions{})
     ```
     
     Store the intersection between 2 sorted sets with a sum of the weighted scores:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
     cardinality, err := vault.ZInterStore(
       "destination",
       []string{"key1", "key2"},
-      echovault.ZInterStoreOptions{Weights: []float64{2, 4}, Aggregate: "SUM", WithScores: true},
+      db.ZInterStoreOptions{Weights: []float64{2, 4}, Aggregate: "SUM", WithScores: true},
     )
     ```
   </TabItem>

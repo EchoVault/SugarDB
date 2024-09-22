@@ -31,11 +31,11 @@ Prepends one or more values to the end of a list, creates the list if it does no
   <TabItem value="go">
     Prepends one or more values to the end of a list, creates the list if it does not exist:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    length, err := vault.RPush("key", "element1", "element2")
+    length, err := db.RPush("key", "element1", "element2")
     ```
   </TabItem>
   <TabItem value="cli">

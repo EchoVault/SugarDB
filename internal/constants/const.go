@@ -14,7 +14,7 @@
 
 package constants
 
-const Version = "0.10.1" // Next EchoVault version. Update this before each release.
+const Version = "0.10.1" // Next SugarDB version. Update this before each release.
 
 const (
 	ACLModule        = "acl"

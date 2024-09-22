@@ -33,11 +33,11 @@ If the key does not exist, -2 is returned.
   <TabItem value="go">
     Retrieve the expiration time of a key:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ttl, err := vault.TTL("key")
+    ttl, err := db.TTL("key")
     ```
   </TabItem>
   <TabItem value="cli">

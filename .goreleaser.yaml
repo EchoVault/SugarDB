@@ -18,7 +18,7 @@ builds:
       - arm64
 
 brews:
-  - name: echovault
+  - name: sugardb
     homepage: https://github.com/EchoVault/SugarDB
     repository:
       owner: EchoVault

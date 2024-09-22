@@ -39,11 +39,11 @@ This command returns a contextual client report.
   the SetProtocol method:
 
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  err := vault.SetProtocol(2)
+  err := db.SetProtocol(2)
   ```
 
   The method above changes the protocol to version 3. This is relevant when executing commands using the

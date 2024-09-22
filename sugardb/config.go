@@ -29,7 +29,7 @@ func DefaultConfig() config.Config {
 
 func (server *SugarDB) GetServerInfo() internal.ServerInfo {
 	return internal.ServerInfo{
-		Server:  "echovault",
+		Server:  "sugardb",
 		Version: constants.Version,
 		Id:      server.config.ServerID,
 		Mode: func() string {
@@ -54,12 +54,12 @@ func (server *SugarDB) GetServerInfo() internal.ServerInfo {
 // WithTLS is an option to the NewSugarDB function that allows you to pass a
 // custom TLS to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithTLS(b ...bool) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
+func WithTLS(b ...bool) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
 		if len(b) > 0 {
-			echovault.config.TLS = b[0]
+			sugardb.config.TLS = b[0]
 		} else {
-			echovault.config.TLS = true
+			sugardb.config.TLS = true
 		}
 	}
 }
@@ -67,12 +67,12 @@ func WithTLS(b ...bool) func(echovault *SugarDB) {
 // WithMTLS is an option to the NewSugarDB function that allows you to pass a
 // custom MTLS to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithMTLS(b ...bool) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
+func WithMTLS(b ...bool) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
 		if len(b) > 0 {
-			echovault.config.MTLS = b[0]
+			sugardb.config.MTLS = b[0]
 		} else {
-			echovault.config.MTLS = true
+			sugardb.config.MTLS = true
 		}
 	}
 }
@@ -86,10 +86,10 @@ type CertKeyPair struct {
 // WithCertKeyPairs is an option to the NewSugarDB function that allows you to pass a
 // custom CertKeyPairs to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithCertKeyPairs(certKeyPairs []CertKeyPair) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
+func WithCertKeyPairs(certKeyPairs []CertKeyPair) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
 		for _, pair := range certKeyPairs {
-			echovault.config.CertKeyPairs = append(echovault.config.CertKeyPairs, []string{pair.Cert, pair.Key})
+			sugardb.config.CertKeyPairs = append(sugardb.config.CertKeyPairs, []string{pair.Cert, pair.Key})
 		}
 	}
 }
@@ -97,66 +97,66 @@ func WithCertKeyPairs(certKeyPairs []CertKeyPair) func(echovault *SugarDB) {
 // WithClientCAs is an option to the NewSugarDB function that allows you to pass a
 // custom ClientCAs to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithClientCAs(clientCAs []string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.ClientCAs = clientCAs
+func WithClientCAs(clientCAs []string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.ClientCAs = clientCAs
 	}
 }
 
 // WithPort is an option to the NewSugarDB function that allows you to pass a
 // custom Port to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithPort(port uint16) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.Port = port
+func WithPort(port uint16) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.Port = port
 	}
 }
 
 // WithServerID is an option to the NewSugarDB function that allows you to pass a
 // custom ServerID to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithServerID(serverID string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.ServerID = serverID
+func WithServerID(serverID string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.ServerID = serverID
 	}
 }
 
 // WithJoinAddr is an option to the NewSugarDB function that allows you to pass a
 // custom JoinAddr to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithJoinAddr(joinAddr string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.JoinAddr = joinAddr
+func WithJoinAddr(joinAddr string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.JoinAddr = joinAddr
 	}
 }
 
 // WithBindAddr is an option to the NewSugarDB function that allows you to pass a
 // custom BindAddr to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithBindAddr(bindAddr string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.BindAddr = bindAddr
+func WithBindAddr(bindAddr string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.BindAddr = bindAddr
 	}
 }
 
 // WithDataDir is an option to the NewSugarDB function that allows you to pass a
 // custom DataDir to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithDataDir(dataDir string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.DataDir = dataDir
+func WithDataDir(dataDir string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.DataDir = dataDir
 	}
 }
 
 // WithBootstrapCluster is an option to the NewSugarDB function that allows you to pass a
 // custom BootstrapCluster to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithBootstrapCluster(b ...bool) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
+func WithBootstrapCluster(b ...bool) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
 		if len(b) > 0 {
-			echovault.config.BootstrapCluster = b[0]
+			sugardb.config.BootstrapCluster = b[0]
 		} else {
-			echovault.config.BootstrapCluster = true
+			sugardb.config.BootstrapCluster = true
 		}
 	}
 }
@@ -164,21 +164,21 @@ func WithBootstrapCluster(b ...bool) func(echovault *SugarDB) {
 // WithAclConfig is an option to the NewSugarDB function that allows you to pass a
 // custom AclConfig to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithAclConfig(aclConfig string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.AclConfig = aclConfig
+func WithAclConfig(aclConfig string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.AclConfig = aclConfig
 	}
 }
 
 // WithForwardCommand is an option to the NewSugarDB function that allows you to pass a
 // custom ForwardCommand to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithForwardCommand(b ...bool) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
+func WithForwardCommand(b ...bool) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
 		if len(b) > 0 {
-			echovault.config.ForwardCommand = b[0]
+			sugardb.config.ForwardCommand = b[0]
 		} else {
-			echovault.config.ForwardCommand = true
+			sugardb.config.ForwardCommand = true
 		}
 	}
 }
@@ -186,12 +186,12 @@ func WithForwardCommand(b ...bool) func(echovault *SugarDB) {
 // WithRequirePass is an option to the NewSugarDB function that allows you to pass a
 // custom RequirePass to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithRequirePass(b ...bool) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
+func WithRequirePass(b ...bool) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
 		if len(b) > 0 {
-			echovault.config.RequirePass = b[0]
+			sugardb.config.RequirePass = b[0]
 		} else {
-			echovault.config.RequirePass = true
+			sugardb.config.RequirePass = true
 		}
 	}
 }
@@ -199,39 +199,39 @@ func WithRequirePass(b ...bool) func(echovault *SugarDB) {
 // WithPassword is an option to the NewSugarDB function that allows you to pass a
 // custom Password to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithPassword(password string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.Password = password
+func WithPassword(password string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.Password = password
 	}
 }
 
 // WithSnapShotThreshold is an option to the NewSugarDB function that allows you to pass a
 // custom SnapShotThreshold to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithSnapShotThreshold(snapShotThreshold uint64) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.SnapShotThreshold = snapShotThreshold
+func WithSnapShotThreshold(snapShotThreshold uint64) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.SnapShotThreshold = snapShotThreshold
 	}
 }
 
 // WithSnapshotInterval is an option to the NewSugarDB function that allows you to pass a
 // custom SnapshotInterval to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithSnapshotInterval(snapshotInterval time.Duration) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.SnapshotInterval = snapshotInterval
+func WithSnapshotInterval(snapshotInterval time.Duration) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.SnapshotInterval = snapshotInterval
 	}
 }
 
 // WithRestoreSnapshot is an option to the NewSugarDB function that allows you to pass a
 // custom RestoreSnapshot to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithRestoreSnapshot(b ...bool) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
+func WithRestoreSnapshot(b ...bool) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
 		if len(b) > 0 {
-			echovault.config.RestoreSnapshot = b[0]
+			sugardb.config.RestoreSnapshot = b[0]
 		} else {
-			echovault.config.RestoreSnapshot = true
+			sugardb.config.RestoreSnapshot = true
 		}
 	}
 }
@@ -239,12 +239,12 @@ func WithRestoreSnapshot(b ...bool) func(echovault *SugarDB) {
 // WithRestoreAOF is an option to the NewSugarDB function that allows you to pass a
 // custom RestoreAOF to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithRestoreAOF(b ...bool) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
+func WithRestoreAOF(b ...bool) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
 		if len(b) > 0 {
-			echovault.config.RestoreAOF = b[0]
+			sugardb.config.RestoreAOF = b[0]
 		} else {
-			echovault.config.RestoreAOF = true
+			sugardb.config.RestoreAOF = true
 		}
 	}
 }
@@ -252,80 +252,80 @@ func WithRestoreAOF(b ...bool) func(echovault *SugarDB) {
 // WithAOFSyncStrategy is an option to the NewSugarDB function that allows you to pass a
 // custom AOFSyncStrategy to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithAOFSyncStrategy(aOFSyncStrategy string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.AOFSyncStrategy = aOFSyncStrategy
+func WithAOFSyncStrategy(aOFSyncStrategy string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.AOFSyncStrategy = aOFSyncStrategy
 	}
 }
 
 // WithMaxMemory is an option to the NewSugarDB function that allows you to pass a
 // custom MaxMemory to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithMaxMemory(maxMemory uint64) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.MaxMemory = maxMemory
+func WithMaxMemory(maxMemory uint64) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.MaxMemory = maxMemory
 	}
 }
 
 // WithEvictionPolicy is an option to the NewSugarDB function that allows you to pass a
 // custom EvictionPolicy to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithEvictionPolicy(evictionPolicy string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.EvictionPolicy = evictionPolicy
+func WithEvictionPolicy(evictionPolicy string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.EvictionPolicy = evictionPolicy
 	}
 }
 
 // WithEvictionSample is an option to the NewSugarDB function that allows you to pass a
 // custom EvictionSample to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithEvictionSample(evictionSample uint) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.EvictionSample = evictionSample
+func WithEvictionSample(evictionSample uint) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.EvictionSample = evictionSample
 	}
 }
 
 // WithEvictionInterval is an option to the NewSugarDB function that allows you to pass a
 // custom EvictionInterval to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithEvictionInterval(evictionInterval time.Duration) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.EvictionInterval = evictionInterval
+func WithEvictionInterval(evictionInterval time.Duration) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.EvictionInterval = evictionInterval
 	}
 }
 
 // WithModules is an option to the NewSugarDB function that allows you to pass a
 // custom Modules to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithModules(modules []string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.Modules = modules
+func WithModules(modules []string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.Modules = modules
 	}
 }
 
 // WithDiscoveryPort is an option to the NewSugarDB function that allows you to pass a
 // custom DiscoveryPort to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithDiscoveryPort(discoveryPort uint16) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.DiscoveryPort = discoveryPort
+func WithDiscoveryPort(discoveryPort uint16) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.DiscoveryPort = discoveryPort
 	}
 }
 
 // WithRaftBindAddr is an option to the NewSugarDB function that allows you to pass a
 // custom RaftBindAddr to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithRaftBindAddr(raftBindAddr string) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.RaftBindAddr = raftBindAddr
+func WithRaftBindAddr(raftBindAddr string) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.RaftBindAddr = raftBindAddr
 	}
 }
 
 // WithRaftBindPort is an option to the NewSugarDB function that allows you to pass a
 // custom RaftBindPort to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithRaftBindPort(raftBindPort uint16) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config.RaftBindPort = raftBindPort
+func WithRaftBindPort(raftBindPort uint16) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.RaftBindPort = raftBindPort
 	}
 }

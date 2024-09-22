@@ -31,11 +31,11 @@ Removes the listed members from the sorted set. Returns the number of elements r
   <TabItem value="go">
     Remove the listed members from the sorted set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    deletedCount, err := vault.ZRem("key", "member1", "member2")
+    deletedCount, err := db.ZRem("key", "member1", "member2")
     ```
   </TabItem>
   <TabItem value="cli">

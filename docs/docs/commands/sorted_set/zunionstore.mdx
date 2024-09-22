@@ -41,23 +41,23 @@ is 1 for all sorted sets.
   <TabItem value="go">
     Store the union between 2 sorted sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.ZUnionStore("destination", []string{"key1", "key2"}, echovault.ZUnionStoreOptions{})
+    cardinality, err := vault.ZUnionStore("destination", []string{"key1", "key2"}, db.ZUnionStoreOptions{})
     ```
     
     Store the union between 2 sorted sets with a sum of the weighted scores:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
     cardinality, err := vault.ZUnionStore(
       "destination",
       []string{"key1", "key2"},
-      echovault.ZUnionStoreOptions{Weights: []float64{2, 4}, Aggregate: "SUM", WithScores: true},
+      db.ZUnionStoreOptions{Weights: []float64{2, 4}, Aggregate: "SUM", WithScores: true},
     )
     ```    
   </TabItem>

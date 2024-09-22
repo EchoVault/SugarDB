@@ -31,11 +31,11 @@ Trigger a snapshot save.
   <TabItem value="go">
     Trigger a snapshot save:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    count, err := vault.Save()
+    count, err := db.Save()
     ```
   </TabItem>
   <TabItem value="cli">

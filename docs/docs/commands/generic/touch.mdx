@@ -32,20 +32,20 @@ A key is ignored if it does not exist. This commands returns the number of keys 
     <TabItem value="go">
         Touch a key:
         ```go
-        vault, err := echovault.NewEchoVault()
+        db, err := sugardb.NewSugarDB()
         if err != nil {
         log.Fatal(err)
     }
-        touched, err := vault.Touch("key1")
+        touched, err := db.Touch("key1")
         ```
 
         Touch multiple keys:
         ```go
-        vault, err := echovault.NewEchoVault()
+        db, err := sugardb.NewSugarDB()
         if err != nil {
         log.Fatal(err)
     }
-        touched, err := vault.Touch("key1", "key2", "key3")
+        touched, err := db.Touch("key1", "key2", "key3")
         ```
     </TabItem>
     <TabItem value="cli">

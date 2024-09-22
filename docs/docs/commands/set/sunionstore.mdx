@@ -31,11 +31,11 @@ Stores the union of the given sets into destination.
   <TabItem value="go">
     Stores the union of the given sets into destination:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.SUnionStore("destination", "key1", "key2")
+    cardinality, err := db.SUnionStore("destination", "key1", "key2")
     ```
   </TabItem>
 

@@ -31,11 +31,11 @@ Returns the absolute unix time in seconds when the key will expire.
   <TabItem value="go">
     Get the expiration time of a key:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    expireTime, err := vault.ExpireTime("key")
+    expireTime, err := db.ExpireTime("key")
     ```
   </TabItem>
   <TabItem value="cli">

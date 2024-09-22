@@ -31,11 +31,11 @@ Get the value at the specified key.
   <TabItem value="go">
     Get the value at the specified key:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    value, err := vault.Get("key")
+    value, err := db.Get("key")
     ```
   </TabItem>
   <TabItem value="cli">
