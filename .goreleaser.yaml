@@ -22,7 +22,7 @@ brews:
     homepage: https://github.com/EchoVault/SugarDB
     repository:
       owner: EchoVault
-      name: Homebrew-EchoVault
+      name: Homebrew
     commit_author:
       name: kelvinmwinuka
       email: kelvin@echovault.io
