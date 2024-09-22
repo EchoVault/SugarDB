@@ -604,7 +604,7 @@ func Test_Cluster(t *testing.T) {
 	t.Run("Test_GetServerInfo", func(t *testing.T) {
 		nodeInfo := []internal.ServerInfo{
 			{
-				Server:  "echovault",
+				Server:  "sugardb",
 				Version: constants.Version,
 				Id:      nodes[0].serverId,
 				Mode:    "cluster",
@@ -612,7 +612,7 @@ func Test_Cluster(t *testing.T) {
 				Modules: nodes[0].server.ListModules(),
 			},
 			{
-				Server:  "echovault",
+				Server:  "sugardb",
 				Version: constants.Version,
 				Id:      nodes[1].serverId,
 				Mode:    "cluster",
@@ -620,7 +620,7 @@ func Test_Cluster(t *testing.T) {
 				Modules: nodes[1].server.ListModules(),
 			},
 			{
-				Server:  "echovault",
+				Server:  "sugardb",
 				Version: constants.Version,
 				Id:      nodes[2].serverId,
 				Mode:    "cluster",
@@ -628,7 +628,7 @@ func Test_Cluster(t *testing.T) {
 				Modules: nodes[2].server.ListModules(),
 			},
 			{
-				Server:  "echovault",
+				Server:  "sugardb",
 				Version: constants.Version,
 				Id:      nodes[3].serverId,
 				Mode:    "cluster",
@@ -636,7 +636,7 @@ func Test_Cluster(t *testing.T) {
 				Modules: nodes[3].server.ListModules(),
 			},
 			{
-				Server:  "echovault",
+				Server:  "sugardb",
 				Version: constants.Version,
 				Id:      nodes[4].serverId,
 				Mode:    "cluster",
@@ -1157,7 +1157,7 @@ func Test_Standalone(t *testing.T) {
 
 	t.Run("Test_GetServerInfo", func(t *testing.T) {
 		wantInfo := internal.ServerInfo{
-			Server:  "echovault",
+			Server:  "sugardb",
 			Version: constants.Version,
 			Id:      mockServer.config.ServerID,
 			Mode:    "standalone",

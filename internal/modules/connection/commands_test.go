@@ -397,7 +397,7 @@ func Test_Connection(t *testing.T) {
 				command: []resp.Value{resp.StringValue("HELLO")},
 				wantRes: connection.BuildHelloResponse(
 					internal.ServerInfo{
-						Server:  "echovault",
+						Server:  "sugardb",
 						Version: constants.Version,
 						Id:      "",
 						Mode:    "standalone",
@@ -417,7 +417,7 @@ func Test_Connection(t *testing.T) {
 				command: []resp.Value{resp.StringValue("HELLO"), resp.StringValue("2")},
 				wantRes: connection.BuildHelloResponse(
 					internal.ServerInfo{
-						Server:  "echovault",
+						Server:  "sugardb",
 						Version: constants.Version,
 						Id:      "",
 						Mode:    "standalone",
@@ -437,7 +437,7 @@ func Test_Connection(t *testing.T) {
 				command: []resp.Value{resp.StringValue("HELLO"), resp.StringValue("3")},
 				wantRes: connection.BuildHelloResponse(
 					internal.ServerInfo{
-						Server:  "echovault",
+						Server:  "sugardb",
 						Version: constants.Version,
 						Id:      "",
 						Mode:    "standalone",
@@ -463,7 +463,7 @@ func Test_Connection(t *testing.T) {
 				},
 				wantRes: connection.BuildHelloResponse(
 					internal.ServerInfo{
-						Server:  "echovault",
+						Server:  "sugardb",
 						Version: constants.Version,
 						Id:      "",
 						Mode:    "standalone",
@@ -502,7 +502,7 @@ func Test_Connection(t *testing.T) {
 				},
 				wantRes: connection.BuildHelloResponse(
 					internal.ServerInfo{
-						Server:  "echovault",
+						Server:  "sugardb",
 						Version: constants.Version,
 						Id:      "",
 						Mode:    "standalone",

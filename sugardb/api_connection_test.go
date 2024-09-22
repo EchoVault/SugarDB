@@ -60,7 +60,7 @@ func TestSugarDB_Hello(t *testing.T) {
 			command: []resp.Value{resp.StringValue("HELLO")},
 			wantRes: connection.BuildHelloResponse(
 				internal.ServerInfo{
-					Server:  "echovault",
+					Server:  "sugardb",
 					Version: constants.Version,
 					Id:      "",
 					Mode:    "standalone",
@@ -80,7 +80,7 @@ func TestSugarDB_Hello(t *testing.T) {
 			command: []resp.Value{resp.StringValue("HELLO"), resp.StringValue("2")},
 			wantRes: connection.BuildHelloResponse(
 				internal.ServerInfo{
-					Server:  "echovault",
+					Server:  "sugardb",
 					Version: constants.Version,
 					Id:      "",
 					Mode:    "standalone",
@@ -100,7 +100,7 @@ func TestSugarDB_Hello(t *testing.T) {
 			command: []resp.Value{resp.StringValue("HELLO"), resp.StringValue("3")},
 			wantRes: connection.BuildHelloResponse(
 				internal.ServerInfo{
-					Server:  "echovault",
+					Server:  "sugardb",
 					Version: constants.Version,
 					Id:      "",
 					Mode:    "standalone",
