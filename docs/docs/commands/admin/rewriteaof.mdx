@@ -31,11 +31,11 @@ Trigger re-writing of append process.
   <TabItem value="go">
     Trigger re-writing of append process:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    count, err := vault.RewriteAOF()
+    count, err := db.RewriteAOF()
     ```
   </TabItem>
   <TabItem value="cli">

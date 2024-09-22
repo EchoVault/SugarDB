@@ -31,11 +31,11 @@ Stores the intersection of multiple sets at the destination key.
   <TabItem value="go">
     Get the difference between 2 sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.SInterStore("destination", "key1", "key2")
+    cardinality, err := db.SInterStore("destination", "key1", "key2")
     ```
   </TabItem>
   <TabItem value="cli">

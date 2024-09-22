@@ -34,11 +34,11 @@ This operation is limited to 64 bit signed integers.
   <TabItem value="go">
   Decrement the value of the key `mykey`:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  value, err := vault.Decr("mykey")
+  value, err := db.Decr("mykey")
   ```
   </TabItem>
   <TabItem value="cli">

@@ -24,7 +24,7 @@ Retrieve the range of elements in the sorted set and store it in destination.
 - `BYLEX` - Sorts the elements in ascending lexicographical order before calcularing the range.
   This option only works if all the members have the same score.
 - `REV` - Reverse the order determined by BYSCORE or BYLEX.
-- `LIMIT` - Offset determines where EchoVault will start counting from after the previous modification.
+- `LIMIT` - Offset determines where SugarDB will start counting from after the previous modification.
   Count is the number of elements to extract after the offset.
 - `WITHSCORES` - Whether the result should include scores.
 
@@ -40,13 +40,13 @@ Retrieve the range of elements in the sorted set and store it in destination.
   <TabItem value="go">
     Get range by score and store it at the destination key:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.ZRangeStore(
+    cardinality, err := db.ZRangeStore(
       "destination", "source", "11.55", "15.66",
-      echovault.ZRangeStoreOptions{
+      db.ZRangeStoreOptions{
         ByScore:    true,
         Rev:        true,
         WithScores: true,

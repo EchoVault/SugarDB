@@ -31,11 +31,11 @@ Returns all the fields in a hash.
   <TabItem value="go">
     Retrieve all fields from a hash:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    keys, err := vault.HKeys("key")
+    keys, err := db.HKeys("key")
     ```
   </TabItem>
   <TabItem value="cli">

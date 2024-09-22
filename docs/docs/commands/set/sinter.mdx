@@ -31,11 +31,11 @@ Returns the intersection of multiple sets.
   <TabItem value="go">
     Get the difference between 2 sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    elements, err := vault.SInter("key1", "key2")
+    elements, err := db.SInter("key1", "key2")
     ```
   </TabItem>
   <TabItem value="cli">

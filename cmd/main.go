@@ -16,9 +16,9 @@ package main
 
 import (
 	"context"
-	"github.com/echovault/echovault/echovault"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/config"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/sugardb"
 	"log"
 	"os"
 	"os/signal"
@@ -36,9 +36,9 @@ func main() {
 	cancelCh := make(chan os.Signal, 1)
 	signal.Notify(cancelCh, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
-	server, err := echovault.NewEchoVault(
-		echovault.WithContext(ctx),
-		echovault.WithConfig(conf),
+	server, err := sugardb.NewSugarDB(
+		sugardb.WithContext(ctx),
+		sugardb.WithConfig(conf),
 	)
 
 	if err != nil {

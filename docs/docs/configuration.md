@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Configuration
 
-EchoVault is highly configurable. It provides the following configuration options to you:
+SugarDB is highly configurable. It provides the following configuration options to you:
 
 Flag: `--config`<br/>
 Type: `string/path`<br/>
@@ -60,7 +60,7 @@ Description: When starting a node in a raft replication cluster, this directs th
 
 Flag: `--data-dir`<br/>
 Type: `string`<br/>
-Description: The directory for storing Append-Only Logs, Write Ahead Logs, and Snapshots. The default is `/var/lib/echovault`
+Description: The directory for storing Append-Only Logs, Write Ahead Logs, and Snapshots. The default is `/var/lib/`
 
 Flag: `--bootstrap-cluster`<br/>
 Type: `boolean`<br/>
@@ -98,7 +98,7 @@ Description: This flag allows you to send write commands to any node in the clus
 Flag: `--max-memory`<br/>
 Type: `string`<br/>
 Examples: "200mb", "8gb", "1tb"<br/>
-Description: The maximum memory usage that EchoVault should observe. Once this limit is reached, the chosen key eviction strategy is triggered. The default is no limit.
+Description: The maximum memory usage that SugarDB should observe. Once this limit is reached, the chosen key eviction strategy is triggered. The default is no limit.
 
 Flag: `--eviction-policy`<br/>
 Type: `string`<br/>
@@ -114,7 +114,7 @@ Description: This flag allows you to choose the key eviction strategy when the m
 
 Flag: `--eviction-sample`<br/>
 Type: `integer`<br/>
-Description: An integer specifying the number of keys to sample when checking for expired keys. By default, EchoVault will sample 20 keys. The sampling is repeated if the number of expired keys found exceeds 20%.
+Description: An integer specifying the number of keys to sample when checking for expired keys. By default, SugarDB will sample 20 keys. The sampling is repeated if the number of expired keys found exceeds 20%.
 
 Flag: `--eviction-interval`<br/>
 Type: `string`<br/>
@@ -124,4 +124,4 @@ Description: The interval between each sampling of keys to evict. By default, th
 Flag: `--loadmodule`<br/>
 Type: `string/path`<br/>
 Example: "path/to/module.so"<br/>
-Description: The full file path to the .so file to load into EchoVault to extend its commands. This flag can be specified multiple times to load multiple plugins.
+Description: The full file path to the .so file to load into SugarDB to extend its commands. This flag can be specified multiple times to load multiple plugins.

@@ -31,11 +31,11 @@ Lists all usernames of the configured ACL users.
   <TabItem value="go">
     List ACL usernames:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    users, err := vault.ACLUsers()
+    users, err := db.ACLUsers()
     ```
   </TabItem>
   <TabItem value="cli">

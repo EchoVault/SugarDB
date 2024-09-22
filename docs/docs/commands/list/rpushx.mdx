@@ -31,11 +31,11 @@ Appends a value to the end of a list only if the list exists.
   <TabItem value="go">
     Appends a value to the end of a list only if the list exists:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    length, err := vault.RPushX("key", "element1", "element2")
+    length, err := db.RPushX("key", "element1", "element2")
     ```
   </TabItem>
   <TabItem value="cli">

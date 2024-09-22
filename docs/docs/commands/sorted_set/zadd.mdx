@@ -39,40 +39,40 @@ Adds all the specified members with the specified scores to the sorted set at th
   <TabItem value="go">
     Add elements to sorted set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
     changedCount, err := vault.ZAdd( 
       "key",
       map[string]float64{"member1": 2.5, "member2": 1.25, "member3": 3},
-      echovault.ZAddOptions{},
+      db.ZAddOptions{},
     )
     ```
 
     Add elements to sorted set, skipping members that already exist in the set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
     changedCount, err := vault.ZAdd(
       "key",
       map[string]float64{"member1": 2.5, "member2": 1.25, "member3": 3, "member4": 4},
-      echovault.ZAddOptions{NX: true},
+      db.ZAddOptions{NX: true},
     )
     ```
 
     Increment the element by the specified score:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
     changedCount, err := vault.ZAdd(
       "key",
       map[string]float64{"member1": 5.75},
-      echovault.ZAddOptions{INCR: true},
+      db.ZAddOptions{INCR: true},
     )
     ```
   </TabItem>

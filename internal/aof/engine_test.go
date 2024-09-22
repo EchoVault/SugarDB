@@ -16,11 +16,11 @@ package aof_test
 
 import (
 	"fmt"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/aof"
-	"github.com/echovault/echovault/internal/aof/log"
-	"github.com/echovault/echovault/internal/aof/preamble"
-	"github.com/echovault/echovault/internal/clock"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/aof"
+	"github.com/echovault/sugardb/internal/aof/log"
+	"github.com/echovault/sugardb/internal/aof/preamble"
+	"github.com/echovault/sugardb/internal/clock"
 	"os"
 	"sync/atomic"
 	"testing"

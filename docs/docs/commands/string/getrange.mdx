@@ -31,11 +31,11 @@ Return the substring of the string value stored at key. The substring is specifi
   <TabItem value="go">
     Get the substring of a string value:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    substring, err := vault.GetRange("key", 4, 10)
+    substring, err := db.GetRange("key", 4, 10)
     ```
   </TabItem>
   <TabItem value="cli">

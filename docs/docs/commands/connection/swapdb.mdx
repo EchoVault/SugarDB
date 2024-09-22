@@ -34,14 +34,14 @@ and the other way around. If either one of the databases does not exist, it will
   <TabItem value="go">
   Swap the databases with indexes 1 and 2:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  err := vault.SwapDBs(1, 2)
+  err := db.SwapDBs(1, 2)
   ```
   The method above only switches the databases for the currently active TCP connections.
-  To switch the database for the embeded instance, use the `SelectDB` method.
+  To switch the database for the embedded instance, use the `SelectDB` method.
   </TabItem>
   <TabItem value="cli">
   Swap the databases with indexes 1 and 2:

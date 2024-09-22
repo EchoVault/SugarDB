@@ -31,11 +31,11 @@ Returns the members of the set resulting from the union of the provided sets.
   <TabItem value="go">
     Return the members of the set resulting from the union of the provided sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    elements, err := vault.SUnion("key1", "key2")
+    elements, err := db.SUnion("key1", "key2")
     ```
   </TabItem>
   <TabItem value="cli">

@@ -32,11 +32,11 @@ Returns if field is an existing field in the hash.
   <TabItem value="go">
     Returns if field exists in a hash:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    exists, err := vault.HExists ("key", "field1")
+    exists, err := db.HExists ("key", "field1")
     ```
   </TabItem>
   <TabItem value="cli">

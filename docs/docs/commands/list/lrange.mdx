@@ -31,11 +31,11 @@ Return a range of elements between the given indices.
   <TabItem value="go">
     Return a range of elements between the given indices:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    list, err := vault.LRange("key", 2, 6)
+    list, err := db.LRange("key", 2, 6)
     ```
   </TabItem>
   <TabItem value="cli">

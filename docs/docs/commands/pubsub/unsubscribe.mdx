@@ -33,19 +33,19 @@ it's currently subscribed to.
   <TabItem value="go">
     Unsubscribe from all channels:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    vault.Unsubscribe()
+    db.Unsubscribe()
     ```
     Unsubscribe from specific channels:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    vault.Unsubscribe("channel1", "channel2")
+    db.Unsubscribe("channel1", "channel2")
     ```
   </TabItem>
   <TabItem value="cli">

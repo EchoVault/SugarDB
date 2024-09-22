@@ -17,12 +17,12 @@ package connection
 import (
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/internal/modules/acl"
+	"github.com/echovault/sugardb/internal/modules/acl"
 	"slices"
 	"strconv"
 
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 func handleAuth(params internal.HandlerFuncParams) ([]byte, error) {

@@ -31,11 +31,11 @@ Returns the list element at the given index.
   <TabItem value="go">
     Returns the list element at the given index:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    element, err := vault.LIndex("key", 2)
+    element, err := db.LIndex("key", 2)
     ```
   </TabItem>
   <TabItem value="cli">

@@ -21,9 +21,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/internal"
-	"github.com/echovault/echovault/internal/config"
-	"github.com/echovault/echovault/internal/constants"
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/internal/constants"
 	"github.com/gobwas/glob"
 	"gopkg.in/yaml.v3"
 	"log"
@@ -46,7 +46,7 @@ type ACL struct {
 	Users        []*User                  // List of ACL user profiles
 	UsersMutex   sync.RWMutex             // RWMutex for concurrency control when accessing ACL profile list
 	Connections  map[*net.Conn]Connection // Connections to the echovault that are currently registered with the ACL module
-	Config       config.Config            // EchoVault configuration that contains the relevant ACL config options
+	Config       config.Config            // SugarDB configuration that contains the relevant ACL config options
 	GlobPatterns map[string]glob.Glob
 }
 

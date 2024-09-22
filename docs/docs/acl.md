@@ -4,9 +4,9 @@ sidebar_position: 7
 
 # Access Control List
 
-Access Control Lists enable you to add a layer of security to the EchoVault server or cluster. You can create users with associated rules and require clients to authorize before executing commands on the server.
+Access Control Lists enable you to add a layer of security to the SugarDB server or cluster. You can create users with associated rules and require clients to authorize before executing commands on the server.
 
-EchoVault creates a default user upon startup. You can see this user by executing the following command:
+SugarDB creates a default user upon startup. You can see this user by executing the following command:
 
 ```
 > ACL LIST
@@ -17,7 +17,7 @@ The default user is enabled, and has access to all categories, commands, keys an
 
 You can configure the default user to require a passwords by using the following configuration options:
 
-- `--require-pass` forces the EchoVault server to require a user to authenticate itself using a password and/or username.
+- `--require-pass` forces the SugarDB server to require a user to authenticate itself using a password and/or username.
 
 - `--password` attaches the provided password to the default user.
 
@@ -29,7 +29,7 @@ The TCP client can authenticate itself using the `AUTH` command:
 
 `AUTH <password>` tries to authenticate the TCP connection with the default user and the provided passsword.
 
-Authorization is not supported in embedded mode. When an EchoVault instance is embedded, it autimatically has access to all the commands exposed by the API.
+Authorization is not supported in embedded mode. When an SugarDB instance is embedded, it autimatically has access to all the commands exposed by the API.
 
 ## Configuration files
 
@@ -157,9 +157,9 @@ The `nocommands` flag will apply the `-all` rule.
 
 ### Allow and disallow access to keys
 
-By default, EchoVault allows each user to read and write to all keys. If you'd like to control what keys users have access to and what they can do with those keys, you can make use of the following options:
+By default, SugarDB allows each user to read and write to all keys. If you'd like to control what keys users have access to and what they can do with those keys, you can make use of the following options:
 
-- `%RW~*` - Allow this user to read and write all keys on the EchoVault isntance (aliased by `allKeys`).
+- `%RW~*` - Allow this user to read and write all keys on the SugarDB instance (aliased by `allKeys`).
 - `%RW~<key>` - Allow this user to read and write to the specified key. This option accepts a glob pattern for the key which allows you to restrict certain key patterns.
 - `%W~*` - Allow the user to write to all keys.
 - `%W~<key>` - Block the user from writing to any keys except the one specified. A glob pattern can be used in place of the key.

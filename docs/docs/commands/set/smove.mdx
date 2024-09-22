@@ -31,11 +31,11 @@ Moves a member from source set to destination set.
   <TabItem value="go">
     Move a member from source set to destination set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    moved, err := vault.SMove("source", "destination", "member")
+    moved, err := db.SMove("source", "destination", "member")
     ```
   </TabItem>
   <TabItem value="cli">

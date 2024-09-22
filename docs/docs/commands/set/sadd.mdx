@@ -31,11 +31,11 @@ Add one or more members to the set. If the set does not exist, it's created.
   <TabItem value="go">
     Add members to the set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    cardinality, err := vault.SAdd("key", "member1", "member2")
+    cardinality, err := db.SAdd("key", "member1", "member2")
     ```
   </TabItem>
   <TabItem value="cli">

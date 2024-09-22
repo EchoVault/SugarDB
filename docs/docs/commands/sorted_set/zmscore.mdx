@@ -32,7 +32,7 @@ Returns nil for members that do not exist in the set.
   <TabItem value="go">
     Get the scores of the specified members in the sorted set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }

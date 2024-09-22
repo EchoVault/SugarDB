@@ -17,8 +17,8 @@ package log_test
 import (
 	"bytes"
 	"fmt"
-	"github.com/echovault/echovault/internal/aof/log"
-	"github.com/echovault/echovault/internal/clock"
+	"github.com/echovault/sugardb/internal/aof/log"
+	"github.com/echovault/sugardb/internal/clock"
 	"os"
 	"path"
 	"testing"

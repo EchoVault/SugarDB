@@ -30,11 +30,11 @@ Return the number of patterns that are currently subscribed to by clients.
   <TabItem value="go">
     Return the number of patterns that are currently subscribed to by clients.
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    numOfPatterns, err := vault.PubSubNumPat()
+    numOfPatterns, err := db.PubSubNumPat()
     ```
   </TabItem>
   <TabItem value="cli">

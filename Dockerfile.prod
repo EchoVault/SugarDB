@@ -5,7 +5,7 @@ COPY . ./
 RUN CGO_ENABLED=1 CC=gcc GOOS=linux GOARCH=amd64 go build -o bin/server ./cmd/...
 
 FROM --platform=linux/amd64 alpine:latest AS server
-RUN mkdir -p /usr/echovault/bin
-COPY --from=build /build/bin/server /usr/echovault/bin
-WORKDIR /usr/echovault/bin
+RUN mkdir -p /usr/sugardb/bin
+COPY --from=build /build/bin/server /usr/sugardb/bin
+WORKDIR /usr/sugardb/bin
 ENTRYPOINT ["./server"]

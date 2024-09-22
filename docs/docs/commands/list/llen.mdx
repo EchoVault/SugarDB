@@ -31,11 +31,11 @@ Returns the length of a list.
   <TabItem value="go">
     Returns the length of a list:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    length, err := vault.LLen("key")
+    length, err := db.LLen("key")
     ```
   </TabItem>
   <TabItem value="cli">

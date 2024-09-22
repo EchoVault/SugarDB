@@ -31,11 +31,11 @@ Deletes users and terminates their connections. This command cannot delete the d
   <TabItem value="go">
     Delete users:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.ACLDelUser("username1", "username2")
+    ok, err := db.ACLDelUser("username1", "username2")
     ```
   </TabItem>
   <TabItem value="cli">

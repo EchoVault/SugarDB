@@ -48,38 +48,38 @@ NX, GT, and LT are mutually exclusive. XX can additionally be passed in with eit
     <br></br>
 Add an expiration to a key:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Expire("key", 1767160800000, nil)
+    ok, err := db.Expire("key", 1767160800000, nil)
     ```
 
     Add an expiration to a key only if it does not have one already:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Expire("key", 1767160800000, echovault.NX)
+    ok, err := db.Expire("key", 1767160800000, db.NX)
     ```
 
     Add an expiration to a key only if it has one already:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Expire("key", 1767160800000, echovault.XX)
+    ok, err := db.Expire("key", 1767160800000, db.XX)
     ```
 
     Add an expiration to a key only if it already has one that is less than the current expiry:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Expire("key", 1767160800000, echovault.XX, echovault.LT)
+    ok, err := db.Expire("key", 1767160800000, db.XX, db.LT)
     ```
   </TabItem>
   <TabItem value="cli">

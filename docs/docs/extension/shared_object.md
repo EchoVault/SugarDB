@@ -1,6 +1,6 @@
 # Shared Object Files
 
-EchoVault allows you to extend its list of commands using shared object files. You can write Go scripts that are compiled in plugin mode to achieve this.
+SugarDB allows you to extend its list of commands using shared object files. You can write Go scripts that are compiled in plugin mode to achieve this.
 
 ## Creating a Module
 
@@ -53,7 +53,7 @@ func KeyExtractionFunc(
 
 // The command's handler function.
 func HandlerFunc(
-  // Context passed from the EchoVault instance.
+  // Context passed from the SugarDB instance.
   ctx context.Context,
   // The command slice (e.g []string{"Module.Set", "key1", "10"}).
   command []string,
@@ -98,11 +98,11 @@ func HandlerFunc(
 
 ### Compiling Module File
 
-Compiling plugins can be quite tricky due to Golang's plugin system. Make sure that the environment variables you set when compiling the module match the ones used when compiling EchoVault.
+Compiling plugins can be quite tricky due to Golang's plugin system. Make sure that the environment variables you set when compiling the module match the ones used when compiling SugarDB.
 
-If you're using the official docker images, you can reference the <a target="_blank" href="https://github.com/EchoVault/EchoVault/blob/main/Dockerfile.dev">`Dockerfile.dev`</a> amd <a target="_blank" href="https://github.com/EchoVault/EchoVault/blob/main/Dockerfile.prod">`Dockerfile.prod`</a> files for reference on which flags you should use.
+If you're using the official docker images, you can reference the <a target="_blank" href="https://github.com/EchoVault/SugarDB/blob/main/Dockerfile.dev">`Dockerfile.dev`</a> amd <a target="_blank" href="https://github.com/EchoVault/SugarDB/blob/main/Dockerfile.prod">`Dockerfile.prod`</a> files for reference on which flags you should use.
 
-If you're building EchoVault from source, make sure the environment variables for the plugin and EchoVault compilation match.
+If you're building SugarDB from source, make sure the environment variables for the plugin and SugarDB compilation match.
 
 Pass the -buildmode=plugin flag when compiling the plugin and the -o flag to specify a .so output file. Here's an example of a command to compile a plugin for the dev alpine docker image:
 
@@ -160,7 +160,7 @@ NOTE: You cannot pass args when loading modules at startup with the `--loadmodul
 
 ## List Modules
 
-You can list the current modules loaded in the EchoVault instance using both the Client-Server and embedded APIs.
+You can list the current modules loaded in the SugarDB instance using both the Client-Server and embedded APIs.
 
 To check the loaded modules using the embedded API, use the <a target="_blank" href="https://pkg.go.dev/github.com/echovault/echovault@v0.10.1/echovault#EchoVault.ListModules">`ListModules`</a> method:
 
@@ -168,7 +168,7 @@ To check the loaded modules using the embedded API, use the <a target="_blank" h
 modules := server.ListModules()
 ```
 
-This method returns a string slice containing all the loaded modules in the EchoVault instance.
+This method returns a string slice containing all the loaded modules in the SugarDB instance.
 
 You can also list the loaded modules over the TCP API using the `MODULE LIST` command.
 
@@ -214,7 +214,7 @@ Module.Set key1 10
 
 ## Unload Module
 
-You can unload modules from the EchoVault instance using both the embedded and TCP APIs.
+You can unload modules from the SugarDB instance using both the embedded and TCP APIs.
 
 Here's an example of unloading a module using the embedded API:
 
@@ -235,4 +235,4 @@ When unloading a module, the name should be equal to what's returned from the `L
 
 ## Important considerations
 
-When loading external plugins to EchoVault in cluster mode, make sure to load the modules in all of the cluster's nodes. Otherwise, replication will fail as some nodes will not be able to handle the module's commands during replication.
+When loading external plugins to SugarDB in cluster mode, make sure to load the modules in all of the cluster's nodes. Otherwise, replication will fail as some nodes will not be able to handle the module's commands during replication.

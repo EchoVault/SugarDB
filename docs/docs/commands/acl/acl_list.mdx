@@ -31,11 +31,11 @@ Dumps effective acl rules in ACL DSL format.
   <TabItem value="go">
     List ACL rules:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    rules, err := vault.ACLList()
+    rules, err := db.ACLList()
     ```
   </TabItem>
   <TabItem value="cli">

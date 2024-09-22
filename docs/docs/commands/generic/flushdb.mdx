@@ -32,11 +32,11 @@ Delete all the keys in the currently selected database. This command is always s
   <TabItem value="go">
   For the embedded instance, you need to pass the database index to the `Flush` method:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  vault.Flush(0)
+  db.Flush(0)
   ```
   </TabItem>
   <TabItem value="cli">

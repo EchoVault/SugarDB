@@ -32,11 +32,11 @@ LEFT represents the start of a list. RIGHT represents the end of a list.
   <TabItem value="go">
     Move an element from the beginning of the source list to the end of the destination list:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.LMove("source", "destination", "LEFT", "RIGHT")
+    ok, err := db.LMove("source", "destination", "LEFT", "RIGHT")
     ```
   </TabItem>
   <TabItem value="cli">

@@ -31,11 +31,11 @@ Set hash field value only if the field does not exist.
   <TabItem value="go">
     Set hash field value:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    noOfUpdatedFields, err := vault.HSetNX("key", map[string]string{"field1": "value1", "field2": "value2"})
+    noOfUpdatedFields, err := db.HSetNX("key", map[string]string{"field1": "value1", "field2": "value2"})
     ```
   </TabItem>
   <TabItem value="cli">

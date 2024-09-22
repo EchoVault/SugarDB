@@ -16,8 +16,9 @@ INCRBY key increment
 <span className="acl-category">write</span>
 
 ### Description
-Increments the number stored at key by increment. If the key does not exist, it is set to 0 before performing the operation.
-An error is returned if the key contains a value of the wrong type or contains a string that can not be represented as integer.
+Increments the number stored at key by increment. If the key does not exist, it is set to 0 before performing
+the operation. An error is returned if the key contains a value of the wrong type or contains a string
+that can not be represented as integer.
 
 ### Options
 
@@ -33,11 +34,11 @@ An error is returned if the key contains a value of the wrong type or contains a
   <TabItem value="go">
   Increment the value of the key `mykey` by 5:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  value, err := vault.IncrBy("mykey", "5")
+  value, err := db.IncrBy("mykey", "5")
   ```
   </TabItem>
   <TabItem value="cli">

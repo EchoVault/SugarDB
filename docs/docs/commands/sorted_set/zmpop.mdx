@@ -32,11 +32,11 @@ MIN or MAX determines whether to pop elements with the lowest or highest scores 
   <TabItem value="go">
     Pop a 'count' elements from multiple sorted sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    sortedSets, err := vault.ZMPop([]string{"key1", "key2"}, echovault.ZMPopOptions{Min: true, Count: 2})
+    sortedSets, err := vault.ZMPop([]string{"key1", "key2"}, db.ZMPopOptions{Min: true, Count: 2})
     ```
   </TabItem>
   <TabItem value="cli">

@@ -32,11 +32,11 @@ If the field does not exist, it is created.
   <TabItem value="go">
     Update each field of the hash with the corresponding value:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    noOfUpdatedFields, err := vault.HSet("key", map[string]string{"field1": "value1", "field2": "value2"})
+    noOfUpdatedFields, err := db.HSet("key", map[string]string{"field1": "value1", "field2": "value2"})
     ```
   </TabItem>
   <TabItem value="cli">

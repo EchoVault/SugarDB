@@ -32,11 +32,11 @@ Deletes the specified fields from the hash.
   <TabItem value="go">
     Delete fields from a hash:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    deletedCount, err := vault.HDel("key", "field1", "field2")
+    deletedCount, err := db.HDel("key", "field1", "field2")
     ```
   </TabItem>
   <TabItem value="cli">

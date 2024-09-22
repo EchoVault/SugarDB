@@ -32,11 +32,11 @@ This operation is limited to 64 bit signed integers.
   <TabItem value="go">
   Increment the value of the key `mykey`:
   ```go
-  vault, err := echovault.NewEchoVault()
+  db, err := sugardb.NewSugarDB()
   if err != nil {
     log.Fatal(err)
   }
-  value, err := vault.Incr("mykey")
+  value, err := db.Incr("mykey")
   ```
   </TabItem>
   <TabItem value="cli">

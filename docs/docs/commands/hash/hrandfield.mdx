@@ -35,11 +35,11 @@ Returns one or more random fields from the hash.
   <TabItem value="go">
     Returns one or more random fields from the hash:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    fields, err := vault.HRandField("key", echovault.HRandFieldOptions{})
+    fields, err := db.HRandField("key", db.HRandFieldOptions{})
     ```
   </TabItem>
   <TabItem value="cli">

@@ -29,20 +29,20 @@ Lists all the categories. If the optional category is provided, lists all the co
   <TabItem value="go">
     List all categories:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    categories, err := vault.ACLCat()
+    categories, err := db.ACLCat()
     ```
     
     List all commands/subcommands in pubsub module:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    commands, err := vault.ACLCat("pubsub")
+    commands, err := db.ACLCat("pubsub")
     ```
   </TabItem>
   <TabItem value="cli">

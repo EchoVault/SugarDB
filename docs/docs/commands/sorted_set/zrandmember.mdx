@@ -33,7 +33,7 @@ WITHSCORES modifies the result to include scores in the result.
   <TabItem value="go">
     Get a random member from the sorted set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
@@ -42,7 +42,7 @@ WITHSCORES modifies the result to include scores in the result.
 
     Get 2 unique random members from the sorted set:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
@@ -51,7 +51,7 @@ WITHSCORES modifies the result to include scores in the result.
 
     Get 4 non-unique random members from the sorted set with scores:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }

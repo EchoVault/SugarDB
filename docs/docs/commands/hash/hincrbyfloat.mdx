@@ -31,11 +31,11 @@ Increment the hash value by the float increment.
   <TabItem value="go">
     Increment the hash value by the float increment:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    newValue, err := vault.HIncrByFloat("key", "field", 7.75)
+    newValue, err := db.HIncrByFloat("key", "field", 7.75)
     ```
   </TabItem>
   <TabItem value="cli">

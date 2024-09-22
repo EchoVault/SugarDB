@@ -30,11 +30,11 @@ Set or modify multiple key/value pairs at once.
   <TabItem value="go">
     Set multiple key/value pairs:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.MSet(map[string]string{"key1": "value1", "key2": "value2", "key3": "value3"})
+    ok, err := db.MSet(map[string]string{"key1": "value1", "key2": "value2", "key3": "value3"})
     ```
   </TabItem>
   <TabItem value="cli">

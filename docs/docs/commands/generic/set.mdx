@@ -63,59 +63,59 @@ Set the value of a key, considering the value's type. If the key already exists,
 <br></br>
     Set a value at a key:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Set("name", "EchoVault", echovault.SETOptions{})
+    ok, err := db.Set("name", "SugarDB", db.SETOptions{})
     ```
 
     Set a value only if the key does not exist:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    ok, err := vault.Set("name", "EchoVault", echovault.SETOptions{WriteOpt: echovault.SETNX})
+    ok, err := db.Set("name", "SugarDB", db.SETOptions{WriteOpt: db.SETNX})
     ```
 
     Set a value if key already exists and get the previous value:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    previousValue, err := vault.Set("name", "EchoVault", echovault.SetOptions{WriteOpt: echovault.SETXX, Get: true})
+    previousValue, err := db.Set("name", "SugarDB", db.SetOptions{WriteOpt: db.SETXX, Get: true})
     ```
 
     Set a value if the key already exists, return the previous value, and expire after 10 seconds:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    previousValue, err := vault.Set("name", "EchoVault", echovault.SetOptions{WriteOpt: echovault.SETXX, ExpireOpt: echovault.SETEX, ExpireTime 10, Get: true})
+    previousValue, err := db.Set("name", "SugarDB", db.SetOptions{WriteOpt: db.SETXX, ExpireOpt: db.SETEX, ExpireTime 10, Get: true})
     ```
   </TabItem>
   <TabItem value="cli">
     Set a value at a key:
     ```
-    > SET name EchoVault
+    > SET name SugarDB
     ```
 
     Set a value only if the key does not exist:
     ```
-    > SET name EchoVault NX
+    > SET name SugarDB NX
     ```
 
     Set a value if key already exists and get the previous value:
     ```
-    > SET name EchoVault XX GET
+    > SET name SugarDB XX GET
     ```
 
     Set a value if the key already exists, return the previous value, and expire after 10 seconds:
     ```
-    > SET name EchoVault XX GET EX 10
+    > SET name SugarDB XX GET EX 10
     ```
   </TabItem>
 </Tabs>

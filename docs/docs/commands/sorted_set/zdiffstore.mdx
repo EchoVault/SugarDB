@@ -32,7 +32,7 @@ If the base set (first key) does not exist, return 0, otherwise, return the card
   <TabItem value="go">
     Store the difference between 2 sorted sets:
     ```go
-    vault, err := echovault.NewEchoVault()
+    db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }

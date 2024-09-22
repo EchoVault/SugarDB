@@ -17,7 +17,7 @@ package sorted_set
 import (
 	"cmp"
 	"errors"
-	"github.com/echovault/echovault/internal"
+	"github.com/echovault/sugardb/internal"
 	"math"
 	"math/rand"
 	"slices"

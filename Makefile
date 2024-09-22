@@ -13,12 +13,12 @@ build-modules-test:
 
 test:
 	env RACE=false OUT=internal/modules/admin/testdata make build-modules-test && \
-	env RACE=false OUT=echovault/testdata make build-modules-test && \
+	env RACE=false OUT=sugardb/testdata make build-modules-test && \
 	CGO_ENABLED=1 go test ./... -coverprofile coverage/coverage.out
 
 test-race:
 	env RACE=true OUT=internal/modules/admin/testdata make build-modules-test && \
-	env RACE=true OUT=echovault/testdata make build-modules-test && \
+	env RACE=true OUT=sugardb/testdata make build-modules-test && \
 	CGO_ENABLED=1 go test ./... --race
 
 test-win:
