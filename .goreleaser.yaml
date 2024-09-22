@@ -19,7 +19,7 @@ builds:
 
 brews:
   - name: echovault
-    homepage: https://github.com/EchoVault/EchoVault
+    homepage: https://github.com/EchoVault/SugarDB
     repository:
       owner: EchoVault
       name: Homebrew-EchoVault

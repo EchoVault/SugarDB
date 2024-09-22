@@ -18,16 +18,16 @@ RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -o $DEST/
 
 FROM --platform=linux/amd64 alpine:latest AS server
 
-RUN mkdir -p /usr/echovault/bin/modules
-RUN mkdir -p /etc/ssl/certs/echovault/server
-RUN mkdir -p /etc/ssl/certs/echovault/client
+RUN mkdir -p /usr/sugardb/bin/modules
+RUN mkdir -p /etc/ssl/certs/sugardb/server
+RUN mkdir -p /etc/ssl/certs/sugardb/client
 
-COPY --from=build /build/volumes/modules /usr/echovault/bin/modules
-COPY --from=build /build/bin/server /usr/echovault/bin
-COPY ./openssl/server /etc/ssl/certs/echovault/server
-COPY ./openssl/client /etc/ssl/certs/echovault/client
+COPY --from=build /build/volumes/modules /usr/sugardb/bin/modules
+COPY --from=build /build/bin/server /usr/sugardb/bin
+COPY ./openssl/server /etc/ssl/certs/sugardb/server
+COPY ./openssl/client /etc/ssl/certs/sugardb/client
 
-WORKDIR /usr/echovault/bin
+WORKDIR /usr/sugardb/bin
 
 CMD "./server" \
   "--bind-addr" "${BIND_ADDR}" \
@@ -52,7 +52,7 @@ CMD "./server" \
   "--restore-snapshot=${RESTORE_SNAPSHOT}" \
   "--restore-aof=${RESTORE_AOF}" \
   "--aof-sync-strategy=${AOF_SYNC_STRATEGY}" \
-  # List of echovault cert/key pairs
+  # List of sugardb cert/key pairs
   "--cert-key-pair=${CERT_KEY_PAIR_1}" \
   "--cert-key-pair=${CERT_KEY_PAIR_2}" \
   # List of client certs
