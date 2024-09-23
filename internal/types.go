@@ -26,6 +26,17 @@ type KeyData struct {
 	ExpireAt time.Time
 }
 
+func (k *KeyData) GetMem() int64 {
+	var size int64
+	// size = len([]byte(int(k.ExpireAt)))
+
+	// check type that Value is
+	// if int or string or []byte then add to size
+	// if map or slice check each value recursively
+
+	return size
+}
+
 type ContextServerID string
 type ContextConnID string
 

@@ -215,10 +215,14 @@ func (server *SugarDB) setValues(ctx context.Context, entries map[string]interfa
 		if _, ok := server.store[database][key]; ok {
 			expireAt = server.store[database][key].ExpireAt
 		}
-		server.store[database][key] = internal.KeyData{
+		data := server.store[database][key]
+		data = internal.KeyData{
 			Value:    value,
 			ExpireAt: expireAt,
 		}
+		server.memUsed += data.GetMem()
+		server.memUsed += int64(len(key))
+
 		if !server.isInCluster() {
 			server.snapshotEngine.IncrementChangeCount()
 		}
@@ -268,6 +272,11 @@ func (server *SugarDB) setExpiry(ctx context.Context, key string, expireAt time.
 
 func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
 	database := ctx.Value("Database").(int)
+
+	// Deduct memory usage in tracker.
+	data := server.store[database][key]
+	server.memUsed -= data.GetMem()
+	server.memUsed -= int64(len(key))
 
 	// Delete the key from keyLocks and store.
 	delete(server.store[database], key)
