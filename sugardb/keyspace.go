@@ -19,9 +19,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/constants"
-	"github.com/echovault/sugardb/internal/eviction"
 	"log"
 	"math/rand"
 	"runtime"
@@ -29,6 +26,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unsafe"
+
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
+	"github.com/echovault/sugardb/internal/eviction"
 )
 
 // SwapDBs swaps every TCP client connection from database1 over to database2.
@@ -200,6 +202,7 @@ func (server *SugarDB) setValues(ctx context.Context, entries map[string]interfa
 	defer server.storeLock.Unlock()
 
 	if internal.IsMaxMemoryExceeded(server.memUsed, server.config.MaxMemory) && server.config.EvictionPolicy == constants.NoEviction {
+
 		return errors.New("max memory reached, key value not set")
 	}
 
@@ -215,13 +218,18 @@ func (server *SugarDB) setValues(ctx context.Context, entries map[string]interfa
 		if _, ok := server.store[database][key]; ok {
 			expireAt = server.store[database][key].ExpireAt
 		}
-		data := server.store[database][key]
-		data = internal.KeyData{
+		server.store[database][key] = internal.KeyData{
 			Value:    value,
 			ExpireAt: expireAt,
 		}
-		server.memUsed += data.GetMem()
-		// server.memUsed += int64(len(key))
+		data := server.store[database][key]
+		mem, err := data.GetMem()
+		if err != nil {
+			return err
+		}
+		server.memUsed += mem
+		server.memUsed += int64(unsafe.Sizeof(key))
+		server.memUsed += int64(len(key))
 
 		if !server.isInCluster() {
 			server.snapshotEngine.IncrementChangeCount()
@@ -275,8 +283,13 @@ func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
 
 	// Deduct memory usage in tracker.
 	data := server.store[database][key]
-	server.memUsed -= data.GetMem()
-	// server.memUsed -= int64(len(key))
+	mem, err := data.GetMem()
+	if err != nil {
+		return err
+	}
+	server.memUsed -= mem
+	server.memUsed -= int64(unsafe.Sizeof(key))
+	server.memUsed -= int64(len(key))
 
 	// Delete the key from keyLocks and store.
 	delete(server.store[database], key)
@@ -431,18 +444,20 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 	// Check if memory usage is above max-memory.
 	// If it is, pop items from the cache until we get under the limit.
 	// If we're using less memory than the max-memory, there's no need to evict.
-	if uint64(server.memUsed) <= server.config.MaxMemory {
+	if uint64(server.memUsed) < server.config.MaxMemory {
 		return nil
 	}
 	// Force a garbage collection first before we start evicting keys.
 	runtime.GC()
-	if uint64(server.memUsed) <= server.config.MaxMemory {
+	if uint64(server.memUsed) < server.config.MaxMemory {
 		return nil
 	}
 
 	// We've done a GC, but we're still at or above the max memory limit.
 	// Start a loop that evicts keys until either the heap is empty or
 	// we're below the max memory limit.
+
+	log.Printf("Memory used: %v, Max Memory: %v", server.GetServerInfo().MemoryUsed, server.GetServerInfo().MaxMemory)
 	switch {
 	case slices.Contains([]string{constants.AllKeysLFU, constants.VolatileLFU}, strings.ToLower(server.config.EvictionPolicy)):
 		// Remove keys from LFU cache until we're below the max memory limit or
@@ -459,19 +474,21 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
 				if err := server.deleteKey(ctx, key); err != nil {
+
 					log.Printf("Evicting key %v from database %v \n", key, database)
 					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
 				}
 			} else if server.isInCluster() && server.raft.IsRaftLeader() {
 				// If in raft cluster, send command to delete key from cluster
 				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+
 					return fmt.Errorf("adjustMemoryUsage -> LFU cache eviction: %+v", err)
 				}
 			}
 			// Run garbage collection
 			runtime.GC()
 			// Return if we're below max memory
-			if uint64(server.memUsed) <= server.config.MaxMemory {
+			if uint64(server.memUsed) < server.config.MaxMemory {
 				return nil
 			}
 		}
@@ -504,7 +521,7 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 			// Run garbage collection
 			runtime.GC()
 			// Return if we're below max memory
-			if uint64(server.memUsed) <= server.config.MaxMemory {
+			if uint64(server.memUsed) < server.config.MaxMemory {
 				return nil
 			}
 		}
@@ -527,17 +544,19 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 								// If in standalone mode, directly delete the key
 								if err := server.deleteKey(ctx, key); err != nil {
 									log.Printf("Evicting key %v from database %v \n", key, db)
+
 									return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
 								}
 							} else if server.isInCluster() && server.raft.IsRaftLeader() {
 								if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+
 									return fmt.Errorf("adjustMemoryUsage -> all keys random: %+v", err)
 								}
 							}
 							// Run garbage collection
 							runtime.GC()
 							// Return if we're below max memory
-							if uint64(server.memUsed) <= server.config.MaxMemory {
+							if uint64(server.memUsed) < server.config.MaxMemory {
 								return nil
 							}
 						}
@@ -560,10 +579,12 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 				// If in standalone mode, directly delete the key
 				if err := server.deleteKey(ctx, key); err != nil {
 					log.Printf("Evicting key %v from database %v \n", key, database)
+
 					return fmt.Errorf("adjustMemoryUsage -> volatile keys random: %+v", err)
 				}
 			} else if server.isInCluster() && server.raft.IsRaftLeader() {
 				if err := server.raftApplyDeleteKey(ctx, key); err != nil {
+
 					return fmt.Errorf("adjustMemoryUsage -> volatile keys randome: %+v", err)
 				}
 			}
@@ -571,7 +592,7 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 			// Run garbage collection
 			runtime.GC()
 			// Return if we're below max memory
-			if uint64(server.memUsed) <= server.config.MaxMemory {
+			if uint64(server.memUsed) < server.config.MaxMemory {
 				return nil
 			}
 		}

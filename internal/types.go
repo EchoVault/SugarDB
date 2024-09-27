@@ -16,12 +16,14 @@ package internal
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net"
 	"time"
-	// "unsafe"
+	"unsafe"
 
 	"github.com/echovault/sugardb/internal/clock"
-	// "github.com/echovault/sugardb/internal/eviction"
+	"github.com/echovault/sugardb/internal/eviction"
 )
 
 type KeyData struct {
@@ -29,62 +31,62 @@ type KeyData struct {
 	ExpireAt time.Time
 }
 
-func (k *KeyData) GetMem() int64 {
+func (k *KeyData) GetMem() (int64, error) {
 	var size int64
-	// size = int64(unsafe.Sizeof(k.ExpireAt))
+	size = int64(unsafe.Sizeof(k.ExpireAt))
 
-	// // check type of Value field
-	// switch v := k.Value.(type) {
-	// case nil:
-	// 	size += 0
-	// // AdaptType() will always ensure data type is of string, float or int.
-	// case int, int64:
-	// 	size += int64(unsafe.Sizeof(v))
-	// case float64:
-	// 	size += 8
-	// case string:
-	// 	// Add the size of the header and the number of bytes of the string
-	// 	size += int64(unsafe.Sizeof(v))
-	// 	size += int64(len(v))
+	// check type of Value field
+	switch v := k.Value.(type) {
+	case nil:
+		size += 0
+	// AdaptType() will always ensure data type is of string, float or int.
+	case int:
+		size += int64(unsafe.Sizeof(v))
+	case float64:
+		size += 8
+	case string:
+		// Add the size of the header and the number of bytes of the string
+		size += int64(unsafe.Sizeof(v))
+		size += int64(len(v))
 
-	// // handle hash
-	// // AdaptType() will always ensure data type is of string, float or int.
-	// case map[string]int:
-	// 	for key, val := range v {
-	// 		size += int64(unsafe.Sizeof(key))
-	// 		size += int64(len(key))
-	// 		size += int64(unsafe.Sizeof(val))
-	// 	}
-	// case map[string]float64:
-	// 	for key := range v {
-	// 		size += int64(unsafe.Sizeof(key))
-	// 		size += int64(len(key))
-	// 		size += 8
-	// 	}
-	// case map[string]string:
-	// 	for key, val := range v {
-	// 		size += int64(unsafe.Sizeof(key))
-	// 		size += int64(len(key))
-	// 		size += int64(unsafe.Sizeof(val))
-	// 		size += int64(len(val))
-	// 	}
+	// handle hash
+	// AdaptType() will always ensure data type is of string, float or int.
+	case map[string]int:
+		for key, val := range v {
+			size += int64(unsafe.Sizeof(key))
+			size += int64(len(key))
+			size += int64(unsafe.Sizeof(val))
+		}
+	case map[string]float64:
+		for key := range v {
+			size += int64(unsafe.Sizeof(key))
+			size += int64(len(key))
+			size += 8
+		}
+	case map[string]string:
+		for key, val := range v {
+			size += int64(unsafe.Sizeof(key))
+			size += int64(len(key))
+			size += int64(unsafe.Sizeof(val))
+			size += int64(len(val))
+		}
 
-	// // handle list
-	// case []string:
-	// 	for _, s := range v {
-	// 		size += int64(unsafe.Sizeof(s))
-	// 		size += int64(len(s))
-	// 	}
+	// handle list
+	case []string:
+		for _, s := range v {
+			size += int64(unsafe.Sizeof(s))
+			size += int64(len(s))
+		}
 
-	// // handle set, sorted set
-	// case eviction.MemCheck:
-	// 	size += k.Value.(eviction.MemCheck).GetMem()
+	// handle set, sorted set
+	case eviction.MemCheck:
+		size += k.Value.(eviction.MemCheck).GetMem()
 
-	// default:
-	// 	size += int64(unsafe.Sizeof(v))
-	// }
+	default:
+		errors.New(fmt.Sprintf("ERROR: type %v is not supported in method KeyData.GetMem()", v))
+	}
 
-	return size
+	return size, nil
 }
 
 type ContextServerID string
@@ -112,12 +114,14 @@ type SnapshotObject struct {
 
 // ServerInfo holds information about the server/node.
 type ServerInfo struct {
-	Server  string
-	Version string
-	Id      string
-	Mode    string
-	Role    string
-	Modules []string
+	Server     string
+	Version    string
+	Id         string
+	Mode       string
+	Role       string
+	Modules    []string
+	MemoryUsed int64
+	MaxMemory  uint64
 }
 
 // ConnectionInfo holds information about the connection

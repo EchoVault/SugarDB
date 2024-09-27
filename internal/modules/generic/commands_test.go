@@ -3353,7 +3353,7 @@ func Test_LFU_Generic(t *testing.T) {
 			DataDir:          "",
 			EvictionPolicy:   constants.AllKeysLFU,
 			EvictionInterval: duration,
-			MaxMemory:        4000000,
+			MaxMemory:        550,
 		}),
 	)
 	if err != nil {
@@ -3534,7 +3534,7 @@ func Test_LRU_Generic(t *testing.T) {
 			DataDir:          "",
 			EvictionPolicy:   constants.AllKeysLRU,
 			EvictionInterval: duration,
-			MaxMemory:        4000000,
+			MaxMemory:        550,
 		}),
 	)
 	if err != nil {
