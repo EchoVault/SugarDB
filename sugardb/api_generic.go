@@ -702,3 +702,19 @@ func (server *SugarDB) ObjectIdleTime(key string) (float64, error) {
 	}
 	return internal.ParseFloatResponse(b)
 }
+
+// Type returns the string representation of the type of the value stored at key.
+// The different types that can be returned are: string, integer, float, list, set, zset, and hash.
+//
+// Parameters:
+//
+// `key` - string - the key whose type should be returned
+//
+// Returns: A string representation of the type of the value stored at key, if the key doesn't exist an empty string and error is returned
+func (server *SugarDB) Type(key string) (string, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"TYPE", key}), nil, false, true)
+	if err != nil {
+		return "", err
+	}
+	return internal.ParseStringResponse(b)
+}
