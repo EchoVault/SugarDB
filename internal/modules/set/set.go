@@ -15,15 +15,37 @@
 package set
 
 import (
-	"github.com/echovault/sugardb/internal"
 	"math/rand"
 	"slices"
+	"unsafe"
+
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/eviction"
 )
 
 type Set struct {
 	members map[string]interface{}
 	length  int
 }
+
+func (s *Set) GetMem() int64 {
+	var size int64
+    // headers and pointers
+    size += int64(unsafe.Sizeof(s))
+    // length field
+    size += int64(unsafe.Sizeof(s.length))
+    // members field
+    for k, v := range s.members { 
+        size += int64(unsafe.Sizeof(k))
+        size += int64(len(k))
+        size += int64(unsafe.Sizeof(v))
+    }
+
+	return size
+}
+
+// compile time interface check
+var _ eviction.MemCheck = (*Set)(nil)
 
 func NewSet(elems []string) *Set {
 	set := &Set{

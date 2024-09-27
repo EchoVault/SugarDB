@@ -21,7 +21,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/echovault/sugardb/internal/constants"
 	"io"
 	"log"
 	"math/big"
@@ -34,6 +33,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/echovault/sugardb/internal/constants"
 	"github.com/sethvargo/go-retry"
 	"github.com/tidwall/resp"
 )
@@ -187,16 +187,13 @@ func ParseMemory(memory string) (uint64, error) {
 }
 
 // IsMaxMemoryExceeded checks whether we have exceeded the current maximum memory limit.
-func IsMaxMemoryExceeded(maxMemory uint64) bool {
+func IsMaxMemoryExceeded(memUsed int64, maxMemory uint64) bool {
 	if maxMemory == 0 {
 		return false
 	}
 
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-
 	// If we're currently using less than the configured max memory, return false.
-	if memStats.HeapInuse < maxMemory {
+	if uint64(memUsed) < maxMemory {
 		return false
 	}
 
@@ -204,10 +201,9 @@ func IsMaxMemoryExceeded(maxMemory uint64) bool {
 	// This measure is to prevent deleting keys that may be important when some memory can be reclaimed
 	// by just collecting garbage.
 	runtime.GC()
-	runtime.ReadMemStats(&memStats)
 
 	// Return true when whe are above or equal to max memory.
-	return memStats.HeapInuse >= maxMemory
+	return uint64(memUsed) >= maxMemory
 }
 
 // FilterExpiredKeys filters out keys that are already expired, so they are not persisted.

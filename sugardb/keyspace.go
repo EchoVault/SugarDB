@@ -199,7 +199,7 @@ func (server *SugarDB) setValues(ctx context.Context, entries map[string]interfa
 	server.storeLock.Lock()
 	defer server.storeLock.Unlock()
 
-	if internal.IsMaxMemoryExceeded(server.config.MaxMemory) && server.config.EvictionPolicy == constants.NoEviction {
+	if internal.IsMaxMemoryExceeded(server.memUsed, server.config.MaxMemory) && server.config.EvictionPolicy == constants.NoEviction {
 		return errors.New("max memory reached, key value not set")
 	}
 
@@ -430,16 +430,13 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 
 	// Check if memory usage is above max-memory.
 	// If it is, pop items from the cache until we get under the limit.
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
 	// If we're using less memory than the max-memory, there's no need to evict.
-	if memStats.HeapInuse < server.config.MaxMemory {
+	if uint64(server.memUsed) < server.config.MaxMemory {
 		return nil
 	}
 	// Force a garbage collection first before we start evicting keys.
 	runtime.GC()
-	runtime.ReadMemStats(&memStats)
-	if memStats.HeapInuse < server.config.MaxMemory {
+	if uint64(server.memUsed) < server.config.MaxMemory {
 		return nil
 	}
 
@@ -474,8 +471,7 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 			// Run garbage collection
 			runtime.GC()
 			// Return if we're below max memory
-			runtime.ReadMemStats(&memStats)
-			if memStats.HeapInuse < server.config.MaxMemory {
+			if uint64(server.memUsed) < server.config.MaxMemory {
 				return nil
 			}
 		}
@@ -508,8 +504,7 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 			// Run garbage collection
 			runtime.GC()
 			// Return if we're below max memory
-			runtime.ReadMemStats(&memStats)
-			if memStats.HeapInuse < server.config.MaxMemory {
+			if uint64(server.memUsed) < server.config.MaxMemory {
 				return nil
 			}
 		}
@@ -542,8 +537,7 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 							// Run garbage collection
 							runtime.GC()
 							// Return if we're below max memory
-							runtime.ReadMemStats(&memStats)
-							if memStats.HeapInuse < server.config.MaxMemory {
+							if uint64(server.memUsed) < server.config.MaxMemory {
 								return nil
 							}
 						}
@@ -577,8 +571,7 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 			// Run garbage collection
 			runtime.GC()
 			// Return if we're below max memory
-			runtime.ReadMemStats(&memStats)
-			if memStats.HeapInuse < server.config.MaxMemory {
+			if uint64(server.memUsed) < server.config.MaxMemory {
 				return nil
 			}
 		}

@@ -16,9 +16,12 @@ package internal
 
 import (
 	"context"
-	"github.com/echovault/sugardb/internal/clock"
 	"net"
 	"time"
+	"unsafe"
+
+	"github.com/echovault/sugardb/internal/clock"
+	"github.com/echovault/sugardb/internal/eviction"
 )
 
 type KeyData struct {
@@ -28,11 +31,58 @@ type KeyData struct {
 
 func (k *KeyData) GetMem() int64 {
 	var size int64
-	// size = len([]byte(int(k.ExpireAt)))
+	size = int64(unsafe.Sizeof(k.ExpireAt))
 
-	// check type that Value is
-	// if int or string or []byte then add to size
-	// if map or slice check each value recursively
+	// check type of Value field
+	switch v := k.Value.(type) {
+	case nil:
+		size += 0
+	// AdaptType() will always ensure data type is of string, float or int.
+	case int, int64:
+		size += int64(unsafe.Sizeof(v))
+	case float64:
+		size += 8
+	case string:
+		// Add the size of the header and the number of bytes of the string
+		size += int64(unsafe.Sizeof(v))
+		size += int64(len(v))
+
+	// handle hash
+	// AdaptType() will always ensure data type is of string, float or int.
+	case map[string]int:
+		for key, val := range v {
+			size += int64(unsafe.Sizeof(key))
+			size += int64(len(key))
+			size += int64(unsafe.Sizeof(val))
+		}
+	case map[string]float64:
+		for key := range v {
+			size += int64(unsafe.Sizeof(key))
+			size += int64(len(key))
+			size += 8
+		}
+	case map[string]string:
+		for key, val := range v {
+			size += int64(unsafe.Sizeof(key))
+			size += int64(len(key))
+			size += int64(unsafe.Sizeof(val))
+			size += int64(len(val))
+		}
+
+	// handle list
+	case []string:
+		for _, s := range v {
+			size += int64(unsafe.Sizeof(s))
+			size += int64(len(s))
+		}
+
+	// handle set, sorted set
+	case eviction.MemCheck:
+		size += k.Value.(eviction.MemCheck).GetMem()
+
+	default:
+		size += int64(unsafe.Sizeof(v))
+	}
 
 	return size
 }

@@ -17,12 +17,13 @@ package pubsub
 import (
 	"context"
 	"fmt"
-	"github.com/gobwas/glob"
-	"github.com/tidwall/resp"
 	"log"
 	"net"
 	"slices"
 	"sync"
+
+	"github.com/gobwas/glob"
+	"github.com/tidwall/resp"
 )
 
 type PubSub struct {
