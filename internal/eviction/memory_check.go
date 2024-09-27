@@ -1,5 +1,5 @@
 package eviction
 
-type MemCheck interface {
-	GetMem() int64
-}
+// type MemCheck interface {
+// 	GetMem() int64
+// }

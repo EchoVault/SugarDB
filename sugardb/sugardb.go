@@ -167,6 +167,7 @@ func NewSugarDB(options ...func(sugarDB *SugarDB)) (*SugarDB, error) {
 		},
 		storeLock: &sync.RWMutex{},
 		store:     make(map[int]map[string]internal.KeyData),
+		memUsed:   0,
 		keysWithExpiry: struct {
 			rwMutex sync.RWMutex
 			keys    map[int][]string
