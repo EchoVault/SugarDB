@@ -690,9 +690,9 @@ func handleFlush(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(constants.OkResponse), nil
 }
 
-func handleRandomkey(params internal.HandlerFuncParams) ([]byte, error) {
+func handleRandomKey(params internal.HandlerFuncParams) ([]byte, error) {
 
-	key := params.Randomkey(params.Context)
+	key := params.RandomKey(params.Context)
 
 	return []byte(fmt.Sprintf("+%v\r\n", key)), nil
 }
@@ -832,7 +832,7 @@ func handleTouch(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 
-	touchedKeys, err := params.Touchkey(params.Context, keys.ReadKeys)
+	touchedKeys, err := params.TouchKey(params.Context, keys.ReadKeys)
 	if err != nil {
 		return nil, err
 	}
@@ -886,6 +886,7 @@ PX - Expire the key after the specified number of milliseconds (positive integer
 EXAT - Expire at the exact time in unix seconds (positive integer).
 PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: setKeyFunc,
 			HandlerFunc:       handleSet,
 		},
@@ -895,6 +896,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 			Categories:        []string{constants.WriteCategory, constants.SlowCategory},
 			Description:       "(MSET key value [key value ...]) Automatically set or modify multiple key/value pairs.",
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: msetKeyFunc,
 			HandlerFunc:       handleMSet,
 		},
@@ -904,6 +906,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 			Categories:        []string{constants.ReadCategory, constants.FastCategory},
 			Description:       "(GET key) Get the value at the specified key.",
 			Sync:              false,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: getKeyFunc,
 			HandlerFunc:       handleGet,
 		},
@@ -913,6 +916,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 			Categories:        []string{constants.ReadCategory, constants.FastCategory},
 			Description:       "(MGET key [key ...]) Get multiple values from the specified keys.",
 			Sync:              false,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: mgetKeyFunc,
 			HandlerFunc:       handleMGet,
 		},
@@ -922,6 +926,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 			Categories:        []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
 			Description:       "(DEL key [key ...]) Removes one or more keys from the store.",
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: delKeyFunc,
 			HandlerFunc:       handleDel,
 		},
@@ -932,6 +937,7 @@ PXAT - Expire at the exat time in unix milliseconds (positive integer).`,
 			Description: `(PERSIST key) Removes the TTl associated with a key,
 turning it from a volatile key to a persistent key.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: persistKeyFunc,
 			HandlerFunc:       handlePersist,
 		},
@@ -943,6 +949,7 @@ turning it from a volatile key to a persistent key.`,
 Return -1 if the key exists but has no associated expiry time.
 Returns -2 if the key does not exist.`,
 			Sync:              false,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: expireTimeKeyFunc,
 			HandlerFunc:       handleExpireTime,
 		},
@@ -954,6 +961,7 @@ Returns -2 if the key does not exist.`,
 Return -1 if the key exists but has no associated expiry time.
 Returns -2 if the key does not exist.`,
 			Sync:              false,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: expireTimeKeyFunc,
 			HandlerFunc:       handleExpireTime,
 		},
@@ -965,6 +973,7 @@ Returns -2 if the key does not exist.`,
 If the key exists but does not have an associated expiry time, -1 is returned.
 If the key does not exist, -2 is returned.`,
 			Sync:              false,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: ttlKeyFunc,
 			HandlerFunc:       handleTTL,
 		},
@@ -976,6 +985,7 @@ If the key does not exist, -2 is returned.`,
 If the key exists but does not have an associated expiry time, -1 is returned.
 If the key does not exist, -2 is returned.`,
 			Sync:              false,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: ttlKeyFunc,
 			HandlerFunc:       handleTTL,
 		},
@@ -990,6 +1000,7 @@ XX - Only set the expiry time if the key already has an expiry time.
 GT - Only set the expiry time if the new expiry time is greater than the current one.
 LT - Only set the expiry time if the new expiry time is less than the current one.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: expireKeyFunc,
 			HandlerFunc:       handleExpire,
 		},
@@ -1004,6 +1015,7 @@ XX - Only set the expiry time if the key already has an expiry time.
 GT - Only set the expiry time if the new expiry time is greater than the current one.
 LT - Only set the expiry time if the new expiry time is less than the current one.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: expireKeyFunc,
 			HandlerFunc:       handleExpire,
 		},
@@ -1019,6 +1031,7 @@ XX - Only set the expiry time if the key already has an expiry time.
 GT - Only set the expiry time if the new expiry time is greater than the current one.
 LT - Only set the expiry time if the new expiry time is less than the current one.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: expireAtKeyFunc,
 			HandlerFunc:       handleExpireAt,
 		},
@@ -1034,6 +1047,7 @@ XX - Only set the expiry time if the key already has an expiry time.
 GT - Only set the expiry time if the new expiry time is greater than the current one.
 LT - Only set the expiry time if the new expiry time is less than the current one.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: expireAtKeyFunc,
 			HandlerFunc:       handleExpireAt,
 		},
@@ -1046,6 +1060,7 @@ Increments the number stored at key by one. If the key does not exist, it is set
 An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer.
 This operation is limited to 64 bit signed integers.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: incrKeyFunc,
 			HandlerFunc:       handleIncr,
 		},
@@ -1059,6 +1074,7 @@ If the key does not exist, it is set to 0 before performing the operation.
 An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as integer.
 This operation is limited to 64 bit signed integers.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: decrKeyFunc,
 			HandlerFunc:       handleDecr,
 		},
@@ -1070,6 +1086,7 @@ This operation is limited to 64 bit signed integers.`,
 Increments the number stored at key by increment. If the key does not exist, it is set to 0 before performing the operation.
 An error is returned if the key contains a value of the wrong type or contains a string that can not be represented as integer.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: incrByKeyFunc,
 			HandlerFunc:       handleIncrBy,
 		},
@@ -1081,6 +1098,7 @@ An error is returned if the key contains a value of the wrong type or contains a
 Increments the number stored at key by increment. If the key does not exist, it is set to 0 before performing the operation.
 An error is returned if the key contains a value of the wrong type or contains a string that cannot be represented as float.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: incrByFloatKeyFunc,
 			HandlerFunc:       handleIncrByFloat,
 		},
@@ -1093,6 +1111,7 @@ The DECRBY command reduces the value stored at the specified key by the specifie
 If the key does not exist, it is initialized with a value of 0 before performing the operation.
 If the key's value is not of the correct type or cannot be represented as an integer, an error is returned.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: decrByKeyFunc,
 			HandlerFunc:       handleDecrBy,
 		},
@@ -1103,6 +1122,7 @@ If the key's value is not of the correct type or cannot be represented as an int
 			Description: `(RENAME key newkey)
 Renames key to newkey. If newkey already exists, it is overwritten. If key does not exist, an error is returned.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: renameKeyFunc,
 			HandlerFunc:       handleRename,
 		},
@@ -1117,6 +1137,7 @@ Renames key to newkey. If newkey already exists, it is overwritten. If key does 
 			},
 			Description: `(FLUSHALL) Delete all the keys in all the existing databases. This command is always synchronous.`,
 			Sync:        true,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -1136,6 +1157,7 @@ Renames key to newkey. If newkey already exists, it is overwritten. If key does 
 			Description: `(FLUSHDB)
 Delete all the keys in the currently selected database. This command is always synchronous.`,
 			Sync: true,
+			Type: "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -1149,8 +1171,9 @@ Delete all the keys in the currently selected database. This command is always s
 			Categories:        []string{constants.KeyspaceCategory, constants.ReadCategory, constants.SlowCategory},
 			Description:       "(RANDOMKEY) Returns a random key from the current selected database.",
 			Sync:              false,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: randomKeyFunc,
-			HandlerFunc:       handleRandomkey,
+			HandlerFunc:       handleRandomKey,
 		},
 		{
 			Command:           "getdel",
@@ -1158,6 +1181,7 @@ Delete all the keys in the currently selected database. This command is always s
 			Categories:        []string{constants.WriteCategory, constants.FastCategory},
 			Description:       "(GETDEL key) Get the value of key and delete the key. This command is similar to [GET], but deletes key on success.",
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: getDelKeyFunc,
 			HandlerFunc:       handleGetdel,
 		},
@@ -1167,6 +1191,7 @@ Delete all the keys in the currently selected database. This command is always s
 			Categories:        []string{constants.WriteCategory, constants.FastCategory},
 			Description:       "(GETEX key [EX seconds | PX milliseconds | EXAT unix-time-seconds | PXAT unix-time-milliseconds | PERSIST]) Get the value of key and optionally set its expiration. GETEX is similar to [GET], but is a write command with additional options.",
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: getExKeyFunc,
 			HandlerFunc:       handleGetex,
 		},
@@ -1176,6 +1201,7 @@ Delete all the keys in the currently selected database. This command is always s
 			Categories:        []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       "(TYPE key) Returns the string representation of the type of the value stored at key. The different types that can be returned are: string, integer, float, list, set, zset, and hash.",
 			Sync:              false,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: typeKeyFunc,
 			HandlerFunc:       handleType,
 		},
@@ -1186,6 +1212,7 @@ Delete all the keys in the currently selected database. This command is always s
 			Description: `(TOUCH keys [key ...]) Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used. 
 A key is ignored if it does not exist. This commands returns the number of keys that were touched.`,
 			Sync:              true,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: touchKeyFunc,
 			HandlerFunc:       handleTouch,
 		},
@@ -1196,6 +1223,7 @@ A key is ignored if it does not exist. This commands returns the number of keys 
 			Description: `(OBJECTFREQ key) Get the access frequency count of an object stored at <key>.
 The command is only available when the maxmemory-policy configuration directive is set to one of the LFU policies.`,
 			Sync:              false,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: objFreqKeyFunc,
 			HandlerFunc:       handleObjFreq,
 		},
@@ -1206,6 +1234,7 @@ The command is only available when the maxmemory-policy configuration directive 
 			Description: `(OBJECTIDLETIME key) Get the time in seconds since the last access to the value stored at <key>.
 The command is only available when the maxmemory-policy configuration directive is set to one of the LRU policies.`,
 			Sync:              false,
+			Type:              "BUILT_IN",
 			KeyExtractionFunc: objIdleTimeKeyFunc,
 			HandlerFunc:       handleObjIdleTime,
 		},

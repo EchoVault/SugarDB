@@ -19,12 +19,129 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/sugardb/internal"
+	lua "github.com/yuin/gopher-lua"
 	"io/fs"
 	"os"
 	"plugin"
 	"slices"
 	"strings"
+	"sync"
 )
+
+func (server *SugarDB) AddScript(engine string, scriptType string, content string) error {
+	return nil
+}
+
+func (server *SugarDB) AddScriptCommand(scriptCommand string, engine string, scriptType string, content string) error {
+	// Check if the engine is supported
+	supportedEngines := []string{"lua"}
+	if !slices.Contains(supportedEngines, strings.ToLower(engine)) {
+		return fmt.Errorf("engine %s not supported, only %v engines are supported", engine, supportedEngines)
+	}
+
+	// Check if the script type is supported
+	if !slices.Contains([]string{"file", "raw"}, strings.ToLower(scriptType)) {
+		return errors.New("script type must be wither file or raw")
+	}
+
+	// Check if the command already exists.
+	server.commandsRWMut.RLock()
+	for _, command := range server.commands {
+		if strings.EqualFold(command.Command, scriptCommand) {
+			return fmt.Errorf("command %s already exists", scriptCommand)
+		}
+	}
+	server.commandsRWMut.RUnlock()
+
+	// Initialise VM and lock for the commands depending on the engine.
+	var vm any
+	var module string
+	var categories []string
+	var description string
+	var synchronize bool
+	var commandType string
+
+	switch strings.ToLower(engine) {
+	case "lua":
+		L := lua.NewState()
+		if strings.EqualFold(scriptType, "file") {
+			// Load lua file
+			if err := L.DoFile(content); err != nil {
+				return fmt.Errorf("could not load lua script file %s: %v", content, err)
+			}
+		} else {
+			// Load raw lua script
+			if err := L.DoString(content); err != nil {
+				return fmt.Errorf("could not load lua script string: %v", err)
+			}
+		}
+		// Get the module
+		m := L.GetGlobal("module")
+		if _, ok := m.(lua.LString); !ok {
+			return errors.New("module does not exist in script or is not string")
+		}
+		module = m.String()
+		// Get the categories
+		c := L.GetGlobal("categories")
+		if _, ok := c.(*lua.LTable); !ok {
+			return errors.New("categories does not exist or is not an array")
+		}
+		for i := 0; i < c.(*lua.LTable).Len(); i++ {
+			categories = append(categories, c.(*lua.LTable).RawGetInt(i+1).String())
+		}
+		// Get the description
+		d := L.GetGlobal("description")
+		if _, ok := m.(lua.LString); !ok {
+			return errors.New("description does not exist or is not a string")
+		}
+		description = d.String()
+		// Get the sync
+		s := L.GetGlobal("sync")
+		synchronize = s == lua.LTrue
+		// Set command type
+		commandType = "LUA_SCRIPT"
+		vm = L
+	default:
+		return fmt.Errorf("engine %s not supported, only %v engines are supported", engine, supportedEngines)
+	}
+
+	// Save the script's VM to the server's list of VMs.
+	// lock is the script mutex for the commands.
+	// This mutex will be locked everytime the command is executed because
+	// the script's VM is not thread safe.
+	server.scriptVMs.Store(scriptCommand, sync.Mutex{})
+
+	// Build the command:
+	command := internal.Command{
+		Command:     strings.ToLower(scriptCommand),
+		Module:      module,
+		Categories:  categories,
+		Description: description,
+		Sync:        synchronize,
+		Type:        commandType,
+		KeyExtractionFunc: func(engine string, vm any) internal.KeyExtractionFunc {
+			// Wrapper for the key function
+			return func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+				return internal.KeyExtractionFuncResult{}, nil
+			}
+		}(engine, vm),
+		HandlerFunc: func(engine string, vm any) internal.HandlerFunc {
+			// Wrapper for the handler function
+			return func(params internal.HandlerFuncParams) ([]byte, error) {
+				return nil, nil
+			}
+		}(engine, vm),
+	}
+
+	// Add the commands to the list of commands.
+	server.commandsRWMut.Lock()
+	defer server.commandsRWMut.Unlock()
+	server.commands = append(server.commands, command)
+
+	fmt.Println(command)
+
+	return nil
+}
 
 // LoadModule loads an external module into SugarDB ar runtime.
 //
