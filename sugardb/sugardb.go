@@ -52,7 +52,7 @@ type SugarDB struct {
 	// clock is an implementation of a time interface that allows mocking of time functions during testing.
 	clock clock.Clock
 
-	// config holds the echovault configuration variables.
+	// config holds the SugarDB configuration variables.
 	config config.Config
 
 	// The current index for the latest connection id.
@@ -101,12 +101,16 @@ type SugarDB struct {
 		cache map[int]*eviction.CacheLRU
 	}
 
-	// Holds the list of all commands supported by the echovault.
-	commandsRWMut sync.RWMutex
-	commands      []internal.Command
+	commandsRWMut sync.RWMutex       // Mutex used for modifying/reading the list of commands in the instance.
+	commands      []internal.Command // Holds the list of all commands supported by SugarDB.
+	// Each commands that's added using a script (e.g. lua), will have a lock associated with the command.
+	// Only one goroutine will be able to trigger a script-associated command at a time. This is because the VM state
+	// for each of the commands is not thread safe.
+	// This map's shape is map[string]struct{vm: any, lock: sync.Mutex} with the string key being the command name.
+	scriptVMs sync.Map
 
-	raft       *raft.Raft             // The raft replication layer for the echovault.
-	memberList *memberlist.MemberList // The memberlist layer for the echovault.
+	raft       *raft.Raft             // The raft replication layer for SugarDB.
+	memberList *memberlist.MemberList // The memberlist layer for SugarDB.
 
 	context context.Context
 
@@ -124,24 +128,6 @@ type SugarDB struct {
 	listener atomic.Value  // Holds the TCP listener.
 	quit     chan struct{} // Channel that signals the closing of all client connections.
 	stopTTL  chan struct{} // Channel that signals the TTL sampling goroutine to stop execution.
-}
-
-// WithContext is an options that for the NewSugarDB function that allows you to
-// configure a custom context object to be used in SugarDB.
-// If you don't provide this option, SugarDB will create its own internal context object.
-func WithContext(ctx context.Context) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.context = ctx
-	}
-}
-
-// WithConfig is an option for the NewSugarDB function that allows you to pass a
-// custom configuration to SugarDB.
-// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithConfig(config config.Config) func(echovault *SugarDB) {
-	return func(echovault *SugarDB) {
-		echovault.config = config
-	}
 }
 
 // NewSugarDB creates a new SugarDB instance.
@@ -569,7 +555,7 @@ func (server *SugarDB) handleConnection(conn net.Conn) {
 // Start starts the SugarDB instance's TCP listener.
 // This allows the instance to accept connections handle client commands over TCP.
 //
-// You can still use command functions like echovault.Set if you're embedding SugarDB in your application.
+// You can still use command functions like Set if you're embedding SugarDB in your application.
 // However, if you'd like to also accept TCP request on the same instance, you must call this function.
 func (server *SugarDB) Start() {
 	server.startTCP()

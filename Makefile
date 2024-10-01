@@ -2,8 +2,8 @@ run:
 	docker-compose up --build
 
 build-local:
-	CGO_ENABLED=1 go build -buildmode=plugin -o ./bin/modules/module_set/module_set.so ./internal/volumes/modules/module_set/module_set.go && \
-	CGO_ENABLED=1 go build -buildmode=plugin -o ./bin/modules/module_get/module_get.so ./internal/volumes/modules/module_get/module_get.go && \
+	CGO_ENABLED=1 go build -buildmode=plugin -o ./bin/modules/module_set/module_set.so ./internal/volumes/modules/go/module_set/module_set.go && \
+	CGO_ENABLED=1 go build -buildmode=plugin -o ./bin/modules/module_get/module_get.so ./internal/volumes/modules/go/module_get/module_get.go && \
 	CGO_ENABLED=1 go build -o ./bin ./...
 
 

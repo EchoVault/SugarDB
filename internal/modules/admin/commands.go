@@ -189,6 +189,20 @@ func handleCommandDocs(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte("*0\r\n"), nil
 }
 
+func handleLoadScriptCommand(params internal.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) != 9 {
+		return nil, errors.New(constants.WrongArgsResponse)
+	}
+	command := params.Command[2]
+	engine := params.Command[4]
+	scriptType := params.Command[6]
+	content := params.Command[8]
+	if err := params.AddScriptCommand(command, engine, scriptType, content); err != nil {
+		return nil, err
+	}
+	return []byte(constants.OkResponse), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -197,6 +211,7 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory},
 			Description: "Get a list of all the commands in available on the echovault with categories and descriptions.",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -210,6 +225,7 @@ func Commands() []internal.Command {
 			Categories:  []string{},
 			Description: "Commands pertaining to echovault commands",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -264,6 +280,7 @@ Get the list of command names. Allows for filtering by ACL category or glob patt
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(SAVE) Trigger a snapshot save.",
 			Sync:        true,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -282,6 +299,7 @@ Get the list of command names. Allows for filtering by ACL category or glob patt
 			Categories:  []string{constants.AdminCategory, constants.FastCategory, constants.DangerousCategory},
 			Description: "(LASTSAVE) Get unix timestamp for the latest snapshot in milliseconds.",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -301,6 +319,7 @@ Get the list of command names. Allows for filtering by ACL category or glob patt
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(REWRITEAOF) Trigger re-writing of append process.",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -318,6 +337,7 @@ Get the list of command names. Allows for filtering by ACL category or glob patt
 			Module:      constants.AdminModule,
 			Categories:  []string{},
 			Description: "Module commands",
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -390,6 +410,27 @@ Unloads a module based on the its name as displayed by the MODULE LIST command.`
 						}
 						return []byte(res), nil
 					},
+				},
+				{
+					Command: "script",
+					Module:  constants.AdminModule,
+					Categories: []string{
+						constants.AdminCategory,
+						constants.SlowCategory,
+						constants.ScriptingCategory,
+						constants.DangerousCategory,
+					},
+					Description: `(MODULE SCRIPT <command> ENGINE <lua> TYPE <file | raw> CONTENT <content>)
+Loads a commands from a script. As of now, the engine must be 'lua'. The type is either file or raw.
+If TYPE is set to file, then the content must be the file path to script. If TYPE is raw, the content should
+be the raw script itself.`,
+					Sync: false,
+					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
+						return internal.KeyExtractionFuncResult{
+							Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
+						}, nil
+					},
+					HandlerFunc: handleLoadScriptCommand,
 				},
 			},
 		},
