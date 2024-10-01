@@ -30,11 +30,8 @@ type Set struct {
 
 func (s *Set) GetMem() int64 {
 	var size int64
-	// headers and pointers
 	size += int64(unsafe.Sizeof(s))
-	// length field
-	size += int64(unsafe.Sizeof(s.length))
-	// members field
+	// above only gives us the size of the pointer to the map, so we need to add it's headers and contents
 	size += int64(unsafe.Sizeof(s.members))
 	for k, v := range s.members {
 		size += int64(unsafe.Sizeof(k))
