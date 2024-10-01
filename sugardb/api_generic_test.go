@@ -1765,3 +1765,63 @@ func TestSugarDB_LRU_TOUCH(t *testing.T) {
 		})
 	}
 }
+
+func TestSugarDB_TYPE(t *testing.T) {
+	server := createSugarDB()
+
+	tests := []struct {
+		name        string
+		presetValue interface{}
+		key         string
+		want        string
+		wantErr     bool
+	}{
+		{
+			name:        "Return string from existing key",
+			presetValue: "value1",
+			key:         "key1",
+			want:        "string",
+			wantErr:     false,
+		},
+		{
+			name:        "Return empty string if the key does not exist",
+			presetValue: nil,
+			key:         "key2",
+			want:        "",
+			wantErr:     true,
+		},
+		{
+			name:        "Return string from existing key",
+			presetValue: 10,
+			key:         "key3",
+			want:        "integer",
+			wantErr:     false,
+		},
+		{
+			name:        "Return string from existing key",
+			presetValue: 10.1,
+			key:         "key4",
+			want:        "float",
+			wantErr:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValue != nil {
+				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			got, err := server.Type(tt.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GET() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("GET() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
