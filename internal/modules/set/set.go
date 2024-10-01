@@ -35,6 +35,7 @@ func (s *Set) GetMem() int64 {
 	// length field
 	size += int64(unsafe.Sizeof(s.length))
 	// members field
+	size += int64(unsafe.Sizeof(s.members))
 	for k, v := range s.members {
 		size += int64(unsafe.Sizeof(k))
 		size += int64(len(k))

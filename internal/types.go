@@ -34,7 +34,6 @@ type KeyData struct {
 
 func (k *KeyData) GetMem() (int64, error) {
 	var size int64
-	var err error
 	size = int64(unsafe.Sizeof(k.ExpireAt))
 
 	// check type of Value field
@@ -44,7 +43,7 @@ func (k *KeyData) GetMem() (int64, error) {
 	// AdaptType() will always ensure data type is of string, float64 or int.
 	case int:
 		size += int64(unsafe.Sizeof(v))
-		// int64 data type used with module.SET
+	// int64 data type used with module.SET
 	case float64, int64:
 		size += 8
 	case string:
@@ -55,6 +54,9 @@ func (k *KeyData) GetMem() (int64, error) {
 	// handle hash
 	// AdaptType() will always ensure data type is of string, float64 or int.
 	case map[string]interface{}:
+		// Map headers
+		size += int64(unsafe.Sizeof(v))
+
 		for key, val := range v {
 			size += int64(unsafe.Sizeof(key))
 			size += int64(len(key))
@@ -87,7 +89,7 @@ func (k *KeyData) GetMem() (int64, error) {
 		return 0, errors.New(fmt.Sprintf("ERROR: type %v is not supported in method KeyData.GetMem()", reflect.TypeOf(v)))
 	}
 
-	return size, err
+	return size, nil
 }
 
 type ContextServerID string
