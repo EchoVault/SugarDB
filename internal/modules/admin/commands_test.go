@@ -392,6 +392,7 @@ func Test_AdminCommands(t *testing.T) {
 		respConn := resp.NewConn(conn)
 
 		for i := 0; i < len(tests); i++ {
+			t.Log(tests[i].name)
 			if len(tests[i].wantExecRes) > 0 {
 				// If the length of execCommand is > 0, write the command to the connection.
 				if err := respConn.WriteArray(tests[i].execCommand); err != nil {

@@ -20,7 +20,7 @@ import (
 	"unsafe"
 
 	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/eviction"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 type Set struct {
@@ -45,7 +45,7 @@ func (s *Set) GetMem() int64 {
 }
 
 // compile time interface check
-var _ eviction.MemCheck = (*Set)(nil)
+var _ constants.CompositeType = (*Set)(nil)
 
 func NewSet(elems []string) *Set {
 	set := &Set{

@@ -19,11 +19,12 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"reflect"
 	"time"
 	"unsafe"
 
 	"github.com/echovault/sugardb/internal/clock"
-	"github.com/echovault/sugardb/internal/eviction"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 type KeyData struct {
@@ -33,16 +34,18 @@ type KeyData struct {
 
 func (k *KeyData) GetMem() (int64, error) {
 	var size int64
+	var err error
 	size = int64(unsafe.Sizeof(k.ExpireAt))
 
 	// check type of Value field
 	switch v := k.Value.(type) {
 	case nil:
 		size += 0
-	// AdaptType() will always ensure data type is of string, float or int.
+	// AdaptType() will always ensure data type is of string, float64 or int.
 	case int:
 		size += int64(unsafe.Sizeof(v))
-	case float64:
+		// int64 data type used with module.SET
+	case float64, int64:
 		size += 8
 	case string:
 		// Add the size of the header and the number of bytes of the string
@@ -50,25 +53,23 @@ func (k *KeyData) GetMem() (int64, error) {
 		size += int64(len(v))
 
 	// handle hash
-	// AdaptType() will always ensure data type is of string, float or int.
-	case map[string]int:
+	// AdaptType() will always ensure data type is of string, float64 or int.
+	case map[string]interface{}:
 		for key, val := range v {
 			size += int64(unsafe.Sizeof(key))
 			size += int64(len(key))
-			size += int64(unsafe.Sizeof(val))
-		}
-	case map[string]float64:
-		for key := range v {
-			size += int64(unsafe.Sizeof(key))
-			size += int64(len(key))
-			size += 8
-		}
-	case map[string]string:
-		for key, val := range v {
-			size += int64(unsafe.Sizeof(key))
-			size += int64(len(key))
-			size += int64(unsafe.Sizeof(val))
-			size += int64(len(val))
+			switch vt := val.(type) {
+
+			case nil:
+				size += 0
+			case int:
+				size += int64(unsafe.Sizeof(vt))
+			case float64, int64:
+				size += 8
+			case string:
+				size += int64(unsafe.Sizeof(vt))
+				size += int64(len(vt))
+			}
 		}
 
 	// handle list
@@ -78,15 +79,15 @@ func (k *KeyData) GetMem() (int64, error) {
 			size += int64(len(s))
 		}
 
-	// handle set, sorted set
-	case eviction.MemCheck:
-		size += k.Value.(eviction.MemCheck).GetMem()
+	// handle non primitive datatypes like set and sorted set
+	case constants.CompositeType:
+		size += k.Value.(constants.CompositeType).GetMem()
 
 	default:
-		errors.New(fmt.Sprintf("ERROR: type %v is not supported in method KeyData.GetMem()", v))
+		return 0, errors.New(fmt.Sprintf("ERROR: type %v is not supported in method KeyData.GetMem()", reflect.TypeOf(v)))
 	}
 
-	return size, nil
+	return size, err
 }
 
 type ContextServerID string

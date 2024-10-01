@@ -24,7 +24,7 @@ import (
 	"unsafe"
 
 	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/eviction"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 type Value string
@@ -71,7 +71,7 @@ func (s *SortedSet) GetMem() int64 {
 }
 
 // compile time interface check
-var _ eviction.MemCheck = (*SortedSet)(nil)
+var _ constants.CompositeType = (*SortedSet)(nil)
 
 func NewSortedSet(members []MemberParam) *SortedSet {
 	s := &SortedSet{

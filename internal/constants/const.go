@@ -67,3 +67,8 @@ const (
 	AllKeysRandom  = "allkeys-random"
 	VolatileRandom = "volatile-random"
 )
+
+// CompositeTypes are SugarDB KeyData Value types like set, sorted set, etc.
+type CompositeType interface {
+	GetMem() int64
+}
