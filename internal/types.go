@@ -234,7 +234,7 @@ type HandlerFuncParams struct {
 	// engine defines the interpreter to be used. Possible values: "LUA"
 	// scriptType is either "FILE" or "RAW".
 	// content contains the file path if scriptType is "FILE" and the raw script if scriptType is "RAW".
-	AddScriptCommand func(command string, engine string, scriptType string, content string) error
+	AddScriptCommand func(command string, engine string, scriptType string, content string, args []string) error
 }
 
 // HandlerFunc is a functions described by a command where the bulk of the command handling is done.

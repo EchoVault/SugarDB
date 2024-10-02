@@ -13,7 +13,10 @@ If there's an error, return a string.
 Otherwise, return a table with the "readKeys" and "writeKeys" set to arrays
 of the keys that will be read from and written to respectively.
 --]]
-function keyExtractionFunc (command)
+function keyExtractionFunc (command, args)
+  for k,v in pairs(args) do
+    print(k, v)
+  end
   if (#command ~= 5) then
     return "wrong number of args, expected 4"
   end
