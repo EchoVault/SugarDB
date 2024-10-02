@@ -32,7 +32,13 @@ func (server *SugarDB) AddScript(engine string, scriptType string, content strin
 	return nil
 }
 
-func (server *SugarDB) AddScriptCommand(scriptCommand string, engine string, scriptType string, content string) error {
+func (server *SugarDB) AddScriptCommand(
+	scriptCommand string,
+	engine string,
+	scriptType string,
+	content string,
+	args []string,
+) error {
 	// Check if the engine is supported
 	supportedEngines := []string{"lua"}
 	if !slices.Contains(supportedEngines, strings.ToLower(engine)) {
@@ -123,7 +129,7 @@ func (server *SugarDB) AddScriptCommand(scriptCommand string, engine string, scr
 		Description: description,
 		Sync:        synchronize,
 		Type:        commandType,
-		KeyExtractionFunc: func(engine string, vm any) internal.KeyExtractionFunc {
+		KeyExtractionFunc: func(engine string, vm any, args []string) internal.KeyExtractionFunc {
 			// Wrapper for the key function
 			return func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				switch strings.ToLower(engine) {
@@ -134,12 +140,17 @@ func (server *SugarDB) AddScriptCommand(scriptCommand string, engine string, scr
 					for i, s := range cmd {
 						command.RawSetInt(i+1, lua.LString(s))
 					}
+					// Create args table to pass to the Lua function
+					funcArgs := L.NewTable()
+					for i, s := range args {
+						funcArgs.RawSetInt(i+1, lua.LString(s))
+					}
 					// Call the Lua key extraction function
 					if err := L.CallByParam(lua.P{
 						Fn:      L.GetGlobal("keyExtractionFunc"),
 						NRet:    1,
 						Protect: true,
-					}, command); err != nil {
+					}, command, funcArgs); err != nil {
 						return internal.KeyExtractionFuncResult{}, err
 					}
 					// Get the returned value
@@ -176,8 +187,8 @@ func (server *SugarDB) AddScriptCommand(scriptCommand string, engine string, scr
 					WriteKeys: make([]string, 0),
 				}, nil
 			}
-		}(engine, vm),
-		HandlerFunc: func(scriptCommand string, engine string, vm any) internal.HandlerFunc {
+		}(engine, vm, args),
+		HandlerFunc: func(scriptCommand string, engine string, vm any, args []string) internal.HandlerFunc {
 			// Wrapper for the handler function
 			return func(params internal.HandlerFuncParams) ([]byte, error) {
 				switch strings.ToLower(engine) {
@@ -185,7 +196,7 @@ func (server *SugarDB) AddScriptCommand(scriptCommand string, engine string, scr
 				}
 				return nil, fmt.Errorf("command %s handler not implemented", scriptCommand)
 			}
-		}(scriptCommand, engine, vm),
+		}(scriptCommand, engine, vm, args),
 	}
 
 	// Add the commands to the list of commands.

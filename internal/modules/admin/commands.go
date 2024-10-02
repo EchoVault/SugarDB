@@ -190,14 +190,24 @@ func handleCommandDocs(params internal.HandlerFuncParams) ([]byte, error) {
 }
 
 func handleLoadScriptCommand(params internal.HandlerFuncParams) ([]byte, error) {
-	if len(params.Command) != 9 {
+	if len(params.Command) < 9 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
+
+	var args []string
+	argsIndex := slices.IndexFunc(params.Command, func(s string) bool {
+		return strings.EqualFold(s, "args")
+	})
+	if argsIndex != -1 {
+		args = params.Command[argsIndex+1:]
+	}
+
 	command := params.Command[2]
 	engine := params.Command[4]
 	scriptType := params.Command[6]
 	content := params.Command[8]
-	if err := params.AddScriptCommand(command, engine, scriptType, content); err != nil {
+
+	if err := params.AddScriptCommand(command, engine, scriptType, content, args); err != nil {
 		return nil, err
 	}
 	return []byte(constants.OkResponse), nil
@@ -420,7 +430,7 @@ Unloads a module based on the its name as displayed by the MODULE LIST command.`
 						constants.ScriptingCategory,
 						constants.DangerousCategory,
 					},
-					Description: `(MODULE SCRIPT <command> ENGINE <lua> TYPE <file | raw> CONTENT <content>)
+					Description: `(MODULE SCRIPT <command> ENGINE <lua> TYPE <file | raw> CONTENT <content> [ARGS arg1 [arg2 ...]])
 Loads a commands from a script. As of now, the engine must be 'lua'. The type is either file or raw.
 If TYPE is set to file, then the content must be the file path to script. If TYPE is raw, the content should
 be the raw script itself.`,
