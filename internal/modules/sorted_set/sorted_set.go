@@ -50,11 +50,10 @@ type SortedSet struct {
 
 func (s *SortedSet) GetMem() int64 {
 	var size int64
-	ss := *s
 	// map header
-	size += int64(unsafe.Sizeof(ss))
+	size += int64(unsafe.Sizeof(s))
 	// map contents
-	for k, v := range ss.members {
+	for k, v := range s.members {
 		// string header
 		size += int64(unsafe.Sizeof(k))
 		// string
