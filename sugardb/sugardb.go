@@ -626,6 +626,7 @@ func (server *SugarDB) ShutDown() {
 			log.Printf("listener close: %v\n", err)
 		}
 	}
+	// TODO: Shutdown all script VMs
 	if !server.isInCluster() {
 		server.aofEngine.Close()
 	}
