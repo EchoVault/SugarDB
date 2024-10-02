@@ -101,15 +101,19 @@ func (server *SugarDB) AddScriptCommand(scriptCommand string, engine string, scr
 		// Set command type
 		commandType = "LUA_SCRIPT"
 		vm = L
-	default:
-		return fmt.Errorf("engine %s not supported, only %v engines are supported", engine, supportedEngines)
 	}
 
 	// Save the script's VM to the server's list of VMs.
-	// lock is the script mutex for the commands.
-	// This mutex will be locked everytime the command is executed because
-	// the script's VM is not thread safe.
-	server.scriptVMs.Store(scriptCommand, sync.Mutex{})
+	server.scriptVMs.Store(scriptCommand, struct {
+		vm   any
+		lock sync.Mutex
+	}{
+		vm: vm,
+		// lock is the script mutex for the commands.
+		// This mutex will be locked everytime the command is executed because
+		// the script's VM is not thread safe.
+		lock: sync.Mutex{},
+	})
 
 	// Build the command:
 	command := internal.Command{
@@ -122,23 +126,72 @@ func (server *SugarDB) AddScriptCommand(scriptCommand string, engine string, scr
 		KeyExtractionFunc: func(engine string, vm any) internal.KeyExtractionFunc {
 			// Wrapper for the key function
 			return func(cmd []string) (internal.KeyExtractionFuncResult, error) {
-				return internal.KeyExtractionFuncResult{}, nil
+				switch strings.ToLower(engine) {
+				case "lua":
+					L := vm.(*lua.LState)
+					// Create command table to pass to the Lua function
+					command := L.NewTable()
+					for i, s := range cmd {
+						command.RawSetInt(i+1, lua.LString(s))
+					}
+					// Call the Lua key extraction function
+					if err := L.CallByParam(lua.P{
+						Fn:      L.GetGlobal("keyExtractionFunc"),
+						NRet:    1,
+						Protect: true,
+					}, command); err != nil {
+						return internal.KeyExtractionFuncResult{}, err
+					}
+					// Get the returned value
+					ret := L.Get(-1)
+					if keys, ok := ret.(*lua.LTable); ok {
+						// If the returned value is a table, get the keys from the table
+						return internal.KeyExtractionFuncResult{
+							Channels: make([]string, 0),
+							ReadKeys: func() []string {
+								table := keys.RawGetString("readKeys").(*lua.LTable)
+								var k []string
+								for i := 1; i <= table.Len(); i++ {
+									k = append(k, table.RawGetInt(i).String())
+								}
+								return k
+							}(),
+							WriteKeys: func() []string {
+								table := keys.RawGetString("writeKeys").(*lua.LTable)
+								var k []string
+								for i := 1; i <= table.Len(); i++ {
+									k = append(k, table.RawGetInt(i).String())
+								}
+								return k
+							}(),
+						}, nil
+					} else {
+						// If the returned value is a string, return the string error
+						return internal.KeyExtractionFuncResult{}, errors.New(ret.(lua.LString).String())
+					}
+				}
+				return internal.KeyExtractionFuncResult{
+					Channels:  make([]string, 0),
+					ReadKeys:  make([]string, 0),
+					WriteKeys: make([]string, 0),
+				}, nil
 			}
 		}(engine, vm),
-		HandlerFunc: func(engine string, vm any) internal.HandlerFunc {
+		HandlerFunc: func(scriptCommand string, engine string, vm any) internal.HandlerFunc {
 			// Wrapper for the handler function
 			return func(params internal.HandlerFuncParams) ([]byte, error) {
-				return nil, nil
+				switch strings.ToLower(engine) {
+				case "lua":
+				}
+				return nil, fmt.Errorf("command %s handler not implemented", scriptCommand)
 			}
-		}(engine, vm),
+		}(scriptCommand, engine, vm),
 	}
 
 	// Add the commands to the list of commands.
 	server.commandsRWMut.Lock()
 	defer server.commandsRWMut.Unlock()
 	server.commands = append(server.commands, command)
-
-	fmt.Println(command)
 
 	return nil
 }
