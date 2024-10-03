@@ -1,0 +1,65 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# GETEX
+
+### Syntax
+```
+GETEX key [EX | PX | EXAT | PXAT | PERSIST]
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories
+<span className="acl-category">fast</span>
+<span className="acl-category">write</span>
+
+### Description
+Get the value of key and optionally set its expiration. GETEX is similar to [GET], but is a write command with additional options.
+
+### Options
+         - `EX` - Set the specified expire time, in seconds.
+         - `PX` - Set the specified expire time, in milliseconds.
+         - `EXAT` - Set the specified Unix time at which the key will expire, in seconds.
+         - `PXAT` - Set the specified Unix time at which the key will expire, in milliseconds.
+         - `PERSIST` - Remove the time to live associated with the key.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+The embedded API utilizes the GetExOption interface, which acts as a wrapper for the various expiry options of the GETEX command.
+    <br></br>
+    GetExOption includes the following constants:
+         - `EX` - Set the specified expire time, in seconds.
+         - `PX` - Set the specified expire time, in milliseconds.
+         - `EXAT` - Set the specified Unix time at which the key will expire, in seconds.
+         - `PXAT` - Set the specified Unix time at which the key will expire, in milliseconds.
+         - `PERSIST` - Remove the time to live associated with the key.
+    <br></br>
+    Get the value at the specified key:
+    ```go
+    db, err := sugardb.NewSugarDB()
+    if err != nil {
+      log.Fatal(err)
+    }
+    value, err := db.GetEx("key", nil, 0)
+
+    // optionally set expiry
+    value, err = db.GetEx("key", sugardb.EX, 10)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get the value at the specified key and set the expiry:
+    ```
+    > GETEX key EX 10
+    ```
+  </TabItem>
+</Tabs>
