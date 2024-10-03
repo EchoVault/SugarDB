@@ -28,89 +28,47 @@ import (
 	"sync"
 )
 
-func (server *SugarDB) AddScript(engine string, scriptType string, content string) error {
+func (server *SugarDB) AddScript(engine string, scriptType string, content string, args []string) error {
 	return nil
 }
 
 func (server *SugarDB) AddScriptCommand(
-	scriptCommand string,
-	engine string,
-	scriptType string,
-	content string,
+	path string,
 	args []string,
 ) error {
+	// Extract the engine from the script file extension
+	var engine string
+	if strings.HasSuffix(path, ".lua") {
+		engine = "lua"
+	}
+
 	// Check if the engine is supported
 	supportedEngines := []string{"lua"}
 	if !slices.Contains(supportedEngines, strings.ToLower(engine)) {
 		return fmt.Errorf("engine %s not supported, only %v engines are supported", engine, supportedEngines)
 	}
 
-	// Check if the script type is supported
-	if !slices.Contains([]string{"file", "raw"}, strings.ToLower(scriptType)) {
-		return errors.New("script type must be wither file or raw")
-	}
-
-	// Check if the command already exists.
-	server.commandsRWMut.RLock()
-	for _, command := range server.commands {
-		if strings.EqualFold(command.Command, scriptCommand) {
-			return fmt.Errorf("command %s already exists", scriptCommand)
-		}
-	}
-	server.commandsRWMut.RUnlock()
-
-	// Initialise VM and lock for the commands depending on the engine.
+	// Initialise VM for the command depending on the engine.
 	var vm any
+	var commandName string
 	var module string
 	var categories []string
 	var description string
 	var synchronize bool
 	var commandType string
+	var err error
 
 	switch strings.ToLower(engine) {
 	case "lua":
-		L := lua.NewState()
-		if strings.EqualFold(scriptType, "file") {
-			// Load lua file
-			if err := L.DoFile(content); err != nil {
-				return fmt.Errorf("could not load lua script file %s: %v", content, err)
-			}
-		} else {
-			// Load raw lua script
-			if err := L.DoString(content); err != nil {
-				return fmt.Errorf("could not load lua script string: %v", err)
-			}
-		}
-		// Get the module
-		m := L.GetGlobal("module")
-		if _, ok := m.(lua.LString); !ok {
-			return errors.New("module does not exist in script or is not string")
-		}
-		module = m.String()
-		// Get the categories
-		c := L.GetGlobal("categories")
-		if _, ok := c.(*lua.LTable); !ok {
-			return errors.New("categories does not exist or is not an array")
-		}
-		for i := 0; i < c.(*lua.LTable).Len(); i++ {
-			categories = append(categories, c.(*lua.LTable).RawGetInt(i+1).String())
-		}
-		// Get the description
-		d := L.GetGlobal("description")
-		if _, ok := m.(lua.LString); !ok {
-			return errors.New("description does not exist or is not a string")
-		}
-		description = d.String()
-		// Get the sync
-		s := L.GetGlobal("sync")
-		synchronize = s == lua.LTrue
-		// Set command type
-		commandType = "LUA_SCRIPT"
-		vm = L
+		vm, commandName, module, categories, description, synchronize, commandType, err = generateLuaCommandInfo(path)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	// Save the script's VM to the server's list of VMs.
-	server.scriptVMs.Store(scriptCommand, struct {
+	server.scriptVMs.Store(commandName, struct {
 		vm   any
 		lock sync.Mutex
 	}{
@@ -123,7 +81,7 @@ func (server *SugarDB) AddScriptCommand(
 
 	// Build the command:
 	command := internal.Command{
-		Command:     strings.ToLower(scriptCommand),
+		Command:     commandName,
 		Module:      module,
 		Categories:  categories,
 		Description: description,
@@ -148,14 +106,18 @@ func (server *SugarDB) AddScriptCommand(
 					// Call the Lua key extraction function
 					if err := L.CallByParam(lua.P{
 						Fn:      L.GetGlobal("keyExtractionFunc"),
-						NRet:    1,
+						NRet:    2,
 						Protect: true,
 					}, command, funcArgs); err != nil {
 						return internal.KeyExtractionFuncResult{}, err
 					}
+					// Check if error is returned
+					if err, ok := L.Get(-1).(lua.LString); ok {
+						return internal.KeyExtractionFuncResult{}, errors.New(err.String())
+					}
 					// Get the returned value
-					ret := L.Get(-1)
-					L.Pop(1)
+					ret := L.Get(-2)
+					L.Pop(2)
 					if keys, ok := ret.(*lua.LTable); ok {
 						// If the returned value is a table, get the keys from the table
 						return internal.KeyExtractionFuncResult{
@@ -189,15 +151,99 @@ func (server *SugarDB) AddScriptCommand(
 				}, nil
 			}
 		}(engine, vm, args),
-		HandlerFunc: func(scriptCommand string, engine string, vm any, args []string) internal.HandlerFunc {
+		HandlerFunc: func(engine string, vm any, args []string) internal.HandlerFunc {
 			// Wrapper for the handler function
 			return func(params internal.HandlerFuncParams) ([]byte, error) {
 				switch strings.ToLower(engine) {
 				case "lua":
+					L := vm.(*lua.LState)
+					// Lua table context
+					ctx := L.NewTable()
+					ctx.RawSetString("protocol", lua.LNumber(params.Context.Value("Protocol").(int)))
+					// Command that triggered the handler (Array)
+					cmd := L.NewTable()
+					for i, s := range params.Command {
+						cmd.RawSetInt(i+1, lua.LString(s))
+					}
+					// Function that checks if keys exist
+					keysExist := L.NewFunction(func(state *lua.LState) int {
+						// Get the keys array and pop it from the stack.
+						v := state.Get(-1).(*lua.LTable)
+						state.Pop(1)
+						// Extract the keys from the keys array passed from the lua script.
+						var keys []string
+						for i := 1; i <= v.Len(); i++ {
+							keys = append(keys, v.RawGetInt(i).String())
+						}
+						// Call the keysExist method to check if the key exists in the store.
+						exist := server.keysExist(params.Context, keys)
+						// Build the response table that specifies if each key exists.
+						res := state.NewTable()
+						for key, exists := range exist {
+							res.RawSetString(key, lua.LBool(exists))
+						}
+						// Push the response to the stack.
+						state.Push(res)
+						return 1
+					})
+					// Function that gets values from keys
+					getValues := L.NewFunction(func(state *lua.LState) int {
+						// Get the keys array and pop it from the stack.
+						v := state.Get(-1).(*lua.LTable)
+						state.Pop(1)
+						// Extract the keys from the keys array passed from the lua script.
+						var keys []string
+						for i := 1; i <= v.Len(); i++ {
+							keys = append(keys, v.RawGetInt(i).String())
+						}
+						// Call the getValues method to get the values for each of the keys.
+						values := server.getValues(params.Context, keys)
+						// Build the response table that contains each key/value pair.
+						res := state.NewTable()
+						for key, value := range values {
+							// TODO: Actually parse the value and set it in the response as the appropriate LValue.
+							res.RawSetString(key, lua.LString(value.(string)))
+						}
+						// Push the value to the stack
+						state.Push(res)
+						return 1
+					})
+					// Function that sets values on keys
+					setValues := L.NewFunction(func(state *lua.LState) int {
+						// Get the keys array and pop it from the stack.
+						v := state.Get(-1).(*lua.LTable)
+						state.Pop(1)
+						// Get values passed from the Lua script and add
+						values := make(map[string]interface{})
+						v.ForEach(func(key lua.LValue, value lua.LValue) {
+							// TODO: Actually parse the value and set it in the response as the appropriate LValue.
+							values[key.String()] = value
+						})
+						if err := server.setValues(params.Context, values); err != nil {
+							state.Push(lua.LString(err.Error()))
+							return 1
+						}
+						state.Push(nil)
+						return 1
+					})
+					// Args (Array)
+					funcArgs := L.NewTable()
+					for i, s := range args {
+						funcArgs.RawSetInt(i+1, lua.LString(s))
+					}
+					// Call the lua handler function
+					if err := L.CallByParam(lua.P{
+						Fn:      L.GetGlobal("handler"),
+						NRet:    2,
+						Protect: true,
+					}, ctx, cmd, keysExist, getValues, setValues, funcArgs); err != nil {
+						return nil, err
+					}
+					// TODO: Get and pop the 2 values at the top of the stack, checking whether an error is returned.
 				}
-				return nil, fmt.Errorf("command %s handler not implemented", scriptCommand)
+				return nil, fmt.Errorf("command %s handler not implemented", commandName)
 			}
-		}(scriptCommand, engine, vm, args),
+		}(engine, vm, args),
 	}
 
 	// Add the commands to the list of commands.
