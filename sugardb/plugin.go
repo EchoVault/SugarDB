@@ -155,6 +155,7 @@ func (server *SugarDB) AddScriptCommand(
 					}
 					// Get the returned value
 					ret := L.Get(-1)
+					L.Pop(1)
 					if keys, ok := ret.(*lua.LTable); ok {
 						// If the returned value is a table, get the keys from the table
 						return internal.KeyExtractionFuncResult{
