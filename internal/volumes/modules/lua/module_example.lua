@@ -1,4 +1,6 @@
 
+command = "LUA.EXAMPLE"
+
 module = "generic"
 
 categories = {"generic", "write", "fast"}
@@ -18,10 +20,14 @@ function keyExtractionFunc (command, args)
     print(k, v)
   end
   if (#command ~= 5) then
-    return "wrong number of args, expected 4"
+    return nil, "wrong number of args, expected 4"
   end
   local keys = {}
   keys["readKeys"] = {command[2]}
   keys["writeKeys"] = {command[4]}
-  return keys
+  return keys, nil
+end
+
+function handlerFunc(ctx, command, keysExist, getKeys, setKeys, args)
+  return "This is the handler", nil
 end
