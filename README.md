@@ -237,6 +237,8 @@ MSET (10 keys): 56022.41 requests per second, p50=0.463 msec
 * [RENAME](https://sugardb.io/docs/commands/generic/rename)
 * [SET](https://sugardb.io/docs/commands/generic/set)
 * [TTL](https://sugardb.io/docs/commands/generic/ttl)
+* [TYPE](https://sugardb.io/docs/commands/generic/type)
+
 
 <a name="commands-hash"></a>
 ## HASH
