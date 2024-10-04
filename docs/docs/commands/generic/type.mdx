@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# TYPE
+
+### Syntax
+```
+TYPE key
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">read</span>
+
+### Description 
+Returns the string representation of the value type stored at the key.
+The types that can be returned are string, integer, float, list, set, set, and hash.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Retrieve the type of the value stored at key:
+    ```go
+    db, err := sugardb.NewSugarDB()
+    if err != nil {
+      log.Fatal(err)
+    }
+    type, err := db.Type("key")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Retrieve the type of the value stored at key:
+    ```
+    > TYPE key
+    ```
+  </TabItem>
+</Tabs>
