@@ -47,7 +47,9 @@ func (server *SugarDB) GetServerInfo() internal.ServerInfo {
 			}
 			return "replica"
 		}(),
-		Modules: server.ListModules(),
+		Modules:    server.ListModules(),
+		MemoryUsed: server.memUsed,
+		MaxMemory:  server.config.MaxMemory,
 	}
 }
 

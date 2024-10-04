@@ -17,11 +17,14 @@ package sorted_set
 import (
 	"cmp"
 	"errors"
-	"github.com/echovault/sugardb/internal"
 	"math"
 	"math/rand"
 	"slices"
 	"strings"
+	"unsafe"
+
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 type Value string
@@ -44,6 +47,29 @@ type MemberParam struct {
 type SortedSet struct {
 	members map[Value]MemberObject
 }
+
+func (s *SortedSet) GetMem() int64 {
+	var size int64
+	// map header
+	size += int64(unsafe.Sizeof(s))
+	// map contents
+	for k, v := range s.members {
+		// string header
+		size += int64(unsafe.Sizeof(k))
+		// string
+		size += int64(len(k))
+		// MemberObject
+		size += int64(unsafe.Sizeof(v))
+		// value field
+		size += int64(unsafe.Sizeof(v.Value))
+		size += int64(len(v.Value))
+	}
+
+	return size
+}
+
+// compile time interface check
+var _ constants.CompositeType = (*SortedSet)(nil)
 
 func NewSortedSet(members []MemberParam) *SortedSet {
 	s := &SortedSet{

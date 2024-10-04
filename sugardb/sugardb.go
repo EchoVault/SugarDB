@@ -70,10 +70,14 @@ type SugarDB struct {
 
 	// Global read-write mutex for entire store.
 	storeLock *sync.RWMutex
+
 	// Data store to hold the keys and their associated data, expiry time, etc.
 	// The int key on the outer map represents the database index.
 	// Each database has a map that has a string key and the key data (value and expiry time).
 	store map[int]map[string]internal.KeyData
+
+	// memUsed tracks the memory usage of the data in the store.
+	memUsed int64
 
 	// Holds all the keys that are currently associated with an expiry.
 	keysWithExpiry struct {
@@ -163,6 +167,7 @@ func NewSugarDB(options ...func(sugarDB *SugarDB)) (*SugarDB, error) {
 		},
 		storeLock: &sync.RWMutex{},
 		store:     make(map[int]map[string]internal.KeyData),
+		memUsed:   0,
 		keysWithExpiry: struct {
 			rwMutex sync.RWMutex
 			keys    map[int][]string

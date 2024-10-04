@@ -16,14 +16,80 @@ package internal
 
 import (
 	"context"
-	"github.com/echovault/sugardb/internal/clock"
+	"errors"
+	"fmt"
 	"net"
+	"reflect"
 	"time"
+	"unsafe"
+
+	"github.com/echovault/sugardb/internal/clock"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 type KeyData struct {
 	Value    interface{}
 	ExpireAt time.Time
+}
+
+func (k *KeyData) GetMem() (int64, error) {
+	var size int64
+	size = int64(unsafe.Sizeof(k.ExpireAt))
+
+	// check type of Value field
+	switch v := k.Value.(type) {
+	case nil:
+		size += 0
+	// AdaptType() will always ensure data type is of string, float64 or int.
+	case int:
+		size += int64(unsafe.Sizeof(v))
+	// int64 data type used with module.SET
+	case float64, int64:
+		size += 8
+	case string:
+		// Add the size of the header and the number of bytes of the string
+		size += int64(unsafe.Sizeof(v))
+		size += int64(len(v))
+
+	// handle hash
+	// AdaptType() will always ensure data type is of string, float64 or int.
+	case map[string]interface{}:
+		// Map headers
+		size += int64(unsafe.Sizeof(v))
+
+		for key, val := range v {
+			size += int64(unsafe.Sizeof(key))
+			size += int64(len(key))
+			switch vt := val.(type) {
+
+			case nil:
+				size += 0
+			case int:
+				size += int64(unsafe.Sizeof(vt))
+			case float64, int64:
+				size += 8
+			case string:
+				size += int64(unsafe.Sizeof(vt))
+				size += int64(len(vt))
+			}
+		}
+
+	// handle list
+	case []string:
+		for _, s := range v {
+			size += int64(unsafe.Sizeof(s))
+			size += int64(len(s))
+		}
+
+	// handle non primitive datatypes like set and sorted set
+	case constants.CompositeType:
+		size += k.Value.(constants.CompositeType).GetMem()
+
+	default:
+		return 0, errors.New(fmt.Sprintf("ERROR: type %v is not supported in method KeyData.GetMem()", reflect.TypeOf(v)))
+	}
+
+	return size, nil
 }
 
 type ContextServerID string
@@ -51,12 +117,14 @@ type SnapshotObject struct {
 
 // ServerInfo holds information about the server/node.
 type ServerInfo struct {
-	Server  string
-	Version string
-	Id      string
-	Mode    string
-	Role    string
-	Modules []string
+	Server     string
+	Version    string
+	Id         string
+	Mode       string
+	Role       string
+	Modules    []string
+	MemoryUsed int64
+	MaxMemory  uint64
 }
 
 // ConnectionInfo holds information about the connection
