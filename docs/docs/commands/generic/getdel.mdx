@@ -1,0 +1,46 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# GETDEL
+
+### Syntax
+```
+GETDEL key
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories
+<span className="acl-category">fast</span>
+<span className="acl-category">write</span>
+
+### Description
+Get the value of key and delete the key. This command is similar to [GET], but deletes key on success.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get the value at the specified key:
+    ```go
+    db, err := sugardb.NewSugarDB()
+    if err != nil {
+      log.Fatal(err)
+    }
+    value, err := db.GetDel("key")
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get the value at the specified key:
+    ```
+    > GETDEL key
+    ```
+  </TabItem>
+</Tabs>
