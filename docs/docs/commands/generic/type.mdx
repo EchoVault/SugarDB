@@ -17,8 +17,8 @@ TYPE key
 <span className="acl-category">read</span>
 
 ### Description 
-Returns the string representation of the type of the value stored at key.
-The different types that can be returned are: string, integer, float, list, set, zset, and hash.
+Returns the string representation of the value type stored at the key.
+The types that can be returned are string, integer, float, list, set, set, and hash.
 
 ### Examples
 
@@ -36,7 +36,7 @@ The different types that can be returned are: string, integer, float, list, set,
     if err != nil {
       log.Fatal(err)
     }
-    ttl, err := db.Type("key")
+    type, err := db.Type("key")
     ```
   </TabItem>
   <TabItem value="cli">
