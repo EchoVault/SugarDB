@@ -28,6 +28,6 @@ function keyExtractionFunc (command, args)
   return keys, nil
 end
 
-function handlerFunc(ctx, command, keysExist, getKeys, setKeys, args)
-  return "This is the handler", nil
+function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
+  return "+OK\r\n", nil
 end

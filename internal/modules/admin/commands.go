@@ -189,27 +189,6 @@ func handleCommandDocs(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte("*0\r\n"), nil
 }
 
-func handleLoadScriptCommand(params internal.HandlerFuncParams) ([]byte, error) {
-	if len(params.Command) < 3 {
-		return nil, errors.New(constants.WrongArgsResponse)
-	}
-	// Parse args
-	var args []string
-	argsIndex := slices.IndexFunc(params.Command, func(s string) bool {
-		return strings.EqualFold(s, "args")
-	})
-	if argsIndex != -1 {
-		args = params.Command[argsIndex+1:]
-	}
-	// Parse the file path
-	path := params.Command[2]
-	// Add the script to SugarDB
-	if err := params.AddScriptCommand(path, args); err != nil {
-		return nil, err
-	}
-	return []byte(constants.OkResponse), nil
-}
-
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -417,27 +396,6 @@ Unloads a module based on the its name as displayed by the MODULE LIST command.`
 						}
 						return []byte(res), nil
 					},
-				},
-				{
-					Command: "script",
-					Module:  constants.AdminModule,
-					Categories: []string{
-						constants.AdminCategory,
-						constants.SlowCategory,
-						constants.ScriptingCategory,
-						constants.DangerousCategory,
-					},
-					Description: `(MODULE SCRIPT <path> [ARGS arg1 [arg2 ...]])
-Loads a commands from a script. As of now, the engine must be 'lua'. The type is either file or raw.
-If TYPE is set to file, then the content must be the file path to script. If TYPE is raw, the content should
-be the raw script itself.`,
-					Sync: false,
-					KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
-						return internal.KeyExtractionFuncResult{
-							Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
-						}, nil
-					},
-					HandlerFunc: handleLoadScriptCommand,
 				},
 			},
 		},

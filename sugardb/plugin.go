@@ -233,7 +233,7 @@ func (server *SugarDB) AddScriptCommand(
 					}
 					// Call the lua handler function
 					if err := L.CallByParam(lua.P{
-						Fn:      L.GetGlobal("handler"),
+						Fn:      L.GetGlobal("handlerFunc"),
 						NRet:    2,
 						Protect: true,
 					}, ctx, cmd, keysExist, getValues, setValues, funcArgs); err != nil {
@@ -252,8 +252,6 @@ func (server *SugarDB) AddScriptCommand(
 	}
 
 	// Add the commands to the list of commands.
-	server.commandsRWMut.Lock()
-	defer server.commandsRWMut.Unlock()
 	server.commands = append(server.commands, command)
 
 	return nil
@@ -270,6 +268,12 @@ func (server *SugarDB) AddScriptCommand(
 func (server *SugarDB) LoadModule(path string, args ...string) error {
 	server.commandsRWMut.Lock()
 	defer server.commandsRWMut.Unlock()
+
+	for _, suffix := range []string{".lua"} {
+		if strings.HasSuffix(path, suffix) {
+			return server.AddScriptCommand(path, args)
+		}
+	}
 
 	if _, err := os.Stat(path); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -314,7 +318,7 @@ func (server *SugarDB) LoadModule(path string, args ...string) error {
 	if err != nil {
 		return err
 	}
-	sync, ok := syncSymbol.(*bool)
+	synchronize, ok := syncSymbol.(*bool)
 	if !ok {
 		return errors.New("sync symbol is not a bool")
 	}
@@ -362,7 +366,7 @@ func (server *SugarDB) LoadModule(path string, args ...string) error {
 			return cats
 		}(),
 		Description: *description,
-		Sync:        *sync,
+		Sync:        *synchronize,
 		SubCommands: make([]internal.SubCommand, 0),
 		KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 			readKeys, writeKeys, err := keyExtractionFunc(cmd, args...)
