@@ -29,5 +29,11 @@ function keyExtractionFunc (command, args)
 end
 
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
+  print(ctx)
+  print(command)
+  print(keysExist)
+  print(getValues)
+  print(setValues)
+  print(args)
   return "+OK\r\n", nil
 end
