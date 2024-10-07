@@ -213,7 +213,7 @@ func (server *SugarDB) AddScriptCommand(
 						// Get the keys array and pop it from the stack.
 						v := state.Get(-1).(*lua.LTable)
 						state.Pop(1)
-						// Get values passed from the Lua script and add
+						// Get values passed from the Lua script and add.
 						values := make(map[string]interface{})
 						v.ForEach(func(key lua.LValue, value lua.LValue) {
 							// TODO: Actually parse the value and set it in the response as the appropriate LValue.
@@ -239,9 +239,14 @@ func (server *SugarDB) AddScriptCommand(
 					}, ctx, cmd, keysExist, getValues, setValues, funcArgs); err != nil {
 						return nil, err
 					}
-					// TODO: Get and pop the 2 values at the top of the stack, checking whether an error is returned.
+					// Get and pop the 2 values at the top of the stack, checking whether an error is returned.
+					defer L.Pop(2)
+					if err, ok := L.Get(-1).(lua.LString); ok {
+						return nil, errors.New(err.String())
+					}
+					return []byte(L.Get(-2).String()), nil
 				}
-				return nil, fmt.Errorf("command %s handler not implemented", commandName)
+				return nil, fmt.Errorf("unkown return value for command %s", commandName)
 			}
 		}(engine, vm, args),
 	}
