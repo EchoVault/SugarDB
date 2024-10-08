@@ -66,7 +66,7 @@ func (set *Set) Add(elems []string) int {
 	return count
 }
 
-func (set *Set) Get(e string) interface{} {
+func (set *Set) get(e string) interface{} {
 	return set.members[e]
 }
 
@@ -123,7 +123,7 @@ func (set *Set) GetRandom(count int) []string {
 func (set *Set) Remove(elems []string) int {
 	count := 0
 	for _, e := range elems {
-		if set.Get(e) != nil {
+		if set.get(e) != nil {
 			delete(set.members, e)
 			count += 1
 		}
@@ -139,7 +139,7 @@ func (set *Set) Pop(count int) []string {
 }
 
 func (set *Set) Contains(e string) bool {
-	return set.Get(e) != nil
+	return set.get(e) != nil
 }
 
 // Subtract received a list of sets and finds the difference between sets provided

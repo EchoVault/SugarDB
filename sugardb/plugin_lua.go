@@ -18,6 +18,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/modules/set"
+	"github.com/echovault/sugardb/internal/modules/sorted_set"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -28,6 +30,126 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 	if err := L.DoFile(path); err != nil {
 		return nil, "", "", nil, "", false, "", fmt.Errorf("could not load lua script file %s: %v", path, err)
 	}
+
+	// Register set data type
+	setMetaTable := L.NewTypeMetatable("set")
+	L.SetGlobal("set", setMetaTable)
+	// Static fields
+	L.SetField(setMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
+		s := set.NewSet([]string{})
+		ud := state.NewUserData()
+		ud.Value = s
+		state.SetMetatable(ud, state.GetTypeMetatable("set"))
+		state.Push(ud)
+		return 1
+	}))
+	// Methods
+	L.SetField(setMetaTable, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
+		"add": func(state *lua.LState) int {
+			s := checkSet(state, 1)
+			// Extract the elements from the args
+			var elems []string
+			tbl := state.CheckTable(2)
+			tbl.ForEach(func(key lua.LValue, value lua.LValue) {
+				elems = append(elems, value.String())
+			})
+			// Add the elements to the set
+			state.Push(lua.LNumber(s.Add(elems)))
+			return 1
+		},
+		"pop": func(state *lua.LState) int {
+			s := checkSet(state, 1)
+			count := state.CheckNumber(2)
+			// Create the table of popped elements
+			popped := state.NewTable()
+			for i, elem := range s.Pop(int(count)) {
+				popped.RawSetInt(i+1, lua.LString(elem))
+			}
+			// Return popped elements
+			state.Push(popped)
+			return 1
+		},
+		"contains": func(state *lua.LState) int {
+			s := checkSet(state, 1)
+			state.Push(lua.LBool(s.Contains(state.CheckString(2))))
+			return 1
+		},
+		"cardinality": func(state *lua.LState) int {
+			s := checkSet(state, 1)
+			state.Push(lua.LNumber(s.Cardinality()))
+			return 1
+		},
+		"remove": func(state *lua.LState) int {
+			s := checkSet(state, 1)
+			// Extract elements to be removed
+			var elems []string
+			tbl := state.CheckTable(2)
+			tbl.ForEach(func(key lua.LValue, value lua.LValue) {
+				elems = append(elems, value.String())
+			})
+			// Remove the elements and return the removed count
+			state.Push(lua.LNumber(s.Remove(elems)))
+			return 1
+		},
+		"move": func(state *lua.LState) int {
+			s1 := checkSet(state, 1)
+			s2 := checkSet(state, 2)
+			elem := state.CheckString(3)
+			moved := s1.Move(s2, elem)
+			state.Push(lua.LBool(moved == 1))
+			return 1
+		},
+		"subtract": func(state *lua.LState) int {
+			s1 := checkSet(state, 1)
+			var sets []*set.Set
+			// Extract sets to subtract
+			tbl := state.CheckTable(2)
+			tbl.ForEach(func(key lua.LValue, value lua.LValue) {
+				ud, ok := value.(*lua.LUserData)
+				if !ok {
+					state.ArgError(2, "table must only contain sets")
+					return
+				}
+				s, ok := ud.Value.(*set.Set)
+				if !ok {
+					state.ArgError(2, "table must only contain sets")
+					return
+				}
+				sets = append(sets, s)
+			})
+			// Return the resulting set
+			ud := state.NewUserData()
+			ud.Value = s1.Subtract(sets)
+			state.SetMetatable(ud, state.GetTypeMetatable("set"))
+			state.Push(ud)
+			return 1
+		},
+		"getAll": func(state *lua.LState) int {
+			s := checkSet(state, 1)
+			// Build table of all the elements in the set
+			elems := state.NewTable()
+			for i, e := range s.GetAll() {
+				elems.RawSetInt(i+1, lua.LString(e))
+			}
+			// Return all the set's elements
+			state.Push(elems)
+			return 1
+		},
+		"getRandom": func(state *lua.LState) int {
+			s := checkSet(state, 1)
+			count := state.CheckNumber(2)
+			// Build table of random elements
+			elems := state.NewTable()
+			for i, e := range s.GetRandom(int(count)) {
+				elems.RawSetInt(i+1, lua.LString(e))
+			}
+			// Return random elements
+			state.Push(elems)
+			return 1
+		},
+	}))
+
+	// TODO: Register sorted set data type
 
 	// Get the command name
 	cn := L.GetGlobal("command")
@@ -182,7 +304,7 @@ func (server *SugarDB) buildLuaHandlerFunc(vm any, args []string, params interna
 		values := make(map[string]interface{})
 		v.ForEach(func(key lua.LValue, value lua.LValue) {
 			// Actually parse the value and set it in the response as the appropriate LValue.
-			values[key.String()] = luaTypeToNativeType(value)
+			values[key.String()] = luaTypeToNativeType(L, value)
 		})
 		if err := server.setValues(params.Context, values); err != nil {
 			state.Push(lua.LString(err.Error()))
@@ -212,7 +334,25 @@ func (server *SugarDB) buildLuaHandlerFunc(vm any, args []string, params interna
 	return []byte(L.Get(-2).String()), nil
 }
 
-func luaTypeToNativeType(value lua.LValue) interface{} {
+func checkSet(L *lua.LState, n int) *set.Set {
+	ud := L.CheckUserData(n)
+	if v, ok := ud.Value.(*set.Set); ok {
+		return v
+	}
+	L.ArgError(1, "set expected")
+	return nil
+}
+
+func checkSortedSet(L *lua.LState, n int) *sorted_set.SortedSet {
+	ud := L.CheckUserData(n)
+	if v, ok := ud.Value.(*sorted_set.SortedSet); ok {
+		return v
+	}
+	L.ArgError(1, "sorted set expected")
+	return nil
+}
+
+func luaTypeToNativeType(L *lua.LState, value lua.LValue) interface{} {
 	// TODO: Translate lua type to native type
 	return nil
 }

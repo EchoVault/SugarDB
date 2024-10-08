@@ -29,11 +29,24 @@ function keyExtractionFunc (command, args)
 end
 
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
-  print(ctx)
-  print(command)
-  print(keysExist)
-  print(getValues)
-  print(setValues)
-  print(args)
+  -- Test set
+  s1 = set.new()
+  s1:add({"a", "a", "b", "c", "d"}) -- a, b, c, d
+  print("set", s1)
+  print("set:contains", s1:contains("a")) -- true
+  print("set:cardinality", s1:cardinality()) -- 4
+  print("set:getRandom", s1:getRandom(1))
+  s2 = set.new()
+  s2:add({"c", "c", "d", "d", "e", "e", "f", "f", "g", "g"}) -- c, d, e, f, g
+  s2:pop(1) -- c, d, e, f
+  print("set:remove", s2:remove({"f", "g", "h", "i", "j"})) -- 1
+  s2:add({"x"})
+  print("set:move", s2:move(s1, "x")) -- true
+  print("set:move", s2:move(s1, "z")) -- false
+  s3 = set.new()
+  s3:add({"x", "y", "z"})
+  s4 = s1:subtract({s3})
+  print("set:getAll", s4:getAll())
+
   return "+OK\r\n", nil
 end
