@@ -43,7 +43,7 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 		state.Push(ud)
 		return 1
 	}))
-	// Methods
+	// Set methods
 	L.SetField(setMetaTable, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
 		"add": func(state *lua.LState) int {
 			s := checkSet(state, 1)
@@ -149,7 +149,30 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 		},
 	}))
 
-	// TODO: Register sorted set data type
+	// Register sorted set data type
+	sortedSetMetaTable := L.NewTypeMetatable("sortedset")
+	L.SetGlobal("sortedset", sortedSetMetaTable)
+	// Static fields
+	L.SetField(sortedSetMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
+		ss := sorted_set.NewSortedSet([]sorted_set.MemberParam{})
+		ud := state.NewUserData()
+		ud.Value = ss
+		state.SetMetatable(ud, state.GetTypeMetatable("sortedset"))
+		state.Push(ud)
+		return 1
+	}))
+	// Sorted set methods
+	L.SetField(sortedSetMetaTable, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
+		// TODO: Implement sorted set methods.
+		"addOrUpdate": nil,
+		"cardinality": nil,
+		"contains":    nil,
+		"get":         nil,
+		"getAll":      nil,
+		"getRandom":   nil,
+		"subtract":    nil,
+		"remove":      nil,
+	}))
 
 	// Get the command name
 	cn := L.GetGlobal("command")
