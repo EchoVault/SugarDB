@@ -36,7 +36,17 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 	L.SetGlobal("set", setMetaTable)
 	// Static fields
 	L.SetField(setMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
+		// Create set
 		s := set.NewSet([]string{})
+		// If the default values are passed, add them to the set.
+		if state.GetTop() == 1 {
+			elems := state.CheckTable(1)
+			elems.ForEach(func(key lua.LValue, value lua.LValue) {
+				s.Add([]string{value.String()})
+			})
+			state.Pop(1)
+		}
+
 		ud := state.NewUserData()
 		ud.Value = s
 		state.SetMetatable(ud, state.GetTypeMetatable("set"))

@@ -30,7 +30,7 @@ end
 
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
   -- Test set
-  s1 = set.new()
+  s1 = set.new({"a", "b", "c"})
   s1:add({"a", "a", "b", "c", "d"}) -- a, b, c, d
   print("set", s1)
   print("set:contains", s1:contains("a")) -- true
