@@ -21,6 +21,7 @@ import (
 	"github.com/echovault/sugardb/internal/modules/set"
 	"github.com/echovault/sugardb/internal/modules/sorted_set"
 	lua "github.com/yuin/gopher-lua"
+	"strings"
 )
 
 func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string, string, bool, string, error) {
@@ -46,7 +47,7 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 			})
 			state.Pop(1)
 		}
-
+		// Push the set to the stack
 		ud := state.NewUserData()
 		ud.Value = s
 		state.SetMetatable(ud, state.GetTypeMetatable("set"))
@@ -159,15 +160,76 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 		},
 	}))
 
+	// Register sorted set member data type
+	sortedSetMemberMetaTable := L.NewTypeMetatable("zmember")
+	L.SetGlobal("zmember", sortedSetMemberMetaTable)
+	// Static fields
+	L.SetField(sortedSetMemberMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
+		// Create sorted set member param
+		param := &sorted_set.MemberParam{}
+		// Make sure a value table is passed
+		if state.GetTop() != 1 {
+			state.ArgError(1, "expected table containing value and score to be passed")
+		}
+		// Set the passed values in params
+		arg := state.CheckTable(1)
+		arg.ForEach(func(key lua.LValue, value lua.LValue) {
+			switch strings.ToLower(key.String()) {
+			case "score":
+				if score, ok := value.(lua.LNumber); ok {
+					param.Score = sorted_set.Score(score)
+					return
+				}
+				state.ArgError(1, "score is not a number")
+			case "value":
+				param.Value = sorted_set.Value(value.String())
+			default:
+				state.ArgError(1, fmt.Sprintf("unexpected key '%s' in zmember table", key.String()))
+			}
+		})
+		// Check if value is not empty
+		if param.Value == "" {
+			state.ArgError(1, fmt.Sprintf("value is empty string"))
+		}
+		// Push the param to the stack and return
+		ud := state.NewUserData()
+		ud.Value = param
+		state.SetMetatable(ud, state.GetTypeMetatable("zmember"))
+		state.Push(ud)
+		return 1
+	}))
+	// Sorted set member methods
+	L.SetField(sortedSetMemberMetaTable, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
+		"value": func(state *lua.LState) int {
+			m := checkSortedSetMember(state, 1)
+			if state.GetTop() == 2 {
+				m.Value = sorted_set.Value(state.CheckString(2))
+				return 0
+			}
+			L.Push(lua.LString(m.Value))
+			return 1
+		},
+		"score": func(state *lua.LState) int {
+			m := checkSortedSetMember(state, 1)
+			if state.GetTop() == 2 {
+				m.Score = sorted_set.Score(state.CheckNumber(2))
+				return 0
+			}
+			L.Push(lua.LNumber(m.Score))
+			return 1
+		},
+	}))
+
 	// Register sorted set data type
-	sortedSetMetaTable := L.NewTypeMetatable("sortedset")
-	L.SetGlobal("sortedset", sortedSetMetaTable)
+	sortedSetMetaTable := L.NewTypeMetatable("zset")
+	L.SetGlobal("zset", sortedSetMetaTable)
 	// Static fields
 	L.SetField(sortedSetMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
+		// Create the sorted set
 		ss := sorted_set.NewSortedSet([]sorted_set.MemberParam{})
 		ud := state.NewUserData()
 		ud.Value = ss
-		state.SetMetatable(ud, state.GetTypeMetatable("sortedset"))
+		state.SetMetatable(ud, state.GetTypeMetatable("zset"))
 		state.Push(ud)
 		return 1
 	}))
@@ -372,7 +434,16 @@ func checkSet(L *lua.LState, n int) *set.Set {
 	if v, ok := ud.Value.(*set.Set); ok {
 		return v
 	}
-	L.ArgError(1, "set expected")
+	L.ArgError(n, "set expected")
+	return nil
+}
+
+func checkSortedSetMember(L *lua.LState, n int) *sorted_set.MemberParam {
+	ud := L.CheckUserData(n)
+	if v, ok := ud.Value.(*sorted_set.MemberParam); ok {
+		return v
+	}
+	L.ArgError(n, "zmember expected")
 	return nil
 }
 
@@ -381,7 +452,7 @@ func checkSortedSet(L *lua.LState, n int) *sorted_set.SortedSet {
 	if v, ok := ud.Value.(*sorted_set.SortedSet); ok {
 		return v
 	}
-	L.ArgError(1, "sorted set expected")
+	L.ArgError(n, "zset expected")
 	return nil
 }
 
