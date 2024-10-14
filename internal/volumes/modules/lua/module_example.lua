@@ -35,7 +35,7 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
   --print("set", s1)
   --print("set:contains", s1:contains("a")) -- true
   --print("set:cardinality", s1:cardinality()) -- 4
-  --print("set:getRandom", s1:getRandom(1))
+  --print("set:getRandom", s1:random(1))
   --s2 = set.new()
   --s2:add({"c", "c", "d", "d", "e", "e", "f", "f", "g", "g"}) -- c, d, e, f, g
   --s2:pop(1) -- c, d, e, f
@@ -46,7 +46,7 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
   --s3 = set.new()
   --s3:add({"x", "y", "z"})
   --s4 = s1:subtract({s3})
-  --print("set:getAll", s4:getAll())
+  --print("set:all", s4:all())
 
   -- Test sorted set
   m1 = zmember.new({
@@ -57,6 +57,9 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
   print(m1:value(), m1:score())
   m1:score(23)
   print(m1:value(), m1:score())
+
+  ss = zset.new({m1})
+  print("zupdate: ", ss:update({m1}, {['exists'] = true, ['changed'] = true, ['incr'] = true}))
 
   return "+OK\r\n", nil
 end

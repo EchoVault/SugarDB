@@ -135,7 +135,7 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 			state.Push(ud)
 			return 1
 		},
-		"getAll": func(state *lua.LState) int {
+		"all": func(state *lua.LState) int {
 			s := checkSet(state, 1)
 			// Build table of all the elements in the set
 			elems := state.NewTable()
@@ -146,7 +146,7 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 			state.Push(elems)
 			return 1
 		},
-		"getRandom": func(state *lua.LState) int {
+		"random": func(state *lua.LState) int {
 			s := checkSet(state, 1)
 			count := state.CheckNumber(2)
 			// Build table of random elements
@@ -225,8 +225,24 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 	L.SetGlobal("zset", sortedSetMetaTable)
 	// Static fields
 	L.SetField(sortedSetMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
+		// If default values are passed, add them to the set
+		var members []sorted_set.MemberParam
+		if state.GetTop() == 1 {
+			params := state.CheckTable(1)
+			params.ForEach(func(key lua.LValue, value lua.LValue) {
+				d, ok := value.(*lua.LUserData)
+				if !ok {
+					state.ArgError(1, "expected user data")
+				}
+				if m, ok := d.Value.(*sorted_set.MemberParam); ok {
+					members = append(members, sorted_set.MemberParam{Value: m.Value, Score: m.Score})
+					return
+				}
+				state.ArgError(1, fmt.Sprintf("expected member param, got %s", value.Type().String()))
+			})
+		}
 		// Create the sorted set
-		ss := sorted_set.NewSortedSet([]sorted_set.MemberParam{})
+		ss := sorted_set.NewSortedSet(members)
 		ud := state.NewUserData()
 		ud.Value = ss
 		state.SetMetatable(ud, state.GetTypeMetatable("zset"))
@@ -235,15 +251,191 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 	}))
 	// Sorted set methods
 	L.SetField(sortedSetMetaTable, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
-		// TODO: Implement sorted set methods.
-		"addOrUpdate": nil,
-		"cardinality": nil,
-		"contains":    nil,
-		"get":         nil,
-		"getAll":      nil,
-		"getRandom":   nil,
-		"subtract":    nil,
-		"remove":      nil,
+		"add": func(state *lua.LState) int {
+			ss := checkSortedSet(state, 1)
+
+			// Extract member params
+			paramArgs := state.CheckTable(2)
+			var params []sorted_set.MemberParam
+			paramArgs.ForEach(func(key lua.LValue, value lua.LValue) {
+				ud, ok := value.(*lua.LUserData)
+				if !ok {
+					state.ArgError(2, "expected zmember")
+				}
+				if m, ok := ud.Value.(*sorted_set.MemberParam); ok {
+					params = append(params, sorted_set.MemberParam{Value: m.Value, Score: m.Score})
+					return
+				}
+				state.ArgError(2, "expected zmember to be sorted set member param")
+			})
+
+			// Extract the update options
+			var updatePolicy interface{} = nil
+			var comparison interface{} = nil
+			var changed interface{} = nil
+			var incr interface{} = nil
+			if state.GetTop() == 3 {
+				optsArgs := state.CheckTable(3)
+				optsArgs.ForEach(func(key lua.LValue, value lua.LValue) {
+					switch key.String() {
+					default:
+						state.ArgError(3, fmt.Sprintf("unknown option '%s'", key.String()))
+					case "exists":
+						if value == lua.LTrue {
+							updatePolicy = "xx"
+						} else {
+							updatePolicy = "nx"
+						}
+					case "comparison":
+						comparison = value.String()
+					case "changed":
+						if value == lua.LTrue {
+							changed = "ch"
+						}
+					case "incr":
+						if value == lua.LTrue {
+							incr = "incr"
+						}
+					}
+				})
+			}
+
+			ch, err := ss.AddOrUpdate(params, updatePolicy, comparison, changed, incr)
+			if err != nil {
+				state.ArgError(3, err.Error())
+			}
+			L.Push(lua.LNumber(ch))
+			return 1
+		},
+		"update": func(state *lua.LState) int {
+			ss := checkSortedSet(state, 1)
+
+			// Extract member params
+			paramArgs := state.CheckTable(2)
+			var params []sorted_set.MemberParam
+			paramArgs.ForEach(func(key lua.LValue, value lua.LValue) {
+				ud, ok := value.(*lua.LUserData)
+				if !ok {
+					state.ArgError(2, "expected zmember")
+				}
+				if m, ok := ud.Value.(*sorted_set.MemberParam); ok {
+					params = append(params, sorted_set.MemberParam{Value: m.Value, Score: m.Score})
+					return
+				}
+				state.ArgError(2, "expected zmember to be sorted set member param")
+			})
+
+			// Extract the update options
+			var updatePolicy interface{} = nil
+			var comparison interface{} = nil
+			var changed interface{} = nil
+			var incr interface{} = nil
+			if state.GetTop() == 3 {
+				optsArgs := state.CheckTable(3)
+				optsArgs.ForEach(func(key lua.LValue, value lua.LValue) {
+					switch key.String() {
+					default:
+						state.ArgError(3, fmt.Sprintf("unknown option '%s'", key.String()))
+					case "exists":
+						if value == lua.LTrue {
+							updatePolicy = "xx"
+						} else {
+							updatePolicy = "nx"
+						}
+					case "comparison":
+						comparison = value.String()
+					case "changed":
+						if value == lua.LTrue {
+							changed = "ch"
+						}
+					case "incr":
+						if value == lua.LTrue {
+							incr = "incr"
+						}
+					}
+				})
+			}
+
+			ch, err := ss.AddOrUpdate(params, updatePolicy, comparison, changed, incr)
+			if err != nil {
+				state.ArgError(3, err.Error())
+			}
+			L.Push(lua.LNumber(ch))
+			return 1
+		},
+		"remove": func(state *lua.LState) int {
+			ss := checkSortedSet(state, 1)
+			L.Push(lua.LBool(ss.Remove(sorted_set.Value(state.CheckString(2)))))
+			return 1
+		},
+		"cardinality": func(state *lua.LState) int {
+			state.Push(lua.LNumber(checkSortedSet(state, 1).Cardinality()))
+			return 1
+		},
+		"contains": func(state *lua.LState) int {
+			ss := checkSortedSet(state, 1)
+			L.Push(lua.LBool(ss.Contains(sorted_set.Value(state.Get(-2).String()))))
+			return 1
+		},
+		"random": func(state *lua.LState) int {
+			ss := checkSortedSet(state, 1)
+			count := 1
+			// If a count is passed, use that
+			if state.GetTop() == 2 {
+				count = state.CheckInt(2)
+			}
+			// Build members table
+			random := state.NewTable()
+			members := ss.GetRandom(count)
+			for i, member := range members {
+				ud := state.NewUserData()
+				ud.Value = sorted_set.MemberParam{Value: member.Value, Score: member.Score}
+				state.SetMetatable(ud, state.GetTypeMetatable("zmember"))
+				random.RawSetInt(i+1, ud)
+			}
+			// Push the table to the stack
+			state.Push(random)
+			return 1
+		},
+		"all": func(state *lua.LState) int {
+			ss := checkSortedSet(state, 1)
+			// Build members table
+			members := state.NewTable()
+			for i, member := range ss.GetAll() {
+				ud := state.NewUserData()
+				ud.Value = &sorted_set.MemberParam{Value: member.Value, Score: member.Score}
+				state.SetMetatable(ud, state.GetTypeMetatable("zmember"))
+				members.RawSetInt(i+1, ud)
+			}
+			// Push members table to stack and return
+			state.Push(members)
+			return 1
+		},
+		"subtract": func(state *lua.LState) int {
+			ss := checkSortedSet(state, 1)
+			// Get the sorted sets from the args
+			var others []*sorted_set.SortedSet
+			arg := state.CheckTable(2)
+			arg.ForEach(func(key lua.LValue, value lua.LValue) {
+				ud, ok := value.(*lua.LUserData)
+				if !ok {
+					state.ArgError(2, "expected user data")
+				}
+				zset, ok := ud.Value.(*sorted_set.SortedSet)
+				if !ok {
+					state.ArgError(2, fmt.Sprintf("expected zset at key '%s'", key.String()))
+				}
+				others = append(others, zset)
+			})
+			// Calculate result
+			result := ss.Subtract(others)
+			// Push result to the stack and return
+			ud := state.NewUserData()
+			ud.Value = result
+			state.SetMetatable(ud, state.GetTypeMetatable("zset"))
+			L.Push(ud)
+			return 1
+		},
 	}))
 
 	// Get the command name
