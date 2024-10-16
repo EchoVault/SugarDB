@@ -20,12 +20,12 @@ function keyExtractionFunc (command, args)
     print(k, v)
   end
   if (#command ~= 5) then
-    return nil, "wrong number of args, expected 4"
+    error("wrong number of args, expected 4")
   end
   local keys = {}
   keys["readKeys"] = {command[2]}
   keys["writeKeys"] = {command[4]}
-  return keys, nil
+  return keys
 end
 
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
@@ -49,17 +49,17 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
   --print("set:all", s4:all())
 
   -- Test sorted set
-  m1 = zmember.new({
-    ['value'] = 'member1',
-    ['score'] = 24.897
-  })
-  m1:value("member1-new")
-  print(m1:value(), m1:score())
-  m1:score(23)
-  print(m1:value(), m1:score())
+  --m1 = zmember.new({
+  --  ['value'] = 'member1',
+  --  ['score'] = 24.897
+  --})
+  --m1:value("member1-new")
+  --print(m1:value(), m1:score())
+  --m1:score(23)
+  --print(m1:value(), m1:score())
+  --
+  --ss = zset.new({m1})
+  --print("zupdate: ", ss:update({m1}, {['exists'] = true, ['changed'] = true, ['incr'] = true}))
 
-  ss = zset.new({m1})
-  print("zupdate: ", ss:update({m1}, {['exists'] = true, ['changed'] = true, ['incr'] = true}))
-
-  return "+OK\r\n", nil
+  return "+OK\r\n"
 end

@@ -69,13 +69,13 @@ func (server *SugarDB) AddScriptCommand(
 	// Save the script's VM to the server's list of VMs.
 	server.scriptVMs.Store(commandName, struct {
 		vm   any
-		lock sync.Mutex
+		lock *sync.Mutex
 	}{
 		vm: vm,
 		// lock is the script mutex for the commands.
 		// This mutex will be locked everytime the command is executed because
 		// the script's VM is not thread safe.
-		lock: sync.Mutex{},
+		lock: &sync.Mutex{},
 	})
 
 	// Build the command:
@@ -102,13 +102,13 @@ func (server *SugarDB) AddScriptCommand(
 			}
 		}(engine, vm, args),
 		HandlerFunc: func(engine string, vm any, args []string) internal.HandlerFunc {
-			// Wrapper for the handler function
+			// Wrapper that generates handler function
 			return func(params internal.HandlerFuncParams) ([]byte, error) {
 				switch strings.ToLower(engine) {
 				default:
 					return nil, fmt.Errorf("command %s handler not implemented", commandName)
 				case "lua":
-					return server.buildLuaHandlerFunc(vm, args, params)
+					return server.buildLuaHandlerFunc(vm, commandName, args, params)
 				}
 			}
 		}(engine, vm, args),

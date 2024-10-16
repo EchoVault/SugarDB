@@ -22,6 +22,7 @@ import (
 	"github.com/echovault/sugardb/internal/modules/sorted_set"
 	lua "github.com/yuin/gopher-lua"
 	"strings"
+	"sync"
 )
 
 func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string, string, bool, string, error) {
@@ -488,21 +489,23 @@ func buildLuaKeyExtractionFunc(vm any, cmd []string, args []string) (internal.Ke
 		funcArgs.RawSetInt(i+1, lua.LString(s))
 	}
 	// Call the Lua key extraction function
-	if err := L.CallByParam(lua.P{
+	var err error
+	_ = L.CallByParam(lua.P{
 		Fn:      L.GetGlobal("keyExtractionFunc"),
-		NRet:    2,
+		NRet:    1,
 		Protect: true,
-	}, command, funcArgs); err != nil {
+		Handler: L.NewFunction(func(state *lua.LState) int {
+			err = errors.New(state.Get(-1).String())
+			state.Pop(1)
+			return 0
+		}),
+	}, command, funcArgs)
+	// Check if error was thrown
+	if err != nil {
 		return internal.KeyExtractionFuncResult{}, err
 	}
-	// Check if error is returned
-	if err, ok := L.Get(-1).(lua.LString); ok {
-		return internal.KeyExtractionFuncResult{}, errors.New(err.String())
-	}
-	// Get the returned value
-	ret := L.Get(-2)
-	L.Pop(2)
-	if keys, ok := ret.(*lua.LTable); ok {
+	defer L.Pop(1)
+	if keys, ok := L.Get(-1).(*lua.LTable); ok {
 		// If the returned value is a table, get the keys from the table
 		return internal.KeyExtractionFuncResult{
 			Channels: make([]string, 0),
@@ -524,12 +527,13 @@ func buildLuaKeyExtractionFunc(vm any, cmd []string, args []string) (internal.Ke
 			}(),
 		}, nil
 	} else {
-		// If the returned value is a string, return the string error
-		return internal.KeyExtractionFuncResult{}, errors.New(ret.(lua.LString).String())
+		// If the returned value is not a table, return error
+		return internal.KeyExtractionFuncResult{},
+			fmt.Errorf("key extraction must return a table, got %s", L.Get(-1).Type())
 	}
 }
 
-func (server *SugarDB) buildLuaHandlerFunc(vm any, args []string, params internal.HandlerFuncParams) ([]byte, error) {
+func (server *SugarDB) buildLuaHandlerFunc(vm any, command string, args []string, params internal.HandlerFuncParams) ([]byte, error) {
 	L := vm.(*lua.LState)
 	// Lua table context
 	ctx := L.NewTable()
@@ -542,7 +546,7 @@ func (server *SugarDB) buildLuaHandlerFunc(vm any, args []string, params interna
 	// Function that checks if keys exist
 	keysExist := L.NewFunction(func(state *lua.LState) int {
 		// Get the keys array and pop it from the stack.
-		v := state.Get(-1).(*lua.LTable)
+		v := state.CheckTable(1)
 		state.Pop(1)
 		// Extract the keys from the keys array passed from the lua script.
 		var keys []string
@@ -563,7 +567,7 @@ func (server *SugarDB) buildLuaHandlerFunc(vm any, args []string, params interna
 	// Function that gets values from keys
 	getValues := L.NewFunction(func(state *lua.LState) int {
 		// Get the keys array and pop it from the stack.
-		v := state.Get(-1).(*lua.LTable)
+		v := state.CheckTable(1)
 		state.Pop(1)
 		// Extract the keys from the keys array passed from the lua script.
 		var keys []string
@@ -576,7 +580,7 @@ func (server *SugarDB) buildLuaHandlerFunc(vm any, args []string, params interna
 		res := state.NewTable()
 		for key, value := range values {
 			// Actually parse the value and set it in the response as the appropriate LValue.
-			res.RawSetString(key, nativeTypeToLuaType(value))
+			res.RawSetString(key, nativeTypeToLuaType(state, value))
 		}
 		// Push the value to the stack
 		state.Push(res)
@@ -584,41 +588,59 @@ func (server *SugarDB) buildLuaHandlerFunc(vm any, args []string, params interna
 	})
 	// Function that sets values on keys
 	setValues := L.NewFunction(func(state *lua.LState) int {
-		// Get the keys array and pop it from the stack.
-		v := state.Get(-1).(*lua.LTable)
-		state.Pop(1)
+		// Get the key/value table.
+		v := state.CheckTable(1)
 		// Get values passed from the Lua script and add.
 		values := make(map[string]interface{})
+		var err error
 		v.ForEach(func(key lua.LValue, value lua.LValue) {
 			// Actually parse the value and set it in the response as the appropriate LValue.
-			values[key.String()] = luaTypeToNativeType(L, value)
+			values[key.String()], err = luaTypeToNativeType(L, value)
+			if err != nil {
+				state.ArgError(1, err.Error())
+			}
 		})
-		if err := server.setValues(params.Context, values); err != nil {
-			state.Push(lua.LString(err.Error()))
-			return 1
+		if err = server.setValues(params.Context, values); err != nil {
+			state.ArgError(1, err.Error())
 		}
-		state.Push(nil)
-		return 1
+		// pop key/value table from the stack
+		state.Pop(1)
+		return 0
 	})
 	// Args (Array)
 	funcArgs := L.NewTable()
 	for i, s := range args {
 		funcArgs.RawSetInt(i+1, lua.LString(s))
 	}
+	// Lock this script's execution key before executing the handler
+	script, ok := server.scriptVMs.Load(command)
+	if !ok {
+		return nil, fmt.Errorf("no lock found for script command %s", command)
+	}
+	lock := script.(struct {
+		vm   any
+		lock *sync.Mutex
+	})
+	lock.lock.Lock()
+	defer lock.lock.Unlock()
 	// Call the lua handler function
-	if err := L.CallByParam(lua.P{
+	var err error
+	_ = L.CallByParam(lua.P{
 		Fn:      L.GetGlobal("handlerFunc"),
-		NRet:    2,
+		NRet:    1,
 		Protect: true,
-	}, ctx, cmd, keysExist, getValues, setValues, funcArgs); err != nil {
+		Handler: L.NewFunction(func(state *lua.LState) int {
+			err = errors.New(state.Get(-1).String())
+			state.Pop(1)
+			return 0
+		}),
+	}, ctx, cmd, keysExist, getValues, setValues, funcArgs)
+	if err != nil {
 		return nil, err
 	}
 	// Get and pop the 2 values at the top of the stack, checking whether an error is returned.
-	defer L.Pop(2)
-	if err, ok := L.Get(-1).(lua.LString); ok {
-		return nil, errors.New(err.String())
-	}
-	return []byte(L.Get(-2).String()), nil
+	defer L.Pop(1)
+	return []byte(L.Get(-1).String()), nil
 }
 
 func checkSet(L *lua.LState, n int) *set.Set {
@@ -648,12 +670,58 @@ func checkSortedSet(L *lua.LState, n int) *sorted_set.SortedSet {
 	return nil
 }
 
-func luaTypeToNativeType(L *lua.LState, value lua.LValue) interface{} {
-	// TODO: Translate lua type to native type
-	return nil
+func luaTypeToNativeType(L *lua.LState, value lua.LValue) (interface{}, error) {
+	switch value.Type() {
+	case lua.LTNil:
+		return nil, nil
+	case lua.LTString:
+		return value.String(), nil
+	case lua.LTBool:
+		return value == lua.LTrue, nil
+	case lua.LTNumber:
+		return internal.AdaptType(value.String()), nil
+	case lua.LTTable:
+		// TODO: Implement table translation
+	case lua.LTUserData:
+		// TODO: Implement user data translation
+	default:
+		return nil, nil
+	}
+	return nil, nil
 }
 
-func nativeTypeToLuaType(value interface{}) lua.LValue {
-	// TODO: Translate native type to lua type
+func nativeTypeToLuaType(L *lua.LState, value interface{}) lua.LValue {
+	switch value.(type) {
+	case string:
+		return lua.LString(value.(string))
+	case float32:
+		return lua.LNumber(value.(float32))
+	case float64:
+		return lua.LNumber(value.(float64))
+	case int, int64:
+		return lua.LNumber(value.(int))
+	case []string:
+		tbl := L.NewTable()
+		for i, v := range value.([]string) {
+			tbl.RawSetInt(i+1, lua.LString(v))
+		}
+		return tbl
+	case map[string]interface{}:
+		tbl := L.NewTable()
+		for k, v := range value.(map[string]interface{}) {
+			tbl.RawSetString(k, lua.LString(v.(string)))
+		}
+		return tbl
+	case *set.Set:
+		ud := L.NewUserData()
+		ud.Value = value.(*set.Set)
+		L.SetMetatable(ud, L.GetTypeMetatable("set"))
+		return ud
+	case *sorted_set.SortedSet:
+		ud := L.NewUserData()
+		ud.Value = value.(*sorted_set.SortedSet)
+		L.SetMetatable(ud, L.GetTypeMetatable("zset"))
+		return ud
+	}
 	return nil
 }
