@@ -30,36 +30,38 @@ end
 
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
   -- Test set
-  --s1 = set.new({"a", "b", "c"})
-  --s1:add({"a", "a", "b", "c", "d"}) -- a, b, c, d
-  --print("set", s1)
-  --print("set:contains", s1:contains("a")) -- true
-  --print("set:cardinality", s1:cardinality()) -- 4
-  --print("set:getRandom", s1:random(1))
-  --s2 = set.new()
-  --s2:add({"c", "c", "d", "d", "e", "e", "f", "f", "g", "g"}) -- c, d, e, f, g
-  --s2:pop(1) -- c, d, e, f
-  --print("set:remove", s2:remove({"f", "g", "h", "i", "j"})) -- 1
-  --s2:add({"x"})
-  --print("set:move", s2:move(s1, "x")) -- true
-  --print("set:move", s2:move(s1, "z")) -- false
-  --s3 = set.new()
-  --s3:add({"x", "y", "z"})
-  --s4 = s1:subtract({s3})
-  --print("set:all", s4:all())
+  s1 = set.new({"a", "b", "c"})
+  s1:add({"a", "a", "b", "c", "d"}) -- a, b, c, d
+  print("set", s1)
+  print("set:contains", s1:contains("a")) -- true
+  print("set:cardinality", s1:cardinality()) -- 4
+  print("set:getRandom", s1:random(1))
+  s2 = set.new()
+  s2:add({"c", "c", "d", "d", "e", "e", "f", "f", "g", "g"}) -- c, d, e, f, g
+  s2:pop(1) -- c, d, e, f
+  print("set:remove", s2:remove({"f", "g", "h", "i", "j"})) -- 1
+  s2:add({"x"})
+  print("set:move", s2:move(s1, "x")) -- true
+  print("set:move", s2:move(s1, "z")) -- false
+  s3 = set.new()
+  s3:add({"x", "y", "z"})
+  s4 = s1:subtract({s3})
+  print("set:all", s4:all())
 
   -- Test sorted set
-  --m1 = zmember.new({
-  --  ['value'] = 'member1',
-  --  ['score'] = 24.897
-  --})
-  --m1:value("member1-new")
-  --print(m1:value(), m1:score())
-  --m1:score(23)
-  --print(m1:value(), m1:score())
-  --
-  --ss = zset.new({m1})
-  --print("zupdate: ", ss:update({m1}, {['exists'] = true, ['changed'] = true, ['incr'] = true}))
+  m1 = zmember.new({
+    ['value'] = 'member1',
+    ['score'] = 24.897
+  })
+  m1:value("member1-new")
+  print(m1:value(), m1:score())
+  m1:score(23)
+  print(m1:value(), m1:score())
+
+  ss = zset.new({m1})
+  print("zupdate: ", ss:update({m1}, {['exists'] = true, ['changed'] = true, ['incr'] = true}))
+
+  setValues({["s1"] = s1, ["ss"] = ss, ["t1"] = 3, ["t2"] = 3.142})
 
   return "+OK\r\n"
 end

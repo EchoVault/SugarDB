@@ -606,7 +606,7 @@ func (server *SugarDB) buildLuaHandlerFunc(vm any, command string, args []string
 		var err error
 		v.ForEach(func(key lua.LValue, value lua.LValue) {
 			// Actually parse the value and set it in the response as the appropriate LValue.
-			values[key.String()], err = luaTypeToNativeType(L, value)
+			values[key.String()], err = luaTypeToNativeType(value)
 			if err != nil {
 				state.ArgError(1, err.Error())
 			}
@@ -681,7 +681,7 @@ func checkSortedSet(L *lua.LState, n int) *sorted_set.SortedSet {
 	return nil
 }
 
-func luaTypeToNativeType(L *lua.LState, value lua.LValue) (interface{}, error) {
+func luaTypeToNativeType(value lua.LValue) (interface{}, error) {
 	switch value.Type() {
 	case lua.LTNil:
 		return nil, nil
@@ -694,7 +694,14 @@ func luaTypeToNativeType(L *lua.LState, value lua.LValue) (interface{}, error) {
 	case lua.LTTable:
 		// TODO: Implement table translation
 	case lua.LTUserData:
-		// TODO: Implement user data translation
+		switch value.(*lua.LUserData).Value.(type) {
+		default:
+			return nil, errors.New("unknown user data")
+		case *set.Set:
+			return value.(*lua.LUserData).Value.(*set.Set), nil
+		case *sorted_set.SortedSet:
+			return value.(*lua.LUserData).Value.(*sorted_set.SortedSet), nil
+		}
 	default:
 		return nil, nil
 	}
