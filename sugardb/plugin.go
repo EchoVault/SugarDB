@@ -97,7 +97,7 @@ func (server *SugarDB) AddScriptCommand(
 						WriteKeys: make([]string, 0),
 					}, nil
 				case "lua":
-					return buildLuaKeyExtractionFunc(vm, cmd, args)
+					return server.buildLuaKeyExtractionFunc(vm, cmd, args)
 				}
 			}
 		}(engine, vm, args),

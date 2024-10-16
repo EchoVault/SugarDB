@@ -473,10 +473,10 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 	// Set command type
 	commandType := "LUA_SCRIPT"
 
-	return L, cn.String(), m.String(), categories, d.String(), synchronize, commandType, nil
+	return L, strings.ToLower(cn.String()), strings.ToLower(m.String()), categories, d.String(), synchronize, commandType, nil
 }
 
-func buildLuaKeyExtractionFunc(vm any, cmd []string, args []string) (internal.KeyExtractionFuncResult, error) {
+func (server *SugarDB) buildLuaKeyExtractionFunc(vm any, cmd []string, args []string) (internal.KeyExtractionFuncResult, error) {
 	L := vm.(*lua.LState)
 	// Create command table to pass to the Lua function
 	command := L.NewTable()
@@ -488,6 +488,17 @@ func buildLuaKeyExtractionFunc(vm any, cmd []string, args []string) (internal.Ke
 	for i, s := range args {
 		funcArgs.RawSetInt(i+1, lua.LString(s))
 	}
+	// Lock the script before executing the key extraction function
+	script, ok := server.scriptVMs.Load(strings.ToLower(cmd[0]))
+	if !ok {
+		return internal.KeyExtractionFuncResult{}, fmt.Errorf("no lock found for script command %s", command)
+	}
+	lock := script.(struct {
+		vm   any
+		lock *sync.Mutex
+	})
+	lock.lock.Lock()
+	defer lock.lock.Unlock()
 	// Call the Lua key extraction function
 	var err error
 	_ = L.CallByParam(lua.P{
