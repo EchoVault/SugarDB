@@ -5,14 +5,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/echovault/src/mock/server"
+	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
 	"github.com/tidwall/resp"
 	"testing"
 )
 
 func Test_HandleGET(t *testing.T) {
-	mockServer := server.NewMockServer()
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		key   string
@@ -87,7 +87,7 @@ func Test_HandleGET(t *testing.T) {
 }
 
 func Test_HandleMGET(t *testing.T) {
-	mockServer := server.NewMockServer()
+	mockServer := server.NewServer(server.Opts{})
 
 	tests := []struct {
 		presetKeys    []string

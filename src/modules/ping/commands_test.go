@@ -3,41 +3,57 @@ package ping
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"github.com/echovault/echovault/src/mock/server"
+	"errors"
+	"github.com/echovault/echovault/src/server"
 	"github.com/echovault/echovault/src/utils"
+	"github.com/tidwall/resp"
 	"testing"
 )
 
 func Test_HandlePing(t *testing.T) {
 	ctx := context.Background()
-	mockServer := &server.Server{}
+	mockServer := server.NewServer(server.Opts{})
 
-	// Test PING with no string
-	res, err := handlePing(ctx, []string{"PING"}, mockServer, nil)
-	if err != nil {
-		t.Error(err)
-	}
-	if !bytes.Equal(res, []byte("+PONG\r\n\r\n")) {
-		t.Errorf("expected %+v, got: %+v", "+PONG\r\n\r\n", res)
+	tests := []struct {
+		command     []string
+		expected    string
+		expectedErr error
+	}{
+		{
+			command:     []string{"PING"},
+			expected:    "PONG",
+			expectedErr: nil,
+		},
+		{
+			command:     []string{"PING", "Hello, world!"},
+			expected:    "Hello, world!",
+			expectedErr: nil,
+		},
+		{
+			command:     []string{"PING", "Hello, world!", "Once more"},
+			expected:    "",
+			expectedErr: errors.New(utils.WRONG_ARGS_RESPONSE),
+		},
 	}
 
-	// Test PING with string arg
-	testString := "Test String"
-	res, err = handlePing(ctx, []string{"PING", testString}, mockServer, nil)
-	if err != nil {
-		t.Error(err)
-	}
-	if !bytes.Equal(res, []byte(fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(testString), testString))) {
-		t.Errorf("expected: %+v, got: %+v", fmt.Sprintf("$%d\r\n%s\r\n\r\n", len(testString), testString), res)
-	}
-
-	// Test PING with more than 1 arg
-	res, err = handlePing(ctx, []string{"PING", testString, testString}, mockServer, nil)
-	if res != nil {
-		t.Errorf("expected nil, got: %+v", res)
-	}
-	if err.Error() != utils.WRONG_ARGS_RESPONSE {
-		t.Errorf("expected: %s, got: %s", utils.WRONG_ARGS_RESPONSE, err.Error())
+	for _, test := range tests {
+		res, err := handlePing(ctx, test.command, mockServer, nil)
+		if test.expectedErr != nil && err != nil {
+			if err.Error() != test.expectedErr.Error() {
+				t.Errorf("expected error %s, got: %s", test.expectedErr.Error(), err.Error())
+			}
+			continue
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		rd := resp.NewReader(bytes.NewBuffer(res))
+		v, _, err := rd.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if v.String() != test.expected {
+			t.Errorf("expected %s, got: %s", test.expected, v.String())
+		}
 	}
 }
