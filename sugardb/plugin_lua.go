@@ -692,7 +692,31 @@ func luaTypeToNativeType(value lua.LValue) (interface{}, error) {
 	case lua.LTNumber:
 		return internal.AdaptType(value.String()), nil
 	case lua.LTTable:
-		// TODO: Implement table translation
+		hash := make(map[string]interface{})
+		isArray := true
+		var err error
+		value.(*lua.LTable).ForEach(func(key lua.LValue, value lua.LValue) {
+			switch key.Type() {
+			default:
+				err = fmt.Errorf("hash key is not a string or number, type %s", key.Type())
+			case lua.LTString:
+				hash[key.String()] = value.String()
+				isArray = false
+			case lua.LTNumber:
+				hash[key.String()] = value.String()
+			}
+		})
+		if err != nil {
+			return nil, err
+		}
+		if isArray {
+			var array []string
+			for _, v := range hash {
+				array = append(array, v.(string))
+			}
+			return array, nil
+		}
+		return hash, nil
 	case lua.LTUserData:
 		switch value.(*lua.LUserData).Value.(type) {
 		default:
@@ -703,9 +727,8 @@ func luaTypeToNativeType(value lua.LValue) (interface{}, error) {
 			return value.(*lua.LUserData).Value.(*sorted_set.SortedSet), nil
 		}
 	default:
-		return nil, nil
+		return nil, fmt.Errorf("unknown type %s", value.Type())
 	}
-	return nil, nil
 }
 
 func nativeTypeToLuaType(L *lua.LState, value interface{}) lua.LValue {
