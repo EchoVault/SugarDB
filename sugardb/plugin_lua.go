@@ -493,12 +493,12 @@ func (server *SugarDB) buildLuaKeyExtractionFunc(vm any, cmd []string, args []st
 	if !ok {
 		return internal.KeyExtractionFuncResult{}, fmt.Errorf("no lock found for script command %s", command)
 	}
-	lock := script.(struct {
+	machine := script.(struct {
 		vm   any
 		lock *sync.Mutex
 	})
-	lock.lock.Lock()
-	defer lock.lock.Unlock()
+	machine.lock.Lock()
+	defer machine.lock.Unlock()
 	// Call the Lua key extraction function
 	var err error
 	_ = L.CallByParam(lua.P{

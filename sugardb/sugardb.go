@@ -39,10 +39,12 @@ import (
 	str "github.com/echovault/sugardb/internal/modules/string"
 	"github.com/echovault/sugardb/internal/raft"
 	"github.com/echovault/sugardb/internal/snapshot"
+	lua "github.com/yuin/gopher-lua"
 	"io"
 	"log"
 	"net"
 	"os"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -626,16 +628,41 @@ func (server *SugarDB) ShutDown() {
 	if server.listener.Load() != nil {
 		go func() { server.quit <- struct{}{} }()
 		go func() { server.stopTTL <- struct{}{} }()
+
 		log.Println("closing tcp listener...")
 		if err := server.listener.Load().(net.Listener).Close(); err != nil {
 			log.Printf("listener close: %v\n", err)
 		}
 	}
-	// TODO: Shutdown all script VMs
-	if !server.isInCluster() {
-		server.aofEngine.Close()
+
+	// Shutdown all script VMs
+	log.Println("shutting down script vms...")
+	server.commandsRWMut.Lock()
+	for _, command := range server.commands {
+		if slices.Contains([]string{"LUA_SCRIPT"}, command.Type) {
+			v, ok := server.scriptVMs.Load(command.Command)
+			if !ok {
+				continue
+			}
+			machine := v.(struct {
+				vm   any
+				lock *sync.Mutex
+			})
+			machine.lock.Lock()
+			switch command.Type {
+			case "LUA_SCRIPT":
+				machine.vm.(*lua.LState).Close()
+			}
+			machine.lock.Unlock()
+		}
 	}
-	if server.isInCluster() {
+	server.commandsRWMut.Unlock()
+
+	if !server.isInCluster() {
+		// Server is not in cluster, run standalone-only shutdown processes.
+		server.aofEngine.Close()
+	} else {
+		// Server is in cluster, run cluster-only shutdown processes.
 		server.raft.RaftShutdown()
 		server.memberList.MemberListShutdown()
 	}
