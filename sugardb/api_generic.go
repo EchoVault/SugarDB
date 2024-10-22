@@ -137,6 +137,16 @@ type GetExOption interface {
 
 func (x GetExOpt) isGetExOpt() GetExOpt { return x }
 
+// COPYOptions is a struct wrapper for all optional parameters of the Copy command.
+//
+// `Database` - string - Logical database index
+//
+// `Replace` - bool - Whether to replace the destinaton key if it exists
+type COPYOptions struct{
+	Database string
+	Replace bool
+}
+
 // Set creates or modifies the value at the given key.
 //
 // Parameters:
@@ -718,3 +728,29 @@ func (server *SugarDB) Type(key string) (string, error) {
 	}
 	return internal.ParseStringResponse(b)
 }
+
+// Copy copies a value of a source key to destination key.
+//
+// Parameters:
+//
+// `key` - string - the key whose type should be returned
+//
+// Returns: A string representation of the type of the value stored at key, if the key doesn't exist an empty string and error is returned
+func (server *SugarDB) Copy(sourceKey, destinationKey string, options COPYOptions) (string, error) {
+	cmd := []string{"COPY", sourceKey, destinationKey}
+
+	if options.Database != "" {
+		cmd = append(cmd, "db", options.Database)
+	}
+
+	if options.Replace {
+		cmd = append(cmd, "replace")
+	}
+
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return "", err
+	}
+	return internal.ParseStringResponse(b)
+}
+

@@ -15,6 +15,7 @@
 package generic
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -594,6 +595,7 @@ func handleIncrByFloat(params internal.HandlerFuncParams) ([]byte, error) {
 	response := fmt.Sprintf("$%d\r\n%g\r\n", len(fmt.Sprintf("%g", newValue)), newValue)
 	return []byte(response), nil
 }
+
 func handleDecrBy(params internal.HandlerFuncParams) ([]byte, error) {
 	// Extract key from command
 	keys, err := decrByKeyFunc(params.Command)
@@ -867,6 +869,52 @@ func handleObjIdleTime(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	return []byte(fmt.Sprintf("+%v\r\n", idletime)), nil
+}
+
+func handleCopy(params internal.HandlerFuncParams)([]byte, error){
+	keys, err := copyKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	options, err := getCopyCommandOptions(params.Command[3:], CopyOptions{})
+	if err != nil {
+		return nil, err
+	}
+	sourceKey := keys.ReadKeys[0]
+	destinationKey := keys.WriteKeys[0]
+	sourceKeyExists := params.KeysExist(params.Context, []string{sourceKey})[sourceKey]
+
+	if !sourceKeyExists {
+		return []byte(":0\r\n"), nil
+	}
+
+	if !options.replace{
+		destinationKeyExists := params.KeysExist(params.Context, []string{destinationKey})[destinationKey]
+
+		if destinationKeyExists{
+			return []byte(":0\r\n"), nil
+		}
+	}
+
+	value := params.GetValues(params.Context, []string{sourceKey})[sourceKey]
+
+	ctx := context.WithoutCancel(params.Context)
+
+	if options.database != ""{
+		database, _ := strconv.Atoi(options.database)
+		ctx = context.WithValue(ctx, "Database", database)
+	}
+
+	if err = params.SetValues(ctx, map[string]interface{}{
+		destinationKey: value,
+	}); err != nil {
+		return nil, err
+	}
+
+	
+
+	return []byte(":1\r\n"), nil
 }
 
 func Commands() []internal.Command {
@@ -1208,6 +1256,15 @@ The command is only available when the maxmemory-policy configuration directive 
 			Sync:              false,
 			KeyExtractionFunc: objIdleTimeKeyFunc,
 			HandlerFunc:       handleObjIdleTime,
+		},
+		{
+			Command:    "copy",
+			Module:     constants.GenericModule,
+			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.SlowCategory},
+			Description: `(COPY source destination [DB destination-db] [REPLACE]) Copies the value stored at the source key to the destination key.`,
+			Sync:              false,
+			KeyExtractionFunc: copyKeyFunc,
+			HandlerFunc:       handleCopy,
 		},
 	}
 }
