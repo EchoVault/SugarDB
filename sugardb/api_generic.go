@@ -733,9 +733,11 @@ func (server *SugarDB) Type(key string) (string, error) {
 //
 // Parameters:
 //
-// `key` - string - the key whose type should be returned
+// `source` - string - the source key from which data is to be copied
 //
-// Returns: A string representation of the type of the value stored at key, if the key doesn't exist an empty string and error is returned
+// `destination` - string - the destination key where data should be copied
+// 
+// Returns: 1 if the copy is sucessful. 0 if the copy is unsucessful
 func (server *SugarDB) Copy(sourceKey, destinationKey string, options COPYOptions) (string, error) {
 	cmd := []string{"COPY", sourceKey, destinationKey}
 
