@@ -738,7 +738,7 @@ func (server *SugarDB) Type(key string) (string, error) {
 // `destination` - string - the destination key where data should be copied
 // 
 // Returns: 1 if the copy is sucessful. 0 if the copy is unsucessful
-func (server *SugarDB) Copy(sourceKey, destinationKey string, options COPYOptions) (string, error) {
+func (server *SugarDB) Copy(sourceKey, destinationKey string, options COPYOptions) (int, error) {
 	cmd := []string{"COPY", sourceKey, destinationKey}
 
 	if options.Database != "" {
@@ -751,8 +751,8 @@ func (server *SugarDB) Copy(sourceKey, destinationKey string, options COPYOption
 
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	return internal.ParseStringResponse(b)
+	return internal.ParseIntegerResponse(b)
 }
 
