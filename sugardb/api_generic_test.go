@@ -1843,7 +1843,7 @@ func TestSugarDB_COPY(t *testing.T) {
 		destKeyPresetValue   interface{}
 		destinationKey       string
 		options              COPYOptions
-		value                string
+		expectedValue                string
 		want                 int
 		wantErr              bool
 	}{
@@ -1854,7 +1854,7 @@ func TestSugarDB_COPY(t *testing.T) {
 			destKeyPresetValue:   nil,
 			destinationKey:       "dkey1",
 			options:              CopyOptions("0", false),
-			value:                "value1",
+			expectedValue:                "value1",
 			want:                 1,
 			wantErr:              false,
 		},
@@ -1865,7 +1865,7 @@ func TestSugarDB_COPY(t *testing.T) {
 			destKeyPresetValue:   "dValue2",
 			destinationKey:       "dkey2",
 			options:              CopyOptions("0", false),
-			value:                "dValue2",
+			expectedValue:                "dValue2",
 			want:                 0,
 			wantErr:              false,
 		},
@@ -1876,7 +1876,7 @@ func TestSugarDB_COPY(t *testing.T) {
 			destKeyPresetValue:   "dValue3",
 			destinationKey:       "dkey3",
 			options:              CopyOptions("0", true),
-			value:                "value3",
+			expectedValue:                "value3",
 			want:                 1,
 			wantErr:              false,
 		},
@@ -1887,7 +1887,7 @@ func TestSugarDB_COPY(t *testing.T) {
 			destKeyPresetValue:   nil,
 			destinationKey:       "dkey4",
 			options:              CopyOptions("1", false),
-			value:                "value4",
+			expectedValue:                "value4",
 			want:                 1,
 			wantErr:              false,
 		},
@@ -1925,8 +1925,8 @@ func TestSugarDB_COPY(t *testing.T) {
 				return
 			}
 
-			if val != tt.value {
-				t.Errorf("COPY() value in destionation key: %v, should be: %v", val, tt.value)
+			if val != tt.expectedValue {
+				t.Errorf("COPY() value in destionation key: %v, should be: %v", val, tt.expectedValue)
 			}
 		})
 	}
