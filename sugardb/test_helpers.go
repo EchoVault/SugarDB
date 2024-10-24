@@ -2,6 +2,8 @@ package sugardb
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/config"
 	"github.com/echovault/sugardb/internal/constants"
@@ -36,4 +38,14 @@ func presetKeyData(server *SugarDB, ctx context.Context, key string, data intern
 	ctx = context.WithValue(ctx, "Database", 0)
 	_ = server.setValues(ctx, map[string]interface{}{key: data.Value})
 	server.setExpiry(ctx, key, data.ExpireAt, false)
+}
+
+func getValue (server *SugarDB, ctx context.Context, key string, database string) (interface{}, error) {
+	db, err := strconv.Atoi(database)
+	if err != nil {
+		return nil, err
+	}
+	ctx = context.WithValue(ctx, "Database", db)
+	
+	return server.getValues(ctx, []string{key})[key], err
 }

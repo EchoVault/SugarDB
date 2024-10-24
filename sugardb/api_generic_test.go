@@ -1826,6 +1826,111 @@ func TestSugarDB_TYPE(t *testing.T) {
 	}
 }
 
+func TestSugarDB_COPY(t *testing.T) {
+	server := createSugarDB()
+
+	CopyOptions := func(DB string, R bool) COPYOptions {
+		return COPYOptions{
+			Database: DB,
+			Replace:  R,
+		}
+	}
+
+	tests := []struct {
+		name                 string
+		sourceKeyPresetValue interface{}
+		sourcekey            string
+		destKeyPresetValue   interface{}
+		destinationKey       string
+		options              COPYOptions
+		expectedValue                string
+		want                 int
+		wantErr              bool
+	}{
+		{
+			name:                 "Copy Value into non existing key",
+			sourceKeyPresetValue: "value1",
+			sourcekey:            "skey1",
+			destKeyPresetValue:   nil,
+			destinationKey:       "dkey1",
+			options:              CopyOptions("0", false),
+			expectedValue:                "value1",
+			want:                 1,
+			wantErr:              false,
+		},
+		{
+			name:                 "Copy Value into existing key without replace option",
+			sourceKeyPresetValue: "value2",
+			sourcekey:            "skey2",
+			destKeyPresetValue:   "dValue2",
+			destinationKey:       "dkey2",
+			options:              CopyOptions("0", false),
+			expectedValue:                "dValue2",
+			want:                 0,
+			wantErr:              false,
+		},
+		{
+			name:                 "Copy Value into existing key with replace option",
+			sourceKeyPresetValue: "value3",
+			sourcekey:            "skey3",
+			destKeyPresetValue:   "dValue3",
+			destinationKey:       "dkey3",
+			options:              CopyOptions("0", true),
+			expectedValue:                "value3",
+			want:                 1,
+			wantErr:              false,
+		},
+		{
+			name:                 "Copy Value into different database",
+			sourceKeyPresetValue: "value4",
+			sourcekey:            "skey4",
+			destKeyPresetValue:   nil,
+			destinationKey:       "dkey4",
+			options:              CopyOptions("1", false),
+			expectedValue:                "value4",
+			want:                 1,
+			wantErr:              false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.sourceKeyPresetValue != nil {
+				err := presetValue(server, context.Background(), tt.sourcekey, tt.sourceKeyPresetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			if tt.destKeyPresetValue != nil {
+				err := presetValue(server, context.Background(), tt.destinationKey, tt.destKeyPresetValue)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+
+			got, err := server.Copy(tt.sourcekey, tt.destinationKey, tt.options)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("COPY() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("COPY() got = %v, want %v", got, tt.want)
+			}
+
+			val, err := getValue(server, context.Background(), tt.destinationKey, tt.options.Database)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			if val != tt.expectedValue {
+				t.Errorf("COPY() value in destionation key: %v, should be: %v", val, tt.expectedValue)
+			}
+		})
+	}
+}
+
 func TestSugarDB_MOVE(t *testing.T) {
 	server := createSugarDB()
 
@@ -1867,7 +1972,6 @@ func TestSugarDB_MOVE(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("MOVE() got %v, want %v", got, tt.want)
 			}
-
 		})
 	}
 }

@@ -3333,6 +3333,168 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
+	t.Run("Test_HandleCOPY", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name                 string
+			sourceKeyPresetValue interface{}
+			sourcekey            string
+			destKeyPresetValue   interface{}
+			destinationKey       string
+			database             string
+			replace              bool
+			expectedValue        string
+			expectedResponse     string
+		}{
+			{
+				name:                 "1. Copy Value into non existing key",
+				sourceKeyPresetValue: "value1",
+				sourcekey:            "skey1",
+				destKeyPresetValue:   nil,
+				destinationKey:       "dkey1",
+				database:             "0",
+				replace:              false,
+				expectedValue:        "value1",
+				expectedResponse:     "1",
+			},
+			{
+				name:                 "2. Copy Value into existing key without replace option",
+				sourceKeyPresetValue: "value2",
+				sourcekey:            "skey2",
+				destKeyPresetValue:   "dValue2",
+				destinationKey:       "dkey2",
+				database:             "0",
+				replace:              false,
+				expectedValue:        "dValue2",
+				expectedResponse:     "0",
+			},
+			{
+				name:                 "3. Copy Value into existing key with replace option",
+				sourceKeyPresetValue: "value3",
+				sourcekey:            "skey3",
+				destKeyPresetValue:   "dValue3",
+				destinationKey:       "dkey3",
+				database:             "0",
+				replace:              true,
+				expectedValue:        "value3",
+				expectedResponse:     "1",
+			},
+			{
+				name:                 "4. Copy Value into different database",
+				sourceKeyPresetValue: "value4",
+				sourcekey:            "skey4",
+				destKeyPresetValue:   nil,
+				destinationKey:       "dkey4",
+				database:             "1",
+				replace:              true,
+				expectedValue:        "value4",
+				expectedResponse:     "1",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if tt.sourceKeyPresetValue != nil {
+					cmd := []resp.Value{resp.StringValue("Set"), resp.StringValue(tt.sourcekey), resp.StringValue(tt.sourceKeyPresetValue.(string))}
+
+					err := client.WriteArray(cmd)
+					if err != nil {
+						t.Error(err)
+					}
+
+					rd, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(rd.String(), "ok") {
+						t.Errorf("expected preset response to be \"OK\", got %s", rd.String())
+					}
+				}
+
+				if tt.destKeyPresetValue != nil {
+					cmd := []resp.Value{resp.StringValue("Set"), resp.StringValue(tt.destinationKey), resp.StringValue(tt.destKeyPresetValue.(string))}
+
+					err := client.WriteArray(cmd)
+					if err != nil {
+						t.Error(err)
+					}
+
+					rd, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(rd.String(), "ok") {
+						t.Errorf("expected preset response to be \"OK\", got %s", rd.String())
+					}
+				}
+
+				command := []resp.Value{resp.StringValue("COPY"), resp.StringValue(tt.sourcekey), resp.StringValue(tt.destinationKey)}
+
+				if tt.database != "0" {
+					command = append(command, resp.StringValue("DB"), resp.StringValue(tt.database))
+				}
+
+				if tt.replace {
+					command = append(command, resp.StringValue("REPLACE"))
+				}
+
+				err := client.WriteArray(command)
+				if err != nil {
+					t.Error(err)
+				}
+
+				rd, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				if !strings.EqualFold(rd.String(), tt.expectedResponse) {
+					t.Errorf("expected response to be %s, but got %s", tt.expectedResponse, rd.String())
+				}
+
+				if tt.database != "0" {
+					selectCommand := []resp.Value{resp.StringValue("SELECT"), resp.StringValue(tt.database)}
+
+					err := client.WriteArray(selectCommand)
+					if err != nil {
+						t.Error(err)
+					}
+					_, _, err = client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+				}
+
+				getCommand := []resp.Value{resp.StringValue("GET"), resp.StringValue(tt.destinationKey)}
+
+				err = client.WriteArray(getCommand)
+				if err != nil {
+					t.Error(err)
+				}
+
+				rd, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				if !strings.EqualFold(rd.String(), tt.expectedValue) {
+					t.Errorf("expected value in destinaton key to be %s, but got %s", tt.expectedValue, rd.String())
+				}
+			})
+		}
+
+	})
+
 	t.Run("Test_HandleMOVE", func(t *testing.T) {
 		t.Parallel()
 
@@ -3474,7 +3636,7 @@ func Test_Generic(t *testing.T) {
 }
 
 // Certain commands will need to be tested in a server with an eviction policy.
-// This is for testing against an LFU evictiona policy.
+// This is for testing against an LFU eviction policy.
 func Test_LFU_Generic(t *testing.T) {
 	// mockClock := clock.NewClock()
 	port, err := internal.GetFreePort()
