@@ -141,10 +141,10 @@ func (x GetExOpt) isGetExOpt() GetExOpt { return x }
 //
 // `Database` - string - Logical database index
 //
-// `Replace` - bool - Whether to replace the destinaton key if it exists
-type COPYOptions struct{
+// `Replace` - bool - Whether to replace the destination key if it exists
+type COPYOptions struct {
 	Database string
-	Replace bool
+	Replace  bool
 }
 
 // Set creates or modifies the value at the given key.
@@ -736,8 +736,8 @@ func (server *SugarDB) Type(key string) (string, error) {
 // `source` - string - the source key from which data is to be copied
 //
 // `destination` - string - the destination key where data should be copied
-// 
-// Returns: 1 if the copy is sucessful. 0 if the copy is unsucessful
+//
+// Returns: 1 if the copy is successful. 0 if the copy is unsuccessful
 func (server *SugarDB) Copy(sourceKey, destinationKey string, options COPYOptions) (int, error) {
 	cmd := []string{"COPY", sourceKey, destinationKey}
 

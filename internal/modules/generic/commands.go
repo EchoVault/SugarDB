@@ -871,7 +871,7 @@ func handleObjIdleTime(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("+%v\r\n", idletime)), nil
 }
 
-func handleCopy(params internal.HandlerFuncParams)([]byte, error){
+func handleCopy(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := copyKeyFunc(params.Command)
 	if err != nil {
 		return nil, err
@@ -889,10 +889,10 @@ func handleCopy(params internal.HandlerFuncParams)([]byte, error){
 		return []byte(":0\r\n"), nil
 	}
 
-	if !options.replace{
+	if !options.replace {
 		destinationKeyExists := params.KeysExist(params.Context, []string{destinationKey})[destinationKey]
 
-		if destinationKeyExists{
+		if destinationKeyExists {
 			return []byte(":0\r\n"), nil
 		}
 	}
@@ -901,7 +901,7 @@ func handleCopy(params internal.HandlerFuncParams)([]byte, error){
 
 	ctx := context.WithoutCancel(params.Context)
 
-	if options.database != ""{
+	if options.database != "" {
 		database, _ := strconv.Atoi(options.database)
 		ctx = context.WithValue(ctx, "Database", database)
 	}
@@ -911,8 +911,6 @@ func handleCopy(params internal.HandlerFuncParams)([]byte, error){
 	}); err != nil {
 		return nil, err
 	}
-
-	
 
 	return []byte(":1\r\n"), nil
 }
@@ -1306,7 +1304,10 @@ The command is only available when the maxmemory-policy configuration directive 
 			Command:    "copy",
 			Module:     constants.GenericModule,
 			Categories: []string{constants.KeyspaceCategory, constants.WriteCategory, constants.SlowCategory},
-			Description: `(COPY source destination [DB destination-db] [REPLACE]) Copies the value stored at the source key to the destination key.`,
+			Description: `(COPY source destination [DB destination-db] [REPLACE]) 
+Copies the value stored at the source key to the destination key.
+The command returns zero when the destination key already exists. 
+The REPLACE option removes the destination key before copying the value to it.`,
 			Sync:              false,
 			KeyExtractionFunc: copyKeyFunc,
 			HandlerFunc:       handleCopy,

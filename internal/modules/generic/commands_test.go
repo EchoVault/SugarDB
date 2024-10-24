@@ -3495,7 +3495,6 @@ func Test_Generic(t *testing.T) {
 
 	})
 
-
 	t.Run("Test_HandleMOVE", func(t *testing.T) {
 		t.Parallel()
 
@@ -3637,7 +3636,7 @@ func Test_Generic(t *testing.T) {
 }
 
 // Certain commands will need to be tested in a server with an eviction policy.
-// This is for testing against an LFU evictiona policy.
+// This is for testing against an LFU eviction policy.
 func Test_LFU_Generic(t *testing.T) {
 	// mockClock := clock.NewClock()
 	port, err := internal.GetFreePort()
