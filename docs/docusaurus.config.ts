@@ -92,7 +92,7 @@ const config: Config = {
           label: "Documentation",
         },
         {
-          href: "https://github.com//SugarDB",
+          href: "https://github.com/EchoVault/SugarDB",
           label: "GitHub",
           position: "right",
         },

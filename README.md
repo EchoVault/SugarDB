@@ -250,6 +250,7 @@ MSET (10 keys): 56022.41 requests per second, p50=0.463 msec
 * [HINCRBYFLOAT](https://sugardb.io/docs/commands/hash/hincrbyfloat)
 * [HKEYS](https://sugardb.io/docs/commands/hash/hkeys)
 * [HLEN](https://sugardb.io/docs/commands/hash/hlen)
+* [HMGET](https://sugardb.io/docs/commands/hash/hmget)
 * [HRANDFIELD](https://sugardb.io/docs/commands/hash/hrandfield)
 * [HSET](https://sugardb.io/docs/commands/hash/hset)
 * [HSETNX](https://sugardb.io/docs/commands/hash/hsetnx)
