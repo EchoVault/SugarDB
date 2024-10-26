@@ -549,6 +549,7 @@ func (server *SugarDB) buildLuaHandlerFunc(vm any, command string, args []string
 	// Lua table context
 	ctx := L.NewTable()
 	ctx.RawSetString("protocol", lua.LNumber(params.Context.Value("Protocol").(int)))
+	ctx.RawSetString("database", lua.LNumber(params.Context.Value("Database").(int)))
 	// Command that triggered the handler (Array)
 	cmd := L.NewTable()
 	for i, s := range params.Command {
