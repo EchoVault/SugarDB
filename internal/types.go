@@ -51,29 +51,6 @@ func (k *KeyData) GetMem() (int64, error) {
 		size += int64(unsafe.Sizeof(v))
 		size += int64(len(v))
 
-	// handle hash
-	// AdaptType() will always ensure data type is of string, float64 or int.
-	case map[string]interface{}:
-		// Map headers
-		size += int64(unsafe.Sizeof(v))
-
-		for key, val := range v {
-			size += int64(unsafe.Sizeof(key))
-			size += int64(len(key))
-			switch vt := val.(type) {
-
-			case nil:
-				size += 0
-			case int:
-				size += int64(unsafe.Sizeof(vt))
-			case float64, int64:
-				size += 8
-			case string:
-				size += int64(unsafe.Sizeof(vt))
-				size += int64(len(vt))
-			}
-		}
-
 	// handle list
 	case []string:
 		for _, s := range v {
