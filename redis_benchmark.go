@@ -37,14 +37,13 @@ func getCommandArgs() (string, bool) {
 func runBenchmark(port string, commands string) ([]Metrics, error) {
 	var results []Metrics
 
-	// Run benchmark
+	// Run redis-benchmark
 	cmd := exec.Command("redis-benchmark", "-h", Host, "-p", port, "-q", "-t", commands)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse the output
 	strOutput := string(output)
 	fmt.Println(strOutput)
 	lines := strings.Split(strOutput, "\n")
@@ -76,7 +75,6 @@ func runBenchmark(port string, commands string) ([]Metrics, error) {
 }
 
 func createDisplayTable(redisResults []Metrics, echovaultResults []Metrics) {
-	// check if the number of commands is the same
 	if len(echovaultResults) != len(redisResults) {
 		fmt.Println("Error: Number of commands in Redis and EchoVault do not match")
 	}
@@ -113,7 +111,7 @@ func main() {
 	}
 
 	if !useLocal {
-		// run the packaged EchoVault server, wait a few seconds for it to start
+		// Run the packaged EchoVault server, wait a few seconds for it to start
 		exec.Command("echovault", "--bind-addr=localhost", "--data-dir=persistence").Start()
 		time.Sleep(5 * time.Second)
 	}
@@ -134,9 +132,9 @@ func main() {
 	exec.Command("pkill", "-f", "redis-server").Run()
 
 	if !useLocal {
-		// run the packaged EchoVault server
+		// Kill the packaged EchoVault server
 		exec.Command("pkill", "-f", "echovault").Run()
-		if err := os.RemoveAll("persistence"); err != nil { // remove persistence directory
+		if err := os.RemoveAll("persistence"); err != nil { // Remove persistence directory
 			fmt.Println("Error removing persistence directory:", err)
 		}
 	}
