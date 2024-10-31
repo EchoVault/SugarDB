@@ -155,31 +155,17 @@ Redis clients.
 
 <a name="benchmarks"></a>
 # Benchmarks
-The following benchmark only applies to the TCP client-server mode.
+To compare command performance with Redis, benchmarks can be run with: 
 
-Hardware: MacBook Pro 14in, M1 chip, 16GB RAM, 8 Cores <br/>
-Command: `redis-benchmark -h localhost -p 7480 -q -t ping,set,get,incr,lpush,rpush,lpop,rpop,sadd,hset,zpopmin,lrange,mset` <br/>
-Result: 
-```
-PING_INLINE: 89285.71 requests per second, p50=0.247 msec                   
-PING_MBULK: 85543.20 requests per second, p50=0.239 msec                   
-SET: 65573.77 requests per second, p50=0.455 msec                   
-GET: 79176.56 requests per second, p50=0.295 msec                   
-INCR: 68870.52 requests per second, p50=0.439 msec                   
-LPUSH: 27601.44 requests per second, p50=1.567 msec                   
-RPUSH: 61842.92 requests per second, p50=0.519 msec                   
-LPOP: 58548.01 requests per second, p50=0.567 msec                   
-RPOP: 68681.32 requests per second, p50=0.439 msec                   
-SADD: 67613.25 requests per second, p50=0.479 msec                   
-HSET: 56561.09 requests per second, p50=0.599 msec                   
-ZPOPMIN: 70972.32 requests per second, p50=0.359 msec                   
-LPUSH (needed to benchmark LRANGE): 26434.05 requests per second, p50=1.623 msec                   
-LRANGE_100 (first 100 elements): 26939.66 requests per second, p50=1.263 msec                   
-LRANGE_300 (first 300 elements): 5081.82 requests per second, p50=9.095 msec                    
-LRANGE_500 (first 500 elements): 2554.87 requests per second, p50=18.191 msec                   
-LRANGE_600 (first 600 elements): 1903.96 requests per second, p50=24.607 msec                   
-MSET (10 keys): 56022.41 requests per second, p50=0.463 msec 
-```
+`make benchmark`
+
+Prerequisites:
+- `brew install redis` to run the Redis server and benchmark script
+- `brew tap echovault/echovault` & `brew install echovault/echovault/echovault` to run the EchoVault Client-Server
+
+Benchmark script options:
+- `make benchmark use_local_server=true` runs on your local EchoVault Client-Server
+- `make benchmark commands=ping,set,get...` runs the benchmark script on the specified commands
 
 <a name="commands"></a>
 # Supported Commands
