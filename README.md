@@ -161,7 +161,7 @@ To compare command performance with Redis, benchmarks can be run with:
 
 Prerequisites:
 - `brew install redis` to run the Redis server and benchmark script
-- `brew tap echovault/echovault` & `brew install echovault/echovault/echovault` to run the SugarDB Client-Server
+- `brew tap echovault/sugardb` & `brew install echovault/echovault/sugardb` to run the SugarDB Client-Server
 
 Benchmark script options:
 - `make benchmark use_local_server=true` runs on your local SugarDB Client-Server
