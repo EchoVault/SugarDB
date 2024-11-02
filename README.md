@@ -226,12 +226,18 @@ MSET (10 keys): 56022.41 requests per second, p50=0.463 msec
 * [FLUSHALL](https://sugardb.io/docs/commands/generic/flushall)
 * [FLUSHDB](https://sugardb.io/docs/commands/generic/flushdb)
 * [GET](https://sugardb.io/docs/commands/generic/get)
+* [GETDEL](https://sugardb.io/docs/commands/generic/getdel)
+* [GETEX](https://sugardb.io/docs/commands/generic/get)
 * [INCR](https://sugardb.io/docs/commands/generic/incr)
 * [INCRBY](https://sugardb.io/docs/commands/generic/incrby)
 * [MGET](https://sugardb.io/docs/commands/generic/mget)
+* [MOVE](https://sugardb.io/docs/commands/generic/move) //-----CHECCKKKKKKKKKK
 * [MSET](https://sugardb.io/docs/commands/generic/mset)
+* [OBJECTFREQ](https://sugardb.io/docs/commands/generic/objectfreq)
+* [OBJECTIDLETIME](https://sugardb.io/docs/commands/generic/objectidletime)
 * [PERSIST](https://sugardb.io/docs/commands/generic/persist)
 * [PEXPIRE](https://sugardb.io/docs/commands/generic/pexpire)
+* [PEXPIREAT](https://sugardb.io/docs/commands/generic/pexpireat)
 * [PEXPIRETIME](https://sugardb.io/docs/commands/generic/pexpiretime)
 * [PTTL](https://sugardb.io/docs/commands/generic/pttl)
 * [RENAME](https://sugardb.io/docs/commands/generic/rename)
@@ -337,7 +343,3 @@ MSET (10 keys): 56022.41 requests per second, p50=0.463 msec
 * [SETRANGE](https://sugardb.io/docs/commands/string/setrange)
 * [STRLEN](https://sugardb.io/docs/commands/string/strlen)
 * [SUBSTR](https://sugardb.io/docs/commands/string/substr)
-
-
-
-
