@@ -1,23 +1,24 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# SUBSTR
+# APPEND
 
 ### Syntax
 ```
-SUBSTR key start end
+APPEND key value
 ```
 
 ### Module
 <span className="acl-category">string</span>
 
 ### Categories 
-<span className="acl-category">read</span>
-<span className="acl-category">slow</span>
+<span className="acl-category">write</span>
+<span className="acl-category">fast</span>
 <span className="acl-category">string</span>
 
 ### Description 
-Return the substring of the string value stored at key. The substring is specified by the start and end indexes.
+Appends a value to the end of a string. If the doesn't exist, it creates the key with the value (acts as a SET).
+Returns the length of the string after the append operation.
 
 ### Examples
 
@@ -29,19 +30,19 @@ Return the substring of the string value stored at key. The substring is specifi
   ]}
 >
   <TabItem value="go">
-    Get the substring of a string value:
+    Append a value to the end of a string:
     ```go
     db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    substring, err := db.GetRange("key", 4, 10)
+    len, err := db.Append("key", "value")
     ```
   </TabItem>
   <TabItem value="cli">
-    Get the substring of a string value:
+    Append a value to the end of a string:
     ```
-    > GETRANGE key 4 10
+    > APPEND "key" "value"
     ```
   </TabItem>
 </Tabs>  

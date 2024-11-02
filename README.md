@@ -197,6 +197,7 @@ Benchmark script options:
 <a name="commands-connection"></a>
 ## CONNECTION
 * [AUTH](https://sugardb.io/docs/commands/connection/auth)
+* [ECHO](https://sugardb.io/docs/commands/connection/echo)
 * [HELLO](https://sugardb.io/docs/commands/connection/hello)
 * [PING](https://sugardb.io/docs/commands/connection/ping)
 * [SELECT](https://sugardb.io/docs/commands/connection/select)
@@ -204,6 +205,7 @@ Benchmark script options:
 
 <a name="commands-generic"></a>
 ## GENERIC
+* [COPY](https://sugardb.io/docs/commands/generic/copy)
 * [DECR](https://sugardb.io/docs/commands/generic/decr)
 * [DECRBY](https://sugardb.io/docs/commands/generic/decrby)
 * [DEL](https://sugardb.io/docs/commands/generic/del)
@@ -216,8 +218,9 @@ Benchmark script options:
 * [GETEX](https://sugardb.io/docs/commands/generic/get)
 * [INCR](https://sugardb.io/docs/commands/generic/incr)
 * [INCRBY](https://sugardb.io/docs/commands/generic/incrby)
+* [INCRBYFLOAT](https://sugardb.io/docs/commands/generic/incrbyfloat)
 * [MGET](https://sugardb.io/docs/commands/generic/mget)
-* [MOVE](https://sugardb.io/docs/commands/generic/move) //-----CHECCKKKKKKKKKK
+* [MOVE](https://sugardb.io/docs/commands/generic/move)
 * [MSET](https://sugardb.io/docs/commands/generic/mset)
 * [OBJECTFREQ](https://sugardb.io/docs/commands/generic/objectfreq)
 * [OBJECTIDLETIME](https://sugardb.io/docs/commands/generic/objectidletime)
@@ -226,6 +229,7 @@ Benchmark script options:
 * [PEXPIREAT](https://sugardb.io/docs/commands/generic/pexpireat)
 * [PEXPIRETIME](https://sugardb.io/docs/commands/generic/pexpiretime)
 * [PTTL](https://sugardb.io/docs/commands/generic/pttl)
+* [RANDOMKEY](https://sugardb.io/docs/commands/generic/randomkey)
 * [RENAME](https://sugardb.io/docs/commands/generic/rename)
 * [SET](https://sugardb.io/docs/commands/generic/set)
 * [TTL](https://sugardb.io/docs/commands/generic/ttl)
@@ -325,6 +329,7 @@ Benchmark script options:
 
 <a name="commands-string"></a>
 ## STRING
+* [APPEND](https://sugardb.io/docs/commands/string/append)
 * [GETRANGE](https://sugardb.io/docs/commands/string/getrange)
 * [SETRANGE](https://sugardb.io/docs/commands/string/setrange)
 * [STRLEN](https://sugardb.io/docs/commands/string/strlen)

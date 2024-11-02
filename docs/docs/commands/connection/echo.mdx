@@ -1,0 +1,43 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# ECHO
+
+### Syntax
+```
+ECHO [message]
+```
+
+### Module
+<span className="acl-category">connection</span>
+
+### Categories
+<span className="acl-category">connection</span>
+<span className="acl-category">fast</span>
+
+### Description
+Sends a message to the SugarDB server and it returns the same message back.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    ```go
+    // Not available in embedded mode.
+    ```
+  </TabItem>
+  <TabItem value="cli">
+  ```
+  Echo with message:
+  ```
+  > ECHO "Hello, world!"
+  "Hello, world!"
+  ```
+  </TabItem>
+</Tabs>
