@@ -58,7 +58,7 @@ func (k *KeyData) GetMem() (int64, error) {
 			size += int64(len(s))
 		}
 
-	// handle non primitive datatypes like set and sorted set
+	// handle non primitive datatypes like hash, set, and sorted set
 	case constants.CompositeType:
 		size += k.Value.(constants.CompositeType).GetMem()
 

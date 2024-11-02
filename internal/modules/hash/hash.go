@@ -14,17 +14,19 @@ type HashValue struct {
 
 type Hash map[string]HashValue
 
-func (h *Hash) GetMem() int64 {
+func (h Hash) GetMem() int64 {
 
 	var size int64
 	// Map headers
-	size += int64(unsafe.Sizeof(*h))
+	size += int64(unsafe.Sizeof(h))
 
-	for key, val := range *h {
+	for key, val := range h {
 
-		size += int64(unsafe.Sizeof(val.ExpireAt))
 		size += int64(unsafe.Sizeof(key))
 		size += int64(len(key))
+
+		size += int64(unsafe.Sizeof(val))
+		size += int64(unsafe.Sizeof(val.ExpireAt))
 
 		switch vt := val.Value.(type) {
 
