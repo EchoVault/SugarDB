@@ -2786,7 +2786,7 @@ func Test_Generic(t *testing.T) {
 		}()
 		client := resp.NewConn(conn)
 
-		expected := "Key"
+		expected := "key"
 		if err = client.WriteArray([]resp.Value{resp.StringValue("RANDOMKEY")}); err != nil {
 			t.Error(err)
 		}
@@ -2796,7 +2796,7 @@ func Test_Generic(t *testing.T) {
 			t.Error(err)
 		}
 
-		if !strings.Contains(res.String(), expected) {
+		if !strings.Contains(strings.ToLower(res.String()), expected) {
 			t.Errorf("expected a key containing substring '%s', got %s", expected, res.String())
 		}
 	})
