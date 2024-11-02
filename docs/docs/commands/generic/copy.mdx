@@ -1,0 +1,85 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# COPY
+
+### Syntax
+```
+COPY source destination [DB destination-db] [REPLACE]
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories 
+<span className="acl-category">slow</span>
+<span className="acl-category">write</span>
+<span className="acl-category">keyspace</span>
+
+### Description
+Copies the value stored at the source key to the destination key. 
+Returns 1 if copied and 0 if not copied. 
+Also returns 0 if the destination key already exists in the database and the REPLACE option is not set. 
+
+### Options 
+- `DB destination-db`: the destination database to copy the key to
+- `REPLACE`: replace the destination key if it already exists
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+  The API provides a struct called COPYOptions that wraps these options in a convenient object.
+   ```go
+        type COPYOptions struct {        
+            Database string
+	          Replace  bool
+        }
+        ```
+
+  Copy the value stored at key 'hello' to the new key 'bye'
+  ```go
+  db, err := sugardb.NewSugarDB()
+  if err != nil {
+    log.Fatal(err)
+  }
+  db.Set("hello", "world")
+  key = db.Copy("hello", "bye")
+  ```
+
+  Copy the value stored at key 'hello' in database 0 and replace the value at key 'bye' in database 1
+  ```go
+  db, err := sugardb.NewSugarDB()
+  if err != nil {
+    log.Fatal(err)
+  }
+  err := db.SelectDB(1)
+  ok, err := db.Set("bye", "goodbye")
+  err := db.SelectDB(0)
+  ok, err := db.Set("hello", "world")
+  ret, err = db.Copy("hello", "bye", db.COPYOptions{Database: "1", Replace: true})
+  ```
+  </TabItem>
+  <TabItem value="cli">
+  Copy the value stored at key 'hello' to the key 'bye'
+  ```
+  > SET "hello" "world"
+  > COPY "hello" "bye"
+  ```
+
+  Copy the value stored at key 'hello' in database 0 and replace the value at key 'bye' in database 1
+  ```
+  > SELECT 1
+  > SET "bye" "goodbye"
+  > SELECT 0
+  > SET "hello" "world"
+  > COPY "hello" "bye" DB 1 REPLACE
+  ```
+  </TabItem>
+</Tabs> 
