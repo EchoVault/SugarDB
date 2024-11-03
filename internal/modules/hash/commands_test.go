@@ -16,15 +16,17 @@ package hash_test
 
 import (
 	"errors"
-	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/config"
-	"github.com/echovault/sugardb/internal/constants"
-	"github.com/echovault/sugardb/sugardb"
-	"github.com/tidwall/resp"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/internal/constants"
+	"github.com/echovault/sugardb/internal/modules/hash"
+	"github.com/echovault/sugardb/sugardb"
+	"github.com/tidwall/resp"
 )
 
 func Test_Hash(t *testing.T) {
@@ -1534,15 +1536,15 @@ func Test_Hash(t *testing.T) {
 			key              string
 			presetValue      interface{}
 			command          []string
-			expectedResponse map[string]string
+			expectedResponse hash.Hash
 			expectedError    error
 		}{
 			{
 				name:             "1. Return an array containing all the fields and values of the hash",
 				key:              "HGetAllKey1",
-				presetValue:      map[string]string{"field1": "value1", "field2": "123456789", "field3": "3.142"},
+				presetValue:      hash.Hash{"field1": hash.HashValue{Value: "value1"}, "field2": hash.HashValue{Value: "123456789"}, "field3": hash.HashValue{Value: "3.142"}},
 				command:          []string{"HGETALL", "HGetAllKey1"},
-				expectedResponse: map[string]string{"field1": "value1", "field2": "123456789", "field3": "3.142"},
+				expectedResponse: hash.Hash{"field1": hash.HashValue{Value: "value1"}, "field2": hash.HashValue{Value: "123456789"}, "field3": hash.HashValue{Value: "3.142"}},
 				expectedError:    nil,
 			},
 			{
@@ -1593,15 +1595,15 @@ func Test_Hash(t *testing.T) {
 							resp.StringValue(test.presetValue.(string)),
 						}
 						expected = "ok"
-					case map[string]string:
+					case hash.Hash:
 						command = []resp.Value{resp.StringValue("HSET"), resp.StringValue(test.key)}
-						for key, value := range test.presetValue.(map[string]string) {
+						for key, value := range test.presetValue.(hash.Hash) {
 							command = append(command, []resp.Value{
 								resp.StringValue(key),
-								resp.StringValue(value)}...,
+								resp.StringValue(value.Value.(string))}...,
 							)
 						}
-						expected = strconv.Itoa(len(test.presetValue.(map[string]string)))
+						expected = strconv.Itoa(len(test.presetValue.(hash.Hash)))
 					}
 
 					if err = client.WriteArray(command); err != nil {
@@ -1647,7 +1649,8 @@ func Test_Hash(t *testing.T) {
 				for i, item := range res.Array() {
 					if i%2 == 0 {
 						field := item.String()
-						value := res.Array()[i+1].String()
+						value := hash.HashValue{Value: res.Array()[i+1].String()}
+
 						if test.expectedResponse[field] != value {
 							t.Errorf("expected value at field \"%s\" to be \"%s\", got \"%s\"", field, test.expectedResponse[field], value)
 						}

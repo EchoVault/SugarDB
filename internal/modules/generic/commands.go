@@ -813,7 +813,11 @@ func handleType(params internal.HandlerFuncParams) ([]byte, error) {
 	case reflect.Slice:
 		type_string = "list"
 	case reflect.Map:
-		type_string = "hash"
+		if t.Elem().Name() == "HashValue" {
+			type_string = "hash"
+		} else {
+			type_string = t.Elem().Name()
+		}
 	case reflect.Pointer:
 		if t.Elem().Name() == "Set" {
 			type_string = "set"
