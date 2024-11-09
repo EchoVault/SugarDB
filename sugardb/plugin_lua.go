@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/modules/hash"
 	"github.com/echovault/sugardb/internal/modules/set"
 	"github.com/echovault/sugardb/internal/modules/sorted_set"
 	lua "github.com/yuin/gopher-lua"
@@ -32,6 +33,173 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 	if err := L.DoFile(path); err != nil {
 		return nil, "", "", nil, "", false, "", fmt.Errorf("could not load lua script file %s: %v", path, err)
 	}
+
+	// Register hash data type
+	hashMetaTable := L.NewTypeMetatable("hash")
+	L.SetGlobal("hash", hashMetaTable)
+	// Static fields
+	L.SetField(hashMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
+		ud := state.NewUserData()
+		ud.Value = hash.Hash{}
+		state.SetMetatable(ud, state.GetTypeMetatable("hash"))
+		state.Push(ud)
+		return 1
+	}))
+	// Hash methods
+	L.SetField(hashMetaTable, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
+		"set": func(state *lua.LState) int {
+			// Implement set method, set key/value pair
+			h := checkHash(state, 1)
+			var count int
+			tbl := state.CheckTable(2)
+			tbl.ForEach(func(index lua.LValue, pair lua.LValue) {
+				// Check if the pair is a table
+				p, ok := pair.(*lua.LTable)
+				if !ok {
+					state.ArgError(2, "expected a table containing key/value pairs")
+					return
+				}
+				p.ForEach(func(field lua.LValue, value lua.LValue) {
+					// Check if field is a string
+					if _, ok = field.(lua.LString); !ok {
+						state.ArgError(2, "expected all hash fields to be strings")
+						return
+					}
+					// If the field exists, update it. Otherwise, add it to the hash.
+					v, err := luaTypeToNativeType(value)
+					if err != nil {
+						state.ArgError(2, err.Error())
+						return
+					}
+					if _, exists := h[field.String()]; !exists {
+						h[field.String()] = hash.HashValue{Value: v}
+					} else {
+						hashValue := h[field.String()]
+						hashValue.Value = v
+						h[field.String()] = hashValue
+					}
+					count += 1
+				})
+			})
+			state.Push(lua.LNumber(count))
+			return 1
+		},
+		"setnx": func(state *lua.LState) int {
+			// Implement set methods to set key/value pairs only when the key does not exist in the hash.
+			h := checkHash(state, 1)
+			var count int
+			tbl := state.CheckTable(2)
+			tbl.ForEach(func(index lua.LValue, pair lua.LValue) {
+				// Check if the pair is a table
+				p, ok := pair.(*lua.LTable)
+				if !ok {
+					state.ArgError(2, "expected a table containing key/value pairs")
+					return
+				}
+				p.ForEach(func(field lua.LValue, value lua.LValue) {
+					// Check if field is a string
+					if _, ok = field.(lua.LString); !ok {
+						state.ArgError(2, "expected all table fields to be strings")
+					}
+					v, err := luaTypeToNativeType(value)
+					if err != nil {
+						state.ArgError(2, err.Error())
+						return
+					}
+					// If the field does not exist, add it.
+					if _, exists := h[field.String()]; !exists {
+						h[field.String()] = hash.HashValue{Value: v}
+						count += 1
+					}
+				})
+			})
+			state.Push(lua.LNumber(count))
+			return 1
+		},
+		"get": func(state *lua.LState) int {
+			// Implement get method, return multiple key/value pairs
+			h := checkHash(state, 1)
+			result := state.NewTable()
+			args := state.CheckTable(2)
+			args.ForEach(func(index lua.LValue, field lua.LValue) {
+				if _, ok := index.(lua.LNumber); !ok {
+					state.ArgError(2, "expected key to be a number")
+					return
+				}
+				if _, ok := field.(lua.LString); !ok {
+					state.ArgError(2, "expected field to be a string")
+					return
+				}
+				var value lua.LValue
+				if _, exists := h[field.String()]; exists {
+					value = nativeTypeToLuaType(state, h[field.String()].Value)
+				} else {
+					value = lua.LNil
+				}
+				result.RawSet(field, value)
+			})
+			state.Push(result)
+			return 1
+		},
+		"len": func(state *lua.LState) int {
+			// Implement method len, returns the length of the hash
+			h := checkHash(state, 1)
+			state.Push(lua.LNumber(len(h)))
+			return 1
+		},
+		"all": func(state *lua.LState) int {
+			// Implement method all, returns all key/value pairs in the hash
+			h := checkHash(state, 1)
+			result := state.NewTable()
+			for field, hashValue := range h {
+				result.RawSetString(field, lua.LString(hashValue.Value.(string)))
+			}
+			state.Push(result)
+			return 1
+		},
+		"exists": func(state *lua.LState) int {
+			// Checks if the value exists in the hash
+			h := checkHash(state, 1)
+			result := state.NewTable()
+			args := state.CheckTable(2)
+			args.ForEach(func(index lua.LValue, field lua.LValue) {
+				if _, ok := index.(lua.LNumber); !ok {
+					state.ArgError(2, "expected table key to be number")
+					return
+				}
+				if _, ok := field.(lua.LString); !ok {
+					state.ArgError(2, "expected field to be a string")
+					return
+				}
+				_, exists := h[field.String()]
+				result.RawSet(field, lua.LBool(exists))
+			})
+			state.Push(result)
+			return 1
+		},
+		"del": func(state *lua.LState) int {
+			// Delete multiple fields from a hash, return the number of deleted fields
+			h := checkHash(state, 1)
+			var count int
+			args := state.CheckTable(2)
+			args.ForEach(func(index lua.LValue, field lua.LValue) {
+				if _, ok := index.(lua.LNumber); !ok {
+					state.ArgError(2, "expected table key to be index")
+					return
+				}
+				if _, ok := field.(lua.LString); !ok {
+					state.ArgError(2, "expected field value to be a string")
+					return
+				}
+				if _, exists := h[field.String()]; exists {
+					delete(h, field.String())
+					count += 1
+				}
+			})
+			state.Push(lua.LNumber(count))
+			return 1
+		},
+	}))
 
 	// Register set data type
 	setMetaTable := L.NewTypeMetatable("set")
@@ -655,6 +823,15 @@ func (server *SugarDB) buildLuaHandlerFunc(vm any, command string, args []string
 	return []byte(L.Get(-1).String()), nil
 }
 
+func checkHash(L *lua.LState, n int) hash.Hash {
+	ud := L.CheckUserData(n)
+	if v, ok := ud.Value.(hash.Hash); ok {
+		return v
+	}
+	L.ArgError(n, "hash expected")
+	return nil
+}
+
 func checkSet(L *lua.LState, n int) *set.Set {
 	ud := L.CheckUserData(n)
 	if v, ok := ud.Value.(*set.Set); ok {
@@ -692,36 +869,12 @@ func luaTypeToNativeType(value lua.LValue) (interface{}, error) {
 		return value == lua.LTrue, nil
 	case lua.LTNumber:
 		return internal.AdaptType(value.String()), nil
-	case lua.LTTable:
-		hash := make(map[string]interface{})
-		isArray := true
-		var err error
-		value.(*lua.LTable).ForEach(func(key lua.LValue, value lua.LValue) {
-			switch key.Type() {
-			default:
-				err = fmt.Errorf("hash key is not a string or number, type %s", key.Type())
-			case lua.LTString:
-				hash[key.String()] = value.String()
-				isArray = false
-			case lua.LTNumber:
-				hash[key.String()] = value.String()
-			}
-		})
-		if err != nil {
-			return nil, err
-		}
-		if isArray {
-			var array []string
-			for _, v := range hash {
-				array = append(array, v.(string))
-			}
-			return array, nil
-		}
-		return hash, nil
 	case lua.LTUserData:
 		switch value.(*lua.LUserData).Value.(type) {
 		default:
 			return nil, errors.New("unknown user data")
+		case hash.Hash:
+			return value.(*lua.LUserData).Value.(hash.Hash), nil
 		case *set.Set:
 			return value.(*lua.LUserData).Value.(*set.Set), nil
 		case *sorted_set.SortedSet:
@@ -748,12 +901,11 @@ func nativeTypeToLuaType(L *lua.LState, value interface{}) lua.LValue {
 			tbl.RawSetInt(i+1, lua.LString(v))
 		}
 		return tbl
-	case map[string]interface{}:
-		tbl := L.NewTable()
-		for k, v := range value.(map[string]interface{}) {
-			tbl.RawSetString(k, lua.LString(v.(string)))
-		}
-		return tbl
+	case hash.Hash:
+		ud := L.NewUserData()
+		ud.Value = value.(hash.Hash)
+		L.SetMetatable(ud, L.GetTypeMetatable("hash"))
+		return ud
 	case *set.Set:
 		ud := L.NewUserData()
 		ud.Value = value.(*set.Set)

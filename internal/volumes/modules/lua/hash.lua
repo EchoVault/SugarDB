@@ -21,5 +21,15 @@ function keyExtractionFunc (command, args)
 end
 
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
+  h = hash.new()
+  h:set({
+    {["field1"] = "value1"},
+    {["field2"] = "value2"},
+    {["field3"] = "value3"},
+    {["field4"] = "value4"},
+  })
+  print("Before delete: ", h:len())
+  h:del({"field2", "field3"})
+  print("After delete: ", h:len())
   return "+OK\r\n"
 end
