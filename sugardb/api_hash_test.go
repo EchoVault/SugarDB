@@ -19,6 +19,8 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+
+	"github.com/echovault/sugardb/internal/modules/hash"
 )
 
 func TestSugarDB_HDEL(t *testing.T) {
@@ -33,20 +35,29 @@ func TestSugarDB_HDEL(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Return count of deleted fields in the specified hash",
-			key:         "key1",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142, "field7": "value7"},
-			fields:      []string{"field1", "field2", "field3", "field4", "field5", "field6"},
-			want:        3,
-			wantErr:     false,
+			name: "Return count of deleted fields in the specified hash",
+			key:  "key1",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+				"field7": {Value: "value7"},
+			},
+			fields:  []string{"field1", "field2", "field3", "field4", "field5", "field6"},
+			want:    3,
+			wantErr: false,
 		},
 		{
-			name:        "0 response when passing delete fields that are non-existent on valid hash",
-			key:         "key2",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": "value2", "field3": "value3"},
-			fields:      []string{"field4", "field5", "field6"},
-			want:        0,
-			wantErr:     false,
+			name: "0 response when passing delete fields that are non-existent on valid hash",
+			key:  "key2",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: "value2"},
+				"field3": {Value: "value3"},
+			},
+			fields:  []string{"field4", "field5", "field6"},
+			want:    0,
+			wantErr: false,
 		},
 		{
 			name:        "0 response when trying to call HDEL on non-existent key",
@@ -98,16 +109,20 @@ func TestSugarDB_HEXISTS(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Return 1 if the field exists in the hash",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
-			key:         "key1",
-			field:       "field1",
-			want:        true,
-			wantErr:     false,
+			name: "Return 1 if the field exists in the hash",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+			},
+			key:     "key1",
+			field:   "field1",
+			want:    true,
+			wantErr: false,
 		},
 		{
 			name:        "False response when trying to call HEXISTS on non-existent key",
-			presetValue: map[string]interface{}{},
+			presetValue: hash.Hash{},
 			key:         "key2",
 			field:       "field1",
 			want:        false,
@@ -154,16 +169,20 @@ func TestSugarDB_HGETALL(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Return an array containing all the fields and values of the hash",
-			key:         "key1",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
-			want:        []string{"field1", "value1", "field2", "123456789", "field3", "3.142"},
-			wantErr:     false,
+			name: "Return an array containing all the fields and values of the hash",
+			key:  "key1",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+			},
+			want:    []string{"field1", "value1", "field2", "123456789", "field3", "3.142"},
+			wantErr: false,
 		},
 		{
 			name:        "Empty array response when trying to call HGETALL on non-existent key",
 			key:         "key2",
-			presetValue: map[string]interface{}{},
+			presetValue: hash.Hash{},
 			want:        []string{},
 			wantErr:     false,
 		},
@@ -244,7 +263,7 @@ func TestSugarDB_HINCRBY(t *testing.T) {
 		},
 		{
 			name:          "Increment by integer on existing hash",
-			presetValue:   map[string]interface{}{"field1": 1},
+			presetValue:   hash.Hash{"field1": {Value: 1}},
 			incr_type:     HINCRBY,
 			key:           "key3",
 			field:         "field1",
@@ -254,7 +273,7 @@ func TestSugarDB_HINCRBY(t *testing.T) {
 		},
 		{
 			name:            "Increment by float on an existing hash",
-			presetValue:     map[string]interface{}{"field1": 3.142},
+			presetValue:     hash.Hash{"field1": {Value: 3.142}},
 			incr_type:       HINCRBYFLOAT,
 			key:             "key4",
 			field:           "field1",
@@ -274,7 +293,7 @@ func TestSugarDB_HINCRBY(t *testing.T) {
 		},
 		{
 			name:          "Error when trying to increment a hash field that is not a number",
-			presetValue:   map[string]interface{}{"field1": "value1"},
+			presetValue:   hash.Hash{"field1": {Value: "value1"}},
 			incr_type:     HINCRBY,
 			key:           "key10",
 			field:         "field1",
@@ -326,15 +345,19 @@ func TestSugarDB_HKEYS(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Return an array containing all the keys of the hash",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
-			key:         "key1",
-			want:        []string{"field1", "field2", "field3"},
-			wantErr:     false,
+			name: "Return an array containing all the keys of the hash",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+			},
+			key:     "key1",
+			want:    []string{"field1", "field2", "field3"},
+			wantErr: false,
 		},
 		{
 			name:        "Empty array response when trying to call HKEYS on non-existent key",
-			presetValue: map[string]interface{}{},
+			presetValue: hash.Hash{},
 			key:         "key2",
 			want:        []string{},
 			wantErr:     false,
@@ -384,11 +407,15 @@ func TestSugarDB_HLEN(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Return the correct length of the hash",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
-			key:         "key1",
-			want:        3,
-			wantErr:     false,
+			name: "Return the correct length of the hash",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+			},
+			key:     "key1",
+			want:    3,
+			wantErr: false,
 		},
 		{
 			name:        "0 Response when trying to call HLEN on non-existent key",
@@ -439,31 +466,39 @@ func TestSugarDB_HRANDFIELD(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Get a random field",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
-			key:         "key1",
-			options:     HRandFieldOptions{Count: 1},
-			wantCount:   1,
-			want:        []string{"field1", "field2", "field3"},
-			wantErr:     false,
+			name: "Get a random field",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+			},
+			key:       "key1",
+			options:   HRandFieldOptions{Count: 1},
+			wantCount: 1,
+			want:      []string{"field1", "field2", "field3"},
+			wantErr:   false,
 		},
 		{
-			name:        "Get a random field with a value",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
-			key:         "key2",
-			options:     HRandFieldOptions{WithValues: true, Count: 1},
-			wantCount:   2,
-			want:        []string{"field1", "value1", "field2", "123456789", "field3", "3.142"},
-			wantErr:     false,
+			name: "Get a random field with a value",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+			},
+			key:       "key2",
+			options:   HRandFieldOptions{WithValues: true, Count: 1},
+			wantCount: 2,
+			want:      []string{"field1", "value1", "field2", "123456789", "field3", "3.142"},
+			wantErr:   false,
 		},
 		{
 			name: "Get several random fields",
-			presetValue: map[string]interface{}{
-				"field1": "value1",
-				"field2": 123456789,
-				"field3": 3.142,
-				"field4": "value4",
-				"field5": "value5",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+				"field4": {Value: "value4"},
+				"field5": {Value: "value6"},
 			},
 			key:       "key3",
 			options:   HRandFieldOptions{Count: 3},
@@ -473,12 +508,12 @@ func TestSugarDB_HRANDFIELD(t *testing.T) {
 		},
 		{
 			name: "Get several random fields with their corresponding values",
-			presetValue: map[string]interface{}{
-				"field1": "value1",
-				"field2": 123456789,
-				"field3": 3.142,
-				"field4": "value4",
-				"field5": "value5",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+				"field4": {Value: "value4"},
+				"field5": {Value: "value5"},
 			},
 			key:       "key4",
 			options:   HRandFieldOptions{WithValues: true, Count: 3},
@@ -491,12 +526,12 @@ func TestSugarDB_HRANDFIELD(t *testing.T) {
 		},
 		{
 			name: "Get the entire hash",
-			presetValue: map[string]interface{}{
-				"field1": "value1",
-				"field2": 123456789,
-				"field3": 3.142,
-				"field4": "value4",
-				"field5": "value5",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+				"field4": {Value: "value4"},
+				"field5": {Value: "value5"},
 			},
 			key:       "key5",
 			options:   HRandFieldOptions{Count: 5},
@@ -506,12 +541,12 @@ func TestSugarDB_HRANDFIELD(t *testing.T) {
 		},
 		{
 			name: "Get the entire hash with values",
-			presetValue: map[string]interface{}{
-				"field1": "value1",
-				"field2": 123456789,
-				"field3": 3.142,
-				"field4": "value4",
-				"field5": "value5",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+				"field4": {Value: "value4"},
+				"field5": {Value: "value5"},
 			},
 			key:       "key5",
 			options:   HRandFieldOptions{WithValues: true, Count: 5},
@@ -582,7 +617,7 @@ func TestSugarDB_HSET(t *testing.T) {
 		{
 			name:            "HSETNX set field on existing hash map",
 			key:             "key2",
-			presetValue:     map[string]interface{}{"field1": "value1"},
+			presetValue:     hash.Hash{"field1": {Value: "value1"}},
 			hsetFunc:        server.HSetNX,
 			fieldValuePairs: map[string]string{"field2": "value2"},
 			want:            1,
@@ -591,7 +626,7 @@ func TestSugarDB_HSET(t *testing.T) {
 		{
 			name:            "HSETNX skips operation when setting on existing field",
 			key:             "key3",
-			presetValue:     map[string]interface{}{"field1": "value1"},
+			presetValue:     hash.Hash{"field1": {Value: "value1"}},
 			hsetFunc:        server.HSetNX,
 			fieldValuePairs: map[string]string{"field1": "value1"},
 			want:            0,
@@ -609,7 +644,7 @@ func TestSugarDB_HSET(t *testing.T) {
 		{
 			name:            "Regular HSET update on existing hash map",
 			key:             "key5",
-			presetValue:     map[string]interface{}{"field1": "value1", "field2": "value2"},
+			presetValue:     hash.Hash{"field1": {Value: "value1"}, "field2": {Value: "value2"}},
 			fieldValuePairs: map[string]string{"field1": "value1-new", "field2": "value2-ne2", "field3": "value3"},
 			hsetFunc:        server.HSet,
 			want:            3,
@@ -660,31 +695,35 @@ func TestSugarDB_HSTRLEN(t *testing.T) {
 		{
 			// Return lengths of field values.
 			// If the key does not exist, its length should be 0.
-			name:        "Return lengths of field values",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
-			key:         "key1",
-			fields:      []string{"field1", "field2", "field3", "field4"},
-			want:        []int{len("value1"), len("123456789"), len("3.142"), 0},
-			wantErr:     false,
+			name: "1. Return lengths of field values",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+			},
+			key:     "key1",
+			fields:  []string{"field1", "field2", "field3", "field4"},
+			want:    []int{len("value1"), len("123456789"), len("3.142"), 0},
+			wantErr: false,
 		},
 		{
-			name:        "Response when trying to get HSTRLEN non-existent key",
-			presetValue: map[string]interface{}{},
+			name:        "2. Response when trying to get HSTRLEN non-existent key",
+			presetValue: hash.Hash{},
 			key:         "key2",
 			fields:      []string{"field1"},
 			want:        []int{0},
 			wantErr:     false,
 		},
 		{
-			name:        "Command too short",
+			name:        "3. Command too short",
 			key:         "key3",
-			presetValue: map[string]interface{}{},
+			presetValue: hash.Hash{},
 			fields:      []string{},
 			want:        nil,
 			wantErr:     true,
 		},
 		{
-			name:        "Trying to get lengths on a non hash map returns error",
+			name:        "4. Trying to get lengths on a non hash map returns error",
 			key:         "key4",
 			presetValue: "Default value",
 			fields:      []string{"field1"},
@@ -694,6 +733,7 @@ func TestSugarDB_HSTRLEN(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Log(tt.name)
 			if tt.presetValue != nil {
 				err := presetValue(server, context.Background(), tt.key, tt.presetValue)
 				if err != nil {
@@ -724,11 +764,15 @@ func TestSugarDB_HVALS(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "Return all the values from a hash",
-			key:         "key1",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 123456789, "field3": 3.142},
-			want:        []string{"value1", "123456789", "3.142"},
-			wantErr:     false,
+			name: "Return all the values from a hash",
+			key:  "key1",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 123456789},
+				"field3": {Value: 3.142},
+			},
+			want:    []string{"value1", "123456789", "3.142"},
+			wantErr: false,
 		},
 		{
 			name:        "Empty array response when trying to get HSTRLEN non-existent key",
@@ -782,12 +826,16 @@ func TestSugarDB_HGet(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "1. Get values from existing hash.",
-			key:         "HgetKey1",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 365, "field3": 3.142},
-			fields:      []string{"field1", "field2", "field3", "field4"},
-			want:        []string{"value1", "365", "3.142", ""},
-			wantErr:     false,
+			name: "1. Get values from existing hash.",
+			key:  "HgetKey1",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 365},
+				"field3": {Value: 3.142},
+			},
+			fields:  []string{"field1", "field2", "field3", "field4"},
+			want:    []string{"value1", "365", "3.142", ""},
+			wantErr: false,
 		},
 		{
 			name:        "2. Return empty slice when attempting to get from non-existed key",
@@ -838,12 +886,16 @@ func TestSugarDB_HMGet(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:        "1. Get values from existing hash.",
-			key:         "HgetKey1",
-			presetValue: map[string]interface{}{"field1": "value1", "field2": 365, "field3": 3.142},
-			fields:      []string{"field1", "field2", "field3", "field4"},
-			want:        []string{"value1", "365", "3.142", ""},
-			wantErr:     false,
+			name: "1. Get values from existing hash.",
+			key:  "HgetKey1",
+			presetValue: hash.Hash{
+				"field1": {Value: "value1"},
+				"field2": {Value: 365},
+				"field3": {Value: 3.142},
+			},
+			fields:  []string{"field1", "field2", "field3", "field4"},
+			want:    []string{"value1", "365", "3.142", ""},
+			wantErr: false,
 		},
 		{
 			name:        "2. Return empty slice when attempting to get from non-existed key",

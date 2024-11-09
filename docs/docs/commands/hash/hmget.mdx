@@ -1,23 +1,23 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# SUBSTR
+# HMGET
 
 ### Syntax
 ```
-SUBSTR key start end
+HMGET key field [field ...]
 ```
 
 ### Module
-<span className="acl-category">string</span>
+<span className="acl-category">hash</span>
 
-### Categories 
+### Categories
+<span className="acl-category">fast</span>
+<span className="acl-category">hash</span>
 <span className="acl-category">read</span>
-<span className="acl-category">slow</span>
-<span className="acl-category">string</span>
 
-### Description 
-Return the substring of the string value stored at key. The substring is specified by the start and end indexes.
+### Description
+Retrieves the value of each of the listed fields from the hash.
 
 ### Examples
 
@@ -29,19 +29,19 @@ Return the substring of the string value stored at key. The substring is specifi
   ]}
 >
   <TabItem value="go">
-    Get the substring of a string value:
+    Retrieve values from a hash:
     ```go
     db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    substring, err := db.GetRange("key", 4, 10)
+    values, err := db.HMGet("key", "field1", "field2", "field3")
     ```
   </TabItem>
   <TabItem value="cli">
-    Get the substring of a string value:
+    Retrieve values from a hash:
     ```
-    > GETRANGE key 4 10
+    > HMGET key field1 field2
     ```
   </TabItem>
-</Tabs>  
+</Tabs>

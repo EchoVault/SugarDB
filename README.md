@@ -155,31 +155,17 @@ Redis clients.
 
 <a name="benchmarks"></a>
 # Benchmarks
-The following benchmark only applies to the TCP client-server mode.
+To compare command performance with Redis, benchmarks can be run with: 
 
-Hardware: MacBook Pro 14in, M1 chip, 16GB RAM, 8 Cores <br/>
-Command: `redis-benchmark -h localhost -p 7480 -q -t ping,set,get,incr,lpush,rpush,lpop,rpop,sadd,hset,zpopmin,lrange,mset` <br/>
-Result: 
-```
-PING_INLINE: 89285.71 requests per second, p50=0.247 msec                   
-PING_MBULK: 85543.20 requests per second, p50=0.239 msec                   
-SET: 65573.77 requests per second, p50=0.455 msec                   
-GET: 79176.56 requests per second, p50=0.295 msec                   
-INCR: 68870.52 requests per second, p50=0.439 msec                   
-LPUSH: 27601.44 requests per second, p50=1.567 msec                   
-RPUSH: 61842.92 requests per second, p50=0.519 msec                   
-LPOP: 58548.01 requests per second, p50=0.567 msec                   
-RPOP: 68681.32 requests per second, p50=0.439 msec                   
-SADD: 67613.25 requests per second, p50=0.479 msec                   
-HSET: 56561.09 requests per second, p50=0.599 msec                   
-ZPOPMIN: 70972.32 requests per second, p50=0.359 msec                   
-LPUSH (needed to benchmark LRANGE): 26434.05 requests per second, p50=1.623 msec                   
-LRANGE_100 (first 100 elements): 26939.66 requests per second, p50=1.263 msec                   
-LRANGE_300 (first 300 elements): 5081.82 requests per second, p50=9.095 msec                    
-LRANGE_500 (first 500 elements): 2554.87 requests per second, p50=18.191 msec                   
-LRANGE_600 (first 600 elements): 1903.96 requests per second, p50=24.607 msec                   
-MSET (10 keys): 56022.41 requests per second, p50=0.463 msec 
-```
+`make benchmark`
+
+Prerequisites:
+- `brew install redis` to run the Redis server and benchmark script
+- `brew tap echovault/sugardb` & `brew install echovault/echovault/sugardb` to run the SugarDB Client-Server
+
+Benchmark script options:
+- `make benchmark use_local_server=true` runs on your local SugarDB Client-Server
+- `make benchmark commands=ping,set,get...` runs the benchmark script on the specified commands
 
 <a name="commands"></a>
 # Supported Commands
@@ -211,6 +197,7 @@ MSET (10 keys): 56022.41 requests per second, p50=0.463 msec
 <a name="commands-connection"></a>
 ## CONNECTION
 * [AUTH](https://sugardb.io/docs/commands/connection/auth)
+* [ECHO](https://sugardb.io/docs/commands/connection/echo)
 * [HELLO](https://sugardb.io/docs/commands/connection/hello)
 * [PING](https://sugardb.io/docs/commands/connection/ping)
 * [SELECT](https://sugardb.io/docs/commands/connection/select)
@@ -218,6 +205,7 @@ MSET (10 keys): 56022.41 requests per second, p50=0.463 msec
 
 <a name="commands-generic"></a>
 ## GENERIC
+* [COPY](https://sugardb.io/docs/commands/generic/copy)
 * [DECR](https://sugardb.io/docs/commands/generic/decr)
 * [DECRBY](https://sugardb.io/docs/commands/generic/decrby)
 * [DEL](https://sugardb.io/docs/commands/generic/del)
@@ -226,14 +214,22 @@ MSET (10 keys): 56022.41 requests per second, p50=0.463 msec
 * [FLUSHALL](https://sugardb.io/docs/commands/generic/flushall)
 * [FLUSHDB](https://sugardb.io/docs/commands/generic/flushdb)
 * [GET](https://sugardb.io/docs/commands/generic/get)
+* [GETDEL](https://sugardb.io/docs/commands/generic/getdel)
+* [GETEX](https://sugardb.io/docs/commands/generic/get)
 * [INCR](https://sugardb.io/docs/commands/generic/incr)
 * [INCRBY](https://sugardb.io/docs/commands/generic/incrby)
+* [INCRBYFLOAT](https://sugardb.io/docs/commands/generic/incrbyfloat)
 * [MGET](https://sugardb.io/docs/commands/generic/mget)
+* [MOVE](https://sugardb.io/docs/commands/generic/move)
 * [MSET](https://sugardb.io/docs/commands/generic/mset)
+* [OBJECTFREQ](https://sugardb.io/docs/commands/generic/objectfreq)
+* [OBJECTIDLETIME](https://sugardb.io/docs/commands/generic/objectidletime)
 * [PERSIST](https://sugardb.io/docs/commands/generic/persist)
 * [PEXPIRE](https://sugardb.io/docs/commands/generic/pexpire)
+* [PEXPIREAT](https://sugardb.io/docs/commands/generic/pexpireat)
 * [PEXPIRETIME](https://sugardb.io/docs/commands/generic/pexpiretime)
 * [PTTL](https://sugardb.io/docs/commands/generic/pttl)
+* [RANDOMKEY](https://sugardb.io/docs/commands/generic/randomkey)
 * [RENAME](https://sugardb.io/docs/commands/generic/rename)
 * [SET](https://sugardb.io/docs/commands/generic/set)
 * [TTL](https://sugardb.io/docs/commands/generic/ttl)
@@ -250,6 +246,7 @@ MSET (10 keys): 56022.41 requests per second, p50=0.463 msec
 * [HINCRBYFLOAT](https://sugardb.io/docs/commands/hash/hincrbyfloat)
 * [HKEYS](https://sugardb.io/docs/commands/hash/hkeys)
 * [HLEN](https://sugardb.io/docs/commands/hash/hlen)
+* [HMGET](https://sugardb.io/docs/commands/hash/hmget)
 * [HRANDFIELD](https://sugardb.io/docs/commands/hash/hrandfield)
 * [HSET](https://sugardb.io/docs/commands/hash/hset)
 * [HSETNX](https://sugardb.io/docs/commands/hash/hsetnx)
@@ -332,11 +329,8 @@ MSET (10 keys): 56022.41 requests per second, p50=0.463 msec
 
 <a name="commands-string"></a>
 ## STRING
+* [APPEND](https://sugardb.io/docs/commands/string/append)
 * [GETRANGE](https://sugardb.io/docs/commands/string/getrange)
 * [SETRANGE](https://sugardb.io/docs/commands/string/setrange)
 * [STRLEN](https://sugardb.io/docs/commands/string/strlen)
 * [SUBSTR](https://sugardb.io/docs/commands/string/substr)
-
-
-
-

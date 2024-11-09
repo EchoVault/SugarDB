@@ -1,0 +1,50 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# INCRBYFLOAT
+
+### Syntax
+```
+INCRBYFLOAT key increment
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">write</span>
+
+### Description
+Increments the floating point number stored at key by increment. If the key does not exist, it is set to 0 before performing
+the operation. An error is returned if the key contains a value of the wrong type or contains a string
+that can not be represented as a floating point number.
+
+### Options
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+  Increment the value of the key `mykey` by 10.33:
+  ```go
+  db, err := sugardb.NewSugarDB()
+  if err != nil {
+    log.Fatal(err)
+  }
+  value, err := db.IncrByFloat("mykey", "10.33")
+  ```
+  </TabItem>
+  <TabItem value="cli">
+  Increment the value of the key `mykey` by 10.33:
+  ```
+  > INCRBYFLOAT mykey 10.33
+  ```
+  </TabItem>
+</Tabs> 

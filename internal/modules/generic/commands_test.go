@@ -2786,7 +2786,7 @@ func Test_Generic(t *testing.T) {
 		}()
 		client := resp.NewConn(conn)
 
-		expected := "Key"
+		expected := "key"
 		if err = client.WriteArray([]resp.Value{resp.StringValue("RANDOMKEY")}); err != nil {
 			t.Error(err)
 		}
@@ -2796,7 +2796,7 @@ func Test_Generic(t *testing.T) {
 			t.Error(err)
 		}
 
-		if !strings.Contains(res.String(), expected) {
+		if !strings.Contains(strings.ToLower(res.String()), expected) {
 			t.Errorf("expected a key containing substring '%s', got %s", expected, res.String())
 		}
 	})
@@ -3332,10 +3332,311 @@ func Test_Generic(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Test_HandleCOPY", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name                 string
+			sourceKeyPresetValue interface{}
+			sourcekey            string
+			destKeyPresetValue   interface{}
+			destinationKey       string
+			database             string
+			replace              bool
+			expectedValue        string
+			expectedResponse     string
+		}{
+			{
+				name:                 "1. Copy Value into non existing key",
+				sourceKeyPresetValue: "value1",
+				sourcekey:            "skey1",
+				destKeyPresetValue:   nil,
+				destinationKey:       "dkey1",
+				database:             "0",
+				replace:              false,
+				expectedValue:        "value1",
+				expectedResponse:     "1",
+			},
+			{
+				name:                 "2. Copy Value into existing key without replace option",
+				sourceKeyPresetValue: "value2",
+				sourcekey:            "skey2",
+				destKeyPresetValue:   "dValue2",
+				destinationKey:       "dkey2",
+				database:             "0",
+				replace:              false,
+				expectedValue:        "dValue2",
+				expectedResponse:     "0",
+			},
+			{
+				name:                 "3. Copy Value into existing key with replace option",
+				sourceKeyPresetValue: "value3",
+				sourcekey:            "skey3",
+				destKeyPresetValue:   "dValue3",
+				destinationKey:       "dkey3",
+				database:             "0",
+				replace:              true,
+				expectedValue:        "value3",
+				expectedResponse:     "1",
+			},
+			{
+				name:                 "4. Copy Value into different database",
+				sourceKeyPresetValue: "value4",
+				sourcekey:            "skey4",
+				destKeyPresetValue:   nil,
+				destinationKey:       "dkey4",
+				database:             "1",
+				replace:              true,
+				expectedValue:        "value4",
+				expectedResponse:     "1",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if tt.sourceKeyPresetValue != nil {
+					cmd := []resp.Value{resp.StringValue("Set"), resp.StringValue(tt.sourcekey), resp.StringValue(tt.sourceKeyPresetValue.(string))}
+
+					err := client.WriteArray(cmd)
+					if err != nil {
+						t.Error(err)
+					}
+
+					rd, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(rd.String(), "ok") {
+						t.Errorf("expected preset response to be \"OK\", got %s", rd.String())
+					}
+				}
+
+				if tt.destKeyPresetValue != nil {
+					cmd := []resp.Value{resp.StringValue("Set"), resp.StringValue(tt.destinationKey), resp.StringValue(tt.destKeyPresetValue.(string))}
+
+					err := client.WriteArray(cmd)
+					if err != nil {
+						t.Error(err)
+					}
+
+					rd, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(rd.String(), "ok") {
+						t.Errorf("expected preset response to be \"OK\", got %s", rd.String())
+					}
+				}
+
+				command := []resp.Value{resp.StringValue("COPY"), resp.StringValue(tt.sourcekey), resp.StringValue(tt.destinationKey)}
+
+				if tt.database != "0" {
+					command = append(command, resp.StringValue("DB"), resp.StringValue(tt.database))
+				}
+
+				if tt.replace {
+					command = append(command, resp.StringValue("REPLACE"))
+				}
+
+				err := client.WriteArray(command)
+				if err != nil {
+					t.Error(err)
+				}
+
+				rd, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				if !strings.EqualFold(rd.String(), tt.expectedResponse) {
+					t.Errorf("expected response to be %s, but got %s", tt.expectedResponse, rd.String())
+				}
+
+				if tt.database != "0" {
+					selectCommand := []resp.Value{resp.StringValue("SELECT"), resp.StringValue(tt.database)}
+
+					err := client.WriteArray(selectCommand)
+					if err != nil {
+						t.Error(err)
+					}
+					_, _, err = client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+				}
+
+				getCommand := []resp.Value{resp.StringValue("GET"), resp.StringValue(tt.destinationKey)}
+
+				err = client.WriteArray(getCommand)
+				if err != nil {
+					t.Error(err)
+				}
+
+				rd, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				if !strings.EqualFold(rd.String(), tt.expectedValue) {
+					t.Errorf("expected value in destinaton key to be %s, but got %s", tt.expectedValue, rd.String())
+				}
+			})
+		}
+
+	})
+
+	t.Run("Test_HandleMOVE", func(t *testing.T) {
+		t.Parallel()
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		mockServer, err := sugardb.NewSugarDB(
+			sugardb.WithConfig(config.Config{
+				BindAddr:       "localhost",
+				Port:           uint16(port),
+				DataDir:        "",
+				EvictionPolicy: constants.NoEviction,
+			}),
+		)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		go func() {
+			mockServer.Start()
+		}()
+		t.Cleanup(func() {
+			mockServer.ShutDown()
+		})
+
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name     string
+			key      string
+			value    string
+			preset   bool
+			expected int
+		}{
+			{
+				name:     "1. Move key.",
+				key:      "MoveKey1",
+				value:    "value1",
+				preset:   true,
+				expected: 1,
+			},
+			{
+				name:     "2. Move key that already exists in new database.",
+				key:      "MoveKey1",
+				value:    "value1",
+				preset:   false,
+				expected: 0,
+			},
+			{
+				name:     "3. Move key that doesn't exist in current database.",
+				key:      "MoveKey3",
+				value:    "value3",
+				preset:   false,
+				expected: 0,
+			},
+		}
+
+		for _, tt := range tests {
+
+			t.Log(tt.name)
+
+			// Preset the values
+			if tt.preset {
+				err = client.WriteArray([]resp.Value{resp.StringValue("SET"), resp.StringValue(tt.key), resp.StringValue(tt.value)})
+				if err != nil {
+					t.Error(err)
+				}
+
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if !strings.EqualFold(res.String(), "ok") {
+					t.Errorf("expected preset response to be \"OK\", got %s", res.String())
+				}
+			}
+
+			if err = client.WriteArray([]resp.Value{resp.StringValue("MOVE"), resp.StringValue(tt.key), resp.StringValue("1")}); err != nil {
+				t.Error(err)
+			}
+
+			res, _, err := client.ReadValue()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if res.Integer() != tt.expected {
+				t.Errorf("expected value %v, got %v", tt.expected, res.Integer())
+				t.Error(mockServer.Get(tt.key))
+			}
+
+			// check other db
+			if tt.expected == 1 {
+
+				actual, err := mockServer.Get(tt.key)
+				if err != nil {
+					t.Error(err)
+				}
+
+				if actual != "" {
+					t.Errorf("when verifying key was moved from the original db, expected to get empty string but got %q", actual)
+				}
+
+				err = mockServer.SelectDB(1)
+				if err != nil {
+					t.Error(err)
+				}
+
+				actual, err = mockServer.Get(tt.key)
+				if err != nil {
+					t.Error(err)
+				}
+
+				if actual != tt.value {
+					t.Errorf("when verifying key was moved to the new db, expected to get value %q, but got %q", tt.value, actual)
+				}
+
+				err = mockServer.SelectDB(0)
+				if err != nil {
+					t.Error(err)
+				}
+
+			}
+
+		}
+	})
+
 }
 
 // Certain commands will need to be tested in a server with an eviction policy.
-// This is for testing against an LFU evictiona policy.
+// This is for testing against an LFU eviction policy.
 func Test_LFU_Generic(t *testing.T) {
 	// mockClock := clock.NewClock()
 	port, err := internal.GetFreePort()

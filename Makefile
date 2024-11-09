@@ -27,3 +27,5 @@ test-win:
 cover:
 	go tool cover -html=./coverage/coverage.out
 
+benchmark:
+	go run redis_benchmark.go $(if $(commands),-commands="$(commands)") $(if $(use_local_server),-use_local_server)

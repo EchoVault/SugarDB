@@ -29,6 +29,11 @@ type SetOptions struct {
 	expireAt interface{} // Exact expireAt time un unix milliseconds
 }
 
+type CopyOptions struct {
+	database string
+	replace bool
+}
+
 func getSetCommandOptions(clock clock.Clock, cmd []string, options SetOptions) (SetOptions, error) {
 	if len(cmd) == 0 {
 		return options, nil
@@ -114,5 +119,34 @@ func getSetCommandOptions(clock clock.Clock, cmd []string, options SetOptions) (
 
 	default:
 		return SetOptions{}, fmt.Errorf("unknown option %s for set command", strings.ToUpper(cmd[0]))
+	}
+}
+
+func getCopyCommandOptions(cmd []string, options CopyOptions) (CopyOptions, error) {
+	if len(cmd) == 0 {
+		return options, nil
+	}
+
+	switch strings.ToLower(cmd[0]){
+	case "replace":
+		options.replace = true
+		return getCopyCommandOptions(cmd[1:], options)
+		
+	case "db":
+		if len(cmd) < 2 {
+			return CopyOptions{}, errors.New("syntax error")
+		}
+
+		_, err := strconv.Atoi(cmd[1])
+		if err != nil {
+			return CopyOptions{}, errors.New("value is not an integer or out of range")
+		}
+		
+		options.database = cmd [1]
+		return getCopyCommandOptions(cmd[2:], options)
+		
+
+	default:
+		return CopyOptions{}, fmt.Errorf("unknown option %s for copy command", strings.ToUpper(cmd[0]))
 	}
 }

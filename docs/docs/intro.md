@@ -70,8 +70,8 @@ if err != nil {
 ### Homebrew
 
 To install via homebrew, run:
-1) `brew tap echovault/echovault`
-2) `brew install echovault/echovault/echovault`
+1) `brew tap echovault/sugardb`
+2) `brew install echovault/echovault/sugardb`
 
 Once installed, you can run the server with the following command:
 `echovault --bind-addr=localhost --data-dir="path/to/persistence/directory"`

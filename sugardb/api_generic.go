@@ -137,6 +137,16 @@ type GetExOption interface {
 
 func (x GetExOpt) isGetExOpt() GetExOpt { return x }
 
+// COPYOptions is a struct wrapper for all optional parameters of the Copy command.
+//
+// `Database` - string - Logical database index
+//
+// `Replace` - bool - Whether to replace the destination key if it exists
+type COPYOptions struct {
+	Database string
+	Replace  bool
+}
+
 // Set creates or modifies the value at the given key.
 //
 // Parameters:
@@ -623,7 +633,7 @@ func (server *SugarDB) GetDel(key string) (string, error) {
 //
 // `option` - GetExOption - one of EX, PX, EXAT, PXAT, PERSIST. Can be nil.
 //
-// `unixtime` - Number of seconds or miliseconds from now.
+// `unixtime` - int - Number of seconds or miliseconds from now.
 //
 // Returns: A string representing the value at the specified key. If the value does not exist, an empty string is returned.
 func (server *SugarDB) GetEx(key string, option GetExOption, unixtime int) (string, error) {
@@ -717,4 +727,49 @@ func (server *SugarDB) Type(key string) (string, error) {
 		return "", err
 	}
 	return internal.ParseStringResponse(b)
+}
+
+// Copy copies a value of a source key to destination key.
+//
+// Parameters:
+//
+// `source` - string - the source key from which data is to be copied
+//
+// `destination` - string - the destination key where data should be copied
+//
+// Returns: 1 if the copy is successful. 0 if the copy is unsuccessful
+func (server *SugarDB) Copy(sourceKey, destinationKey string, options COPYOptions) (int, error) {
+	cmd := []string{"COPY", sourceKey, destinationKey}
+
+	if options.Database != "" {
+		cmd = append(cmd, "db", options.Database)
+	}
+
+	if options.Replace {
+		cmd = append(cmd, "replace")
+	}
+
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return 0, err
+	}
+	return internal.ParseIntegerResponse(b)
+}
+
+// Move key from currently selected database to specified destination database and return 1.
+// When key already exists in the destination database, or it does not exist in the source database, it does nothing and returns 0.
+//
+// Parameters:
+//
+// `key` - string - the key that should be moved.
+//
+// `destinationDB` - int - the database the key should be moved to.
+//
+// Returns: 1 if successful, 0 if unsuccessful.
+func (server *SugarDB) Move(key string, destinationDB int) (int, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"Move", key, strconv.Itoa(destinationDB)}), nil, false, true)
+	if err != nil {
+		return 0, err
+	}
+	return internal.ParseIntegerResponse(b)
 }
