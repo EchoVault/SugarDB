@@ -1931,4 +1931,125 @@ func Test_Hash(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Test_HandleHEXPIRE", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name          string
+			key           string
+			presetValue   hash.Hash
+			command       []string
+			expectedValue string
+			expectedError error
+		}{
+			//TODO
+			// fill out test case(s)
+			// make sure expect error works as it should
+			//
+			// HEXPIRE key seconds [NX | XX | GT | LT] FIELDS numfields field [field ...]
+			{
+				name: "1. Set expiration for all keys in hash, no options.",
+				key:  "HexpireKey1",
+				presetValue: hash.Hash{
+					"HexpireK1Field1": hash.HashValue{
+						Value: "default1",
+					},
+					"HexpireK1Field2": hash.HashValue{
+						Value: "default2",
+					},
+					"HexpireK1Field3": hash.HashValue{
+						Value: "default3",
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey1", "4", "FIELDS", "3", "HexpireK1Field1", "HexpireK1Field2", "HexpireK1Field3"},
+				expectedValue: "[1 1 1]",
+				expectedError: nil,
+			},
+			{
+				name: "2. Set expiration for one key in hash, no options.",
+				key:  "HexpireKey2",
+				presetValue: hash.Hash{
+					"HexpireK2Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey2", "4", "FIELDS", "1", "HexpireK2Field1"},
+				expectedValue: "[1]",
+				expectedError: nil,
+			},
+		}
+
+		for _, test := range tests {
+
+			t.Run(test.name, func(t *testing.T) {
+				// set key with preset value
+				if test.presetValue != nil {
+					var command []resp.Value
+					var expected string
+
+					command = []resp.Value{resp.StringValue("HSET"), resp.StringValue(test.key)}
+					for key, value := range test.presetValue {
+						command = append(command, []resp.Value{
+							resp.StringValue(key),
+							resp.StringValue(value.Value.(string))}...,
+						)
+					}
+					expected = strconv.Itoa(len(test.presetValue))
+
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
+
+				}
+
+				// run HEXPIRE command
+				command := make([]resp.Value, len(test.command))
+				for i, c := range test.command {
+					command[i] = resp.StringValue(c)
+				}
+
+				if err = client.WriteArray(command); err != nil {
+					t.Error(err)
+				}
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				// ensure correct int response
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					}
+					return
+				}
+
+				if res.String() != test.expectedValue {
+					t.Errorf("expected response %q, got %q", test.expectedValue, res.String())
+				}
+
+				// TODO
+				// check TTL (need to implement HTTL command)
+			})
+
+		}
+
+	})
 }

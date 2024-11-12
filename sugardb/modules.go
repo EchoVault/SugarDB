@@ -47,6 +47,7 @@ func (server *SugarDB) getHandlerFuncParams(ctx context.Context, cmd []string, c
 		GetValues:             server.getValues,
 		SetValues:             server.setValues,
 		SetExpiry:             server.setExpiry,
+		SetHashExpiry:         server.setHashExpiry,
 		TakeSnapshot:          server.takeSnapshot,
 		GetLatestSnapshotTime: server.getLatestSnapshotTime,
 		RewriteAOF:            server.rewriteAOF,

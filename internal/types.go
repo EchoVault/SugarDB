@@ -147,8 +147,10 @@ type HandlerFuncParams struct {
 	GetValues func(ctx context.Context, keys []string) map[string]interface{}
 	// SetValues sets each of the keys with their corresponding values in the provided map.
 	SetValues func(ctx context.Context, entries map[string]interface{}) error
-	// Set expiry sets the expiry time of the key.
+	// SetExpiry sets the expiry time of the key.
 	SetExpiry func(ctx context.Context, key string, expire time.Time, touch bool)
+	// SetHashExpiry sets the expiry time of a field in a key whose value is a hash.
+	SetHashExpiry func(ctx context.Context, key string, field string, expire time.Time) error
 	// GetClock gets the clock used by the server.
 	// Use this when making use of time methods like .Now and .After.
 	// This inversion of control is a helper for testing as the clock is automatically mocked in tests.

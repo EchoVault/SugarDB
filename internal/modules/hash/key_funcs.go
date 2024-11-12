@@ -16,6 +16,7 @@ package hash
 
 import (
 	"errors"
+
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/constants"
 )
@@ -167,5 +168,17 @@ func hdelKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: cmd[1:2],
+	}, nil
+}
+
+func hexpireKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) < 6 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:],
 	}, nil
 }

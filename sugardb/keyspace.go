@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"reflect"
 	"runtime"
 	"slices"
 	"strings"
@@ -31,6 +32,7 @@ import (
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/constants"
 	"github.com/echovault/sugardb/internal/eviction"
+	"github.com/echovault/sugardb/internal/modules/hash"
 )
 
 // SwapDBs swaps every TCP client connection from database1 over to database2.
@@ -276,6 +278,30 @@ func (server *SugarDB) setExpiry(ctx context.Context, key string, expireAt time.
 			}
 		}(ctx, key)
 	}
+}
+
+func (server *SugarDB) setHashExpiry(ctx context.Context, key string, field string, expireAt time.Time) error {
+	server.storeLock.Lock()
+	defer server.storeLock.Unlock()
+
+	database := ctx.Value("Database").(int)
+
+	hashmap, ok := server.store[database][key].Value.(hash.Hash)
+	if !ok {
+		return fmt.Errorf("setHashExpiry can only be used on keys whose value is a Hash")
+	}
+	hashmap[field] = hash.HashValue{
+		Value:    hashmap[field].Value,
+		ExpireAt: expireAt,
+	}
+
+	server.keysWithExpiry.rwMutex.Lock()
+	if !slices.Contains(server.keysWithExpiry.keys[database], key) {
+		server.keysWithExpiry.keys[database] = append(server.keysWithExpiry.keys[database], key)
+	}
+	server.keysWithExpiry.rwMutex.Unlock()
+
+	return nil
 }
 
 func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
@@ -646,6 +672,31 @@ func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 	server.storeLock.Lock()
 	defer server.storeLock.Unlock()
 	for _, k := range keys {
+
+		// handle keys within a hash type value
+		value := server.store[database][k].Value
+		t := reflect.TypeOf(value)
+		if t.Kind() == reflect.Map {
+
+			hashkey, ok := server.store[database][k].Value.(hash.Hash)
+			if !ok {
+				return fmt.Errorf("Hash value should contain type HashValue, but type %s was found.", t.Elem().Name())
+			}
+
+			for k, v := range hashkey {
+				if v.ExpireAt.Before(time.Now()) {
+					delete(hashkey, k)
+				}
+			}
+
+		}
+
+		// Check if key is expired, move on if it's not
+		ExpireTime := server.store[database][k].ExpireAt
+		if ExpireTime.Before(time.Now()) {
+			continue
+		}
+
 		// Delete the expired key
 		deletedCount += 1
 		if !server.isInCluster() {
