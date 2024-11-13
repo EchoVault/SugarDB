@@ -191,6 +191,15 @@ func renameKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	}, nil
 }
 
+func renamenxKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 3 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		WriteKeys: cmd[1:3],
+	}, nil
+}
+
 func randomKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 1 {
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
@@ -269,10 +278,10 @@ func objIdleTimeKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) 
 }
 
 func copyKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
-	if len(cmd) < 3 && len(cmd)>6{
+	if len(cmd) < 3 && len(cmd) > 6 {
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
-	
+
 	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  cmd[1:2],

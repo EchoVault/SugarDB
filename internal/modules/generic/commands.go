@@ -677,6 +677,41 @@ func handleRename(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte("+OK\r\n"), nil
 }
 
+func handleRenamenx(params internal.HandlerFuncParams) ([]byte, error) {
+	if len(params.Command) != 3 {
+		return nil, errors.New(constants.WrongArgsResponse)
+	}
+
+	oldKey := params.Command[1]
+	newKey := params.Command[2]
+
+	// Get the current value for the old key
+	values := params.GetValues(params.Context, []string{oldKey})
+	oldValue, ok := values[oldKey]
+
+	if !ok || oldValue == nil {
+		return nil, errors.New("no such key")
+	}
+	values = params.GetValues(params.Context, []string{newKey})
+	currentNewKeyValue, newKeyOk := values[newKey]
+
+	if !newKeyOk || currentNewKeyValue != nil {
+		return nil, errors.New("Key already exists!")
+	}
+
+	// Set the new key with the old value
+	if err := params.SetValues(params.Context, map[string]interface{}{newKey: oldValue}); err != nil {
+		return nil, err
+	}
+
+	// Delete the old key
+	if err := params.DeleteKey(params.Context, oldKey); err != nil {
+		return nil, err
+	}
+
+	return []byte("+OK\r\n"), nil
+}
+
 func handleFlush(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) != 1 {
 		return nil, errors.New(constants.WrongArgsResponse)
@@ -1324,6 +1359,15 @@ The REPLACE option removes the destination key before copying the value to it.`,
 			Sync:              true,
 			KeyExtractionFunc: moveKeyFunc,
 			HandlerFunc:       handleMove,
+		},
+		{
+			Command:           "renamenx",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.KeyspaceCategory, constants.WriteCategory, constants.FastCategory},
+			Description:       "(RENAMENX key newkey) Renames the specified key with the new name only if the new name does not already exist.",
+			Sync:              true,
+			KeyExtractionFunc: renamenxKeyFunc,
+			HandlerFunc:       handleRenamenx,
 		},
 	}
 }
