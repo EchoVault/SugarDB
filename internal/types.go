@@ -140,6 +140,8 @@ type HandlerFuncParams struct {
 	KeysExist func(ctx context.Context, keys []string) map[string]bool
 	// GetExpiry returns the expiry time of a key.
 	GetExpiry func(ctx context.Context, key string) time.Time
+	// GetHashExpiry returns the expiry time of a field in a key whose value is a hash.
+	GetHashExpiry func(ctx context.Context, key string, field string) time.Time
 	// DeleteKey deletes the specified key. Returns an error if the deletion was unsuccessful.
 	DeleteKey func(ctx context.Context, key string) error
 	// GetValues retrieves the values from the specified keys.

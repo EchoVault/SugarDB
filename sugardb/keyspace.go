@@ -148,6 +148,22 @@ func (server *SugarDB) getExpiry(ctx context.Context, key string) time.Time {
 	return entry.ExpireAt
 }
 
+func (server *SugarDB) getHashExpiry(ctx context.Context, key string, field string) time.Time {
+	server.storeLock.RLock()
+	defer server.storeLock.RUnlock()
+
+	database := ctx.Value("Database").(int)
+
+	entry, ok := server.store[database][key]
+	if !ok {
+		return time.Time{}
+	}
+
+	hash := entry.Value.(hash.Hash)
+
+	return hash[field].ExpireAt
+}
+
 func (server *SugarDB) getValues(ctx context.Context, keys []string) map[string]interface{} {
 	server.storeLock.Lock()
 	defer server.storeLock.Unlock()

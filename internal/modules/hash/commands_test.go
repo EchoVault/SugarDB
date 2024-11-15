@@ -16,12 +16,15 @@ package hash_test
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/clock"
 	"github.com/echovault/sugardb/internal/config"
 	"github.com/echovault/sugardb/internal/constants"
 	"github.com/echovault/sugardb/internal/modules/hash"
@@ -30,6 +33,7 @@ import (
 )
 
 func Test_Hash(t *testing.T) {
+	mockClock := clock.NewClock()
 	port, err := internal.GetFreePort()
 	if err != nil {
 		t.Error(err)
@@ -1952,11 +1956,7 @@ func Test_Hash(t *testing.T) {
 			expectedValue string
 			expectedError error
 		}{
-			//TODO
-			// fill out test case(s)
-			// make sure expect error works as it should
-			//
-			// HEXPIRE key seconds [NX | XX | GT | LT] FIELDS numfields field [field ...]
+
 			{
 				name: "1. Set expiration for all keys in hash, no options.",
 				key:  "HexpireKey1",
@@ -1971,7 +1971,7 @@ func Test_Hash(t *testing.T) {
 						Value: "default3",
 					},
 				},
-				command:       []string{"HEXPIRE", "HexpireKey1", "4", "FIELDS", "3", "HexpireK1Field1", "HexpireK1Field2", "HexpireK1Field3"},
+				command:       []string{"HEXPIRE", "HexpireKey1", "5", "FIELDS", "3", "HexpireK1Field1", "HexpireK1Field2", "HexpireK1Field3"},
 				expectedValue: "[1 1 1]",
 				expectedError: nil,
 			},
@@ -1983,9 +1983,178 @@ func Test_Hash(t *testing.T) {
 						Value: "default1",
 					},
 				},
-				command:       []string{"HEXPIRE", "HexpireKey2", "4", "FIELDS", "1", "HexpireK2Field1"},
+				command:       []string{"HEXPIRE", "HexpireKey2", "5", "FIELDS", "1", "HexpireK2Field1"},
 				expectedValue: "[1]",
 				expectedError: nil,
+			},
+			{
+				name: "3. Set expiration, expireTime already populated, no options.",
+				key:  "HexpireKey3",
+				presetValue: hash.Hash{
+					"HexpireK3Field1": hash.HashValue{
+						Value:    "default1",
+						ExpireAt: mockClock.Now().Add(500 * time.Second),
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey3", "100", "FIELDS", "1", "HexpireK3Field1"},
+				expectedValue: "[1]",
+				expectedError: nil,
+			},
+			{
+				name: "4. Set expiration, option NX with no expire time currently set.",
+				key:  "HexpireKey4",
+				presetValue: hash.Hash{
+					"HexpireK4Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey4", "5", "NX", "FIELDS", "1", "HexpireK4Field1"},
+				expectedValue: "[1]",
+				expectedError: nil,
+			},
+			{
+				name: "5. Set expiration, option NX with an expire time already set.",
+				key:  "HexpireKey5",
+				presetValue: hash.Hash{
+					"HexpireK5Field1": hash.HashValue{
+						Value:    "default1",
+						ExpireAt: mockClock.Now().Add(500 * time.Second),
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey5", "100", "NX", "FIELDS", "1", "HexpireK5Field1"},
+				expectedValue: "[0]",
+				expectedError: nil,
+			},
+			{
+				name: "6. Set expiration, option XX with no expire time currently set.",
+				key:  "HexpireKey6",
+				presetValue: hash.Hash{
+					"HexpireK6Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey6", "5", "XX", "FIELDS", "1", "HexpireK6Field1"},
+				expectedValue: "[0]",
+				expectedError: nil,
+			},
+			{
+				name: "7. Set expiration, option XX with expire time already set.",
+				key:  "HexpireKey7",
+				presetValue: hash.Hash{
+					"HexpireK7Field1": hash.HashValue{
+						Value:    "default1",
+						ExpireAt: mockClock.Now().Add(500 * time.Second),
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey7", "100", "XX", "FIELDS", "1", "HexpireK7Field1"},
+				expectedValue: "[1]",
+				expectedError: nil,
+			},
+			{
+				name: "8. Set expiration, option GT with expire time less than one provided.",
+				key:  "HexpireKey8",
+				presetValue: hash.Hash{
+					"HexpireK8Field1": hash.HashValue{
+						Value:    "default1",
+						ExpireAt: mockClock.Now().Add(500 * time.Second),
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey8", "1000", "GT", "FIELDS", "1", "HexpireK8Field1"},
+				expectedValue: "[1]",
+				expectedError: nil,
+			},
+			{
+				name: "9. Set expiration, option GT with expire time greater than one provided.",
+				key:  "HexpireKey9",
+				presetValue: hash.Hash{
+					"HexpireK9Field1": hash.HashValue{
+						Value:    "default1",
+						ExpireAt: mockClock.Now().Add(500 * time.Second),
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey9", "100", "GT", "FIELDS", "1", "HexpireK9Field1"},
+				expectedValue: "[0]",
+				expectedError: nil,
+			},
+			{
+				name: "10. Set expiration, option LT with expire time less than one provided.",
+				key:  "HexpireKey10",
+				presetValue: hash.Hash{
+					"HexpireK10Field1": hash.HashValue{
+						Value:    "default1",
+						ExpireAt: mockClock.Now().Add(500 * time.Second),
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey10", "1000", "LT", "FIELDS", "1", "HexpireK10Field1"},
+				expectedValue: "[0]",
+				expectedError: nil,
+			},
+			{
+				name: "11. Set expiration, option LT with expire time greater than one provided.",
+				key:  "HexpireKey11",
+				presetValue: hash.Hash{
+					"HexpireK11Field1": hash.HashValue{
+						Value:    "default1",
+						ExpireAt: mockClock.Now().Add(500 * time.Second),
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey11", "100", "LT", "FIELDS", "1", "HexpireK11Field1"},
+				expectedValue: "[1]",
+				expectedError: nil,
+			},
+			{
+				name: "12. Set expiration, provide 0 seconds.",
+				key:  "HexpireKey12",
+				presetValue: hash.Hash{
+					"HexpireK12Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey12", "0", "FIELDS", "1", "HexpireK12Field1"},
+				expectedValue: "[2]",
+				expectedError: nil,
+			},
+			{
+				name:          "13. Attempt to set expiration for non existent key.",
+				key:           "HexpireKeyNOTEXIST",
+				presetValue:   nil,
+				command:       []string{"HEXPIRE", "HexpireKeyNOTEXIST", "100", "FIELDS", "1", "HexpireKNEField1"},
+				expectedValue: "-2",
+				expectedError: nil,
+			},
+			{
+				name: "14. Attempt to set expiration for field that doesn't exist.",
+				key:  "HexpireKey14",
+				presetValue: hash.Hash{
+					"HexpireK14Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey14", "100", "FIELDS", "2", "HexpireK14BadField1", "HexpireK14Field1"},
+				expectedValue: "[-2 1]",
+				expectedError: nil,
+			},
+			{
+				name: "15. Set expiration, command wrong length.",
+				key:  "HexpireKey15",
+				presetValue: hash.Hash{
+					"HexpireK15Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey15", "100", "1", "HexpireK15Field1"},
+				expectedError: errors.New("Error wrong number of arguments"),
+			},
+			{
+				name: "16. Set expiration, command filed numfields is not a number.",
+				key:  "HexpireKey16",
+				presetValue: hash.Hash{
+					"HexpireK16Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				command:       []string{"HEXPIRE", "HexpireKey16", "100", "FIELDS", "one", "HexpireK16Field1"},
+				expectedError: errors.New("Error numberfields must be integer, was provided \"one\""),
 			},
 		}
 
@@ -2020,6 +2189,31 @@ func Test_Hash(t *testing.T) {
 
 				}
 
+				// preset Expire Time
+				for field, value := range test.presetValue {
+					if value.ExpireAt != (time.Time{}) {
+						cmd := []resp.Value{
+							resp.StringValue("HEXPIRE"),
+							resp.StringValue(test.key),
+							resp.StringValue("500"),
+							resp.StringValue("FIELDS"),
+							resp.StringValue("1"),
+							resp.StringValue(field),
+						}
+
+						if err = client.WriteArray(cmd); err != nil {
+							t.Error(err)
+						}
+						res, _, err := client.ReadValue()
+						if err != nil {
+							t.Error(err)
+						}
+						if res.String() != "[1]" {
+							t.Errorf("Error presetting expire time - Key: %s, Field: %s,  response: %s", test.key, field, res.String())
+						}
+					}
+				}
+
 				// run HEXPIRE command
 				command := make([]resp.Value, len(test.command))
 				for i, c := range test.command {
@@ -2033,10 +2227,10 @@ func Test_Hash(t *testing.T) {
 				if err != nil {
 					t.Error(err)
 				}
-				// ensure correct int response
+
 				if test.expectedError != nil {
 					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
-						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), res.Error())
 					}
 					return
 				}
@@ -2045,8 +2239,254 @@ func Test_Hash(t *testing.T) {
 					t.Errorf("expected response %q, got %q", test.expectedValue, res.String())
 				}
 
-				// TODO
-				// check TTL (need to implement HTTL command)
+			})
+
+		}
+
+	})
+
+	t.Run("Test_HandleHTTL", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name          string
+			command       []string
+			key           string
+			presetValue   interface{}
+			setExpire     bool
+			expectedValue string
+			expectedError error
+		}{
+			{
+				name:    "1. Get TTL for one field when expireTime is set.",
+				key:     "HTTLKey1",
+				command: []string{"HTTL", "HTTLKey1", "FIELDS", "1", "HTTLK1Field1"},
+				presetValue: hash.Hash{
+					"HTTLK1Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				setExpire:     true,
+				expectedValue: "[5]",
+				expectedError: nil,
+			},
+			{
+				name:    "2. Get TTL for multiple fields when expireTime is set.",
+				key:     "HTTLKey2",
+				command: []string{"HTTL", "HTTLKey2", "FIELDS", "3", "HTTLK2Field1", "HTTLK2Field2", "HTTLK2Field3"},
+				presetValue: hash.Hash{
+					"HTTLK2Field1": hash.HashValue{
+						Value: "default1",
+					},
+					"HTTLK2Field2": hash.HashValue{
+						Value: "default1",
+					},
+					"HTTLK2Field3": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				setExpire:     true,
+				expectedValue: "[5 5 5]",
+				expectedError: nil,
+			},
+			{
+				name:    "3. Get TTL for one field when expireTime is not set.",
+				key:     "HTTLKey3",
+				command: []string{"HTTL", "HTTLKey3", "FIELDS", "1", "HTTLK3Field1"},
+				presetValue: hash.Hash{
+					"HTTLK3Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				setExpire:     false,
+				expectedValue: "[-1]",
+				expectedError: nil,
+			},
+			{
+				name:    "4. Get TTL for multiple fields when expireTime is not set.",
+				key:     "HTTLKey4",
+				command: []string{"HTTL", "HTTLKey4", "FIELDS", "3", "HTTLK4Field1", "HTTLK4Field2", "HTTLK4Field3"},
+				presetValue: hash.Hash{
+					"HTTLK4Field1": hash.HashValue{
+						Value: "default1",
+					},
+					"HTTLK4Field2": hash.HashValue{
+						Value: "default1",
+					},
+					"HTTLK4Field3": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				setExpire:     false,
+				expectedValue: "[-1 -1 -1]",
+				expectedError: nil,
+			},
+			{
+				name:          "5. Try to get TTL for key that doesn't exist.",
+				key:           "HTTLKeyNOTEXIST",
+				command:       []string{"HTTL", "HTTLKeyNOTEXIST", "FIELDS", "1", "HTTLK1Field1"},
+				presetValue:   nil,
+				setExpire:     false,
+				expectedValue: "-2",
+				expectedError: nil,
+			},
+			{
+				name:          "6. Try to get TTL for key that isn't a hash.",
+				key:           "HTTLKey6",
+				command:       []string{"HTTL", "HTTLKey6", "FIELDS", "1", "HTTLK6Field1"},
+				presetValue:   "NotaHash",
+				setExpire:     false,
+				expectedError: errors.New("Error value at HTTLKey6 is not a hash"),
+			},
+			{
+				name:    "7. Command missing 'FIELDS'.",
+				key:     "HTTLKey7",
+				command: []string{"HTTL", "HTTLKey7", "1", "HTTLK7Field1"},
+				presetValue: hash.Hash{
+					"HTTLK7Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				setExpire:     false,
+				expectedError: errors.New("Error wrong number of arguments"),
+			},
+			{
+				name:    "8. Command numfields provided isn't a number.",
+				key:     "HTTLKey8",
+				command: []string{"HTTL", "HTTLKey8", "FIELDS", "one", "HTTLK8Field1"},
+				presetValue: hash.Hash{
+					"HTTLK8Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				setExpire:     false,
+				expectedError: errors.New("Error expire time must be integer, was provided \"one\""),
+			},
+			{
+				name:    "9. Command missing numfields.",
+				key:     "HTTLKey9",
+				command: []string{"HTTL", "HTTLKey9", "FIELDS", "HTTLK9Field1"},
+				presetValue: hash.Hash{
+					"HTTLK9Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				setExpire:     false,
+				expectedError: errors.New("Error wrong number of arguments"),
+			},
+			{
+				name:    "10. Command FIELDS index contains something else.",
+				key:     "HTTLKey10",
+				command: []string{"HTTL", "HTTLKey10", "NOTFIELDS", "1", "HTTLK10Field1"},
+				presetValue: hash.Hash{
+					"HTTLK10Field1": hash.HashValue{
+						Value: "default1",
+					},
+				},
+				setExpire:     false,
+				expectedError: errors.New("Error invalid command provided"),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				// set preset values
+				if test.presetValue != nil {
+					var command []resp.Value
+					var expected string
+
+					switch test.presetValue.(type) {
+					case string:
+						command = []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(test.key),
+							resp.StringValue(test.presetValue.(string)),
+						}
+						expected = "ok"
+					case hash.Hash:
+						command = []resp.Value{resp.StringValue("HSET"), resp.StringValue(test.key)}
+						for key, value := range test.presetValue.(hash.Hash) {
+							command = append(command, []resp.Value{
+								resp.StringValue(key),
+								resp.StringValue(value.Value.(string))}...,
+							)
+						}
+						expected = strconv.Itoa(len(test.presetValue.(hash.Hash)))
+					}
+
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+
+					if !strings.EqualFold(res.String(), expected) {
+						t.Errorf("expected preset response to be \"%s\", got %s", expected, res.String())
+					}
+
+				}
+
+				if test.setExpire {
+					// set expire times
+					command := make([]resp.Value, len(test.presetValue.(hash.Hash))+5)
+					command[0] = resp.StringValue("HEXPIRE")
+					command[1] = resp.StringValue(test.key)
+					command[2] = resp.StringValue("5")
+					command[3] = resp.StringValue("FIELDS")
+					command[4] = resp.StringValue(fmt.Sprintf("%v", (len(test.presetValue.(hash.Hash)))))
+
+					i := 0
+					for k, _ := range test.presetValue.(hash.Hash) {
+						command[5+i] = resp.StringValue(k)
+						i++
+					}
+
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					_, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+				}
+
+				// read TTL
+				command := make([]resp.Value, len(test.command))
+				for i, v := range test.command {
+					command[i] = resp.StringValue(v)
+				}
+				if err = client.WriteArray(command); err != nil {
+					t.Error(err)
+				}
+				resp, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(resp.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), resp.Error())
+					}
+
+					return
+				}
+
+				if resp.String() != test.expectedValue {
+					t.Errorf("Expected value %v but got %v", test.expectedValue, resp)
+				}
+
 			})
 
 		}

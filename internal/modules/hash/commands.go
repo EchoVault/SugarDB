@@ -622,7 +622,7 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
 
 	if !keyExists {
-		return []byte("-2\r\n"), nil
+		return []byte(":-2\r\n"), nil
 	}
 
 	hash, ok := params.GetValues(params.Context, []string{key})[key].(Hash)
@@ -634,10 +634,7 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 	cmdargs := keys.WriteKeys[1:]
 	seconds, err := strconv.ParseInt(cmdargs[0], 10, 64)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("expire time must be integer, was provided %q", cmdargs[0]))
-	}
-	if seconds == 0 {
-		return []byte("2\r\n"), nil
+		return nil, errors.New(fmt.Sprintf("seconds must be integer, was provided %q", cmdargs[0]))
 	}
 
 	// FIELDS argument provides starting index to work off of to grab fields
@@ -653,16 +650,23 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 	// index through numfields
 	numfields, err := strconv.ParseInt(cmdargs[fieldsIdx+1], 10, 64)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("numberfields must be integer, was provided %q", cmdargs[0]))
+		return nil, errors.New(fmt.Sprintf("numberfields must be integer, was provided %q", cmdargs[fieldsIdx+1]))
 	}
 	endIdx := fieldsIdx + 2 + int(numfields)
 	fields := cmdargs[fieldsIdx+2 : endIdx]
 
-	expireAt := time.Now().Add(time.Duration(seconds) * time.Second)
+	expireAt := params.GetClock().Now().Add(time.Duration(seconds) * time.Second)
 
 	// build out response
 	resp := "*" + fmt.Sprintf("%v", len(fields)) + "\r\n"
-	respidx := 1
+
+	// handle expire time of 0 seconds
+	if seconds == 0 {
+		for i := numfields; i > 0; i-- {
+			resp = resp + ":2\r\n"
+		}
+		return []byte(resp), nil
+	}
 
 	if fieldsIdx == 2 {
 		// Handle expire options
@@ -672,13 +676,11 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 				_, ok := hash[f]
 				if !ok {
 					resp = resp + ":-2\r\n"
-					respidx++
 					continue
 				}
 				currentExpireAt := hash[f].ExpireAt
 				if currentExpireAt != (time.Time{}) {
 					resp = resp + ":0\r\n"
-					respidx++
 					continue
 				}
 				err = params.SetHashExpiry(params.Context, key, f, expireAt)
@@ -687,7 +689,6 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 				}
 
 				resp = resp + ":1\r\n"
-				respidx++
 
 			}
 		case "xx":
@@ -695,13 +696,11 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 				_, ok := hash[f]
 				if !ok {
 					resp = resp + ":-2\r\n"
-					respidx++
 					continue
 				}
 				currentExpireAt := hash[f].ExpireAt
 				if currentExpireAt == (time.Time{}) {
 					resp = resp + ":0\r\n"
-					respidx++
 					continue
 				}
 				err = params.SetHashExpiry(params.Context, key, f, expireAt)
@@ -710,7 +709,6 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 				}
 
 				resp = resp + ":1\r\n"
-				respidx++
 
 			}
 		case "gt":
@@ -718,13 +716,12 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 				_, ok := hash[f]
 				if !ok {
 					resp = resp + ":-2\r\n"
-					respidx++
 					continue
 				}
 				currentExpireAt := hash[f].ExpireAt
+				//TODO
 				if currentExpireAt == (time.Time{}) || expireAt.Before(currentExpireAt) {
 					resp = resp + ":0\r\n"
-					respidx++
 					continue
 				}
 				err = params.SetHashExpiry(params.Context, key, f, expireAt)
@@ -733,7 +730,6 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 				}
 
 				resp = resp + ":1\r\n"
-				respidx++
 
 			}
 		case "lt":
@@ -741,13 +737,11 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 				_, ok := hash[f]
 				if !ok {
 					resp = resp + ":-2\r\n"
-					respidx++
 					continue
 				}
 				currentExpireAt := hash[f].ExpireAt
 				if currentExpireAt != (time.Time{}) && currentExpireAt.Before(expireAt) {
 					resp = resp + ":0\r\n"
-					respidx++
 					continue
 				}
 				err = params.SetHashExpiry(params.Context, key, f, expireAt)
@@ -756,7 +750,6 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 				}
 
 				resp = resp + ":1\r\n"
-				respidx++
 
 			}
 		default:
@@ -767,7 +760,6 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 			_, ok := hash[f]
 			if !ok {
 				resp = resp + ":-2\r\n"
-				respidx++
 				continue
 			}
 			err = params.SetHashExpiry(params.Context, key, f, expireAt)
@@ -776,12 +768,53 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 			}
 
 			resp = resp + ":1\r\n"
-			respidx++
 
 		}
 	}
 
 	// Array resp
+	return []byte(resp), nil
+}
+
+func handleHTTL(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := httlKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
+
+	if !keyExists {
+		return []byte(":-2\r\n"), nil
+	}
+
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(Hash)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	cmdargs := keys.ReadKeys[2:]
+	numfields, err := strconv.ParseInt(cmdargs[0], 10, 64)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("expire time must be integer, was provided %q", cmdargs[0]))
+	}
+
+	fields := cmdargs[1 : numfields+1]
+	resp := "*" + fmt.Sprintf("%v", len(fields)) + "\r\n"
+	for _, field := range fields {
+		f, ok := hash[field]
+		if !ok {
+			resp = resp + ":-2\r\n"
+			continue
+		}
+		if f.ExpireAt == (time.Time{}) {
+			resp = resp + ":-1\r\n"
+			continue
+		}
+		resp = resp + fmt.Sprintf(":%d\r\n", int(f.ExpireAt.Sub(params.GetClock().Now()).Round(time.Second).Seconds()))
+
+	}
+
 	return []byte(resp), nil
 }
 
@@ -926,6 +959,15 @@ Return the string length of the values stored at the specified fields. 0 if the 
 			Sync:              true,
 			KeyExtractionFunc: hexpireKeyFunc,
 			HandlerFunc:       handleHEXPIRE,
+		},
+		{
+			Command:           "httl",
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
+			Description:       `HTTL key FIELDS numfields field [field ...] Returns the remaining TTL (time to live) of a hash key's field(s) that have a set expiration.`,
+			Sync:              true,
+			KeyExtractionFunc: httlKeyFunc,
+			HandlerFunc:       handleHTTL,
 		},
 	}
 }
