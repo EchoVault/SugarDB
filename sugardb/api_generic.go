@@ -103,6 +103,8 @@ const (
 // LT - Only set the expiry time if the new expiry time is less than the current one.
 //
 // NX, GT, and LT are mutually exclusive. XX can additionally be passed in with either GT or LT.
+//
+// Hash only: NX, XX, GT, and LT are all mutually exclusive.
 type ExpireOptions interface {
 	IsExOpt() ExOpt
 }

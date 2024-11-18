@@ -15,8 +15,10 @@
 package sugardb
 
 import (
-	"github.com/echovault/sugardb/internal"
+	"fmt"
 	"strconv"
+
+	"github.com/echovault/sugardb/internal"
 )
 
 // HRandFieldOptions modifies the behaviour of the HRandField function.
@@ -353,4 +355,34 @@ func (server *SugarDB) HDel(key string, fields ...string) (int, error) {
 		return 0, err
 	}
 	return internal.ParseIntegerResponse(b)
+}
+
+func (server *SugarDB) HExpire(key string, seconds int, ExOpt ExpireOptions, fields ...string) ([]int, error) {
+	secs := fmt.Sprintf("%v", seconds)
+	cmd := []string{"HEXPIRE", key, secs}
+	if ExOpt != nil {
+		ExpireOption := fmt.Sprintf("%v", ExOpt)
+		cmd = append(cmd, ExpireOption)
+	}
+
+	numFields := fmt.Sprintf("%v", len(fields))
+	fieldsArray := append([]string{"FIELDS", numFields}, fields...)
+
+	cmd = append(cmd, fieldsArray...)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return nil, err
+	}
+	return internal.ParseIntegerArrayResponse(b)
+}
+
+func (server *SugarDB) HTTL(key string, fields ...string) ([]int, error) {
+	numFields := fmt.Sprintf("%v", len(fields))
+
+	cmd := append([]string{"HTTL", key, "FIELDS", numFields}, fields...)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return nil, err
+	}
+	return internal.ParseIntegerArrayResponse(b)
 }

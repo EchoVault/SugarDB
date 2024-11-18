@@ -2119,7 +2119,7 @@ func Test_Hash(t *testing.T) {
 				key:           "HexpireKeyNOTEXIST",
 				presetValue:   nil,
 				command:       []string{"HEXPIRE", "HexpireKeyNOTEXIST", "100", "FIELDS", "1", "HexpireKNEField1"},
-				expectedValue: "-2",
+				expectedValue: "[-2]",
 				expectedError: nil,
 			},
 			{
@@ -2336,7 +2336,7 @@ func Test_Hash(t *testing.T) {
 				command:       []string{"HTTL", "HTTLKeyNOTEXIST", "FIELDS", "1", "HTTLK1Field1"},
 				presetValue:   nil,
 				setExpire:     false,
-				expectedValue: "-2",
+				expectedValue: "[-2]",
 				expectedError: nil,
 			},
 			{

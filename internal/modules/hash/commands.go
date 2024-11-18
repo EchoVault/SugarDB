@@ -619,16 +619,6 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	key := keys.WriteKeys[0]
-	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
-
-	if !keyExists {
-		return []byte(":-2\r\n"), nil
-	}
-
-	hash, ok := params.GetValues(params.Context, []string{key})[key].(Hash)
-	if !ok {
-		return nil, fmt.Errorf("value at %s is not a hash", key)
-	}
 
 	// HEXPIRE key seconds [NX | XX | GT | LT] FIELDS numfields field
 	cmdargs := keys.WriteKeys[1:]
@@ -659,6 +649,20 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 
 	// build out response
 	resp := "*" + fmt.Sprintf("%v", len(fields)) + "\r\n"
+
+	// handle not hash or bad key
+	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
+	if !keyExists {
+		for i := numfields; i > 0; i-- {
+			resp = resp + ":-2\r\n"
+		}
+		return []byte(resp), nil
+	}
+
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(Hash)
+	if !ok {
+		return nil, fmt.Errorf("value of key %s is not a hash", key)
+	}
 
 	// handle expire time of 0 seconds
 	if seconds == 0 {
@@ -753,7 +757,7 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 
 			}
 		default:
-			return nil, fmt.Errorf("unknown option %s", strings.ToUpper(params.Command[3]))
+			return nil, fmt.Errorf("unknown option %s, must be one of 'NX', 'XX', 'GT', 'LT'.", strings.ToUpper(params.Command[3]))
 		}
 	} else {
 		for _, f := range fields {
@@ -781,17 +785,6 @@ func handleHTTL(params internal.HandlerFuncParams) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	key := keys.ReadKeys[0]
-	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
-
-	if !keyExists {
-		return []byte(":-2\r\n"), nil
-	}
-
-	hash, ok := params.GetValues(params.Context, []string{key})[key].(Hash)
-	if !ok {
-		return nil, fmt.Errorf("value at %s is not a hash", key)
-	}
 
 	cmdargs := keys.ReadKeys[2:]
 	numfields, err := strconv.ParseInt(cmdargs[0], 10, 64)
@@ -800,7 +793,24 @@ func handleHTTL(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	fields := cmdargs[1 : numfields+1]
+	// init array response
 	resp := "*" + fmt.Sprintf("%v", len(fields)) + "\r\n"
+
+	// handle bad key
+	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
+	if !keyExists {
+		resp = resp + ":-2\r\n"
+		return []byte(resp), nil
+	}
+
+	// handle not a hash
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(Hash)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	// build out response
 	for _, field := range fields {
 		f, ok := hash[field]
 		if !ok {
@@ -815,6 +825,7 @@ func handleHTTL(params internal.HandlerFuncParams) ([]byte, error) {
 
 	}
 
+	// array response
 	return []byte(resp), nil
 }
 
