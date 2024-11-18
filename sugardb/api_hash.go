@@ -357,6 +357,27 @@ func (server *SugarDB) HDel(key string, fields ...string) (int, error) {
 	return internal.ParseIntegerResponse(b)
 }
 
+// HExpire sets the expiration for the provided field(s) in a hash map.
+//
+// Parameters:
+//
+// `key` - string - the key to the hash map.
+//
+// `seconds` - int - number of seconds until expiration.
+//
+// `ExOpt` - ExpireOptions - One of NX, XX, GT, LT.
+//
+// `fields` - ...string - a list of fields to set expiration of.
+//
+// Returns: an integer array representing the outcome of the commmand for each field.
+//   - Integer reply: -2 if no such field exists in the provided hash key, or the provided key does not exist.
+//   - Integer reply: 0 if the specified NX | XX | GT | LT condition has not been met.
+//   - Integer reply: 1 if the expiration time was set/updated.
+//   - Integer reply: 2 when HEXPIRE/HPEXPIRE is called with 0 seconds
+//
+// Errors:
+//
+// "value of key <key> is not a hash" - when the provided key is not a hash.
 func (server *SugarDB) HExpire(key string, seconds int, ExOpt ExpireOptions, fields ...string) ([]int, error) {
 	secs := fmt.Sprintf("%v", seconds)
 	cmd := []string{"HEXPIRE", key, secs}
@@ -376,6 +397,22 @@ func (server *SugarDB) HExpire(key string, seconds int, ExOpt ExpireOptions, fie
 	return internal.ParseIntegerArrayResponse(b)
 }
 
+// HTTL gets the expiration for the provided field(s) in a hash map.
+//
+// Parameters:
+//
+// `key` - string - the key to the hash map.
+//
+// `fields` - ...string - a list of fields to get TTL for.
+//
+// Returns: an integer array representing the outcome of the commmand for each field.
+//   - Integer reply: the TTL in seconds.
+//   - Integer reply: -2 if no such field exists in the provided hash key, or the provided key does not exist.
+//   - Integer reply: -1 if the field exists but has no associated expiration set.
+//
+// Errors:
+//
+// "value of key <key> is not a hash" - when the provided key is not a hash.
 func (server *SugarDB) HTTL(key string, fields ...string) ([]int, error) {
 	numFields := fmt.Sprintf("%v", len(fields))
 
