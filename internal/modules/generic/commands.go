@@ -682,34 +682,14 @@ func handleRenamenx(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
 
-	oldKey := params.Command[1]
 	newKey := params.Command[2]
 
-	// Get the current value for the old key
-	values := params.GetValues(params.Context, []string{oldKey})
-	oldValue, ok := values[oldKey]
-
-	if !ok || oldValue == nil {
-		return nil, errors.New("no such key")
-	}
-	values = params.GetValues(params.Context, []string{newKey})
-	currentNewKeyValue, newKeyOk := values[newKey]
-
-	if !newKeyOk || currentNewKeyValue != nil {
+	keyExistsCheck := params.KeysExist(params.Context, []string{newKey})
+	if keyExistsCheck[newKey] {
 		return nil, errors.New("Key already exists!")
 	}
 
-	// Set the new key with the old value
-	if err := params.SetValues(params.Context, map[string]interface{}{newKey: oldValue}); err != nil {
-		return nil, err
-	}
-
-	// Delete the old key
-	if err := params.DeleteKey(params.Context, oldKey); err != nil {
-		return nil, err
-	}
-
-	return []byte("+OK\r\n"), nil
+	return handleRename(params)
 }
 
 func handleFlush(params internal.HandlerFuncParams) ([]byte, error) {
