@@ -1365,7 +1365,7 @@ func TestSugarDB_Renamenx(t *testing.T) {
 					presetKeyData(server, context.Background(), k, d)
 				}
 			}
-			got, err := server.Renamenx(tt.oldKey, tt.newKey)
+			got, err := server.RenameNX(tt.oldKey, tt.newKey)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Rename() error = %v, wantErr %v", err, tt.wantErr)
 				return

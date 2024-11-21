@@ -599,7 +599,7 @@ func (server *SugarDB) Rename(oldKey string, newKey string) (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
-// Renamenx renames the specified key with the new name only if the new name does not already exist.
+// RenameNX renames the specified key with the new name only if the new name does not already exist.
 //
 // Parameters:
 //
@@ -608,7 +608,7 @@ func (server *SugarDB) Rename(oldKey string, newKey string) (string, error) {
 // `newKey` - string - The new name for the key.
 //
 // Returns: A string indicating the success of the operation.
-func (server *SugarDB) Renamenx(oldKey string, newKey string) (string, error) {
+func (server *SugarDB) RenameNX(oldKey string, newKey string) (string, error) {
 	// Construct the command
 	cmd := []string{"RENAMENX", oldKey, newKey}
 	// Execute the command
@@ -654,7 +654,7 @@ func (server *SugarDB) GetDel(key string) (string, error) {
 //
 // `option` - GetExOption - one of EX, PX, EXAT, PXAT, PERSIST. Can be nil.
 //
-// `unixtime` - int - Number of seconds or miliseconds from now.
+// `unixtime` - int - Number of seconds or milliseconds from now.
 //
 // Returns: A string representing the value at the specified key. If the value does not exist, an empty string is returned.
 func (server *SugarDB) GetEx(key string, option GetExOption, unixtime int) (string, error) {
