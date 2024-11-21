@@ -1322,6 +1322,60 @@ func TestSugarDB_Rename(t *testing.T) {
 	}
 }
 
+func TestSugarDB_Renamenx(t *testing.T) {
+	server := createSugarDB()
+
+	tests := []struct {
+		name         string
+		oldKey       string
+		newKey       string
+		presetValues map[string]internal.KeyData
+		want         string
+		wantErr      bool
+	}{
+		{
+			name:         "1. Rename existing key",
+			oldKey:       "oldKey1",
+			newKey:       "newKey1",
+			presetValues: map[string]internal.KeyData{"oldKey1": {Value: "value1"}},
+			want:         "OK",
+			wantErr:      false,
+		},
+		{
+			name:         "2. Rename non-existent key",
+			oldKey:       "oldKey2",
+			newKey:       "newKey2",
+			presetValues: nil,
+			want:         "",
+			wantErr:      true,
+		},
+		{
+			name:         "3. Rename to existing key",
+			oldKey:       "oldKey3",
+			newKey:       "newKey4",
+			presetValues: map[string]internal.KeyData{"oldKey3": {Value: "value3"}, "newKey4": {Value: "value4"}},
+			want:         "",
+			wantErr:      true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.presetValues != nil {
+				for k, d := range tt.presetValues {
+					presetKeyData(server, context.Background(), k, d)
+				}
+			}
+			got, err := server.RenameNX(tt.oldKey, tt.newKey)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Rename() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Rename() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 func TestSugarDB_RANDOMKEY(t *testing.T) {
 	server := createSugarDB()
 
@@ -1843,7 +1897,7 @@ func TestSugarDB_COPY(t *testing.T) {
 		destKeyPresetValue   interface{}
 		destinationKey       string
 		options              COPYOptions
-		expectedValue                string
+		expectedValue        string
 		want                 int
 		wantErr              bool
 	}{
@@ -1854,7 +1908,7 @@ func TestSugarDB_COPY(t *testing.T) {
 			destKeyPresetValue:   nil,
 			destinationKey:       "dkey1",
 			options:              CopyOptions("0", false),
-			expectedValue:                "value1",
+			expectedValue:        "value1",
 			want:                 1,
 			wantErr:              false,
 		},
@@ -1865,7 +1919,7 @@ func TestSugarDB_COPY(t *testing.T) {
 			destKeyPresetValue:   "dValue2",
 			destinationKey:       "dkey2",
 			options:              CopyOptions("0", false),
-			expectedValue:                "dValue2",
+			expectedValue:        "dValue2",
 			want:                 0,
 			wantErr:              false,
 		},
@@ -1876,7 +1930,7 @@ func TestSugarDB_COPY(t *testing.T) {
 			destKeyPresetValue:   "dValue3",
 			destinationKey:       "dkey3",
 			options:              CopyOptions("0", true),
-			expectedValue:                "value3",
+			expectedValue:        "value3",
 			want:                 1,
 			wantErr:              false,
 		},
@@ -1887,7 +1941,7 @@ func TestSugarDB_COPY(t *testing.T) {
 			destKeyPresetValue:   nil,
 			destinationKey:       "dkey4",
 			options:              CopyOptions("1", false),
-			expectedValue:                "value4",
+			expectedValue:        "value4",
 			want:                 1,
 			wantErr:              false,
 		},
