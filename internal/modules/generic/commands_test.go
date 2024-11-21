@@ -2626,6 +2626,114 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
+	t.Run("Test_HandlerRENAMENX", func(t *testing.T) {
+		t.Parallel()
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			oldKey           string
+			newKey           string
+			presetValue      interface{}
+			command          []resp.Value
+			expectedResponse string
+			expectedError    error
+		}{
+			{
+				name:             "1. Rename existing key",
+				oldKey:           "renamenxOldKey1",
+				newKey:           "renamenxNewKey1",
+				presetValue:      "value1",
+				command:          []resp.Value{resp.StringValue("RENAMENX"), resp.StringValue("renamenxOldKey1"), resp.StringValue("renamenxNewKey1")},
+				expectedResponse: "OK",
+				expectedError:    nil,
+			},
+			{
+				name:             "2. Rename non-existent key",
+				oldKey:           "renamenxOldKey2",
+				newKey:           "renamenxNewKey2",
+				presetValue:      nil,
+				command:          []resp.Value{resp.StringValue("RENAMENX"), resp.StringValue("renamenxOldKey2"), resp.StringValue("renamenxNewKey2")},
+				expectedResponse: "",
+				expectedError:    errors.New("no such key"),
+			},
+			{
+				name:             "3. Rename to existing key",
+				oldKey:           "renamenxOldKey3",
+				newKey:           "renamenxNewKey1",
+				presetValue:      "value3",
+				command:          []resp.Value{resp.StringValue("RENAMENX"), resp.StringValue("renamenxOldKey3"), resp.StringValue("renamenxNewKey1")},
+				expectedResponse: "",
+				expectedError:    errors.New("Key already exists!"),
+			},
+			{
+				name:          "4. Command too short",
+				command:       []resp.Value{resp.StringValue("RENAMENX"), resp.StringValue("key")},
+				expectedError: errors.New(constants.WrongArgsResponse),
+			},
+			{
+				name: "5. Command too long",
+				command: []resp.Value{
+					resp.StringValue("RENAMENX"),
+					resp.StringValue("key"),
+					resp.StringValue("newkey"),
+					resp.StringValue("extra_arg"),
+				},
+				expectedError: errors.New(constants.WrongArgsResponse),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				if test.presetValue != nil {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(test.oldKey), resp.StringValue(fmt.Sprintf("%v", test.presetValue))}
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+					}
+					if !strings.EqualFold(res.String(), "OK") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+					}
+				}
+
+				if err = client.WriteArray(test.command); err != nil {
+					t.Error(err)
+				}
+
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), res.Error().Error())
+					}
+					return
+				}
+
+				if err != nil {
+					t.Error(err)
+				} else {
+					if res.String() != test.expectedResponse {
+						t.Errorf("expected response \"%s\", got \"%s\"", test.expectedResponse, res.String())
+					}
+				}
+			})
+		}
+	})
+
 	t.Run("Test_HandleFlush", func(t *testing.T) {
 		t.Parallel()
 
