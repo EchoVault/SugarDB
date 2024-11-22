@@ -17,12 +17,14 @@ package hash
 import (
 	"errors"
 	"fmt"
-	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/constants"
 	"math/rand"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 func handleHSET(params internal.HandlerFuncParams) ([]byte, error) {
@@ -611,6 +613,222 @@ func handleHDEL(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
 }
 
+func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := hexpireKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+	key := keys.WriteKeys[0]
+
+	// HEXPIRE key seconds [NX | XX | GT | LT] FIELDS numfields field
+	cmdargs := keys.WriteKeys[1:]
+	seconds, err := strconv.ParseInt(cmdargs[0], 10, 64)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("seconds must be integer, was provided %q", cmdargs[0]))
+	}
+
+	// FIELDS argument provides starting index to work off of to grab fields
+	var fieldsIdx int
+	if cmdargs[1] == "FIELDS" {
+		fieldsIdx = 1
+	} else if cmdargs[2] == "FIELDS" {
+		fieldsIdx = 2
+	} else {
+		return nil, errors.New(fmt.Sprintf(constants.MissingArgResponse, "FIELDS"))
+	}
+
+	// index through numfields
+	numfields, err := strconv.ParseInt(cmdargs[fieldsIdx+1], 10, 64)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("numberfields must be integer, was provided %q", cmdargs[fieldsIdx+1]))
+	}
+	endIdx := fieldsIdx + 2 + int(numfields)
+	fields := cmdargs[fieldsIdx+2 : endIdx]
+
+	expireAt := params.GetClock().Now().Add(time.Duration(seconds) * time.Second)
+
+	// build out response
+	resp := "*" + fmt.Sprintf("%v", len(fields)) + "\r\n"
+
+	// handle not hash or bad key
+	keyExists := params.KeysExist(params.Context, keys.WriteKeys)[key]
+	if !keyExists {
+		for i := numfields; i > 0; i-- {
+			resp = resp + ":-2\r\n"
+		}
+		return []byte(resp), nil
+	}
+
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(Hash)
+	if !ok {
+		return nil, fmt.Errorf("value of key %s is not a hash", key)
+	}
+
+	// handle expire time of 0 seconds
+	if seconds == 0 {
+		for i := numfields; i > 0; i-- {
+			resp = resp + ":2\r\n"
+		}
+		return []byte(resp), nil
+	}
+
+	if fieldsIdx == 2 {
+		// Handle expire options
+		switch strings.ToLower(cmdargs[1]) {
+		case "nx":
+			for _, f := range fields {
+				_, ok := hash[f]
+				if !ok {
+					resp = resp + ":-2\r\n"
+					continue
+				}
+				currentExpireAt := hash[f].ExpireAt
+				if currentExpireAt != (time.Time{}) {
+					resp = resp + ":0\r\n"
+					continue
+				}
+				err = params.SetHashExpiry(params.Context, key, f, expireAt)
+				if err != nil {
+					return []byte(resp), err
+				}
+
+				resp = resp + ":1\r\n"
+
+			}
+		case "xx":
+			for _, f := range fields {
+				_, ok := hash[f]
+				if !ok {
+					resp = resp + ":-2\r\n"
+					continue
+				}
+				currentExpireAt := hash[f].ExpireAt
+				if currentExpireAt == (time.Time{}) {
+					resp = resp + ":0\r\n"
+					continue
+				}
+				err = params.SetHashExpiry(params.Context, key, f, expireAt)
+				if err != nil {
+					return []byte(resp), err
+				}
+
+				resp = resp + ":1\r\n"
+
+			}
+		case "gt":
+			for _, f := range fields {
+				_, ok := hash[f]
+				if !ok {
+					resp = resp + ":-2\r\n"
+					continue
+				}
+				currentExpireAt := hash[f].ExpireAt
+				//TODO
+				if currentExpireAt == (time.Time{}) || expireAt.Before(currentExpireAt) {
+					resp = resp + ":0\r\n"
+					continue
+				}
+				err = params.SetHashExpiry(params.Context, key, f, expireAt)
+				if err != nil {
+					return []byte(resp), err
+				}
+
+				resp = resp + ":1\r\n"
+
+			}
+		case "lt":
+			for _, f := range fields {
+				_, ok := hash[f]
+				if !ok {
+					resp = resp + ":-2\r\n"
+					continue
+				}
+				currentExpireAt := hash[f].ExpireAt
+				if currentExpireAt != (time.Time{}) && currentExpireAt.Before(expireAt) {
+					resp = resp + ":0\r\n"
+					continue
+				}
+				err = params.SetHashExpiry(params.Context, key, f, expireAt)
+				if err != nil {
+					return []byte(resp), err
+				}
+
+				resp = resp + ":1\r\n"
+
+			}
+		default:
+			return nil, fmt.Errorf("unknown option %s, must be one of 'NX', 'XX', 'GT', 'LT'.", strings.ToUpper(params.Command[3]))
+		}
+	} else {
+		for _, f := range fields {
+			_, ok := hash[f]
+			if !ok {
+				resp = resp + ":-2\r\n"
+				continue
+			}
+			err = params.SetHashExpiry(params.Context, key, f, expireAt)
+			if err != nil {
+				return []byte(resp), err
+			}
+
+			resp = resp + ":1\r\n"
+
+		}
+	}
+
+	// Array resp
+	return []byte(resp), nil
+}
+
+func handleHTTL(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := httlKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdargs := keys.ReadKeys[2:]
+	numfields, err := strconv.ParseInt(cmdargs[0], 10, 64)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("expire time must be integer, was provided %q", cmdargs[0]))
+	}
+
+	fields := cmdargs[1 : numfields+1]
+	// init array response
+	resp := "*" + fmt.Sprintf("%v", len(fields)) + "\r\n"
+
+	// handle bad key
+	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
+	if !keyExists {
+		resp = resp + ":-2\r\n"
+		return []byte(resp), nil
+	}
+
+	// handle not a hash
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(Hash)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	// build out response
+	for _, field := range fields {
+		f, ok := hash[field]
+		if !ok {
+			resp = resp + ":-2\r\n"
+			continue
+		}
+		if f.ExpireAt == (time.Time{}) {
+			resp = resp + ":-1\r\n"
+			continue
+		}
+		resp = resp + fmt.Sprintf(":%d\r\n", int(f.ExpireAt.Sub(params.GetClock().Now()).Round(time.Second).Seconds()))
+
+	}
+
+	// array response
+	return []byte(resp), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -744,14 +962,23 @@ Return the string length of the values stored at the specified fields. 0 if the 
 			KeyExtractionFunc: hdelKeyFunc,
 			HandlerFunc:       handleHDEL,
 		},
-		// {
-		// 	Command:           "hexpire",
-		// 	Module:            constants.HashModule,
-		// 	Categories:        []string{constants.HashCategory, constants.WriteCategory, constants.FastCategory},
-		// 	Description:       `(HEXPIRE key seconds [NX | XX | GT | LT] FIELDS numfields field [field ...]) Sets the expiration, in seconds, of a field in a hash.`,
-		// 	Sync:              true,
-		// 	KeyExtractionFunc: hexpireKeyFunc,
-		// 	HandlerFunc:       handleHEXPIRE,
-		// },
+		{
+			Command:           "hexpire",
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.WriteCategory, constants.FastCategory},
+			Description:       `(HEXPIRE key seconds [NX | XX | GT | LT] FIELDS numfields field [field ...]) Sets the expiration, in seconds, of a field in a hash.`,
+			Sync:              true,
+			KeyExtractionFunc: hexpireKeyFunc,
+			HandlerFunc:       handleHEXPIRE,
+		},
+		{
+			Command:           "httl",
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
+			Description:       `HTTL key FIELDS numfields field [field ...] Returns the remaining TTL (time to live) of a hash key's field(s) that have a set expiration.`,
+			Sync:              true,
+			KeyExtractionFunc: httlKeyFunc,
+			HandlerFunc:       handleHTTL,
+		},
 	}
 }

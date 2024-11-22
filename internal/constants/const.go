@@ -54,8 +54,10 @@ const (
 )
 
 const (
-	OkResponse        = "+OK\r\n"
-	WrongArgsResponse = "wrong number of arguments"
+	OkResponse         = "+OK\r\n"
+	WrongArgsResponse  = "wrong number of arguments"
+	MissingArgResponse = "missing argument %s"
+	InvalidCmdResponse = "invalid command provided"
 )
 
 const (

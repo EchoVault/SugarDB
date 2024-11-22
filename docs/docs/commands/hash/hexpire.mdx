@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HEXPIRE
+
+### Syntax
+```
+HEXPIRE key seconds [NX | XX | GT | LT] FIELDS numfields field [field...]
+```
+
+### Module
+<span className="acl-category">hash</span>
+
+### Categories 
+<span className="acl-category">fast</span>
+<span className="acl-category">hash</span>
+<span className="acl-category">write</span>
+
+### Description 
+Set an expiration (TTL or time to live) in seconds on one or more fields of a given hash key. 
+You must specify at least one field. Field(s) will automatically be deleted from the hash key when their TTLs expire.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Set the expiration in seconds for fields in the hash:
+    ```go
+    db, err := sugardb.NewSugarDB()
+    if err != nil {
+      log.Fatal(err)
+    }
+    respArray, err := db.HExpire("key", 500, nil, field1, field2)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Set the expiration in seconds for fields in the hash:
+    ```
+    > HEXPIRE key 500 FIELDS 2 field1 field2
+    ```
+  </TabItem>
+</Tabs>
