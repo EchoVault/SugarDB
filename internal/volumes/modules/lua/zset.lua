@@ -1,8 +1,6 @@
 
 command = "LUA.ZSET"
 
-module = "sortedset"
-
 categories = {"sortedset", "write", "fast"}
 
 description = "(LUA.ZSET key member score [member score ...]) \

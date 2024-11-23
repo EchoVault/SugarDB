@@ -1,8 +1,6 @@
 
 command = "LUA.EXAMPLE"
 
-module = "generic"
-
 categories = {"generic", "write", "fast"}
 
 description = "(LUA.EXAMPLE) Example lua command that sets various data types to keys"

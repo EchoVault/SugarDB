@@ -1,8 +1,6 @@
 
 command = "LUA.SET"
 
-module = "set"
-
 categories = {"set", "write", "fast"}
 
 description = "([LUA.SET key member [member ...]]) \

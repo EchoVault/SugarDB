@@ -26,12 +26,12 @@ import (
 	"sync"
 )
 
-func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string, string, bool, string, error) {
+func generateLuaCommandInfo(path string) (*lua.LState, string, []string, string, bool, string, error) {
 	L := lua.NewState()
 
 	// Load lua file
 	if err := L.DoFile(path); err != nil {
-		return nil, "", "", nil, "", false, "", fmt.Errorf("could not load lua script file %s: %v", path, err)
+		return nil, "", nil, "", false, "", fmt.Errorf("could not load lua script file %s: %v", path, err)
 	}
 
 	// Register hash data type
@@ -610,20 +610,14 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 	// Get the command name
 	cn := L.GetGlobal("command")
 	if _, ok := cn.(lua.LString); !ok {
-		return nil, "", "", nil, "", false, "", errors.New("command name does not exist or is not a string")
-	}
-
-	// Get the module
-	m := L.GetGlobal("module")
-	if _, ok := m.(lua.LString); !ok {
-		return nil, "", "", nil, "", false, "", errors.New("module does not exist in script or is not string")
+		return nil, "", nil, "", false, "", errors.New("command name does not exist or is not a string")
 	}
 
 	// Get the categories
 	c := L.GetGlobal("categories")
 	var categories []string
 	if _, ok := c.(*lua.LTable); !ok {
-		return nil, "", "", nil, "", false, "", errors.New("categories does not exist or is not an array")
+		return nil, "", nil, "", false, "", errors.New("categories does not exist or is not an array")
 	}
 	for i := 0; i < c.(*lua.LTable).Len(); i++ {
 		categories = append(categories, c.(*lua.LTable).RawGetInt(i+1).String())
@@ -631,8 +625,8 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 
 	// Get the description
 	d := L.GetGlobal("description")
-	if _, ok := m.(lua.LString); !ok {
-		return nil, "", "", nil, "", false, "", errors.New("description does not exist or is not a string")
+	if _, ok := d.(lua.LString); !ok {
+		return nil, "", nil, "", false, "", errors.New("description does not exist or is not a string")
 	}
 
 	// Get the sync
@@ -641,7 +635,7 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, string, []string,
 	// Set command type
 	commandType := "LUA_SCRIPT"
 
-	return L, strings.ToLower(cn.String()), strings.ToLower(m.String()), categories, d.String(), synchronize, commandType, nil
+	return L, strings.ToLower(cn.String()), categories, d.String(), synchronize, commandType, nil
 }
 
 func (server *SugarDB) buildLuaKeyExtractionFunc(vm any, cmd []string, args []string) (internal.KeyExtractionFuncResult, error) {

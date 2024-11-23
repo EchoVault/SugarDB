@@ -50,7 +50,6 @@ func (server *SugarDB) AddScriptCommand(
 	// Initialise VM for the command depending on the engine.
 	var vm any
 	var commandName string
-	var module string
 	var categories []string
 	var description string
 	var synchronize bool
@@ -59,7 +58,7 @@ func (server *SugarDB) AddScriptCommand(
 
 	switch strings.ToLower(engine) {
 	case "lua":
-		vm, commandName, module, categories, description, synchronize, commandType, err = generateLuaCommandInfo(path)
+		vm, commandName, categories, description, synchronize, commandType, err = generateLuaCommandInfo(path)
 	}
 
 	if err != nil {
@@ -81,7 +80,7 @@ func (server *SugarDB) AddScriptCommand(
 	// Build the command:
 	command := internal.Command{
 		Command:     commandName,
-		Module:      module,
+		Module:      path,
 		Categories:  categories,
 		Description: description,
 		Sync:        synchronize,
