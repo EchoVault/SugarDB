@@ -103,6 +103,8 @@ const (
 // LT - Only set the expiry time if the new expiry time is less than the current one.
 //
 // NX, GT, and LT are mutually exclusive. XX can additionally be passed in with either GT or LT.
+//
+// Hash only: NX, XX, GT, and LT are all mutually exclusive.
 type ExpireOptions interface {
 	IsExOpt() ExOpt
 }
@@ -599,6 +601,27 @@ func (server *SugarDB) Rename(oldKey string, newKey string) (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
+// RenameNX renames the specified key with the new name only if the new name does not already exist.
+//
+// Parameters:
+//
+// `oldKey` - string - The key to be renamed.
+//
+// `newKey` - string - The new name for the key.
+//
+// Returns: A string indicating the success of the operation.
+func (server *SugarDB) RenameNX(oldKey string, newKey string) (string, error) {
+	// Construct the command
+	cmd := []string{"RENAMENX", oldKey, newKey}
+	// Execute the command
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return "", err
+	}
+	// Parse the simple string response
+	return internal.ParseStringResponse(b)
+}
+
 // RandomKey returns a random key from the current active database.
 // If no keys present in db returns an empty string.
 func (server *SugarDB) RandomKey() (string, error) {
@@ -633,7 +656,7 @@ func (server *SugarDB) GetDel(key string) (string, error) {
 //
 // `option` - GetExOption - one of EX, PX, EXAT, PXAT, PERSIST. Can be nil.
 //
-// `unixtime` - int - Number of seconds or miliseconds from now.
+// `unixtime` - int - Number of seconds or milliseconds from now.
 //
 // Returns: A string representing the value at the specified key. If the value does not exist, an empty string is returned.
 func (server *SugarDB) GetEx(key string, option GetExOption, unixtime int) (string, error) {

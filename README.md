@@ -240,6 +240,7 @@ Benchmark script options:
 ## HASH
 * [HDEL](https://sugardb.io/docs/commands/hash/hdel)
 * [HEXISTS](https://sugardb.io/docs/commands/hash/hexists)
+* [HEXPIRE](https://sugardb.io/docs/commands/hash/hexpire)
 * [HGET](https://sugardb.io/docs/commands/hash/hget)
 * [HGETALL](https://sugardb.io/docs/commands/hash/hgetall)
 * [HINCRBY](https://sugardb.io/docs/commands/hash/hincrby)
@@ -251,6 +252,7 @@ Benchmark script options:
 * [HSET](https://sugardb.io/docs/commands/hash/hset)
 * [HSETNX](https://sugardb.io/docs/commands/hash/hsetnx)
 * [HSTRLEN](https://sugardb.io/docs/commands/hash/hstrlen)
+* [HTTL](https://sugardb.io/docs/commands/hash/httl)
 * [HVALS](https://sugardb.io/docs/commands/hash/hvals)
 
 <a name="commands-list"></a>
