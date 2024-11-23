@@ -334,12 +334,45 @@ func TestSugarDB_Plugins(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "1. Test Non existent module.",
+			name: "3. Test Non existent module.",
 			path: path.Join(".", "testdata", "modules", "non_existent", "module_non_existent.so"),
+			args: []string{},
 			cmd:  []string{},
 			want: "",
 			wantErr: fmt.Errorf("load module: module %s not found",
 				path.Join(".", "testdata", "modules", "non_existent", "module_non_existent.so")),
+		},
+		{
+			name:    "4. Test LUA module that handles hash values",
+			path:    path.Join("..", "internal", "volumes", "modules", "lua", "hash.lua"),
+			args:    []string{},
+			cmd:     []string{"LUA.HASH", "LUA.HASH_KEY_1"},
+			want:    "OK",
+			wantErr: nil,
+		},
+		{
+			name:    "5. Test LUA module that handles set values",
+			path:    path.Join("..", "internal", "volumes", "modules", "lua", "set.lua"),
+			args:    []string{},
+			cmd:     []string{"LUA.SET", "LUA.SET_KEY_1", "LUA.SET_KEY_2", "LUA.SET_KEY_3"},
+			want:    "OK",
+			wantErr: nil,
+		},
+		{
+			name:    "6. Test LUA module that handles zset values",
+			path:    path.Join("..", "internal", "volumes", "modules", "lua", "zset.lua"),
+			args:    []string{},
+			cmd:     []string{"LUA.ZSET", "LUA.ZSET_KEY_1", "LUA.ZSET_KEY_2", "LUA.ZSET_KEY_3"},
+			want:    "OK",
+			wantErr: nil,
+		},
+		{
+			name:    "7. Test LUA module that handles primitive types",
+			path:    path.Join("..", "internal", "volumes", "modules", "lua", "example.lua"),
+			args:    []string{},
+			cmd:     []string{"LUA.EXAMPLE"},
+			want:    "OK",
+			wantErr: nil,
 		},
 	}
 
@@ -351,7 +384,7 @@ func TestSugarDB_Plugins(t *testing.T) {
 		}
 		// Execute command and check expected response
 		res, err := server.ExecuteCommand(test.cmd...)
-		if err != nil && (err.Error() != test.wantErr.Error()) {
+		if err != nil {
 			t.Error(err)
 		}
 		rv, _, err := resp.NewReader(bytes.NewReader(res)).ReadValue()

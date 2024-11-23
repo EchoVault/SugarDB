@@ -31,10 +31,10 @@ function keyExtractionFunc (command, args)
   for k,v in pairs(args) do
     print(k, v)
   end
-  if (#command < 4) then
-    error("wrong number of args, expected 3")
+  if (#command < 2) then
+    error("wrong number of args, expected 1")
   end
-  return { ["readKeys"] = {}, ["writeKeys"] = {} }
+  return { ["readKeys"] = {command[2]}, ["writeKeys"] = {} }
 end
 
 --[[
@@ -60,7 +60,7 @@ The handler function accepts the following args:
 4. "getValues" is a function that can be called to retrieve values from the SugarDB store database.
     The function accepts a string array of keys whose values we would like to fetch, and returns a table with each key
     containing the corresponding value from the store.
-    The possible data types for the values are: number, string, boolean, nil, array, hash, set, zset
+    The possible data types for the values are: number, string, nil, hash, set, zset
     Examples:
     i) Example invocation: getValues({"key1", "key2", "key3"})
     ii) Example return: {["key1"] = 3.142, ["key2"] = nil, ["key3"] = "Pi"}
@@ -68,7 +68,7 @@ The handler function accepts the following args:
 5. "setValues" is a function that can be called to set values in the active database in the SugarDB store.
     This function accepts a table with keys and the corresponding values to set for each key in the active database
     in the store.
-    The accepted data types for the values are: number, string, boolean, nil, array, hash, set, zset.
+    The accepted data types for the values are: number, string, nil, hash, set, zset.
     The setValues function does not return anything.
     Examples:
     i) Example invocation: setValues({["key1"] = 3.142, ["key2"] = nil, ["key3"] = "Pi"})
@@ -77,15 +77,61 @@ The handler function accepts the following args:
    handler everytime it's invoked.
 ]]
 function handlerFunc(context, command, keysExist, getValues, setValues, args)
-  h = hash.new()
+  -- Initialize a new hash
+  local h = hash.new()
+
+  -- Set values in the hash
   h:set({
     {["field1"] = "value1"},
     {["field2"] = "value2"},
     {["field3"] = "value3"},
     {["field4"] = "value4"},
   })
-  print("Before delete: ", h:len())
-  h:del({"field2", "field3"})
-  print("After delete: ", h:len())
+
+  -- Set hash in the store
+  setValues({[command[2]] = h})
+
+  -- Check that the fields were correctly set in the database
+  local hashValue = getValues({command[2]})[command[2]]
+  assert(hashValue:get({"field1"})["field1"] == "value1", "field1 not set correctly")
+  assert(hashValue:get({"field2"})["field2"] == "value2", "field2 not set correctly")
+  assert(hashValue:get({"field3"})["field3"] == "value3", "field3 not set correctly")
+  assert(hashValue:get({"field4"})["field4"] == "value4", "field4 not set correctly")
+
+  -- Test get method
+  local retrieved = h:get({"field1", "field2"})
+  assert(retrieved["field1"] == "value1", "get method failed for field1")
+  assert(retrieved["field2"] == "value2", "get method failed for field2")
+
+  -- Test exists method
+  local exists = h:exists({"field1", "fieldX"})
+  assert(exists["field1"] == true, "exists method failed for field1")
+  assert(exists["fieldX"] == false, "exists method failed for fieldX")
+
+  -- Test setnx method
+  local setnxCount = h:setnx({
+    {["field1"] = "new_value1"}, -- Should not overwrite
+    {["field5"] = "value5"},     -- Should set
+  })
+  assert(setnxCount == 1, "setnx did not set the correct number of fields")
+  assert(h:get({"field1"})["field1"] == "value1", "setnx overwrote field1")
+  assert(h:get({"field5"})["field5"] == "value5", "setnx failed to set field5")
+
+  -- Test del method
+  local delCount = h:del({"field2", "field3"})
+  assert(delCount == 2, "del did not delete the correct number of fields")
+  assert(h:exists({"field2"})["field2"] == false, "del failed to delete field2")
+  assert(h:exists({"field3"})["field3"] == false, "del failed to delete field3")
+
+  -- Test len method
+  assert(h:len() == 3, "len method returned incorrect value")
+
+  -- Retrieve and verify all remaining fields
+  local remainingFields = h:all()
+  assert(remainingFields["field1"] == "value1", "field1 missing after deletion")
+  assert(remainingFields["field4"] == "value4", "field4 missing after deletion")
+  assert(remainingFields["field5"] == "value5", "field5 missing after deletion")
+
+  -- Return RESP response
   return "+OK\r\n"
 end

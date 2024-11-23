@@ -859,8 +859,6 @@ func luaTypeToNativeType(value lua.LValue) (interface{}, error) {
 		return nil, nil
 	case lua.LTString:
 		return value.String(), nil
-	case lua.LTBool:
-		return value == lua.LTrue, nil
 	case lua.LTNumber:
 		return internal.AdaptType(value.String()), nil
 	case lua.LTUserData:
