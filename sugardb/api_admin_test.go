@@ -309,71 +309,82 @@ func TestSugarDB_Plugins(t *testing.T) {
 
 	server := createSugarDB()
 
-	moduleSet := path.Join(".", "testdata", "modules", "module_set", "module_set.so")
-	moduleGet := path.Join(".", "testdata", "modules", "module_get", "module_get.so")
-	nonExistent := path.Join(".", "testdata", "modules", "non_existent", "module_non_existent.so")
+	tests := []struct {
+		name    string
+		path    string
+		args    []string
+		cmd     []string
+		want    string
+		wantErr error
+	}{
+		{
+			name:    "1. Test shared object plugin MODULE.SET",
+			path:    path.Join(".", "testdata", "modules", "module_set", "module_set.so"),
+			args:    []string{},
+			cmd:     []string{"MODULE.SET", "key1", "15"},
+			want:    "OK",
+			wantErr: nil,
+		},
+		{
+			name:    "2. Test shared object plugin MODULE.GET",
+			path:    path.Join(".", "testdata", "modules", "module_get", "module_get.so"),
+			args:    []string{"10"},
+			cmd:     []string{"MODULE.GET", "key1"},
+			want:    "150",
+			wantErr: nil,
+		},
+		{
+			name: "1. Test Non existent module.",
+			path: path.Join(".", "testdata", "modules", "non_existent", "module_non_existent.so"),
+			cmd:  []string{},
+			want: "",
+			wantErr: fmt.Errorf("load module: module %s not found",
+				path.Join(".", "testdata", "modules", "non_existent", "module_non_existent.so")),
+		},
+	}
 
-	// Load module.set module
-	if err := server.LoadModule(moduleSet); err != nil {
-		t.Error(err)
-	}
-	// Execute module.set command and expect "OK" response
-	res, err := server.ExecuteCommand("module.set", "key1", "15")
-	if err != nil {
-		t.Error(err)
-	}
-	rv, _, err := resp.NewReader(bytes.NewReader(res)).ReadValue()
-	if err != nil {
-		t.Error(err)
-	}
-	if rv.String() != "OK" {
-		t.Errorf("expected response \"OK\", got \"%s\"", rv.String())
-	}
-
-	// Load module.get module with args
-	if err := server.LoadModule(moduleGet, "10"); err != nil {
-		t.Error(err)
-	}
-	// Execute module.get command and expect an integer with the value 150
-	res, err = server.ExecuteCommand("module.get", "key1")
-	rv, _, err = resp.NewReader(bytes.NewReader(res)).ReadValue()
-	if err != nil {
-		t.Error(err)
-	}
-	if rv.Integer() != 150 {
-		t.Errorf("expected response 150, got %d", rv.Integer())
-	}
-
-	// Return error when trying to load module that does not exist
-	if err := server.LoadModule(nonExistent); err == nil {
-		t.Error("expected error but got nil instead")
-	} else {
-		if err.Error() != fmt.Sprintf("load module: module %s not found", nonExistent) {
-			t.Errorf(
-				"expected error \"%s\", got \"%s\"",
-				fmt.Sprintf("load module: module %s not found", nonExistent),
-				err.Error(),
-			)
+	for _, test := range tests {
+		// Load module
+		err := server.LoadModule(test.path, test.args...)
+		if err != nil && (err.Error() != test.wantErr.Error()) {
+			t.Error(err)
+		}
+		// Execute command and check expected response
+		res, err := server.ExecuteCommand(test.cmd...)
+		if err != nil && (err.Error() != test.wantErr.Error()) {
+			t.Error(err)
+		}
+		rv, _, err := resp.NewReader(bytes.NewReader(res)).ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+		if test.wantErr != nil {
+			if test.wantErr.Error() != rv.Error().Error() {
+				t.Errorf("expected error \"%s\", got \"%s\"", test.wantErr.Error(), rv.Error().Error())
+			}
+			return
+		}
+		if rv.String() != test.want {
+			t.Errorf("expected response \"%s\", got \"%s\"", test.want, rv.String())
 		}
 	}
 
-	// Module list should contain module_get and module_set modules
+	// Module list should contain all the modules above
 	modules := server.ListModules()
-	for _, mod := range []string{moduleSet, moduleGet} {
-		if !slices.Contains(modules, mod) {
-			t.Errorf("expected modules list to contain module \"%s\" but did not find it", mod)
+	for _, test := range tests {
+		// Check if module is loaded
+		if !slices.Contains(modules, test.path) {
+			t.Errorf("expected modules list to contain module \"%s\" but did not find it", test.path)
 		}
+		// Unload the module
+		server.UnloadModule(test.path)
 	}
-
-	// Unload modules
-	server.UnloadModule(moduleSet)
-	server.UnloadModule(moduleGet)
 
 	// Make sure the modules are no longer loaded
 	modules = server.ListModules()
-	for _, mod := range []string{moduleSet, moduleGet} {
-		if slices.Contains(modules, mod) {
-			t.Errorf("expected modules list to not contain module \"%s\" but found it", mod)
+	for _, test := range tests {
+		if slices.Contains(modules, test.path) {
+			t.Errorf("expected modules list to not contain module \"%s\" but found it", test.path)
 		}
 	}
 }
