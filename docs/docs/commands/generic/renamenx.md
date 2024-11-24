@@ -1,11 +1,11 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# RENAME
+# RENAMENX
 
 ### Syntax
 ```
-RENAME key newkey
+RENAMENX key newkey
 ```
 
 ### Module
@@ -13,10 +13,11 @@ RENAME key newkey
 
 ### Categories 
 <span className="acl-category">fast</span>
+<span className="acl-category">keyspace</span>
 <span className="acl-category">write</span>
 
 ### Description
-Renames key to newkey. If newkey already exists, it is overwritten. If key does not exist, an error is returned.
+Renames the specified key with the new name only if the new name does not already exist.
 
 ### Examples
 
@@ -34,13 +35,13 @@ Renames key to newkey. If newkey already exists, it is overwritten. If key does 
   if err != nil {
     log.Fatal(err)
   }
-  err = db.Rename("mykey", "newkey")
+  err = db.RenameNX("mykey", "newkey")
   ```
   </TabItem>
   <TabItem value="cli">
   Rename the key `mykey` to `newkey`:
   ```
-  > RENAME mykey newkey
+  > RENAMENX mykey newkey
   ```
   </TabItem>
 </Tabs> 
