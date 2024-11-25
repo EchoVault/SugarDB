@@ -1320,6 +1320,7 @@ func Test_Generic(t *testing.T) {
 			expectedResponse int
 			expectedValues   map[string]KeyData
 			expectedError    error
+			checkExpired     bool
 		}{
 			{
 				name:    "1. Set new expire by seconds",
@@ -1499,6 +1500,20 @@ func Test_Generic(t *testing.T) {
 				expectedValues:   nil,
 				expectedError:    errors.New(constants.WrongArgsResponse),
 			},
+			{
+				name:    "17. Ensure Keys expire as expected",
+				command: []string{"EXPIRE", "ExpireKey16", "1"},
+				presetValues: map[string]KeyData{
+					"ExpireKey16": {Value: "valueShouldBeExpired", ExpireAt: time.Time{}},
+				},
+				expectedResponse: 1,
+				expectedValues:   nil,
+				//                 map[string]KeyData{
+				// 	"ExpireKey16": {Value: "value1", ExpireAt: mockClock.Now().Add(1*time.Second)},
+				// },
+				expectedError: nil,
+				checkExpired:  true,
+			},
 		}
 
 		for _, test := range tests {
@@ -1551,7 +1566,25 @@ func Test_Generic(t *testing.T) {
 				}
 
 				if test.expectedValues == nil {
-					return
+
+					if test.checkExpired {
+						for key, _ := range test.presetValues {
+							time.Sleep(2 * time.Second)
+
+							if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
+								t.Error(err)
+							}
+							res, _, err = client.ReadValue()
+							if err != nil {
+								t.Error(err)
+							}
+							if res.String() != "-1" {
+								t.Errorf("Key should be expired, expected value %s, got %s", "-1", res.String())
+							}
+						}
+					} else {
+						return
+					}
 				}
 
 				for key, expected := range test.expectedValues {

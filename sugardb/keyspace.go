@@ -653,10 +653,8 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 	}
 }
 
-// evictKeysWithExpiredTTL is a function that samples keys with an associated TTL
-// and evicts keys that are currently expired.
-// This function will sample 20 keys from the list of keys with an associated TTL,
-// if the key is expired, it will be evicted.
+// evictKeysWithExpiredTTL is a function that evicts keys that have a TTL and are currently expired.
+// This includes fields in a hash for keys whose data type is Hash.
 // This function is only executed in standalone mode or by the raft cluster leader.
 func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 	// Only execute this if we're in standalone mode, or raft cluster leader.
