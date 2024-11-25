@@ -197,6 +197,7 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 			wg.Done()
 		}(i)
 	}
+
 	go func() {
 		wg.Wait()
 		doneChan <- struct{}{}
@@ -212,12 +213,12 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 }
 
 func Test_Cluster(t *testing.T) {
+
 	nodes, err := makeCluster(5)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-
 	t.Cleanup(func() {
 		for i := len(nodes) - 1; i > -1; i-- {
 			_ = nodes[i].raw.Close()

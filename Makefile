@@ -22,7 +22,7 @@ test-race:
 	CGO_ENABLED=1 go test ./... --race
 
 test-win:
-	docker-compose -f windows_test_env/docker-compose.yaml up
+	docker-compose -f windows_test_env/docker-compose.yaml up --build
 
 cover:
 	go tool cover -html=./coverage/coverage.out

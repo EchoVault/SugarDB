@@ -15,6 +15,7 @@
 package internal
 
 import (
+	"container/heap"
 	"context"
 	"errors"
 	"fmt"
@@ -230,4 +231,83 @@ type SubCommand struct {
 	Sync        bool     // Specifies if sub-command should be synced across replication cluster
 	KeyExtractionFunc
 	HandlerFunc
+}
+
+// HeapItem is a struct comprising of necessary information to access KeyData and HashValue
+// values contained in a TTLHeap.
+type HeapItem struct {
+	Key       string
+	HashField string // empty string if the key is not a HashValue
+	ExpireAt  int64  // time.Time represented as int using time.Time.Unix()
+}
+
+// TTLHeap is a min heap used to quickly identify keys and fields of HashValues whose TTL has expired.
+type TTLHeap struct {
+	Keys map[string]int // Track HeapItems currently in heap, keys are concatenation of HeapItem.Key and HeapItem.HashField
+	Heap []HeapItem     // Slice to implement the actual Heap
+}
+
+// TODO
+func (h TTLHeap) Len() int {
+	return len(h.Heap)
+}
+
+func (h TTLHeap) Less(i, j int) bool {
+	return h.Heap[i].ExpireAt < h.Heap[j].ExpireAt
+}
+
+func (h TTLHeap) Swap(i, j int) {
+	h.Heap[i], h.Heap[j] = h.Heap[j], h.Heap[i]
+	h.Keys[h.Heap[i].Key+h.Heap[i].HashField] = i
+	h.Keys[h.Heap[j].Key+h.Heap[j].HashField] = j
+}
+
+func (h *TTLHeap) Push(x any) {
+	item := x.(HeapItem)
+	_, ok := h.Keys[item.Key+item.HashField]
+	if !ok {
+		h.Heap = append(h.Heap, item)
+		h.Keys[item.Key+item.HashField] = len(h.Heap) - 1
+	}
+}
+
+func (h *TTLHeap) Pop() any {
+	old := h.Heap
+	n := len(old)
+	item := old[n-1]
+	h.Heap = old[:n-1]
+	delete(h.Keys, item.Key+item.HashField)
+	return item
+}
+
+func (h *TTLHeap) Remove(item HeapItem) {
+	if idx, ok := h.Keys[item.Key+item.HashField]; ok {
+		heap.Remove(h, idx)
+	}
+}
+
+// If the HeapItem is not on the Heap, add it.
+// If it is on the heap, make sure the exipreAt time is updated and
+// the position in the heap is updated accordingly.
+func (h *TTLHeap) Update(item HeapItem) {
+	idx, ok := h.Keys[item.Key+item.HashField]
+	if ok {
+		heap.Fix(h, idx)
+		h.Heap[idx].ExpireAt = item.ExpireAt
+	} else {
+		heap.Push(h, item)
+	}
+}
+
+func (h TTLHeap) Peek() *HeapItem {
+	if len(h.Heap) > 0 {
+		return &h.Heap[0]
+	}
+
+	return nil
+}
+
+func (h TTLHeap) Flush() {
+	clear(h.Heap)
+	clear(h.Keys)
 }

@@ -83,8 +83,8 @@ type SugarDB struct {
 	keysWithExpiry struct {
 		// Mutex as only one process should be able to update this list at a time.
 		rwMutex sync.RWMutex
-		// A map holding a string slice of the volatile keys for each database.
-		keys map[int][]string
+		// A map holding a min heap of the volatile keys for each database.
+		keys map[int]*internal.TTLHeap
 	}
 	// LFU cache used when eviction policy is allkeys-lfu or volatile-lfu.
 	lfuCache struct {
@@ -170,10 +170,10 @@ func NewSugarDB(options ...func(sugarDB *SugarDB)) (*SugarDB, error) {
 		memUsed:   0,
 		keysWithExpiry: struct {
 			rwMutex sync.RWMutex
-			keys    map[int][]string
+			keys    map[int]*internal.TTLHeap
 		}{
 			rwMutex: sync.RWMutex{},
-			keys:    make(map[int][]string),
+			keys:    make(map[int]*internal.TTLHeap),
 		},
 		commandsRWMut: sync.RWMutex{},
 		commands: func() []internal.Command {

@@ -278,15 +278,6 @@ func WithEvictionPolicy(evictionPolicy string) func(sugardb *SugarDB) {
 	}
 }
 
-// WithEvictionSample is an option to the NewSugarDB function that allows you to pass a
-// custom EvictionSample to SugarDB.
-// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
-func WithEvictionSample(evictionSample uint) func(sugardb *SugarDB) {
-	return func(sugardb *SugarDB) {
-		sugardb.config.EvictionSample = evictionSample
-	}
-}
-
 // WithEvictionInterval is an option to the NewSugarDB function that allows you to pass a
 // custom EvictionInterval to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().

@@ -35,7 +35,6 @@ func DefaultConfig() Config {
 		AOFSyncStrategy:   "everysec",
 		MaxMemory:         0,
 		EvictionPolicy:    constants.NoEviction,
-		EvictionSample:    20,
 		EvictionInterval:  100 * time.Millisecond,
 		Modules:           make([]string, 0),
 	}
