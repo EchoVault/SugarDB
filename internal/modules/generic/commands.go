@@ -686,7 +686,7 @@ func handleRenamenx(params internal.HandlerFuncParams) ([]byte, error) {
 
 	keyExistsCheck := params.KeysExist(params.Context, []string{newKey})
 	if keyExistsCheck[newKey] {
-		return nil, errors.New("Key already exists!")
+		return nil, fmt.Errorf("key %s already exists", newKey)
 	}
 
 	return handleRename(params)
