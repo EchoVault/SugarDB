@@ -312,6 +312,7 @@ func TestSugarDB_Plugins(t *testing.T) {
 	tests := []struct {
 		name    string
 		path    string
+		expect  bool
 		args    []string
 		cmd     []string
 		want    string
@@ -320,6 +321,7 @@ func TestSugarDB_Plugins(t *testing.T) {
 		{
 			name:    "1. Test shared object plugin MODULE.SET",
 			path:    path.Join(".", "testdata", "modules", "module_set", "module_set.so"),
+			expect:  true,
 			args:    []string{},
 			cmd:     []string{"MODULE.SET", "key1", "15"},
 			want:    "OK",
@@ -328,23 +330,26 @@ func TestSugarDB_Plugins(t *testing.T) {
 		{
 			name:    "2. Test shared object plugin MODULE.GET",
 			path:    path.Join(".", "testdata", "modules", "module_get", "module_get.so"),
+			expect:  true,
 			args:    []string{"10"},
 			cmd:     []string{"MODULE.GET", "key1"},
 			want:    "150",
 			wantErr: nil,
 		},
 		{
-			name: "3. Test Non existent module.",
-			path: path.Join(".", "testdata", "modules", "non_existent", "module_non_existent.so"),
-			args: []string{},
-			cmd:  []string{},
-			want: "",
+			name:   "3. Test Non existent module.",
+			path:   path.Join(".", "testdata", "modules", "non_existent", "module_non_existent.so"),
+			expect: false,
+			args:   []string{},
+			cmd:    []string{"NONEXISTENT", "key", "value"},
+			want:   "",
 			wantErr: fmt.Errorf("load module: module %s not found",
 				path.Join(".", "testdata", "modules", "non_existent", "module_non_existent.so")),
 		},
 		{
 			name:    "4. Test LUA module that handles hash values",
 			path:    path.Join("..", "internal", "volumes", "modules", "lua", "hash.lua"),
+			expect:  true,
 			args:    []string{},
 			cmd:     []string{"LUA.HASH", "LUA.HASH_KEY_1"},
 			want:    "OK",
@@ -353,6 +358,7 @@ func TestSugarDB_Plugins(t *testing.T) {
 		{
 			name:    "5. Test LUA module that handles set values",
 			path:    path.Join("..", "internal", "volumes", "modules", "lua", "set.lua"),
+			expect:  true,
 			args:    []string{},
 			cmd:     []string{"LUA.SET", "LUA.SET_KEY_1", "LUA.SET_KEY_2", "LUA.SET_KEY_3"},
 			want:    "OK",
@@ -361,6 +367,7 @@ func TestSugarDB_Plugins(t *testing.T) {
 		{
 			name:    "6. Test LUA module that handles zset values",
 			path:    path.Join("..", "internal", "volumes", "modules", "lua", "zset.lua"),
+			expect:  true,
 			args:    []string{},
 			cmd:     []string{"LUA.ZSET", "LUA.ZSET_KEY_1", "LUA.ZSET_KEY_2", "LUA.ZSET_KEY_3"},
 			want:    "OK",
@@ -369,6 +376,7 @@ func TestSugarDB_Plugins(t *testing.T) {
 		{
 			name:    "7. Test LUA module that handles primitive types",
 			path:    path.Join("..", "internal", "volumes", "modules", "lua", "example.lua"),
+			expect:  true,
 			args:    []string{},
 			cmd:     []string{"LUA.EXAMPLE"},
 			want:    "OK",
@@ -379,13 +387,17 @@ func TestSugarDB_Plugins(t *testing.T) {
 	for _, test := range tests {
 		// Load module
 		err := server.LoadModule(test.path, test.args...)
-		if err != nil && (err.Error() != test.wantErr.Error()) {
-			t.Error(err)
+		if err != nil {
+			if test.wantErr == nil || err.Error() != test.wantErr.Error() {
+				t.Error(fmt.Errorf("%s: %v", test.name, err))
+				return
+			}
+			continue
 		}
 		// Execute command and check expected response
 		res, err := server.ExecuteCommand(test.cmd...)
 		if err != nil {
-			t.Error(err)
+			t.Error(fmt.Errorf("%s: %v", test.name, err))
 		}
 		rv, _, err := resp.NewReader(bytes.NewReader(res)).ReadValue()
 		if err != nil {
@@ -405,6 +417,10 @@ func TestSugarDB_Plugins(t *testing.T) {
 	// Module list should contain all the modules above
 	modules := server.ListModules()
 	for _, test := range tests {
+		// Skip the module if it's not expected
+		if !test.expect {
+			continue
+		}
 		// Check if module is loaded
 		if !slices.Contains(modules, test.path) {
 			t.Errorf("expected modules list to contain module \"%s\" but did not find it", test.path)
