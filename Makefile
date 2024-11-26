@@ -21,8 +21,18 @@ test-race:
 	env RACE=true OUT=sugardb/testdata make build-modules-test && \
 	CGO_ENABLED=1 go test ./... --race
 
-test-win:
-	docker-compose -f windows_test_env/docker-compose.yaml up --build
+testenv-run:
+	docker-compose -f test_env/run/docker-compose.yaml build
+	docker-compose -f test_env/run/docker-compose.yaml run projenv
+
+testenv-test:
+	docker-compose -f test_env/test/docker-compose.yaml up --build
+	
+testenv-test-race:
+	docker-compose -f test_env/test_race/docker-compose.yaml up --build
+
+testenv-all:
+	docker-compose -f test_env/all/docker-compose.yaml up --build
 
 cover:
 	go tool cover -html=./coverage/coverage.out
