@@ -1,0 +1,12 @@
+# run from root dir
+services:
+  test:
+    build: 
+      context: ../..
+      dockerfile: test_env/all/Dockerfile
+    container_name: sugardb_test_env_all
+    volumes:
+      - ../../coverage/coverage.out:/testspace/coverage/coverage.out
+    stdin_open: true
+    tty: true
+
