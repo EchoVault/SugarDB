@@ -1,15 +1,15 @@
 package config
 
 import (
+	"time"
+
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/constants"
-	"time"
 )
 
 func DefaultConfig() Config {
 	raftBindAddr, _ := internal.GetIPAddress()
 	raftBindPort, _ := internal.GetFreePort()
-
 	return Config{
 		TLS:               false,
 		MTLS:              false,

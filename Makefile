@@ -23,7 +23,7 @@ test-race:
 
 testenv-run:
 	docker-compose -f test_env/run/docker-compose.yaml build
-	docker-compose -f test_env/run/docker-compose.yaml run projenv
+	docker-compose -f test_env/run/docker-compose.yaml run --rm projenv
 
 testenv-test:
 	docker-compose -f test_env/test/docker-compose.yaml up --build

@@ -24,7 +24,6 @@ import (
 	"github.com/echovault/sugardb/internal/aof"
 	"github.com/echovault/sugardb/internal/clock"
 	"github.com/echovault/sugardb/internal/config"
-	"github.com/echovault/sugardb/internal/constants"
 	"github.com/echovault/sugardb/internal/eviction"
 	"github.com/echovault/sugardb/internal/memberlist"
 	"github.com/echovault/sugardb/internal/modules/acl"
@@ -230,6 +229,8 @@ func NewSugarDB(options ...func(sugarDB *SugarDB)) (*SugarDB, error) {
 			GetHandlerFuncParams:  sugarDB.getHandlerFuncParams,
 			DeleteKey: func(ctx context.Context, key string) error {
 				sugarDB.storeLock.Lock()
+				sugarDB.keysWithExpiry.rwMutex.Lock()
+				defer sugarDB.keysWithExpiry.rwMutex.Unlock()
 				defer sugarDB.storeLock.Unlock()
 				return sugarDB.deleteKey(ctx, key)
 			},
@@ -327,35 +328,33 @@ func NewSugarDB(options ...func(sugarDB *SugarDB)) (*SugarDB, error) {
 		sugarDB.aofEngine = aofEngine
 	}
 
-	// If eviction policy is not noeviction, start a goroutine to evict keys at the configured interval.
-	if sugarDB.config.EvictionPolicy != constants.NoEviction {
-		go func() {
-			ticker := time.NewTicker(sugarDB.config.EvictionInterval)
-			defer func() {
-				ticker.Stop()
-			}()
-			for {
-				select {
-				case <-ticker.C:
-					// Run key eviction for each database that has volatile keys.
-					wg := sync.WaitGroup{}
-					for database, _ := range sugarDB.keysWithExpiry.keys {
-						wg.Add(1)
-						ctx := context.WithValue(context.Background(), "Database", database)
-						go func(ctx context.Context, wg *sync.WaitGroup) {
-							if err := sugarDB.evictKeysWithExpiredTTL(ctx); err != nil {
-								log.Printf("evict with ttl: %v\n", err)
-							}
-							wg.Done()
-						}(ctx, &wg)
-					}
-					wg.Wait()
-				case <-sugarDB.stopTTL:
-					break
-				}
-			}
+	// go routine to expire keys based on their TTL at the configured interval.
+	go func() {
+		ticker := time.NewTicker(sugarDB.config.EvictionInterval)
+		defer func() {
+			ticker.Stop()
 		}()
-	}
+		for {
+			select {
+			case <-ticker.C:
+				// Run key eviction for each database that has volatile keys.
+				wg := sync.WaitGroup{}
+				for database, _ := range sugarDB.keysWithExpiry.keys {
+					wg.Add(1)
+					ctx := context.WithValue(context.Background(), "Database", database)
+					go func(ctx context.Context, wg *sync.WaitGroup) {
+						if err := sugarDB.evictKeysWithExpiredTTL(ctx); err != nil {
+							log.Printf("evict with ttl: %v\n", err)
+						}
+						wg.Done()
+					}(ctx, &wg)
+				}
+				wg.Wait()
+			case <-sugarDB.stopTTL:
+				break
+			}
+		}
+	}()
 
 	if sugarDB.config.TLS && len(sugarDB.config.CertKeyPairs) <= 0 {
 		return nil, errors.New("must provide certificate and key file paths for TLS mode")

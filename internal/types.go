@@ -247,7 +247,6 @@ type TTLHeap struct {
 	Heap []HeapItem     // Slice to implement the actual Heap
 }
 
-// TODO
 func (h TTLHeap) Len() int {
 	return len(h.Heap)
 }

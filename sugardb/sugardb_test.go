@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/clock"
-	"github.com/echovault/sugardb/internal/config"
 	"github.com/echovault/sugardb/internal/constants"
 	"github.com/go-test/deep"
 	"github.com/tidwall/resp"
@@ -600,6 +599,7 @@ func Test_Cluster(t *testing.T) {
 
 	t.Run("Test_EvictExpiredTTL", func(t *testing.T) {
 		// TODO: Implement test for evicting expired keys on the cluster.
+		// !!!!!
 	})
 
 	t.Run("Test_GetServerInfo", func(t *testing.T) {
@@ -672,13 +672,11 @@ func Test_Standalone(t *testing.T) {
 	}
 
 	mockServer, err := NewSugarDB(
-		WithConfig(config.Config{
-			BindAddr:       "localhost",
-			Port:           uint16(port),
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-			ServerID:       "Server_1",
-		}),
+		WithBindAddr("localhost"),
+		WithPort(uint16(port)),
+		WithDataDir(""),
+		WithEvictionPolicy(constants.NoEviction),
+		WithServerID("Server_1"),
 	)
 	if err != nil {
 		t.Error(err)

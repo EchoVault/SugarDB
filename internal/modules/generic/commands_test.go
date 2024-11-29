@@ -24,7 +24,6 @@ import (
 
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/clock"
-	"github.com/echovault/sugardb/internal/config"
 	"github.com/echovault/sugardb/internal/constants"
 	"github.com/echovault/sugardb/internal/modules/set"
 	"github.com/echovault/sugardb/internal/modules/sorted_set"
@@ -47,12 +46,10 @@ func Test_Generic(t *testing.T) {
 	}
 
 	mockServer, err := sugardb.NewSugarDB(
-		sugardb.WithConfig(config.Config{
-			BindAddr:       "localhost",
-			Port:           uint16(port),
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
+		sugardb.WithBindAddr("localhost"),
+		sugardb.WithPort(uint16(port)),
+		sugardb.WithDataDir(""),
+		sugardb.WithEvictionPolicy(constants.NoEviction),
 	)
 	if err != nil {
 		t.Error(err)
@@ -1091,9 +1088,9 @@ func Test_Generic(t *testing.T) {
 				name:    "2. Return expire time in milliseconds",
 				command: []string{"PEXPIRETIME", "ExpireTimeKey2"},
 				presetValues: map[string]KeyData{
-					"ExpireTimeKey2": {Value: "value2", ExpireAt: mockClock.Now().Add(4096 * time.Millisecond)},
+					"ExpireTimeKey2": {Value: "value2", ExpireAt: mockClock.Now().Add(409600 * time.Millisecond)},
 				},
-				expectedResponse: int(mockClock.Now().Add(4096 * time.Millisecond).UnixMilli()),
+				expectedResponse: int(mockClock.Now().Add(409600 * time.Millisecond).UnixMilli()),
 				expectedError:    nil,
 			},
 			{
@@ -1336,13 +1333,13 @@ func Test_Generic(t *testing.T) {
 			},
 			{
 				name:    "2. Set new expire by milliseconds",
-				command: []string{"PEXPIRE", "ExpireKey2", "1000"},
+				command: []string{"PEXPIRE", "ExpireKey2", "1000000"},
 				presetValues: map[string]KeyData{
 					"ExpireKey2": {Value: "value2", ExpireAt: time.Time{}},
 				},
 				expectedResponse: 1,
 				expectedValues: map[string]KeyData{
-					"ExpireKey2": {Value: "value2", ExpireAt: mockClock.Now().Add(1000 * time.Millisecond)},
+					"ExpireKey2": {Value: "value2", ExpireAt: mockClock.Now().Add(1000000 * time.Millisecond)},
 				},
 				expectedError: nil,
 			},
@@ -1568,8 +1565,8 @@ func Test_Generic(t *testing.T) {
 				if test.expectedValues == nil {
 
 					if test.checkExpired {
+						time.Sleep(5 * time.Second)
 						for key, _ := range test.presetValues {
-							time.Sleep(2 * time.Second)
 
 							if err = client.WriteArray([]resp.Value{resp.StringValue("GET"), resp.StringValue(key)}); err != nil {
 								t.Error(err)
@@ -1578,13 +1575,12 @@ func Test_Generic(t *testing.T) {
 							if err != nil {
 								t.Error(err)
 							}
-							if res.String() != "-1" {
-								t.Errorf("Key should be expired, expected value %s, got %s", "-1", res.String())
+							if res.String() != "" {
+								t.Errorf("Key should be expired, expected value '', got %q", res.String())
 							}
 						}
-					} else {
-						return
 					}
+					return
 				}
 
 				for key, expected := range test.expectedValues {
@@ -2776,12 +2772,10 @@ func Test_Generic(t *testing.T) {
 			return
 		}
 		mockServer, err := sugardb.NewSugarDB(
-			sugardb.WithConfig(config.Config{
-				BindAddr:       "localhost",
-				Port:           uint16(port),
-				DataDir:        "",
-				EvictionPolicy: constants.NoEviction,
-			}),
+			sugardb.WithBindAddr("localhost"),
+			sugardb.WithPort(uint16(port)),
+			sugardb.WithDataDir(""),
+			sugardb.WithEvictionPolicy(constants.NoEviction),
 		)
 		if err != nil {
 			t.Error(err)
@@ -3645,12 +3639,10 @@ func Test_Generic(t *testing.T) {
 			return
 		}
 		mockServer, err := sugardb.NewSugarDB(
-			sugardb.WithConfig(config.Config{
-				BindAddr:       "localhost",
-				Port:           uint16(port),
-				DataDir:        "",
-				EvictionPolicy: constants.NoEviction,
-			}),
+			sugardb.WithBindAddr("localhost"),
+			sugardb.WithPort(uint16(port)),
+			sugardb.WithDataDir(""),
+			sugardb.WithEvictionPolicy(constants.NoEviction),
 		)
 		if err != nil {
 			t.Error(err)
@@ -3789,14 +3781,12 @@ func Test_LFU_Generic(t *testing.T) {
 	duration := time.Duration(30) * time.Second
 
 	mockServer, err := sugardb.NewSugarDB(
-		sugardb.WithConfig(config.Config{
-			BindAddr:         "localhost",
-			Port:             uint16(port),
-			DataDir:          "",
-			EvictionPolicy:   constants.AllKeysLFU,
-			EvictionInterval: duration,
-			MaxMemory:        550,
-		}),
+		sugardb.WithBindAddr("localhost"),
+		sugardb.WithPort(uint16(port)),
+		sugardb.WithDataDir(""),
+		sugardb.WithEvictionPolicy(constants.AllKeysLFU),
+		sugardb.WithEvictionInterval(duration),
+		sugardb.WithMaxMemory(550),
 	)
 	if err != nil {
 		t.Error(err)
@@ -3970,14 +3960,12 @@ func Test_LRU_Generic(t *testing.T) {
 	duration := time.Duration(30) * time.Second
 
 	mockServer, err := sugardb.NewSugarDB(
-		sugardb.WithConfig(config.Config{
-			BindAddr:         "localhost",
-			Port:             uint16(port),
-			DataDir:          "",
-			EvictionPolicy:   constants.AllKeysLRU,
-			EvictionInterval: duration,
-			MaxMemory:        550,
-		}),
+		sugardb.WithBindAddr("localhost"),
+		sugardb.WithPort(uint16(port)),
+		sugardb.WithDataDir(""),
+		sugardb.WithEvictionPolicy(constants.AllKeysLRU),
+		sugardb.WithEvictionInterval(duration),
+		sugardb.WithMaxMemory(550),
 	)
 	if err != nil {
 		t.Error(err)

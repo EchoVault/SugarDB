@@ -119,9 +119,8 @@ func (server *SugarDB) Flush(database int) {
 }
 
 func (server *SugarDB) keysExist(ctx context.Context, keys []string) map[string]bool {
-	server.storeLock.RLock()
-	defer server.storeLock.RUnlock()
 
+	server.storeLock.RLock()
 	database := ctx.Value("Database").(int)
 
 	exists := make(map[string]bool, len(keys))
@@ -131,6 +130,7 @@ func (server *SugarDB) keysExist(ctx context.Context, keys []string) map[string]
 		exists[key] = ok
 	}
 
+	server.storeLock.RUnlock()
 	return exists
 }
 
@@ -166,6 +166,8 @@ func (server *SugarDB) getHashExpiry(ctx context.Context, key string, field stri
 
 func (server *SugarDB) getValues(ctx context.Context, keys []string) map[string]interface{} {
 	server.storeLock.Lock()
+	server.keysWithExpiry.rwMutex.Lock()
+	defer server.keysWithExpiry.rwMutex.Unlock()
 	defer server.storeLock.Unlock()
 
 	database := ctx.Value("Database").(int)
@@ -340,13 +342,10 @@ func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
 	server.memUsed -= mem
 	server.memUsed -= int64(unsafe.Sizeof(key))
 	server.memUsed -= int64(len(key))
-
 	// Delete the key from keyLocks and store.
 	delete(server.store[database], key)
 
 	// Remove key from the TTLHeap.
-	server.keysWithExpiry.rwMutex.Lock()
-	defer server.keysWithExpiry.rwMutex.Unlock()
 	h := server.keysWithExpiry.keys[database]
 	item := internal.HeapItem{
 		Key: key,
@@ -359,6 +358,8 @@ func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
 		server.lfuCache.cache[database].Delete(key)
 	case slices.Contains([]string{constants.AllKeysLRU, constants.VolatileLRU}, server.config.EvictionPolicy):
 		server.lruCache.cache[database].Delete(key)
+	default:
+
 	}
 
 	log.Printf("deleted key %s\n", key)
@@ -525,6 +526,8 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 			key := heap.Pop(server.lfuCache.cache[database]).(string)
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
+				server.keysWithExpiry.rwMutex.Lock()
+				defer server.keysWithExpiry.rwMutex.Unlock()
 				if err := server.deleteKey(ctx, key); err != nil {
 
 					log.Printf("Evicting key %v from database %v \n", key, database)
@@ -558,6 +561,8 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 			key := heap.Pop(server.lruCache.cache[database]).(string)
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key.
+				server.keysWithExpiry.rwMutex.Lock()
+				defer server.keysWithExpiry.rwMutex.Unlock()
 				if err := server.deleteKey(ctx, key); err != nil {
 					log.Printf("Evicting key %v from database %v \n", key, database)
 					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
@@ -594,6 +599,8 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 						if idx == 0 {
 							if !server.isInCluster() {
 								// If in standalone mode, directly delete the key
+								server.keysWithExpiry.rwMutex.Lock()
+								defer server.keysWithExpiry.rwMutex.Unlock()
 								if err := server.deleteKey(ctx, key); err != nil {
 									log.Printf("Evicting key %v from database %v \n", key, db)
 
@@ -629,6 +636,8 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
+				server.keysWithExpiry.rwMutex.Lock()
+				defer server.keysWithExpiry.rwMutex.Unlock()
 				if err := server.deleteKey(ctx, key); err != nil {
 					log.Printf("Evicting key %v from database %v \n", key, database)
 
@@ -661,11 +670,10 @@ func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 	if server.isInCluster() && !server.raft.IsRaftLeader() {
 		return nil
 	}
-
 	database := ctx.Value("Database").(int)
 
-	server.keysWithExpiry.rwMutex.RLock()
-	defer server.keysWithExpiry.rwMutex.RUnlock()
+	server.keysWithExpiry.rwMutex.Lock()
+	defer server.keysWithExpiry.rwMutex.Unlock()
 
 	server.storeLock.Lock()
 	defer server.storeLock.Unlock()
@@ -674,22 +682,22 @@ func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 	for server.keysWithExpiry.keys[database].Len() > 0 {
 
 		item := server.keysWithExpiry.keys[database].Peek()
-
 		if item.ExpireAt < time.Now().Unix() {
-			//TODO
 			// Grab key and HashField
 			k := item.Key
-			hf := item.HashField
+			hashfield := item.HashField
 
 			// Handle Hash
-			if hf != "" {
+			if hashfield != "" {
 				hashkey, ok := server.store[database][k].Value.(hash.Hash)
 				if !ok {
 					return fmt.Errorf("Hash value should contain type HashValue, but type %s was found.", reflect.TypeOf(hashkey).Elem().Name())
 				}
-				delete(hashkey, hf)
 				// Pop off the heap
 				heap.Pop(server.keysWithExpiry.keys[database])
+				defer server.keysWithExpiry.rwMutex.RUnlock()
+				// Delete the field from the hash
+				delete(server.store[database][k].Value.(hash.Hash), hashfield)
 				continue
 			}
 
