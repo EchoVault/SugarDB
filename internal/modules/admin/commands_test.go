@@ -442,6 +442,21 @@ func Test_AdminCommands(t *testing.T) {
 				wantTestRes: "OK",
 				wantTestErr: nil,
 			},
+			{
+				name: "10. Load LUA list module",
+				execCommand: []resp.Value{
+					resp.StringValue("MODULE"),
+					resp.StringValue("LOAD"),
+					resp.StringValue(path.Join("..", "..", "volumes", "modules", "lua", "list.lua")),
+				},
+				wantExecRes: "OK",
+				testCommand: []resp.Value{
+					resp.StringValue("LUA.LIST"),
+					resp.StringValue("LUA.LIST_KEY_1"),
+				},
+				wantTestRes: "OK",
+				wantTestErr: nil,
+			},
 		}
 
 		conn, err := internal.GetConnection("localhost", port)

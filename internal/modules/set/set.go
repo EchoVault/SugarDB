@@ -28,17 +28,16 @@ type Set struct {
 	length  int
 }
 
-func (s *Set) GetMem() int64 {
+func (set *Set) GetMem() int64 {
 	var size int64
-	size += int64(unsafe.Sizeof(s))
-	// above only gives us the size of the pointer to the map, so we need to add it's headers and contents
-	size += int64(unsafe.Sizeof(s.members))
-	for k, v := range s.members {
+	size += int64(unsafe.Sizeof(set))
+	// above only gives us the size of the pointer to the map, so we need to add its headers and contents
+	size += int64(unsafe.Sizeof(set.members))
+	for k, v := range set.members {
 		size += int64(unsafe.Sizeof(k))
 		size += int64(len(k))
 		size += int64(unsafe.Sizeof(v))
 	}
-
 	return size
 }
 

@@ -1,16 +1,15 @@
-
 -- The keyword to trigger the command
-command = "LUA.HASH"
+command = "LUA.LIST"
 
 --[[
 The string array of categories this command belongs to.
 This array can contain both built-in categories and new custom categories.
 ]]
-categories = {"hash", "write", "fast"}
+categories = {"list", "write", "fast"}
 
 -- The description of the command
-description = "(LUA.HASH key) \
-This is an example of working with SugarDB hashes/maps in lua scripts."
+description = "(LUA.LIST key) \
+This is an example of working with SugarDB lists in lua scripts."
 
 -- Whether the command should be synced across the RAFT cluster
 sync = true
@@ -76,62 +75,46 @@ The handler function accepts the following args:
 6. "args" is a string array of the modifier args passed to the module at load time. These args are passed to the
    handler everytime it's invoked.
 ]]
-function handlerFunc(context, command, keysExist, getValues, setValues, args)
-  -- Initialize a new hash
-  local h = hash.new()
+function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
+  -- Helper function to compare lists
+  local function compareLists(expected, actual)
+    if #expected ~= #actual then
+      return false, string.format("Length mismatch: expected %d, got %d", #expected, #actual)
+    end
+    for i = 1, #expected do
+      if expected[i] ~= actual[i] then
+        return false, string.format("Mismatch at index %d: expected '%s', got '%s'", i, expected[i], actual[i])
+      end
+    end
+    return true
+  end
 
-  -- Set values in the hash
-  h:set({
-    {["field1"] = "value1"},
-    {["field2"] = "value2"},
-    {["field3"] = "value3"},
-    {["field4"] = "value4"},
-  })
+  local key = command[2]
 
-  -- Set hash in the store
-  setValues({[command[2]] = h})
+  -- First list to set
+  local initialList = {"apple", "banana", "cherry"}
+  setValues({[key] = initialList})
 
-  -- Check that the fields were correctly set in the database
-  local hashValue = getValues({command[2]})[command[2]]
-  assert(hashValue:get({"field1"})["field1"] == "value1", "field1 not set correctly")
-  assert(hashValue:get({"field2"})["field2"] == "value2", "field2 not set correctly")
-  assert(hashValue:get({"field3"})["field3"] == "value3", "field3 not set correctly")
-  assert(hashValue:get({"field4"})["field4"] == "value4", "field4 not set correctly")
+  -- Retrieve and verify the first list
+  local retrievedValues = getValues({key})
+  local retrievedList = retrievedValues[key]
+  local isValid, errorMessage = compareLists(initialList, retrievedList)
+  if not isValid then
+    error(errorMessage)
+  end
 
-  -- Test get method
-  local retrieved = h:get({"field1", "field2"})
-  assert(retrieved["field1"] == "value1", "get method failed for field1")
-  assert(retrieved["field2"] == "value2", "get method failed for field2")
+  -- Update the list with new values
+  local updatedList = {"orange", "grape", "watermelon"}
+  setValues({[key] = updatedList})
 
-  -- Test exists method
-  local exists = h:exists({"field1", "fieldX"})
-  assert(exists["field1"] == true, "exists method failed for field1")
-  assert(exists["fieldX"] == false, "exists method failed for fieldX")
+  -- Retrieve and verify the updated list
+  retrievedValues = getValues({key})
+  retrievedList = retrievedValues[key]
+  isValid, errorMessage = compareLists(updatedList, retrievedList)
+  if not isValid then
+    error(errorMessage)
+  end
 
-  -- Test setnx method
-  local setnxCount = h:setnx({
-    {["field1"] = "new_value1"}, -- Should not overwrite
-    {["field5"] = "value5"},     -- Should set
-  })
-  assert(setnxCount == 1, "setnx did not set the correct number of fields")
-  assert(h:get({"field1"})["field1"] == "value1", "setnx overwrote field1")
-  assert(h:get({"field5"})["field5"] == "value5", "setnx failed to set field5")
-
-  -- Test del method
-  local delCount = h:del({"field2", "field3"})
-  assert(delCount == 2, "del did not delete the correct number of fields")
-  assert(h:exists({"field2"})["field2"] == false, "del failed to delete field2")
-  assert(h:exists({"field3"})["field3"] == false, "del failed to delete field3")
-
-  -- Test len method
-  assert(h:len() == 3, "len method returned incorrect value")
-
-  -- Retrieve and verify all remaining fields
-  local remainingFields = h:all()
-  assert(remainingFields["field1"] == "value1", "field1 missing after deletion")
-  assert(remainingFields["field4"] == "value4", "field4 missing after deletion")
-  assert(remainingFields["field5"] == "value5", "field5 missing after deletion")
-
-  -- Return RESP response
+  -- If all assertions pass
   return "+OK\r\n"
 end

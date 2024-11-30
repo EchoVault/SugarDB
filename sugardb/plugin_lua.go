@@ -37,7 +37,7 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, []string, string,
 	// Register hash data type
 	hashMetaTable := L.NewTypeMetatable("hash")
 	L.SetGlobal("hash", hashMetaTable)
-	// Static fields
+	// Static methods
 	L.SetField(hashMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
 		ud := state.NewUserData()
 		ud.Value = hash.Hash{}
@@ -204,7 +204,7 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, []string, string,
 	// Register set data type
 	setMetaTable := L.NewTypeMetatable("set")
 	L.SetGlobal("set", setMetaTable)
-	// Static fields
+	// Static methods
 	L.SetField(setMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
 		// Create set
 		s := set.NewSet([]string{})
@@ -332,7 +332,7 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, []string, string,
 	// Register sorted set member data type
 	sortedSetMemberMetaTable := L.NewTypeMetatable("zmember")
 	L.SetGlobal("zmember", sortedSetMemberMetaTable)
-	// Static fields
+	// Static methods
 	L.SetField(sortedSetMemberMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
 		// Create sorted set member param
 		param := &sorted_set.MemberParam{}
@@ -392,7 +392,7 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, []string, string,
 	// Register sorted set data type
 	sortedSetMetaTable := L.NewTypeMetatable("zset")
 	L.SetGlobal("zset", sortedSetMetaTable)
-	// Static fields
+	// Static methods
 	L.SetField(sortedSetMetaTable, "new", L.NewFunction(func(state *lua.LState) int {
 		// If default values are passed, add them to the set
 		var members []sorted_set.MemberParam
@@ -853,6 +853,31 @@ func checkSortedSet(L *lua.LState, n int) *sorted_set.SortedSet {
 	return nil
 }
 
+func checkArray(table *lua.LTable) ([]string, error) {
+	list := make([]string, table.Len())
+	var err error = nil
+	table.ForEach(func(key lua.LValue, value lua.LValue) {
+		// Check if key is integer
+		idx, ok := key.(lua.LNumber)
+		if !ok {
+			err = fmt.Errorf("expected list keys to be integers, got %s", key.Type())
+			return
+		}
+		// Check if value is string
+		val, ok := value.(lua.LString)
+		if !ok {
+			err = fmt.Errorf("expect all list values to be strings, got %s", key.Type())
+			return
+		}
+		if int(idx)-1 >= len(list) {
+			err = fmt.Errorf("index %d greater than list capacity %d", int(idx), len(list))
+			return
+		}
+		list[int(idx)-1] = val.String()
+	})
+	return list, err
+}
+
 func luaTypeToNativeType(value lua.LValue) (interface{}, error) {
 	switch value.Type() {
 	case lua.LTNil:
@@ -861,6 +886,8 @@ func luaTypeToNativeType(value lua.LValue) (interface{}, error) {
 		return value.String(), nil
 	case lua.LTNumber:
 		return internal.AdaptType(value.String()), nil
+	case lua.LTTable:
+		return checkArray(value.(*lua.LTable))
 	case lua.LTUserData:
 		switch value.(*lua.LUserData).Value.(type) {
 		default:
@@ -889,8 +916,8 @@ func nativeTypeToLuaType(L *lua.LState, value interface{}) lua.LValue {
 		return lua.LNumber(value.(int))
 	case []string:
 		tbl := L.NewTable()
-		for i, v := range value.([]string) {
-			tbl.RawSetInt(i+1, lua.LString(v))
+		for i, element := range value.([]string) {
+			tbl.RawSetInt(i+1, lua.LString(element))
 		}
 		return tbl
 	case hash.Hash:
