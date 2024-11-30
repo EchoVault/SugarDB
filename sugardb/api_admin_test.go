@@ -374,7 +374,16 @@ func TestSugarDB_Plugins(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name:    "7. Test LUA module that handles primitive types",
+			name:    "6. Test LUA module that handles list values",
+			path:    path.Join("..", "internal", "volumes", "modules", "lua", "list.lua"),
+			expect:  true,
+			args:    []string{},
+			cmd:     []string{"LUA.LIST", "LUA.LIST_KEY_1"},
+			want:    "OK",
+			wantErr: nil,
+		},
+		{
+			name:    "8. Test LUA module that handles primitive types",
 			path:    path.Join("..", "internal", "volumes", "modules", "lua", "example.lua"),
 			expect:  true,
 			args:    []string{},
