@@ -339,6 +339,8 @@ func NewSugarDB(options ...func(sugarDB *SugarDB)) (*SugarDB, error) {
 			case <-ticker.C:
 				// Run key eviction for each database that has volatile keys.
 				wg := sync.WaitGroup{}
+				// engage lock while iterating through databases
+				sugarDB.keysWithExpiry.rwMutex.Lock()
 				for database, _ := range sugarDB.keysWithExpiry.keys {
 					wg.Add(1)
 					ctx := context.WithValue(context.Background(), "Database", database)
@@ -349,6 +351,7 @@ func NewSugarDB(options ...func(sugarDB *SugarDB)) (*SugarDB, error) {
 						wg.Done()
 					}(ctx, &wg)
 				}
+				sugarDB.keysWithExpiry.rwMutex.Unlock()
 				wg.Wait()
 			case <-sugarDB.stopTTL:
 				break

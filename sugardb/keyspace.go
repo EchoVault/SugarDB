@@ -671,12 +671,10 @@ func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 		return nil
 	}
 	database := ctx.Value("Database").(int)
-
-	server.keysWithExpiry.rwMutex.Lock()
-	defer server.keysWithExpiry.rwMutex.Unlock()
-
 	server.storeLock.Lock()
+	server.keysWithExpiry.rwMutex.Lock()
 	defer server.storeLock.Unlock()
+	defer server.keysWithExpiry.rwMutex.Unlock()
 
 	// Loop through the keys and delete them if they're expired
 	for server.keysWithExpiry.keys[database].Len() > 0 {
