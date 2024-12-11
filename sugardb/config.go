@@ -15,6 +15,7 @@
 package sugardb
 
 import (
+	"context"
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/config"
 	"github.com/echovault/sugardb/internal/constants"
@@ -63,6 +64,24 @@ func WithTLS(b ...bool) func(sugardb *SugarDB) {
 		} else {
 			sugardb.config.TLS = true
 		}
+	}
+}
+
+// WithContext is an options that for the NewSugarDB function that allows you to
+// configure a custom context object to be used in SugarDB.
+// If you don't provide this option, SugarDB will create its own internal context object.
+func WithContext(ctx context.Context) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.context = ctx
+	}
+}
+
+// WithConfig is an option for the NewSugarDB function that allows you to pass a
+// custom configuration to SugarDB.
+// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
+func WithConfig(config config.Config) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config = config
 	}
 }
 

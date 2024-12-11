@@ -2672,7 +2672,7 @@ func Test_Generic(t *testing.T) {
 				presetValue:      "value3",
 				command:          []resp.Value{resp.StringValue("RENAMENX"), resp.StringValue("renamenxOldKey3"), resp.StringValue("renamenxNewKey1")},
 				expectedResponse: "",
-				expectedError:    errors.New("Key already exists!"),
+				expectedError:    errors.New("key renamenxNewKey1 already exists"),
 			},
 			{
 				name:          "4. Command too short",

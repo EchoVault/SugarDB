@@ -485,6 +485,7 @@ func Commands() []internal.Command {
 			Categories:  []string{},
 			Description: "Access-Control-List commands",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),

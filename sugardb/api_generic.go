@@ -163,7 +163,7 @@ type COPYOptions struct {
 //
 // "key <key> does not exist"" - when the XX flag is set to true and the key does not exist.
 //
-// "key <key> does already exists" - when the NX flag is set to true and the key already exists.
+// "key <key> already exists" - when the NX flag is set to true and the key already exists.
 func (server *SugarDB) Set(key, value string, options SETOptions) (string, bool, error) {
 	cmd := []string{"SET", key, value}
 

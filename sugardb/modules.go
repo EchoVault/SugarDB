@@ -60,12 +60,14 @@ func (server *SugarDB) getHandlerFuncParams(ctx context.Context, cmd []string, c
 		GetAllCommands:        server.getCommands,
 		GetClock:              server.getClock,
 		Flush:                 server.Flush,
-		Randomkey:             server.randomKey,
-		Touchkey:              server.updateKeysInCache,
+		RandomKey:             server.randomKey,
+		TouchKey:              server.updateKeysInCache,
 		GetObjectFrequency:    server.getObjectFreq,
 		GetObjectIdleTime:     server.getObjectIdleTime,
 		SwapDBs:               server.SwapDBs,
 		GetServerInfo:         server.GetServerInfo,
+		AddScript:             server.AddScript,
+		AddScriptCommand:      server.AddScriptCommand,
 		DeleteKey: func(ctx context.Context, key string) error {
 			server.storeLock.Lock()
 			defer server.storeLock.Unlock()

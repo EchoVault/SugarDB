@@ -181,6 +181,7 @@ func Commands() []internal.Command {
 Authenticates the connection. If the username is not provided, the connection will be authenticated against the
 default ACL user. Otherwise, it is authenticated against the ACL user with the provided username.`,
 			Sync: false,
+			Type: "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
@@ -198,6 +199,7 @@ default ACL user. Otherwise, it is authenticated against the ACL user with the p
 Ping the echovault server. If a message is provided, the message will be echoed back to the client.
 Otherwise, the server will return "PONG".`,
 			Sync: false,
+			Type: "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
@@ -213,6 +215,7 @@ Otherwise, the server will return "PONG".`,
 			Categories:  []string{constants.ConnectionCategory, constants.FastCategory},
 			Description: `(ECHO message) Echo the message back to the client.`,
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
@@ -230,6 +233,7 @@ Otherwise, the server will return "PONG".`,
 Switch to a different protocol, optionally authenticating and setting the connection's name. 
 This command returns a contextual client report.`,
 			Sync: false,
+			Type: "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
@@ -245,6 +249,7 @@ This command returns a contextual client report.`,
 			Categories:  []string{constants.FastCategory, constants.ConnectionCategory},
 			Description: `(SELECT index) Change the logical database that the current connection is operating from.`,
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),
@@ -268,6 +273,7 @@ This command swaps two databases,
 so that immediately all the clients connected to a given database will see the data of the other database, 
 and the other way around.`,
 			Sync: false,
+			Type: "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),

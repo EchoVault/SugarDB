@@ -8,8 +8,8 @@ COPY . ./
 ENV CGO_ENABLED=1 CC=gcc GOOS=linux GOARCH=amd64 
 
 ENV DEST=volumes/modules
-RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_set/module_set.so ./internal/volumes/modules/module_set/module_set.go
-RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_get/module_get.so ./internal/volumes/modules/module_get/module_get.go
+RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_set/module_set.so ./internal/volumes/modules/go/module_set/module_set.go
+RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -buildmode=plugin -o $DEST/module_get/module_get.so ./internal/volumes/modules/go/module_get/module_get.go
 
 ENV DEST=bin
 RUN CGO_ENABLED=$CGO_ENABLED CC=$CC GOOS=$GOOS GOARCH=$GOARCH go build -o $DEST/server ./cmd/...
