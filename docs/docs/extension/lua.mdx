@@ -129,4 +129,399 @@ end
 ## Loading Lua Modules
 <LoadModuleDocs module="lua" />
 
-## Working with Custom Data Types
+## Standard Data Types
+
+Sugar DB supports the following standard data types in Lua scripts:
+
+- string
+- number (integers and floating-point numbers)
+- nil
+- arrays (tables with integer keys)
+
+These data types can be used to stored using the setValues function and 
+retrieved using the getValues function.
+
+## Custom Data Types
+
+In addition to the standard data types, SugarDB also supports custom data types in Lua scripts. 
+These custom data types include:
+
+- Hashes
+- Sets
+- Sorted Sets
+
+Just like the standard types, these custom data types can be stored and retrieved using the setValues 
+and getValues functions respectively.
+
+### Hashes
+
+The hash data type is a custom data type in SugarDB designed for storing and managing key-value pairs. 
+It supports several methods for interacting with the hash, including adding, updating, retrieving, deleting, and checking values.
+This section explains how to make use of the hash data type in your Lua scripts.
+
+#### Creating a Hash
+
+```lua
+local myHash = hash.new()
+```
+
+#### Hash methods
+
+`set` - Adds or updates key-value pairs in the hash. If the key exists, 
+the value is updated; otherwise, it is added.
+
+```lua
+local myHash = hash.new()
+local numUpdated = myHash:set({
+  {key1 = "value1"},
+  {key2 = "value2"}
+})
+print(numUpdated) -- Output: 2
+```
+
+`setnx` - Adds key-value pairs to the hash only if the key does not already exist.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}})
+local numAdded = myHash:setnx({
+  {key1 = "newValue"}, -- Will not overwrite because key1 exists
+  {key2 = "value2"} -- Will be added
+})
+print(numAdded) -- Output: 1
+```
+
+`get` - Retrieves the values for the specified keys. Returns nil for keys that do not exist.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}, {key2 = "value2"}})
+local values = myHash:get({"key1", "key2", "key3"})
+for k, v in pairs(values) do
+  print(k, v) -- Output: key1 value1, key2 value2, key3 nil
+end
+```
+
+`len` - Returns the number of key-value pairs in the hash.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}, {key2 = "value2"}})
+print(myHash:len()) -- Output: 2
+```
+
+`all` - Returns a table containing all key-value pairs in the hash.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}, {key2 = "value2"}})
+local allValues = myHash:all()
+for k, v in pairs(allValues) do
+  print(k, v) -- Output: key1 value1, key2 value2
+end
+```
+
+`exists` - Checks if specified keys exist in the hash.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}})
+local existence = myHash:exists({"key1", "key2"})
+for k, v in pairs(existence) do
+  print(k, v) -- Output: key1 true, key2 false
+end
+```
+
+`del` - Deletes the specified keys from the hash. Returns the number of keys deleted.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}, {key2 = "value2"}})
+local numDeleted = myHash:del({"key1", "key3"})
+print(numDeleted) -- Output: 1
+```
+
+
+### Sets
+
+The `set` data type is a custom data type in SugarDB designed for managing unique elements. 
+It supports operations like adding, removing, checking for membership, and performing set operations such as subtraction.
+This section explains how to use the `set` data type in your Lua scripts.
+
+#### Creating a Set
+
+```lua
+local mySet = set.new({"apple", "banana", "cherry"})
+```
+
+#### Set methods
+
+`add` - Adds one or more elements to the set. Returns the number of elements added.
+
+```lua
+local mySet = set.new()
+local addedCount = mySet:add({"apple", "banana"})
+print(addedCount) -- Output: 2
+```
+
+`pop` - Removes and returns a specified number of random elements from the set.
+
+```lua
+local mySet = set.new({"apple", "banana", "cherry"})
+local popped = mySet:pop(2)
+for i, v in ipairs(popped) do
+  print(i, v) -- Output: Two random elements
+end
+```
+
+`contains` - Checks if a specific element exists in the set.
+
+```lua
+local mySet = set.new({"apple", "banana"})
+print(mySet:contains("apple")) -- Output: true
+print(mySet:contains("cherry")) -- Output: false
+```
+
+`cardinality` - Returns the number of elements in the set.
+
+```lua
+local mySet = set.new({"apple", "banana"})
+print(mySet:cardinality()) -- Output: 2
+```
+
+`remove` -  Removes one or more specified elements from the set. Returns the number of elements removed.
+
+```lua
+local mySet = set.new({"apple", "banana", "cherry"})
+local removedCount = mySet:remove({"banana", "cherry"})
+print(removedCount) -- Output: 2
+```
+
+`move` - Moves an element from one set to another. Returns true if the element was successfully moved.
+
+```lua
+local set1 = set.new({"apple", "banana"})
+local set2 = set.new({"cherry"})
+local success = set1:move(set2, "banana")
+print(success) -- Output: true
+```
+
+`subtract` - Returns a new set that is the result of subtracting other sets from the current set.
+
+```lua
+local set1 = set.new({"apple", "banana", "cherry"})
+local set2 = set.new({"banana"})
+local resultSet = set1:subtract({set2})
+local allElems = resultSet:all()
+for i, v in ipairs(allElems) do
+  print(i, v) -- Output: "apple", "cherry"
+end
+```
+
+`all` - Returns a table containing all elements in the set.
+
+```lua
+local mySet = set.new({"apple", "banana", "cherry"})
+local allElems = mySet:all()
+for i, v in ipairs(allElems) do
+  print(i, v) -- Output: "apple", "banana", "cherry"
+end
+```
+
+`random` - Returns a table of randomly selected elements from the set. The number of elements to return is specified as an argument.
+
+```lua
+local mySet = set.new({"apple", "banana", "cherry", "date"})
+local randomElems = mySet:random(2)
+for i, v in ipairs(randomElems) do
+  print(i, v) -- Output: Two random elements
+end
+```
+
+### Sorted Sets
+
+A zset is a sorted set that stores zmember elements, ordered by their score. 
+The zset type provides methods to manipulate and query the set. A zset is made up of
+zmember elements, each of which has a value and a score.
+
+#### zmember
+
+A zmember represents an element in a zset (sorted set). Each zmember consists of:
+- value: A unique identifier for the member (e.g., a string).
+- score: A numeric value used to sort the member in the sorted set.
+
+You can create a zmember using the `zmember.new` method:
+
+```lua
+local m = zmember.new({value = "example", score = 42})
+```
+
+The zmember type provides methods to retrieve or modify these properties.
+
+To set/get the value of a zmember, use the `value` method:
+
+```lua
+-- Get the value
+local value = m:value()
+
+-- Set the value
+m:value("new_value")
+```
+
+To set/get the score, use the `score` method:
+
+```lua
+-- Get the score
+local score = m:score()
+
+-- Set the score
+m:score(99.5)
+```
+
+#### Creating a Sorted Set
+
+```lua
+-- Create a new zset with no zmembers
+local zset1 = zset.new()
+
+-- Create a new zset with two zmembers
+local zset2 = zset.new({
+  zmember.new({value = "a", score = 10}),
+  zmember.new({value = "b", score = 20}),
+})
+```
+
+#### Sorted Set Methods
+
+`add` - Adds one or more zmember elements to the zset. 
+Optionally, you can specify update policies using the optional modifiers.
+
+Optional Modifiers:
+- "exists": Specifies whether to only update existing members ("xx") or only add new members ("nx"). Defaults to no restriction.
+- "comparison": Specifies a comparison method for updating scores (e.g., "min", "max").
+- "changed": If true, returns the count of changed elements.
+- "incr": If true, increments the score of the specified member by the given score instead of replacing it.
+
+Basic usage:
+
+```lua
+-- Create members
+local m1 = zmember.new({value = "item1", score = 10})
+local m2 = zmember.new({value = "item2", score = 20})
+
+-- Create zset and add members
+local zset = zset.new()
+zset:add({m1, m2})
+
+-- Check cardinality
+print(zset:cardinality()) -- Outputs: 2
+```
+
+Usage with optional modifiers:
+
+```lua
+-- Create zset
+local zset = zset.new({
+    zmember.new({value = "a", score = 10}),
+    zmember.new({value = "b", score = 20}),
+})
+
+-- Attempt to add members with different policies
+local new_members = {
+  zmember.new({value = "a", score = 5}), -- Existing member
+  zmember.new({value = "c", score = 15}), -- New member
+}
+
+-- Use policies to update and add
+local options = {
+  exists = "xx",        -- Only update existing members
+  comparison = "max",   -- Keep the maximum score for existing members
+  changed = true,       -- Return the count of changed elements
+}
+local changed_count = zset:add(new_members, options)
+
+-- Display results
+print("Changed count:", changed_count) -- Outputs: 1 (only "a" is updated)
+print("Updated zset:")
+for _, member in ipairs(zset:all()) do
+  print(member:value(), member:score())
+end
+
+-- Adding with different policies
+local incr_options = {
+  exists = "nx",        -- Only add new members
+  incr = true,          -- Increment the score of the added members
+}
+zset:add({zmember.new({value = "d", score = 10})}, incr_options)
+
+-- Display updated zset
+print("After adding with increment:")
+for _, member in ipairs(zset:all()) do
+  print(member:value(), member:score())
+end
+```
+
+`update` - Updates one or more zmember elements in the zset. 
+If the member doesn’t exist, the behavior depends on the provided update options.
+	
+Optional Modifiers:
+- "exists": Specifies whether to only update existing members ("xx") or only add new members ("nx"). Defaults to no restriction.
+- "comparison": Specifies a comparison method for updating scores (e.g., "min", "max").
+- "changed": If true, returns the count of changed elements.
+- "incr": If true, increments the score of the specified member by the given score instead of replacing it.
+
+```lua
+-- Create members
+local m1 = zmember.new({value = "item1", score = 10})
+local m2 = zmember.new({value = "item2", score = 20})
+
+-- Create zset and add members
+local zset = zset.new({m1, m2})
+
+-- Update a member
+local m_update = zmember.new({value = "item1", score = 15})
+local changed_count = zset:update({m_update}, {exists = true, comparison = "max", changed = true})
+print("Changed count:", changed_count) -- Outputs the number of elements updated
+```
+
+`remove` - Removes a member from the zset by its value.
+
+```lua
+local removed = zset:remove("a") -- Returns true if removed
+```
+
+`cardinality` - Returns the number of zmembers in the zset.
+
+```lua
+local count = zset:cardinality()
+```
+
+`contains` - Checks if a zmember with the specified value exists in the zset.
+
+```lua
+local exists = zset:contains("b") -- Returns true if exists
+```
+
+`random` - Returns a random zmember from the zset.
+
+```lua
+local members = zset:random(2) -- Returns up to 2 random members
+```
+
+`all` - Returns all zmembers in the zset.
+
+```lua
+local members = zset:all()
+for _, member in ipairs(members) do
+  print(member:value(), member:score())
+end
+```
+
+`subtract` - Returns a new zset that is the result of subtracting other zsets from the current one.
+
+```lua
+local other_zset = zset.new({
+  zmember.new({value = "b", score = 20}),
+})
+local result_zset = zset:subtract({other_zset})
+```
