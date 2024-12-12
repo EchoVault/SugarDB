@@ -108,6 +108,7 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.PubSubCategory, constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(SUBSCRIBE channel [channel ...]) Subscribe to one or more channels.",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				// Treat the channels as keys
 				if len(cmd) < 2 {
@@ -127,6 +128,7 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.PubSubCategory, constants.ConnectionCategory, constants.SlowCategory},
 			Description: "(PSUBSCRIBE pattern [pattern ...]) Subscribe to one or more glob patterns.",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				// Treat the patterns as keys
 				if len(cmd) < 2 {
@@ -146,6 +148,7 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.PubSubCategory, constants.FastCategory},
 			Description: "(PUBLISH channel message) Publish a message to the specified channel.",
 			Sync:        true,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				// Treat the channel as a key
 				if len(cmd) != 3 {
@@ -167,6 +170,7 @@ func Commands() []internal.Command {
 If the channel list is not provided, then the connection will be unsubscribed from all the channels that
 it's currently subscribe to.`,
 			Sync: false,
+			Type: "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				// Treat the channels as keys
 				return internal.KeyExtractionFuncResult{
@@ -185,6 +189,7 @@ it's currently subscribe to.`,
 If the pattern list is not provided, then the connection will be unsubscribed from all the patterns that
 it's currently subscribe to.`,
 			Sync: false,
+			Type: "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  cmd[1:],
@@ -200,6 +205,7 @@ it's currently subscribe to.`,
 			Categories:  []string{},
 			Description: "",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels:  make([]string, 0),

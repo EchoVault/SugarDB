@@ -1,0 +1,527 @@
+---
+title: Lua Modules
+toc_min_heading_level: 2
+toc_max_heading_level: 4
+---
+
+import LoadModuleDocs from "@site/src/components/load_module"
+import CodeBlock from "@theme/CodeBlock"
+
+# Lua Modules
+
+SugarDB allows you to create new command modules using Lua scripts. These scripts are loaded into SugarDB at runtime and can be triggered by both embedded clients and TCP clients just like native commands.
+
+## Creating a Lua Script Module
+
+A Lua script has the following anatomy:
+
+```lua
+-- The keyword to trigger the command
+command = "LUA.EXAMPLE"
+
+--[[
+The string array of categories this command belongs to.
+This array can contain both built-in categories and new custom categories.
+]]
+categories = {"generic", "write", "fast"}
+
+-- The description of the command
+description = "(LUA.EXAMPLE) Example lua command that sets various data types to keys"
+
+-- Whether the command should be synced across the RAFT cluster
+sync = true
+
+--[[
+keyExtractionFunc is a function that extracts the keys from the command and returns them to SugarDB.keyExtractionFunc
+The returned data from this function is used in the Access Control Layer to determine if the current connection is
+authorized to execute this command. The function must return a table that specifies which keys in this command
+are read keys and which ones are write keys.
+Example return: {["readKeys"] = {"key1", "key2"}, ["writeKeys"] = {"key3", "key4", "key5"}}
+
+1. "command" is a string array representing the command that triggered this key extraction function.
+
+2. "args" is a string array of the modifier args that were passed when loading the module into SugarDB.
+   These args are passed to the key extraction function everytime it's invoked.
+]]
+function keyExtractionFunc (command, args)
+  for k,v in pairs(args) do
+    print(k, v)
+  end
+  if (#command ~= 1) then
+    error("wrong number of args, expected 0")
+  end
+  return { ["readKeys"] = {}, ["writeKeys"] = {} }
+end
+
+--[[
+handlerFunc is the command's handler function. The function is passed some arguments that allow it to interact with
+SugarDB. The function must return a valid RESP response or throw an error.
+The handler function accepts the following args:
+
+1. "context" is a table that contains some information about the environment this command has been executed in.
+    Example: {["protocol"] = 2, ["database"] = 0}
+    This object contains the following properties:
+    i) protocol - the protocol version of the client that executed the command (either 2 or 3).
+    ii) database - the active database index of the client that executed the command.
+
+2. "command" is the string array representing the command that triggered this handler function.
+
+3. "keyExists" is a function that can be called to check if a list of keys exists in the SugarDB store database.
+    This function accepts a string array of keys to check and returns a table with each key having a corresponding
+    boolean value indicating whether it exists.
+    Examples:
+    i) Example invocation: keyExists({"key1", "key2", "key3"})
+    ii) Example return: {["key1"] = true, ["key2"] = false, ["key3"] = true}
+
+4. "getValues" is a function that can be called to retrieve values from the SugarDB store database.
+    The function accepts a string array of keys whose values we would like to fetch, and returns a table with each key
+    containing the corresponding value from the store.
+    The possible data types for the values are: number, string, nil, hash, set, zset
+    Examples:
+    i) Example invocation: getValues({"key1", "key2", "key3"})
+    ii) Example return: {["key1"] = 3.142, ["key2"] = nil, ["key3"] = "Pi"}
+
+5. "setValues" is a function that can be called to set values in the active database in the SugarDB store.
+    This function accepts a table with keys and the corresponding values to set for each key in the active database
+    in the store.
+    The accepted data types for the values are: number, string, nil, hash, set, zset.
+    The setValues function does not return anything.
+    Examples:
+    i) Example invocation: setValues({["key1"] = 3.142, ["key2"] = nil, ["key3"] = "Pi"})
+
+6. "args" is a string array of the modifier args passed to the module at load time. These args are passed to the
+   handler everytime it's invoked.
+]]
+function handlerFunc(ctx, command, keysExist, getValues, setValues, args)
+  -- Set various data types to keys
+  local keyValues = {
+    ["numberKey"] = 42,
+    ["stringKey"] = "Hello, SugarDB!",
+    ["nilKey"] = nil,
+  }
+
+  -- Store the values in the database
+  setValues(keyValues)
+
+  -- Verify the values have been set correctly
+  local keysToGet = {"numberKey", "stringKey", "nilKey"}
+  local retrievedValues = getValues(keysToGet)
+
+  -- Create a table to track mismatches
+  local mismatches = {}
+  for key, expectedValue in pairs(keyValues) do
+    local retrievedValue = retrievedValues[key]
+    if retrievedValue ~= expectedValue then
+      table.insert(mismatches, string.format("Key '%s': expected '%s', got '%s'", key, tostring(expectedValue), tostring(retrievedValue)))
+    end
+  end
+
+  -- If mismatches exist, return an error
+  if #mismatches > 0 then
+    error("values mismatch")
+  end
+
+  -- If all values match, return OK
+  return "+OK\r\n"
+end
+```
+
+## Loading Lua Modules
+<LoadModuleDocs module="lua" />
+
+## Standard Data Types
+
+Sugar DB supports the following standard data types in Lua scripts:
+
+- string
+- number (integers and floating-point numbers)
+- nil
+- arrays (tables with integer keys)
+
+These data types can be used to stored using the setValues function and 
+retrieved using the getValues function.
+
+## Custom Data Types
+
+In addition to the standard data types, SugarDB also supports custom data types in Lua scripts. 
+These custom data types include:
+
+- Hashes
+- Sets
+- Sorted Sets
+
+Just like the standard types, these custom data types can be stored and retrieved using the setValues 
+and getValues functions respectively.
+
+### Hashes
+
+The hash data type is a custom data type in SugarDB designed for storing and managing key-value pairs. 
+It supports several methods for interacting with the hash, including adding, updating, retrieving, deleting, and checking values.
+This section explains how to make use of the hash data type in your Lua scripts.
+
+#### Creating a Hash
+
+```lua
+local myHash = hash.new()
+```
+
+#### Hash methods
+
+`set` - Adds or updates key-value pairs in the hash. If the key exists, 
+the value is updated; otherwise, it is added.
+
+```lua
+local myHash = hash.new()
+local numUpdated = myHash:set({
+  {key1 = "value1"},
+  {key2 = "value2"}
+})
+print(numUpdated) -- Output: 2
+```
+
+`setnx` - Adds key-value pairs to the hash only if the key does not already exist.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}})
+local numAdded = myHash:setnx({
+  {key1 = "newValue"}, -- Will not overwrite because key1 exists
+  {key2 = "value2"} -- Will be added
+})
+print(numAdded) -- Output: 1
+```
+
+`get` - Retrieves the values for the specified keys. Returns nil for keys that do not exist.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}, {key2 = "value2"}})
+local values = myHash:get({"key1", "key2", "key3"})
+for k, v in pairs(values) do
+  print(k, v) -- Output: key1 value1, key2 value2, key3 nil
+end
+```
+
+`len` - Returns the number of key-value pairs in the hash.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}, {key2 = "value2"}})
+print(myHash:len()) -- Output: 2
+```
+
+`all` - Returns a table containing all key-value pairs in the hash.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}, {key2 = "value2"}})
+local allValues = myHash:all()
+for k, v in pairs(allValues) do
+  print(k, v) -- Output: key1 value1, key2 value2
+end
+```
+
+`exists` - Checks if specified keys exist in the hash.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}})
+local existence = myHash:exists({"key1", "key2"})
+for k, v in pairs(existence) do
+  print(k, v) -- Output: key1 true, key2 false
+end
+```
+
+`del` - Deletes the specified keys from the hash. Returns the number of keys deleted.
+
+```lua
+local myHash = hash.new()
+myHash:set({{key1 = "value1"}, {key2 = "value2"}})
+local numDeleted = myHash:del({"key1", "key3"})
+print(numDeleted) -- Output: 1
+```
+
+
+### Sets
+
+The `set` data type is a custom data type in SugarDB designed for managing unique elements. 
+It supports operations like adding, removing, checking for membership, and performing set operations such as subtraction.
+This section explains how to use the `set` data type in your Lua scripts.
+
+#### Creating a Set
+
+```lua
+local mySet = set.new({"apple", "banana", "cherry"})
+```
+
+#### Set methods
+
+`add` - Adds one or more elements to the set. Returns the number of elements added.
+
+```lua
+local mySet = set.new()
+local addedCount = mySet:add({"apple", "banana"})
+print(addedCount) -- Output: 2
+```
+
+`pop` - Removes and returns a specified number of random elements from the set.
+
+```lua
+local mySet = set.new({"apple", "banana", "cherry"})
+local popped = mySet:pop(2)
+for i, v in ipairs(popped) do
+  print(i, v) -- Output: Two random elements
+end
+```
+
+`contains` - Checks if a specific element exists in the set.
+
+```lua
+local mySet = set.new({"apple", "banana"})
+print(mySet:contains("apple")) -- Output: true
+print(mySet:contains("cherry")) -- Output: false
+```
+
+`cardinality` - Returns the number of elements in the set.
+
+```lua
+local mySet = set.new({"apple", "banana"})
+print(mySet:cardinality()) -- Output: 2
+```
+
+`remove` -  Removes one or more specified elements from the set. Returns the number of elements removed.
+
+```lua
+local mySet = set.new({"apple", "banana", "cherry"})
+local removedCount = mySet:remove({"banana", "cherry"})
+print(removedCount) -- Output: 2
+```
+
+`move` - Moves an element from one set to another. Returns true if the element was successfully moved.
+
+```lua
+local set1 = set.new({"apple", "banana"})
+local set2 = set.new({"cherry"})
+local success = set1:move(set2, "banana")
+print(success) -- Output: true
+```
+
+`subtract` - Returns a new set that is the result of subtracting other sets from the current set.
+
+```lua
+local set1 = set.new({"apple", "banana", "cherry"})
+local set2 = set.new({"banana"})
+local resultSet = set1:subtract({set2})
+local allElems = resultSet:all()
+for i, v in ipairs(allElems) do
+  print(i, v) -- Output: "apple", "cherry"
+end
+```
+
+`all` - Returns a table containing all elements in the set.
+
+```lua
+local mySet = set.new({"apple", "banana", "cherry"})
+local allElems = mySet:all()
+for i, v in ipairs(allElems) do
+  print(i, v) -- Output: "apple", "banana", "cherry"
+end
+```
+
+`random` - Returns a table of randomly selected elements from the set. The number of elements to return is specified as an argument.
+
+```lua
+local mySet = set.new({"apple", "banana", "cherry", "date"})
+local randomElems = mySet:random(2)
+for i, v in ipairs(randomElems) do
+  print(i, v) -- Output: Two random elements
+end
+```
+
+### Sorted Sets
+
+A zset is a sorted set that stores zmember elements, ordered by their score. 
+The zset type provides methods to manipulate and query the set. A zset is made up of
+zmember elements, each of which has a value and a score.
+
+#### zmember
+
+A zmember represents an element in a zset (sorted set). Each zmember consists of:
+- value: A unique identifier for the member (e.g., a string).
+- score: A numeric value used to sort the member in the sorted set.
+
+You can create a zmember using the `zmember.new` method:
+
+```lua
+local m = zmember.new({value = "example", score = 42})
+```
+
+The zmember type provides methods to retrieve or modify these properties.
+
+To set/get the value of a zmember, use the `value` method:
+
+```lua
+-- Get the value
+local value = m:value()
+
+-- Set the value
+m:value("new_value")
+```
+
+To set/get the score, use the `score` method:
+
+```lua
+-- Get the score
+local score = m:score()
+
+-- Set the score
+m:score(99.5)
+```
+
+#### Creating a Sorted Set
+
+```lua
+-- Create a new zset with no zmembers
+local zset1 = zset.new()
+
+-- Create a new zset with two zmembers
+local zset2 = zset.new({
+  zmember.new({value = "a", score = 10}),
+  zmember.new({value = "b", score = 20}),
+})
+```
+
+#### Sorted Set Methods
+
+`add` - Adds one or more zmember elements to the zset. 
+Optionally, you can specify update policies using the optional modifiers.
+
+Optional Modifiers:
+- "exists": Specifies whether to only update existing members ("xx") or only add new members ("nx"). Defaults to no restriction.
+- "comparison": Specifies a comparison method for updating scores (e.g., "min", "max").
+- "changed": If true, returns the count of changed elements.
+- "incr": If true, increments the score of the specified member by the given score instead of replacing it.
+
+Basic usage:
+
+```lua
+-- Create members
+local m1 = zmember.new({value = "item1", score = 10})
+local m2 = zmember.new({value = "item2", score = 20})
+
+-- Create zset and add members
+local zset = zset.new()
+zset:add({m1, m2})
+
+-- Check cardinality
+print(zset:cardinality()) -- Outputs: 2
+```
+
+Usage with optional modifiers:
+
+```lua
+-- Create zset
+local zset = zset.new({
+    zmember.new({value = "a", score = 10}),
+    zmember.new({value = "b", score = 20}),
+})
+
+-- Attempt to add members with different policies
+local new_members = {
+  zmember.new({value = "a", score = 5}), -- Existing member
+  zmember.new({value = "c", score = 15}), -- New member
+}
+
+-- Use policies to update and add
+local options = {
+  exists = "xx",        -- Only update existing members
+  comparison = "max",   -- Keep the maximum score for existing members
+  changed = true,       -- Return the count of changed elements
+}
+local changed_count = zset:add(new_members, options)
+
+-- Display results
+print("Changed count:", changed_count) -- Outputs: 1 (only "a" is updated)
+print("Updated zset:")
+for _, member in ipairs(zset:all()) do
+  print(member:value(), member:score())
+end
+
+-- Adding with different policies
+local incr_options = {
+  exists = "nx",        -- Only add new members
+  incr = true,          -- Increment the score of the added members
+}
+zset:add({zmember.new({value = "d", score = 10})}, incr_options)
+
+-- Display updated zset
+print("After adding with increment:")
+for _, member in ipairs(zset:all()) do
+  print(member:value(), member:score())
+end
+```
+
+`update` - Updates one or more zmember elements in the zset. 
+If the member doesn’t exist, the behavior depends on the provided update options.
+	
+Optional Modifiers:
+- "exists": Specifies whether to only update existing members ("xx") or only add new members ("nx"). Defaults to no restriction.
+- "comparison": Specifies a comparison method for updating scores (e.g., "min", "max").
+- "changed": If true, returns the count of changed elements.
+- "incr": If true, increments the score of the specified member by the given score instead of replacing it.
+
+```lua
+-- Create members
+local m1 = zmember.new({value = "item1", score = 10})
+local m2 = zmember.new({value = "item2", score = 20})
+
+-- Create zset and add members
+local zset = zset.new({m1, m2})
+
+-- Update a member
+local m_update = zmember.new({value = "item1", score = 15})
+local changed_count = zset:update({m_update}, {exists = true, comparison = "max", changed = true})
+print("Changed count:", changed_count) -- Outputs the number of elements updated
+```
+
+`remove` - Removes a member from the zset by its value.
+
+```lua
+local removed = zset:remove("a") -- Returns true if removed
+```
+
+`cardinality` - Returns the number of zmembers in the zset.
+
+```lua
+local count = zset:cardinality()
+```
+
+`contains` - Checks if a zmember with the specified value exists in the zset.
+
+```lua
+local exists = zset:contains("b") -- Returns true if exists
+```
+
+`random` - Returns a random zmember from the zset.
+
+```lua
+local members = zset:random(2) -- Returns up to 2 random members
+```
+
+`all` - Returns all zmembers in the zset.
+
+```lua
+local members = zset:all()
+for _, member in ipairs(members) do
+  print(member:value(), member:score())
+end
+```
+
+`subtract` - Returns a new zset that is the result of subtracting other zsets from the current one.
+
+```lua
+local other_zset = zset.new({
+  zmember.new({value = "b", score = 20}),
+})
+local result_zset = zset:subtract({other_zset})
+```

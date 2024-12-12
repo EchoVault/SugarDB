@@ -197,6 +197,7 @@ func Commands() []internal.Command {
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory},
 			Description: "Get a list of all the commands in available on the echovault with categories and descriptions.",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -210,6 +211,7 @@ func Commands() []internal.Command {
 			Categories:  []string{},
 			Description: "Commands pertaining to echovault commands",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -264,6 +266,7 @@ Get the list of command names. Allows for filtering by ACL category or glob patt
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(SAVE) Trigger a snapshot save.",
 			Sync:        true,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -282,6 +285,7 @@ Get the list of command names. Allows for filtering by ACL category or glob patt
 			Categories:  []string{constants.AdminCategory, constants.FastCategory, constants.DangerousCategory},
 			Description: "(LASTSAVE) Get unix timestamp for the latest snapshot in milliseconds.",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -301,6 +305,7 @@ Get the list of command names. Allows for filtering by ACL category or glob patt
 			Categories:  []string{constants.AdminCategory, constants.SlowCategory, constants.DangerousCategory},
 			Description: "(REWRITEAOF) Trigger re-writing of append process.",
 			Sync:        false,
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),
@@ -318,6 +323,7 @@ Get the list of command names. Allows for filtering by ACL category or glob patt
 			Module:      constants.AdminModule,
 			Categories:  []string{},
 			Description: "Module commands",
+			Type:        "BUILT_IN",
 			KeyExtractionFunc: func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				return internal.KeyExtractionFuncResult{
 					Channels: make([]string, 0), ReadKeys: make([]string, 0), WriteKeys: make([]string, 0),

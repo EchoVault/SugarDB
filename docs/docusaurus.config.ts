@@ -36,7 +36,7 @@ const config: Config = {
   plugins: [
     function hotReload() {
       return {
-        name: 'hot-reload',
+        name: "hot-reload",
         configureWebpack() {
           return {
             watchOptions: {
@@ -132,6 +132,7 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} SugarDB.`,
     },
     prism: {
+      additionalLanguages: ["lua"],
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
     },

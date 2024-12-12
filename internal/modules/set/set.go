@@ -28,17 +28,16 @@ type Set struct {
 	length  int
 }
 
-func (s *Set) GetMem() int64 {
+func (set *Set) GetMem() int64 {
 	var size int64
-	size += int64(unsafe.Sizeof(s))
-	// above only gives us the size of the pointer to the map, so we need to add it's headers and contents
-	size += int64(unsafe.Sizeof(s.members))
-	for k, v := range s.members {
+	size += int64(unsafe.Sizeof(set))
+	// above only gives us the size of the pointer to the map, so we need to add its headers and contents
+	size += int64(unsafe.Sizeof(set.members))
+	for k, v := range set.members {
 		size += int64(unsafe.Sizeof(k))
 		size += int64(len(k))
 		size += int64(unsafe.Sizeof(v))
 	}
-
 	return size
 }
 
@@ -66,7 +65,7 @@ func (set *Set) Add(elems []string) int {
 	return count
 }
 
-func (set *Set) Get(e string) interface{} {
+func (set *Set) get(e string) interface{} {
 	return set.members[e]
 }
 
@@ -123,7 +122,7 @@ func (set *Set) GetRandom(count int) []string {
 func (set *Set) Remove(elems []string) int {
 	count := 0
 	for _, e := range elems {
-		if set.Get(e) != nil {
+		if set.get(e) != nil {
 			delete(set.members, e)
 			count += 1
 		}
@@ -139,7 +138,7 @@ func (set *Set) Pop(count int) []string {
 }
 
 func (set *Set) Contains(e string) bool {
-	return set.Get(e) != nil
+	return set.get(e) != nil
 }
 
 // Subtract received a list of sets and finds the difference between sets provided

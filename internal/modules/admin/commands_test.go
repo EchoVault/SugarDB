@@ -379,6 +379,84 @@ func Test_AdminCommands(t *testing.T) {
 				wantTestRes: "OK",
 				wantTestErr: nil,
 			},
+			{
+				name: "6. Load LUA example module",
+				execCommand: []resp.Value{
+					resp.StringValue("MODULE"),
+					resp.StringValue("LOAD"),
+					resp.StringValue(path.Join("..", "..", "volumes", "modules", "lua", "example.lua")),
+				},
+				wantExecRes: "OK",
+				testCommand: []resp.Value{
+					resp.StringValue("LUA.EXAMPLE"),
+				},
+				wantTestRes: "OK",
+				wantTestErr: nil,
+			},
+			{
+				name: "7. Load LUA hash module",
+				execCommand: []resp.Value{
+					resp.StringValue("MODULE"),
+					resp.StringValue("LOAD"),
+					resp.StringValue(path.Join("..", "..", "volumes", "modules", "lua", "hash.lua")),
+				},
+				wantExecRes: "OK",
+				testCommand: []resp.Value{
+					resp.StringValue("LUA.HASH"),
+					resp.StringValue("LUA.HASH_KEY_1"),
+				},
+				wantTestRes: "OK",
+				wantTestErr: nil,
+			},
+			{
+				name: "8. Load LUA set module",
+				execCommand: []resp.Value{
+					resp.StringValue("MODULE"),
+					resp.StringValue("LOAD"),
+					resp.StringValue(path.Join("..", "..", "volumes", "modules", "lua", "set.lua")),
+				},
+				wantExecRes: "OK",
+				testCommand: []resp.Value{
+					resp.StringValue("LUA.SET"),
+					resp.StringValue("LUA.SET_KEY_1"),
+					resp.StringValue("LUA.SET_KEY_2"),
+					resp.StringValue("LUA.SET_KEY_3"),
+				},
+				wantTestRes: "OK",
+				wantTestErr: nil,
+			},
+			{
+				name: "9. Load LUA zset module",
+				execCommand: []resp.Value{
+					resp.StringValue("MODULE"),
+					resp.StringValue("LOAD"),
+					resp.StringValue(path.Join("..", "..", "volumes", "modules", "lua", "zset.lua")),
+				},
+				wantExecRes: "OK",
+				testCommand: []resp.Value{
+					resp.StringValue("LUA.ZSET"),
+					resp.StringValue("LUA.ZSET_KEY_1"),
+					resp.StringValue("LUA.ZSET_KEY_2"),
+					resp.StringValue("LUA.ZSET_KEY_3"),
+				},
+				wantTestRes: "OK",
+				wantTestErr: nil,
+			},
+			{
+				name: "10. Load LUA list module",
+				execCommand: []resp.Value{
+					resp.StringValue("MODULE"),
+					resp.StringValue("LOAD"),
+					resp.StringValue(path.Join("..", "..", "volumes", "modules", "lua", "list.lua")),
+				},
+				wantExecRes: "OK",
+				testCommand: []resp.Value{
+					resp.StringValue("LUA.LIST"),
+					resp.StringValue("LUA.LIST_KEY_1"),
+				},
+				wantTestRes: "OK",
+				wantTestErr: nil,
+			},
 		}
 
 		conn, err := internal.GetConnection("localhost", port)
