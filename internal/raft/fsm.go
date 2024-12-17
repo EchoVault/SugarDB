@@ -80,11 +80,13 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 
 		case "delete-key":
 			if err := fsm.options.DeleteKey(ctx, request.Key); err != nil {
+				fmt.Println("!!!!!!! - 1")
 				return internal.ApplyResponse{
 					Error:    err,
 					Response: nil,
 				}
 			}
+			fmt.Println("!!!!!!! - 2")
 			return internal.ApplyResponse{
 				Error:    nil,
 				Response: []byte("OK"),
@@ -94,6 +96,7 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 			// Handle command
 			command, err := fsm.options.GetCommand(request.CMD[0])
 			if err != nil {
+				fmt.Println("!!!!!!! - command - 1")
 				return internal.ApplyResponse{
 					Error:    err,
 					Response: nil,
@@ -104,6 +107,7 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 
 			sc, err := internal.GetSubCommand(command, request.CMD)
 			if err != nil {
+				fmt.Println("!!!!!!! - command - 2")
 				return internal.ApplyResponse{
 					Error:    err,
 					Response: nil,
@@ -115,11 +119,13 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 			}
 
 			if res, err := handler(fsm.options.GetHandlerFuncParams(ctx, request.CMD, nil)); err != nil {
+				fmt.Println("!!!!!!! - command - 3")
 				return internal.ApplyResponse{
 					Error:    err,
 					Response: nil,
 				}
 			} else {
+				fmt.Println("!!!!!!! - command - 4")
 				return internal.ApplyResponse{
 					Error:    nil,
 					Response: res,

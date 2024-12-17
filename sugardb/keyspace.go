@@ -362,7 +362,7 @@ func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
 
 	}
 
-	log.Printf("deleted key %s\n", key)
+	log.Printf("deleted key %s in server %v, is leader=%v\n", key, ctx.Value("ServerID"), server.raft.IsRaftLeader())
 
 	return nil
 }
