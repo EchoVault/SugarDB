@@ -119,7 +119,6 @@ func (server *SugarDB) Flush(database int) {
 }
 
 func (server *SugarDB) keysExist(ctx context.Context, keys []string) map[string]bool {
-
 	server.storeLock.RLock()
 	database := ctx.Value("Database").(int)
 
@@ -331,6 +330,7 @@ func (server *SugarDB) setHashExpiry(ctx context.Context, key string, field stri
 }
 
 func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
+
 	database := ctx.Value("Database").(int)
 
 	// Deduct memory usage in tracker.
@@ -673,8 +673,8 @@ func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 	database := ctx.Value("Database").(int)
 	server.storeLock.Lock()
 	server.keysWithExpiry.rwMutex.Lock()
-	defer server.storeLock.Unlock()
 	defer server.keysWithExpiry.rwMutex.Unlock()
+	defer server.storeLock.Unlock()
 
 	// Loop through the keys and delete them if they're expired
 	for server.keysWithExpiry.keys[database].Len() > 0 {

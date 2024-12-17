@@ -44,12 +44,13 @@ func (server *SugarDB) raftApplyDeleteKey(ctx context.Context, key string) error
 	if err != nil {
 		return fmt.Errorf("could not parse delete key request for key: %s", key)
 	}
-
 	applyFuture := server.raft.Apply(b, 500*time.Millisecond)
 
+	// ===================
 	if err = applyFuture.Error(); err != nil {
 		return err
 	}
+	// ===================
 
 	r, ok := applyFuture.Response().(internal.ApplyResponse)
 

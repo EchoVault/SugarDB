@@ -251,11 +251,11 @@ func Test_Cluster(t *testing.T) {
 			{key: "key12", value: "value12"},
 		},
 		// !!!!!!!!
-		// "TTL": {
-		// 	{key: "key13", value: "value13"},
-		// 	{key: "key14", value: "value14"},
-		// 	{key: "key15", value: "value15"},
-		// },
+		"TTL": {
+			{key: "key13", value: "value13"},
+			{key: "key14", value: "value14"},
+			{key: "key15", value: "value15"},
+		},
 	}
 
 	t.Run("Test_Replication", func(t *testing.T) {
@@ -603,104 +603,79 @@ func Test_Cluster(t *testing.T) {
 		// TODO: Test snapshot creation and restoration on the cluster.
 	})
 
-	// t.Run("Test_EvictExpiredTTL", func(t *testing.T) {
-	// 	// !!!!!
-	// 	tests := tests["TTL"]
-	// 	// Write all the data to the cluster leader.
-	// 	for i, test := range tests {
-	// 		node := nodes[0]
-	// 		_, ok, err := node.server.Set(test.key, test.value, SETOptions{})
-	// 		if err != nil {
-	// 			t.Errorf("could not write command to leader node (test %d): %v", i, err)
-	// 		}
-	// 		if !ok {
-	// 			t.Errorf("expected set for test %d ok = true, got ok = false", i)
-	// 		}
-	// 	}
+	t.Run("Test_EvictExpiredTTL", func(t *testing.T) {
+		// !!!!!
+		tests := tests["TTL"]
+		// Write all the data to the cluster leader.
+		for i, test := range tests {
+			node := nodes[0]
+			_, ok, err := node.server.Set(test.key, test.value, SETOptions{})
+			if err != nil {
+				t.Errorf("could not write command to leader node (test %d): %v", i, err)
+				return
+			}
+			if !ok {
+				t.Errorf("expected set for test %d ok = true, got ok = false", i)
+				return
+			}
+		}
 
-	// 	// Yield
-	// 	time.Sleep(1 * time.Second)
+		// Give time to replicate
+		time.Sleep(5 * time.Second)
 
-	// 	// Check if the data has been replicated on a quorum (majority of the cluster).
-	// 	quorum := int(math.Ceil(float64(len(nodes))/2)) + 1
-	// 	for i, test := range tests {
-	// 		count := 0
-	// 		for j := 0; j < len(nodes); j++ {
-	// 			node := nodes[j]
-	// 			if err := node.client.WriteArray([]resp.Value{
-	// 				resp.StringValue("GET"),
-	// 				resp.StringValue(test.key),
-	// 			}); err != nil {
-	// 				t.Errorf("could not write command to follower node %d (test %d): %v", j, i, err)
-	// 			}
-	// 			rd, _, err := node.client.ReadValue()
-	// 			if err != nil {
-	// 				t.Errorf("could not read data from follower node %d (test %d): %v", j, i, err)
-	// 			}
-	// 			if rd.String() == test.value {
-	// 				count += 1 // If the expected value is found, increment the count.
-	// 			}
-	// 		}
-	// 		// Fail if count is less than quorum.
-	// 		if count < quorum {
-	// 			t.Errorf("could not find value %s at key %s in cluster quorum", test.value, test.key)
-	// 			return
-	// 		}
-	// 	}
+		// Set expiration on the key on the leader node
+		// 1. Prepare expire command.
 
-	// 	// Set expiration on the key on the leader node
-	// 	// 1. Prepare expire command.
+		for _, test := range tests {
+			command := []resp.Value{resp.StringValue("EXPIRE"), resp.StringValue(test.key), resp.StringValue("1")}
+			// 2. Send expire command.
+			if err := nodes[0].client.WriteArray(command); err != nil {
+				t.Error(err)
+				return
+			}
+			resp, _, err := nodes[0].client.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if resp.Integer() != 1 {
+				t.Errorf("Expire command expected response of 1, got %v", resp.Integer())
+				return
+			}
+		}
 
-	// 	for _, test := range tests {
-	// 		command := []resp.Value{resp.StringValue("EXPIRE")}
-	// 		command = append(command, resp.StringValue(test.key))
-	// 		command = append(command, resp.StringValue("1"))
-	// 		// 2. Send expire command.
-	// 		if err := nodes[0].client.WriteArray(command); err != nil {
-	// 			t.Error(err)
-	// 			return
-	// 		}
-	// 		resp, _, err := nodes[0].client.ReadValue()
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 			return
-	// 		}
-	// 		if resp.Integer() != 1 {
-	// 			t.Errorf("Expire command expected response of 1, got %v", resp.Integer())
-	// 			return
-	// 		}
-	// 	}
+		// Ensure enough time has passed for keys to expire
+		time.Sleep(2 * time.Second)
 
-	// 	// Yield
-	// 	// Ensure enough time has passed for keys to expire
-	// 	time.Sleep(2 * time.Second)
+		// 4. Check if the data is absent in quorum (majority of the cluster).
+		quorum := int(math.Ceil(float64(len(nodes))/2)) + 1
+		for i, test := range tests {
+			count := 0
+			for j := 0; j < len(nodes); j++ {
+				node := nodes[j]
+				if err := node.client.WriteArray([]resp.Value{
+					resp.StringValue("GET"),
+					resp.StringValue(test.key),
+				}); err != nil {
+					t.Errorf("could not write command to follower node %d (test %d): %v", j, i, err)
+					return
+				}
+				rd, _, err := node.client.ReadValue()
+				if err != nil {
+					t.Errorf("could not read data from follower node %d (test %d): %v", j, i, err)
+					return
+				}
+				if rd.IsNull() {
+					count += 1 // If the expected value is found, increment the count.
+				}
+			}
+			// 5. Fail if count is less than quorum.
+			if count < quorum {
+				t.Errorf("could not find value %s at key %s in cluster quorum", test.value, test.key)
+			}
+		}
 
-	// 	// 4. Check if the data is absent in quorum (majority of the cluster).
-	// 	for i, test := range tests {
-	// 		count := 0
-	// 		for j := 0; j < len(nodes); j++ {
-	// 			node := nodes[j]
-	// 			if err := node.client.WriteArray([]resp.Value{
-	// 				resp.StringValue("GET"),
-	// 				resp.StringValue(test.key),
-	// 			}); err != nil {
-	// 				t.Errorf("could not write command to follower node %d (test %d): %v", j, i, err)
-	// 			}
-	// 			rd, _, err := node.client.ReadValue()
-	// 			if err != nil {
-	// 				t.Errorf("could not read data from follower node %d (test %d): %v", j, i, err)
-	// 			}
-	// 			if rd.IsNull() {
-	// 				count += 1 // If the expected value is found, increment the count.
-	// 			}
-	// 		}
-	// 		// 5. Fail if count is less than quorum.
-	// 		if count < quorum {
-	// 			t.Errorf("could not find value %s at key %s in cluster quorum", test.value, test.key)
-	// 		}
-	// 	}
-
-	// })
+	})
 
 	t.Run("Test_GetServerInfo", func(t *testing.T) {
 		nodeInfo := []internal.ServerInfo{

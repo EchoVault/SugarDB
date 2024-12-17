@@ -115,6 +115,7 @@ func handleGet(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, err
 	}
 	key := keys.ReadKeys[0]
+
 	keyExists := params.KeysExist(params.Context, []string{key})[key]
 	if !keyExists {
 		return []byte("$-1\r\n"), nil
@@ -727,6 +728,7 @@ func handleGetdel(params internal.HandlerFuncParams) ([]byte, error) {
 
 	value := params.GetValues(params.Context, []string{key})[key]
 	delkey := keys.WriteKeys[0]
+
 	err = params.DeleteKey(params.Context, delkey)
 	if err != nil {
 		return nil, err
@@ -966,6 +968,7 @@ func handleMove(params internal.HandlerFuncParams) ([]byte, error) {
 		}
 
 		// remove key from source db
+
 		err = params.DeleteKey(params.Context, key)
 		if err != nil {
 			return nil, err
