@@ -1017,6 +1017,10 @@ func Test_Standalone(t *testing.T) {
 		}
 	})
 
+	t.Run("Test_EvictExpiredTTL", func(t *testing.T) {
+		// TODO: Implement test for evicting expired keys in standalone mode.
+	})
+
 	t.Run("Test_SnapshotRestore", func(t *testing.T) {
 		t.Parallel()
 

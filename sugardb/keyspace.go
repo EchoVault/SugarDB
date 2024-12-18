@@ -120,6 +120,8 @@ func (server *SugarDB) Flush(database int) {
 
 func (server *SugarDB) keysExist(ctx context.Context, keys []string) map[string]bool {
 	server.storeLock.RLock()
+	defer server.storeLock.RUnlock()
+
 	database := ctx.Value("Database").(int)
 
 	exists := make(map[string]bool, len(keys))
@@ -129,7 +131,6 @@ func (server *SugarDB) keysExist(ctx context.Context, keys []string) map[string]
 		exists[key] = ok
 	}
 
-	server.storeLock.RUnlock()
 	return exists
 }
 
@@ -362,7 +363,7 @@ func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
 
 	}
 
-	log.Printf("deleted key %s in server %v, is leader=%v\n", key, ctx.Value("ServerID"), server.raft.IsRaftLeader())
+	log.Printf("deleted key %s from server %v, is leader=%v\n", key, ctx.Value(internal.ContextServerID("ServerID")).(string), server.raft.IsRaftLeader())
 
 	return nil
 }
