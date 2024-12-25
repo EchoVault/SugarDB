@@ -39,10 +39,12 @@ func (server *SugarDB) AddScriptCommand(
 	var engine string
 	if strings.HasSuffix(path, ".lua") {
 		engine = "lua"
+	} else if strings.HasSuffix(path, ".js") {
+		engine = "js"
 	}
 
 	// Check if the engine is supported
-	supportedEngines := []string{"lua"}
+	supportedEngines := []string{"lua", "js"}
 	if !slices.Contains(supportedEngines, strings.ToLower(engine)) {
 		return fmt.Errorf("engine %s not supported, only %v engines are supported", engine, supportedEngines)
 	}
@@ -59,6 +61,8 @@ func (server *SugarDB) AddScriptCommand(
 	switch strings.ToLower(engine) {
 	case "lua":
 		vm, commandName, categories, description, synchronize, commandType, err = generateLuaCommandInfo(path)
+	case "js":
+		vm, commandName, categories, description, synchronize, commandType, err = generateJSCommandInfo(path)
 	}
 
 	if err != nil {
@@ -97,6 +101,8 @@ func (server *SugarDB) AddScriptCommand(
 					}, nil
 				case "lua":
 					return server.buildLuaKeyExtractionFunc(vm, cmd, args)
+				case "js":
+					return server.buildJSKeyExtractionFunc(vm, cmd, args)
 				}
 			}
 		}(engine, vm, args),
@@ -108,6 +114,8 @@ func (server *SugarDB) AddScriptCommand(
 					return nil, fmt.Errorf("command %s handler not implemented", commandName)
 				case "lua":
 					return server.buildLuaHandlerFunc(vm, commandName, args, params)
+				case "js":
+					return server.buildJSHandlerFunc(vm, commandName, args, params)
 				}
 			}
 		}(engine, vm, args),
@@ -131,7 +139,7 @@ func (server *SugarDB) LoadModule(path string, args ...string) error {
 	server.commandsRWMut.Lock()
 	defer server.commandsRWMut.Unlock()
 
-	for _, suffix := range []string{".lua"} {
+	for _, suffix := range []string{".lua", ".js"} {
 		if strings.HasSuffix(path, suffix) {
 			return server.AddScriptCommand(path, args)
 		}
