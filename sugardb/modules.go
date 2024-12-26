@@ -67,7 +67,6 @@ func (server *SugarDB) getHandlerFuncParams(ctx context.Context, cmd []string, c
 		SwapDBs:               server.SwapDBs,
 		GetServerInfo:         server.GetServerInfo,
 		AddScript:             server.AddScript,
-		AddScriptCommand:      server.AddScriptCommand,
 		DeleteKey: func(ctx context.Context, key string) error {
 			server.storeLock.Lock()
 			defer server.storeLock.Unlock()
