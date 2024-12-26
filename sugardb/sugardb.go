@@ -639,7 +639,7 @@ func (server *SugarDB) ShutDown() {
 	log.Println("shutting down script vms...")
 	server.commandsRWMut.Lock()
 	for _, command := range server.commands {
-		if slices.Contains([]string{"LUA_SCRIPT"}, command.Type) {
+		if slices.Contains([]string{"LUA_SCRIPT", "JS_SCRIPT"}, command.Type) {
 			v, ok := server.scriptVMs.Load(command.Command)
 			if !ok {
 				continue
