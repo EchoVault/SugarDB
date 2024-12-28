@@ -638,8 +638,20 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, []string, string,
 	return L, strings.ToLower(cn.String()), categories, d.String(), synchronize, commandType, nil
 }
 
-func (server *SugarDB) buildLuaKeyExtractionFunc(vm any, cmd []string, args []string) (internal.KeyExtractionFuncResult, error) {
-	L := vm.(*lua.LState)
+func (server *SugarDB) luaKeyExtractionFunc(cmd []string, args []string) (internal.KeyExtractionFuncResult, error) {
+	// Lock the script before executing the key extraction function
+	script, ok := server.scriptVMs.Load(strings.ToLower(cmd[0]))
+	if !ok {
+		return internal.KeyExtractionFuncResult{}, fmt.Errorf("no lock found for script command %s", cmd[0])
+	}
+	machine := script.(struct {
+		vm   any
+		lock *sync.Mutex
+	})
+	machine.lock.Lock()
+	defer machine.lock.Unlock()
+
+	L := machine.vm.(*lua.LState)
 	// Create command table to pass to the Lua function
 	command := L.NewTable()
 	for i, s := range cmd {
@@ -650,17 +662,7 @@ func (server *SugarDB) buildLuaKeyExtractionFunc(vm any, cmd []string, args []st
 	for i, s := range args {
 		funcArgs.RawSetInt(i+1, lua.LString(s))
 	}
-	// Lock the script before executing the key extraction function
-	script, ok := server.scriptVMs.Load(strings.ToLower(cmd[0]))
-	if !ok {
-		return internal.KeyExtractionFuncResult{}, fmt.Errorf("no lock found for script command %s", command)
-	}
-	machine := script.(struct {
-		vm   any
-		lock *sync.Mutex
-	})
-	machine.lock.Lock()
-	defer machine.lock.Unlock()
+
 	// Call the Lua key extraction function
 	var err error
 	_ = L.CallByParam(lua.P{
@@ -706,8 +708,20 @@ func (server *SugarDB) buildLuaKeyExtractionFunc(vm any, cmd []string, args []st
 	}
 }
 
-func (server *SugarDB) buildLuaHandlerFunc(vm any, command string, args []string, params internal.HandlerFuncParams) ([]byte, error) {
-	L := vm.(*lua.LState)
+func (server *SugarDB) luaHandlerFunc(command string, args []string, params internal.HandlerFuncParams) ([]byte, error) {
+	// Lock this script's execution key before executing the handler.
+	script, ok := server.scriptVMs.Load(command)
+	if !ok {
+		return nil, fmt.Errorf("no lock found for script command %s", command)
+	}
+	machine := script.(struct {
+		vm   any
+		lock *sync.Mutex
+	})
+	machine.lock.Lock()
+	defer machine.lock.Unlock()
+
+	L := machine.vm.(*lua.LState)
 	// Lua table context
 	ctx := L.NewTable()
 	ctx.RawSetString("protocol", lua.LNumber(params.Context.Value("Protocol").(int)))
@@ -786,17 +800,7 @@ func (server *SugarDB) buildLuaHandlerFunc(vm any, command string, args []string
 	for i, s := range args {
 		funcArgs.RawSetInt(i+1, lua.LString(s))
 	}
-	// Lock this script's execution key before executing the handler
-	script, ok := server.scriptVMs.Load(command)
-	if !ok {
-		return nil, fmt.Errorf("no lock found for script command %s", command)
-	}
-	lock := script.(struct {
-		vm   any
-		lock *sync.Mutex
-	})
-	lock.lock.Lock()
-	defer lock.lock.Unlock()
+
 	// Call the lua handler function
 	var err error
 	_ = L.CallByParam(lua.P{

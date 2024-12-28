@@ -157,8 +157,8 @@ func (server *SugarDB) handleCommand(ctx context.Context, message []byte, conn *
 	}
 
 	if conn != nil && server.acl != nil && !embedded {
-		// Authorize connection if it's provided and if ACL module is present
-		// and the embedded parameter is false.
+		// Authorize connection if it's provided and if ACL module is present and the embedded parameter is false.
+		// Skip the authorization if the command is being executed from embedded mode.
 		if err = server.acl.AuthorizeConnection(conn, cmd, command, subCommand); err != nil {
 			return nil, err
 		}
