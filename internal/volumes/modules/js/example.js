@@ -74,5 +74,26 @@ function keyExtractionFunc(command, args) {
  *    handler everytime it's invoked.
  */
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
+  console.log(ctx["protocol"], ctx["database"])
+  console.log(command, typeof command)
+  console.log(keysExist)
+  console.log(getValues)
+  console.log(setValues)
+  console.log(args)
+
+  var exists = keysExist(["key1", "key2", "key3"])
+  console.log(exists["key1"], exists["key2"], exists["key3"])
+
+  var values = getValues(["key1", "key2", "key3"])
+  for (var key in values) {
+    console.log("getValues,", key, values[key])
+  }
+
+  setValues({
+    "key1": 100,
+    "key2": 3.142,
+    "key3": "value2"
+  })
+
   return "+OK\r\n"
 }

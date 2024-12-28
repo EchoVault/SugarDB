@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"github.com/echovault/sugardb/internal"
 	"github.com/robertkrimen/otto"
+	"log"
 	"os"
-	"reflect"
 	"strings"
 	"sync"
 )
@@ -94,8 +94,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 	return vm, strings.ToLower(command), categories, description, synchronize, commandType, nil
 }
 
-// jsKeyExtractionFunc builds JS key extraction function.
-// It executes the extraction function defined in the script and returns the result or error.
+// jsKeyExtractionFunc executes the extraction function defined in the script and returns the result or error.
 func (server *SugarDB) jsKeyExtractionFunc(cmd []string, args []string) (internal.KeyExtractionFuncResult, error) {
 	// Lock the script before executing the key extraction function.
 	script, ok := server.scriptVMs.Load(strings.ToLower(cmd[0]))
@@ -144,9 +143,6 @@ func (server *SugarDB) jsKeyExtractionFunc(cmd []string, args []string) (interna
 		writeKeys = []string{}
 	}
 
-	fmt.Println("ReadKeys: ", readKeys, reflect.TypeOf(readKeys))
-	fmt.Println("WriteKeys: ", writeKeys, reflect.TypeOf(writeKeys))
-
 	return internal.KeyExtractionFuncResult{
 		Channels:  make([]string, 0),
 		ReadKeys:  readKeys,
@@ -154,8 +150,7 @@ func (server *SugarDB) jsKeyExtractionFunc(cmd []string, args []string) (interna
 	}, nil
 }
 
-// jsHandlerFunc builds JS handler function.
-// It executed the extraction function defined in the script nad returns the RESP response or error.
+// jsHandlerFunc executes the extraction function defined in the script nad returns the RESP response or error.
 func (server *SugarDB) jsHandlerFunc(command string, args []string, params internal.HandlerFuncParams) ([]byte, error) {
 	// Lock the script before executing the key extraction function.
 	script, ok := server.scriptVMs.Load(strings.ToLower(command))
@@ -169,5 +164,62 @@ func (server *SugarDB) jsHandlerFunc(command string, args []string, params inter
 	machine.lock.Lock()
 	defer machine.lock.Unlock()
 
-	return nil, nil
+	vm := machine.vm.(*otto.Otto)
+
+	f, _ := vm.Get("handlerFunc")
+	if !f.IsFunction() {
+		return nil, errors.New("handlerFunc is not a function")
+	}
+	v, err := f.Call(
+		f,
+
+		// Build context
+		func() otto.Value {
+			obj, _ := vm.Object(`({})`)
+			_ = obj.Set("protocol", params.Context.Value("Protocol").(int))
+			_ = obj.Set("database", params.Context.Value("Database").(int))
+			return obj.Value()
+		}(),
+
+		// Command
+		params.Command,
+		// Build keysExist function
+		func(keys []string) otto.Value {
+			obj, _ := vm.Object(`({})`)
+			exists := server.keysExist(params.Context, keys)
+			for key, value := range exists {
+				_ = obj.Set(key, value)
+			}
+			return obj.Value()
+		},
+
+		// Build getValues function
+		func(keys []string) otto.Value {
+			obj, _ := vm.Object(`({})`)
+			values := server.getValues(params.Context, keys)
+			for key, value := range values {
+				// TODO: Add conditional statement for converting custom types to javascript types
+				_ = obj.Set(key, value)
+			}
+			return obj.Value()
+		},
+
+		// Build setValues function
+		func(entries map[string]interface{}) {
+			// TODO: Set custom type values in the store
+			err := server.setValues(params.Context, entries)
+			if err != nil {
+				log.Printf("set value error for command %s: %+v", command, err)
+			}
+		},
+
+		// Args
+		args,
+	)
+	if err != nil {
+		return nil, err
+	}
+	res, err := v.ToString()
+
+	return []byte(res), err
 }

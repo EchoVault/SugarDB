@@ -638,6 +638,7 @@ func generateLuaCommandInfo(path string) (*lua.LState, string, []string, string,
 	return L, strings.ToLower(cn.String()), categories, d.String(), synchronize, commandType, nil
 }
 
+// luaKeyExtractionFunc executes the extraction function defined in the script and returns the result or error.
 func (server *SugarDB) luaKeyExtractionFunc(cmd []string, args []string) (internal.KeyExtractionFuncResult, error) {
 	// Lock the script before executing the key extraction function
 	script, ok := server.scriptVMs.Load(strings.ToLower(cmd[0]))
@@ -708,6 +709,7 @@ func (server *SugarDB) luaKeyExtractionFunc(cmd []string, args []string) (intern
 	}
 }
 
+// luaHandlerFunc executes the extraction function defined in the script nad returns the RESP response or error.
 func (server *SugarDB) luaHandlerFunc(command string, args []string, params internal.HandlerFuncParams) ([]byte, error) {
 	// Lock this script's execution key before executing the handler.
 	script, ok := server.scriptVMs.Load(command)
