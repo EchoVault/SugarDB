@@ -18,12 +18,31 @@ import (
 	"errors"
 	"fmt"
 	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/modules/hash"
+	"github.com/echovault/sugardb/internal/modules/set"
+	"github.com/echovault/sugardb/internal/modules/sorted_set"
 	"github.com/robertkrimen/otto"
 	"log"
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
+
+var (
+	objectRegistry sync.Map
+	idCounter      uint64
+)
+
+func registerObject(object interface{}) string {
+	id := fmt.Sprintf("id-%d", atomic.AddUint64(&idCounter, 1))
+	objectRegistry.Store(id, object)
+	return id
+}
+
+func getObjectById(id string) (interface{}, bool) {
+	return objectRegistry.Load(id)
+}
 
 func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, bool, string, error) {
 	// Initialize the Otto vm
@@ -38,7 +57,94 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 		return nil, "", nil, "", false, "", fmt.Errorf("could not run javascript script file %s: %v", path, err)
 	}
 
-	// TODO: Register hash data type
+	// Register hash data type
+	_ = vm.Set("createHash", func(call otto.FunctionCall) otto.Value {
+		// Initialize hash
+		h := hash.Hash{}
+		// If an object is passed then initialize the default values of the hash
+		if len(call.ArgumentList) > 0 {
+			args := call.Argument(0).Object()
+			for _, key := range args.Keys() {
+				value, _ := args.Get(key)
+				v, _ := value.ToString()
+				h[key] = hash.HashValue{Value: v}
+			}
+		}
+
+		obj, _ := vm.Object(`({})`)
+		_ = obj.Set("__type", "hash")
+		_ = obj.Set("__id", registerObject(h))
+		_ = obj.Set("set", func(call otto.FunctionCall) otto.Value {
+			args := call.Argument(0).Object()
+			for _, key := range args.Keys() {
+				value, _ := args.Get(key)
+				v, _ := value.ToString()
+				h[key] = hash.HashValue{Value: v}
+			}
+			// Return changed count using the set data type
+			count, _ := otto.ToValue(set.NewSet(args.Keys()).Cardinality())
+			return count
+		})
+		_ = obj.Set("setnx", func(call otto.FunctionCall) otto.Value {
+			count := 0
+			args := call.Argument(0).Object()
+			for _, key := range args.Keys() {
+				if _, exists := h[key]; exists {
+					continue
+				}
+				count += 1
+				value, _ := args.Get(key)
+				v, _ := value.ToString()
+				h[key] = hash.HashValue{Value: v}
+			}
+			c, _ := otto.ToValue(count)
+			return c
+		})
+		_ = obj.Set("get", func(call otto.FunctionCall) otto.Value {
+			result, _ := vm.Object(`({})`)
+			for _, arg := range call.ArgumentList {
+				key, _ := arg.ToString()
+				value, _ := otto.ToValue(h[key].Value)
+				_ = result.Set(key, value)
+			}
+			return result.Value()
+		})
+		_ = obj.Set("length", func(call otto.FunctionCall) otto.Value {
+			length, _ := otto.ToValue(len(h))
+			return length
+		})
+		_ = obj.Set("all", func(call otto.FunctionCall) otto.Value {
+			result, _ := vm.Object(`({})`)
+			for key, value := range h {
+				v, _ := otto.ToValue(value.Value)
+				_ = result.Set(key, v)
+			}
+			return result.Value()
+		})
+		_ = obj.Set("exists", func(call otto.FunctionCall) otto.Value {
+			result, _ := vm.Object(`({})`)
+			for _, arg := range call.ArgumentList {
+				key, _ := arg.ToString()
+				_, ok := h[key]
+				exists, _ := vm.ToValue(ok)
+				_ = result.Set(key, exists)
+			}
+			return result.Value()
+		})
+		_ = obj.Set("delete", func(call otto.FunctionCall) otto.Value {
+			count := 0
+			for _, arg := range call.ArgumentList {
+				key, _ := arg.ToString()
+				if _, exists := h[key]; exists {
+					count += 1
+					delete(h, key)
+				}
+			}
+			result, _ := otto.ToValue(count)
+			return result
+		})
+		return obj.Value()
+	})
 
 	// TODO: Register set data type
 
@@ -206,10 +312,31 @@ func (server *SugarDB) jsHandlerFunc(command string, args []string, params inter
 
 		// Build setValues function
 		func(entries map[string]interface{}) {
-			// TODO: Set custom type values in the store
-			err := server.setValues(params.Context, entries)
-			if err != nil {
-				log.Printf("set value error for command %s: %+v", command, err)
+			values := make(map[string]interface{})
+			for key, entry := range entries {
+				switch entry.(type) {
+				case string:
+					values[key] = internal.AdaptType(entry.(string))
+				case map[string]interface{}:
+					value := entry.(map[string]interface{})
+					obj, exists := getObjectById(value["__id"].(string))
+					if !exists {
+						continue
+					}
+					switch obj.(type) {
+					default:
+						log.Printf("unknown type on key %s for command %s\n", key, command)
+					case hash.Hash:
+						values[key] = obj.(hash.Hash)
+					case *set.Set:
+						// TODO: Implement storage of sets
+					case *sorted_set.SortedSet:
+						// TODO: Implement storage of sorted sets
+					}
+				}
+			}
+			if err := server.setValues(params.Context, values); err != nil {
+				log.Printf("setValues error for command %s: %+v\n", command, err)
 			}
 		},
 
