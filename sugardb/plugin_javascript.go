@@ -146,7 +146,104 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 		return obj.Value()
 	})
 
-	// TODO: Register set data type
+	// Register set data type
+	_ = vm.Set("createSet", func(call otto.FunctionCall) otto.Value {
+		// Initialize set
+		s := set.NewSet([]string{})
+		// If an array is passed add the values to the set
+		if len(call.ArgumentList) > 0 {
+			args := call.Argument(0).Object()
+			var elems []string
+			for _, key := range args.Keys() {
+				value, _ := args.Get(key)
+				v, _ := value.ToString()
+				elems = append(elems, v)
+			}
+			s.Add(elems)
+		}
+
+		obj, _ := vm.Object(`({})`)
+		_ = obj.Set("__type", "set")
+		_ = obj.Set("__id", registerObject(s))
+		_ = obj.Set("add", func(call otto.FunctionCall) otto.Value {
+			args := call.Argument(0).Object()
+			var elems []string
+			for _, key := range args.Keys() {
+				value, _ := args.Get(key)
+				v, _ := value.ToString()
+				elems = append(elems, v)
+			}
+			count := s.Add(elems)
+			result, _ := otto.ToValue(count)
+			return result
+		})
+		_ = obj.Set("pop", func(call otto.FunctionCall) otto.Value {
+			count, _ := call.Argument(0).ToInteger()
+			popped := s.Pop(int(count))
+			result, _ := vm.Object(`([])`)
+			_ = result.Set("length", len(popped))
+			for i, p := range popped {
+				_ = result.Set(fmt.Sprintf("%d", i), p)
+			}
+			return result.Value()
+		})
+		_ = obj.Set("contains", func(call otto.FunctionCall) otto.Value {
+			value, _ := call.Argument(0).ToString()
+			result, _ := otto.ToValue(s.Contains(value))
+			return result
+		})
+		_ = obj.Set("cardinality", func(call otto.FunctionCall) otto.Value {
+			result, _ := otto.ToValue(s.Cardinality())
+			return result
+		})
+		_ = obj.Set("remove", func(call otto.FunctionCall) otto.Value {
+			args := call.Argument(0).Object()
+			var elems []string
+			for _, key := range args.Keys() {
+				value, _ := args.Get(key)
+				v, _ := value.ToString()
+				elems = append(elems, v)
+			}
+			result, _ := otto.ToValue(s.Remove(elems))
+			return result
+		})
+		_ = obj.Set("all", func(call otto.FunctionCall) otto.Value {
+			all := s.GetAll()
+			result, _ := vm.Object(`([])`)
+			_ = result.Set("length", len(all))
+			for i, e := range all {
+				_ = result.Set(fmt.Sprintf("%d", i), e)
+			}
+			return result.Value()
+		})
+		_ = obj.Set("random", func(call otto.FunctionCall) otto.Value {
+			count, _ := call.Argument(0).ToInteger()
+			result, _ := otto.ToValue(s.GetRandom(int(count)))
+			return result
+		})
+		_ = obj.Set("move", func(call otto.FunctionCall) otto.Value {
+			arg := call.Argument(0).Object()
+			elem := call.Argument(1).String()
+			id, _ := arg.Get("__id")
+			o, exists := getObjectById(id.String())
+			if !exists {
+				result, _ := otto.ToValue(false)
+				return result
+			}
+			switch o.(type) {
+			default:
+				result, _ := otto.ToValue(false)
+				return result
+			case *set.Set:
+				moved := s.Move(o.(*set.Set), elem) == 1
+				result, _ := otto.ToValue(moved)
+				return result
+			}
+		})
+		// TODO: Implement set subtraction feature
+		// _ = obj.Set("subtract", func(call otto.FunctionCall) otto.Value {})
+		return obj.Value()
+	})
 
 	// TODO: Register sorted set member data type
 
@@ -329,9 +426,9 @@ func (server *SugarDB) jsHandlerFunc(command string, args []string, params inter
 					case hash.Hash:
 						values[key] = obj.(hash.Hash)
 					case *set.Set:
-						// TODO: Implement storage of sets
+						values[key] = obj.(*set.Set)
 					case *sorted_set.SortedSet:
-						// TODO: Implement storage of sorted sets
+						values[key] = obj.(*sorted_set.SortedSet)
 					}
 				}
 			}
