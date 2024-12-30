@@ -44,6 +44,11 @@ func getObjectById(id string) (interface{}, bool) {
 	return objectRegistry.Load(id)
 }
 
+func clearObjectRegistry() {
+	atomic.StoreUint64(&idCounter, 0)
+	objectRegistry.Clear()
+}
+
 func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, bool, string, error) {
 	// Initialize the Otto vm
 	vm := otto.New()
@@ -444,6 +449,8 @@ func (server *SugarDB) jsHandlerFunc(command string, args []string, params inter
 		return nil, err
 	}
 	res, err := v.ToString()
+
+	clearObjectRegistry()
 
 	return []byte(res), err
 }
