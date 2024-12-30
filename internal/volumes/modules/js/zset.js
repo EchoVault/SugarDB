@@ -88,5 +88,12 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   console.log("VALUE: ",  m1.value())
   console.log("SCORE: ", m1.score())
 
+  var hash = createHash({"a": "1", "b": "2", "c": "3"})
+
+  var zset = createZSet(m1, createZMember({ value: "value2", score: 2 }))
+  console.log(zset)
+
+  setValues({ key1: zset })
+
   return "+OK\r\n"
 }

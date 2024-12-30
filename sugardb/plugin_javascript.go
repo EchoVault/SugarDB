@@ -51,9 +51,14 @@ func clearObjectRegistry() {
 	objectRegistry.Clear()
 }
 
-func panicError(call otto.FunctionCall, message string) {
+func panicWithFunctionCall(call otto.FunctionCall, message string) {
 	err, _ := call.Otto.ToValue(message)
 	panic(err)
+}
+
+func panicInHandler(message string) {
+	value, _ := otto.ToValue(message)
+	panic(value)
 }
 
 func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, bool, string, error) {
@@ -239,11 +244,11 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 			id, _ := arg.Get("__id")
 			o, exists := getObjectById(id.String())
 			if !exists {
-				panicError(call, "move target set does not exist")
+				panicWithFunctionCall(call, "move target set does not exist")
 			}
 			switch o.(type) {
 			default:
-				panicError(call, "move target is not a set")
+				panicWithFunctionCall(call, "move target is not a set")
 			case *set.Set:
 				moved := s.Move(o.(*set.Set), elem) == 1
 				result, _ := otto.ToValue(moved)
@@ -260,24 +265,24 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 	_ = vm.Set("createZMember", func(call otto.FunctionCall) otto.Value {
 		m := sorted_set.MemberParam{}
 		if len(call.ArgumentList) != 1 {
-			panicError(call, "expected an object with score and value properties")
+			panicWithFunctionCall(call, "expected an object with score and value properties")
 		}
 		arg := call.Argument(0).Object()
 		// Get the value
 		value, _ := arg.Get("value")
 		if slices.Contains([]otto.Value{otto.UndefinedValue(), otto.NullValue()}, value) ||
 			len(value.String()) == 0 {
-			panicError(call, "zset member value must be a non-empty string")
+			panicWithFunctionCall(call, "zset member value must be a non-empty string")
 		}
 		m.Value = sorted_set.Value(value.String())
 		// Get the score
 		s, _ := arg.Get("score")
 		if slices.Contains([]otto.Value{otto.UndefinedValue(), otto.NullValue()}, s) {
-			panicError(call, "zset member must have a score")
+			panicWithFunctionCall(call, "zset member must have a score")
 		}
 		score, _ := s.ToFloat()
 		if math.IsNaN(score) {
-			panicError(call, "zset member score must be a valid number")
+			panicWithFunctionCall(call, "zset member score must be a valid number")
 		}
 		m.Score = sorted_set.Score(score)
 
@@ -294,11 +299,11 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 				// If a value is passed, then set the value
 				v := call.Argument(0).String()
 				if len(v) <= 0 {
-					panicError(call, "zset member value must be a non-empty string")
+					panicWithFunctionCall(call, "zset member value must be a non-empty string")
 				}
 				m.Value = sorted_set.Value(v)
 			default:
-				panicError(
+				panicWithFunctionCall(
 					call,
 					fmt.Sprintf(
 						"expected either 0 or 1 args for value method of zmember, got %d",
@@ -316,11 +321,11 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 			case 1:
 				s, _ := call.Argument(0).ToFloat()
 				if math.IsNaN(s) {
-					panicError(call, "zset member score must be a valid number")
+					panicWithFunctionCall(call, "zset member score must be a valid number")
 				}
 				m.Score = sorted_set.Score(s)
 			default:
-				panicError(
+				panicWithFunctionCall(
 					call,
 					fmt.Sprintf(
 						"expected either 0 or 1 args for score method of zmember, got %d",
@@ -333,7 +338,45 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 		return obj.Value()
 	})
 
-	// TODO: Register sorted set data type
+	// Register sorted set data type
+	_ = vm.Set("createZSet", func(call otto.FunctionCall) otto.Value {
+		// If default args are passed when initializing sorted set, add them to the member params
+		extractParamsFromArgs := func(args []otto.Value) []sorted_set.MemberParam {
+			var params []sorted_set.MemberParam
+			for _, arg := range args {
+				if !arg.IsObject() {
+					panicWithFunctionCall(call, "createZSet args must be sorted set members")
+				}
+				id, _ := arg.Object().Get("__id")
+				o, exists := getObjectById(id.String())
+				if !exists {
+					panicWithFunctionCall(call, "unknown object passed to createZSet function")
+				}
+				p, ok := o.(sorted_set.MemberParam)
+				if !ok {
+					panicWithFunctionCall(call, "unknown object passed to createZSet function")
+				}
+				params = append(params, p)
+			}
+			return params
+		}
+
+		ss := sorted_set.NewSortedSet(extractParamsFromArgs(call.ArgumentList))
+
+		obj, _ := call.Otto.Object(`({})`)
+		_ = obj.Set("__type", "zset")
+		_ = obj.Set("__id", registerObject(ss))
+		_ = obj.Set("add", func(call otto.FunctionCall) otto.Value {})
+		_ = obj.Set("update", func(call otto.FunctionCall) otto.Value {})
+		_ = obj.Set("remove", func(call otto.FunctionCall) otto.Value {})
+		_ = obj.Set("cardinality", func(call otto.FunctionCall) otto.Value {})
+		_ = obj.Set("contains", func(call otto.FunctionCall) otto.Value {})
+		_ = obj.Set("random", func(call otto.FunctionCall) otto.Value {})
+		_ = obj.Set("all", func(call otto.FunctionCall) otto.Value {})
+		// TODO: Implement subtract method for sorted set
+		// _ = obj.Set("subtract", func(call otto.FunctionCall) otto.Value {})
+		return obj.Value()
+	})
 
 	// Get the command name
 	v, err := vm.Get("command")
@@ -472,6 +515,7 @@ func (server *SugarDB) jsHandlerFunc(command string, args []string, params inter
 
 		// Command
 		params.Command,
+
 		// Build keysExist function
 		func(keys []string) otto.Value {
 			obj, _ := vm.Object(`({})`)
