@@ -1,13 +1,14 @@
 
 // The keyword to trigger the command
-var command = "JS.EXAMPLE"
+var command = "JS.ZSET"
 
 // The string array of categories this command belongs to.
 // This array can contain both built-in categories and new custom categories.
-var categories = ["generic", "write", "fast"]
+var categories = ["sortedset", "write", "fast"]
 
 // The description of the command.
-var description = "(JS.EXAMPLE) Example JS command that sets various data types to keys"
+var description = "(JS.ZSET key1 key2 key3 key4) " +
+  "This is an example of working with SugarDB sorted sets in js scripts."
 
 // Whether the command should be synced across the RAFT cluster.
 var sync = true
@@ -23,14 +24,14 @@ var sync = true
  *
  *  2. "args" is a string array of the modifier args that were passed when loading the module into SugarDB.
  *  These args are passed to the key extraction function everytime it's invoked.
-*/
+ */
 function keyExtractionFunc(command, args) {
-  if (command.length > 1) {
-    throw "wrong number of args, expected 0"
+  if (command.length !== 5) {
+    throw "wrong number of args, expected 4."
   }
   return {
-    readKeys: ["key1", "key2"],
-    writeKeys: []
+    "readKeys": [],
+    "writeKeys": [command[1], command[2], command[3], command[4]]
   }
 }
 
@@ -74,26 +75,18 @@ function keyExtractionFunc(command, args) {
  *    handler everytime it's invoked.
  */
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
-  console.log(ctx["protocol"], ctx["database"])
-  console.log(command, typeof command)
-  console.log(keysExist)
-  console.log(getValues)
-  console.log(setValues)
-  console.log(args)
+  var key1 = command[1]
+  var key2 = command[2]
+  var key3 = command[3]
+  var key4 = command[4]
 
-  var exists = keysExist(["key1", "key2", "key3"])
-  console.log(exists["key1"], exists["key2"], exists["key3"])
-
-  var values = getValues(["key1", "key2", "key3"])
-  for (var key in values) {
-    console.log("getValues,", key, values[key])
-  }
-
-  setValues({
-    "key1": 100,
-    "key2": 3.142,
-    "key3": "value2"
-  })
+  var m1 = createZMember({ value: "value1", score: "1.34" })
+  console.log("VALUE: ",  m1.value())
+  console.log("SCORE: ", m1.score())
+  m1.value("updated-value")
+  m1.score(34.783)
+  console.log("VALUE: ",  m1.value())
+  console.log("SCORE: ", m1.score())
 
   return "+OK\r\n"
 }

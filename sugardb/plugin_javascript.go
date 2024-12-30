@@ -23,7 +23,9 @@ import (
 	"github.com/echovault/sugardb/internal/modules/sorted_set"
 	"github.com/robertkrimen/otto"
 	"log"
+	"math"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -47,6 +49,11 @@ func getObjectById(id string) (interface{}, bool) {
 func clearObjectRegistry() {
 	atomic.StoreUint64(&idCounter, 0)
 	objectRegistry.Clear()
+}
+
+func panicError(call otto.FunctionCall, message string) {
+	err, _ := call.Otto.ToValue(message)
+	panic(err)
 }
 
 func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, bool, string, error) {
@@ -76,7 +83,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 			}
 		}
 
-		obj, _ := vm.Object(`({})`)
+		obj, _ := call.Otto.Object(`({})`)
 		_ = obj.Set("__type", "hash")
 		_ = obj.Set("__id", registerObject(h))
 		_ = obj.Set("set", func(call otto.FunctionCall) otto.Value {
@@ -119,7 +126,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 			return length
 		})
 		_ = obj.Set("all", func(call otto.FunctionCall) otto.Value {
-			result, _ := vm.Object(`({})`)
+			result, _ := call.Otto.Object(`({})`)
 			for key, value := range h {
 				v, _ := otto.ToValue(value.Value)
 				_ = result.Set(key, v)
@@ -127,7 +134,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 			return result.Value()
 		})
 		_ = obj.Set("exists", func(call otto.FunctionCall) otto.Value {
-			result, _ := vm.Object(`({})`)
+			result, _ := call.Otto.Object(`({})`)
 			for _, arg := range call.ArgumentList {
 				key, _ := arg.ToString()
 				_, ok := h[key]
@@ -167,7 +174,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 			s.Add(elems)
 		}
 
-		obj, _ := vm.Object(`({})`)
+		obj, _ := call.Otto.Object(`({})`)
 		_ = obj.Set("__type", "set")
 		_ = obj.Set("__id", registerObject(s))
 		_ = obj.Set("add", func(call otto.FunctionCall) otto.Value {
@@ -185,7 +192,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 		_ = obj.Set("pop", func(call otto.FunctionCall) otto.Value {
 			count, _ := call.Argument(0).ToInteger()
 			popped := s.Pop(int(count))
-			result, _ := vm.Object(`([])`)
+			result, _ := call.Otto.Object(`([])`)
 			_ = result.Set("length", len(popped))
 			for i, p := range popped {
 				_ = result.Set(fmt.Sprintf("%d", i), p)
@@ -214,7 +221,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 		})
 		_ = obj.Set("all", func(call otto.FunctionCall) otto.Value {
 			all := s.GetAll()
-			result, _ := vm.Object(`([])`)
+			result, _ := call.Otto.Object(`([])`)
 			_ = result.Set("length", len(all))
 			for i, e := range all {
 				_ = result.Set(fmt.Sprintf("%d", i), e)
@@ -232,25 +239,99 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 			id, _ := arg.Get("__id")
 			o, exists := getObjectById(id.String())
 			if !exists {
-				result, _ := otto.ToValue(false)
-				return result
+				panicError(call, "move target set does not exist")
 			}
 			switch o.(type) {
 			default:
-				result, _ := otto.ToValue(false)
-				return result
+				panicError(call, "move target is not a set")
 			case *set.Set:
 				moved := s.Move(o.(*set.Set), elem) == 1
 				result, _ := otto.ToValue(moved)
 				return result
 			}
+			return otto.NullValue()
 		})
 		// TODO: Implement set subtraction feature
 		// _ = obj.Set("subtract", func(call otto.FunctionCall) otto.Value {})
 		return obj.Value()
 	})
 
-	// TODO: Register sorted set member data type
+	// Register sorted set member data type
+	_ = vm.Set("createZMember", func(call otto.FunctionCall) otto.Value {
+		m := sorted_set.MemberParam{}
+		if len(call.ArgumentList) != 1 {
+			panicError(call, "expected an object with score and value properties")
+		}
+		arg := call.Argument(0).Object()
+		// Get the value
+		value, _ := arg.Get("value")
+		if slices.Contains([]otto.Value{otto.UndefinedValue(), otto.NullValue()}, value) ||
+			len(value.String()) == 0 {
+			panicError(call, "zset member value must be a non-empty string")
+		}
+		m.Value = sorted_set.Value(value.String())
+		// Get the score
+		s, _ := arg.Get("score")
+		if slices.Contains([]otto.Value{otto.UndefinedValue(), otto.NullValue()}, s) {
+			panicError(call, "zset member must have a score")
+		}
+		score, _ := s.ToFloat()
+		if math.IsNaN(score) {
+			panicError(call, "zset member score must be a valid number")
+		}
+		m.Score = sorted_set.Score(score)
+
+		obj, _ := call.Otto.Object(`({})`)
+		_ = obj.Set("__type", "zmember")
+		_ = obj.Set("__id", registerObject(m))
+		_ = obj.Set("value", func(call otto.FunctionCall) otto.Value {
+			switch len(call.ArgumentList) {
+			case 0:
+				// If no value is passed, then return the current value
+				v, _ := otto.ToValue(m.Value)
+				return v
+			case 1:
+				// If a value is passed, then set the value
+				v := call.Argument(0).String()
+				if len(v) <= 0 {
+					panicError(call, "zset member value must be a non-empty string")
+				}
+				m.Value = sorted_set.Value(v)
+			default:
+				panicError(
+					call,
+					fmt.Sprintf(
+						"expected either 0 or 1 args for value method of zmember, got %d",
+						len(call.ArgumentList),
+					),
+				)
+			}
+			return otto.NullValue()
+		})
+		_ = obj.Set("score", func(call otto.FunctionCall) otto.Value {
+			switch len(call.ArgumentList) {
+			case 0:
+				s, _ := otto.ToValue(m.Score)
+				return s
+			case 1:
+				s, _ := call.Argument(0).ToFloat()
+				if math.IsNaN(s) {
+					panicError(call, "zset member score must be a valid number")
+				}
+				m.Score = sorted_set.Score(s)
+			default:
+				panicError(
+					call,
+					fmt.Sprintf(
+						"expected either 0 or 1 args for score method of zmember, got %d",
+						len(call.ArgumentList),
+					),
+				)
+			}
+			return otto.NullValue()
+		})
+		return obj.Value()
+	})
 
 	// TODO: Register sorted set data type
 
