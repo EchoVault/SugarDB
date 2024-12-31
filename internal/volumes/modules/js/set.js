@@ -79,7 +79,7 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   var key3 = command[3]
   var key4 = command[4]
 
-  var set1 = createSet(["a", "b", "c", "d"])
+  var set1 = new Set(["a", "b", "c", "d"])
   var count = set1.add(["d", "e", "f", "g"])
   console.log("SET1 COUNT (ADD): " + count)
   var contained = set1.contains("a")

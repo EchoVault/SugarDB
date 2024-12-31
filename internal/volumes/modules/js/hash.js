@@ -77,7 +77,7 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   var key1 = command[1]
   var key2 = command[2]
 
-  var hash1 = createHash()
+  var hash1 = new Hash()
   var count = hash1.set({"a": "1", "b": "2"})
   console.log("HASH1 COUNT (SET): " + count)
   count = hash1.setnx({"b": "3", "c": "3", "d": "4", "e": "5"})
@@ -99,7 +99,7 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
     console.log("HASH1 (EXISTS): " + key + " " + exists[key])
   }
 
-  var hash2 = createHash({"a": "1", "b": "2", "c": "3"})
+  var hash2 = new Hash({"a": "1", "b": "2", "c": "3"})
 
   setValues({ key1: hash1, key2: hash2, key3: 100, key4: "value4" })
 

@@ -298,7 +298,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 	}
 
 	// Register hash data type
-	_ = vm.Set("createHash", func(call otto.FunctionCall) otto.Value {
+	_ = vm.Set("Hash", func(call otto.FunctionCall) otto.Value {
 		// Initialize hash
 		h := hash.Hash{}
 		// If an object is passed then initialize the default values of the hash
@@ -317,7 +317,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 	})
 
 	// Register set data type
-	_ = vm.Set("createSet", func(call otto.FunctionCall) otto.Value {
+	_ = vm.Set("Set", func(call otto.FunctionCall) otto.Value {
 		// Initialize set
 		s := set.NewSet([]string{})
 		// If an array is passed add the values to the set
@@ -338,7 +338,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 	})
 
 	// Register sorted set member data type
-	_ = vm.Set("createZMember", func(call otto.FunctionCall) otto.Value {
+	_ = vm.Set("ZMember", func(call otto.FunctionCall) otto.Value {
 		obj, _ := call.Otto.Object(`({})`)
 
 		m := &sorted_set.MemberParam{}
@@ -363,7 +363,7 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 	})
 
 	// Register sorted set data type
-	_ = vm.Set("createZSet", func(call otto.FunctionCall) otto.Value {
+	_ = vm.Set("ZSet", func(call otto.FunctionCall) otto.Value {
 		// If default args are passed when initializing sorted set, add them to the member params
 		var params []sorted_set.MemberParam
 		for _, arg := range call.ArgumentList {

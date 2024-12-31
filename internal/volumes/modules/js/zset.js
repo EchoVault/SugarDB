@@ -80,11 +80,15 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   var key3 = command[3]
   var key4 = command[4]
 
-  var m1 = createZMember({ value: "value1", score: "1.34" })
+  var m1 = new ZMember({ value: "value1", score: "1.34" })
   m1.value("updated-value")
   m1.score(34.783)
 
-  var zset = createZSet(m1, createZMember({ value: "value2", score: 2 }), createZMember({ value: "value3", score: 3.142 }))
+  var zset = new ZSet(
+    m1,
+    new ZMember({ value: "value2", score: 2 }),
+    new ZMember({ value: "value3", score: 3.142 }),
+  )
 
   var all = zset.all()
   for (var i = 0; i < all.length; i++) {
