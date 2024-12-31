@@ -81,17 +81,20 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   var key4 = command[4]
 
   var m1 = createZMember({ value: "value1", score: "1.34" })
-  console.log("VALUE: ",  m1.value())
-  console.log("SCORE: ", m1.score())
   m1.value("updated-value")
   m1.score(34.783)
-  console.log("VALUE: ",  m1.value())
-  console.log("SCORE: ", m1.score())
 
-  var hash = createHash({"a": "1", "b": "2", "c": "3"})
+  var zset = createZSet(m1, createZMember({ value: "value2", score: 2 }), createZMember({ value: "value3", score: 3.142 }))
 
-  var zset = createZSet(m1, createZMember({ value: "value2", score: 2 }))
-  console.log(zset)
+  var all = zset.all()
+  for (var i = 0; i < all.length; i++) {
+    console.log("(ALL) VALUE: " + all[i].value() + ", SCORE: " + all[i].score())
+  }
+
+  var random = zset.random(-2)
+  for (var j = 0; j < random.length; j++) {
+    console.log("(RANDOM) VALUE: " + random[j].value() + ", SCORE: " + random[j].score())
+  }
 
   setValues({ key1: zset })
 
