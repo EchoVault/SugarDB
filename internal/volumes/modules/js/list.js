@@ -1,14 +1,13 @@
 
 // The keyword to trigger the command
-var command = "JS.ZSET"
+var command = "JS.LIST"
 
 // The string array of categories this command belongs to.
 // This array can contain both built-in categories and new custom categories.
-var categories = ["sortedset", "write", "fast"]
+var categories = ["list", "write", "fast"]
 
 // The description of the command.
-var description = "(JS.ZSET key1 key2 key3 key4) " +
-  "This is an example of working with SugarDB sorted sets in js scripts."
+var description = "(JS.LIST key1) This is an example of working with SugarDB lists in js scripts."
 
 // Whether the command should be synced across the RAFT cluster.
 var sync = true
@@ -26,12 +25,12 @@ var sync = true
  *  These args are passed to the key extraction function everytime it's invoked.
  */
 function keyExtractionFunc(command, args) {
-  if (command.length !== 5) {
+  if (command.length !== 2) {
     throw "wrong number of args, expected 4."
   }
   return {
     "readKeys": [],
-    "writeKeys": [command[1], command[2], command[3], command[4]]
+    "writeKeys": [command[1]]
   }
 }
 
@@ -76,40 +75,16 @@ function keyExtractionFunc(command, args) {
  */
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   var key1 = command[1]
-  var key2 = command[2]
-  var key3 = command[3]
-  var key4 = command[4]
 
-  var m1 = new ZMember({ value: "value1", score: "1.34" })
-  m1.value("updated-value")
-  m1.score(34.783)
+  var list = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
+  setValues({ key1: list })
 
-  var zset = new ZSet(
-    m1,
-    new ZMember({ value: "value2", score: 2 }),
-    new ZMember({ value: "value3", score: 3.142 }),
-  )
-
-  var all = zset.all()
-  for (var i = 0; i < all.length; i++) {
-    console.log("(ALL) VALUE: " + all[i].value() + ", SCORE: " + all[i].score())
+  var value = getValues([key1])[key1]
+  if (!Array.isArray(value)){
+    throw key1 + " is not an array"
   }
-
-  var random = zset.random(-2)
-  for (var j = 0; j < random.length; j++) {
-    console.log("(RANDOM) VALUE: " + random[j].value() + ", SCORE: " + random[j].score())
-  }
-
-  var m2 = new ZMember({ value: "value4", score: 56.12 })
-  zset.add([m2])
-
-  setValues({ key1: zset })
-
-  var zsetVal = getValues([key1])[key1]
-  console.log(zsetVal["__type"])
-
-  var obj = {"msg": "This is a message"}
-  setValues({ key1: obj })
+  var str = value.join(",")
+  console.log("VALUE: ", str)
 
   return "+OK\r\n"
 }
