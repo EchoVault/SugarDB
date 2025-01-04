@@ -714,6 +714,11 @@ func handleRandomKey(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("+%v\r\n", key)), nil
 }
 
+func handleDBSize(params internal.HandlerFuncParams) ([]byte, error) {
+	count := params.DBSize(params.Context)
+	return []byte(fmt.Sprintf(":%d\r\n", count)), nil
+}
+
 func handleGetdel(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := getDelKeyFunc(params.Command)
 	if err != nil {
@@ -1284,6 +1289,16 @@ Delete all the keys in the currently selected database. This command is always s
 			Type:              "BUILT_IN",
 			KeyExtractionFunc: randomKeyFunc,
 			HandlerFunc:       handleRandomKey,
+		},
+		{
+			Command:           "dbsize",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
+			Description:       "(DBSIZE) Return the number of keys in the currently selected database.",
+			Sync:              false,
+			Type:              "BUILT_IN",
+			KeyExtractionFunc: dbSizeKeyFunc,
+			HandlerFunc:       handleDBSize,
 		},
 		{
 			Command:           "getdel",
