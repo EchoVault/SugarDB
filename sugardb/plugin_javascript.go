@@ -24,6 +24,7 @@ import (
 	"github.com/robertkrimen/otto"
 	"math"
 	"os"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
@@ -134,12 +135,12 @@ func generateJSCommandInfo(path string) (*otto.Otto, string, []string, string, b
 		var params []sorted_set.MemberParam
 		for _, arg := range call.ArgumentList {
 			if !arg.IsObject() {
-				panicWithFunctionCall(call, "createZSet args must be sorted set members")
+				panicWithFunctionCall(call, "zset constructor args must be sorted set members")
 			}
 			id, _ := arg.Object().Get("__id")
 			o, exists := getObjectById(id.String())
 			if !exists {
-				panicWithFunctionCall(call, "unknown object passed to createZSet function")
+				panicWithFunctionCall(call, "unknown object passed to zset constructor")
 			}
 			p, ok := o.(*sorted_set.MemberParam)
 			if !ok {
@@ -309,7 +310,9 @@ func (server *SugarDB) jsHandlerFunc(command string, args []string, params inter
 			for key, value := range values {
 				switch value.(type) {
 				default:
-					_ = obj.Set(key, values)
+					_ = obj.Set(key, value)
+				case nil:
+					_ = obj.Set(key, otto.NullValue())
 				case []string:
 					l, _ := vm.Object(`([])`)
 					for i, elem := range value.([]string) {
@@ -339,9 +342,15 @@ func (server *SugarDB) jsHandlerFunc(command string, args []string, params inter
 			for key, entry := range entries {
 				switch entry.(type) {
 				default:
-					panicInHandler(fmt.Sprintf("unknown type on key %s", key))
+					panicInHandler(fmt.Sprintf("unknown type %s on key %s", reflect.TypeOf(entry).String(), key))
+				case nil:
+					values[key] = nil
 				case string:
 					values[key] = internal.AdaptType(entry.(string))
+				case int64:
+					values[key] = int(entry.(int64))
+				case float64:
+					values[key] = entry.(float64)
 				case []string:
 					values[key] = entry.([]string)
 				case map[string]interface{}:
@@ -427,7 +436,7 @@ func buildHashObject(obj *otto.Object, h hash.Hash) {
 		}
 		return result.Value()
 	})
-	_ = obj.Set("length", func(call otto.FunctionCall) otto.Value {
+	_ = obj.Set("len", func(call otto.FunctionCall) otto.Value {
 		length, _ := otto.ToValue(len(h))
 		return length
 	})
@@ -449,7 +458,7 @@ func buildHashObject(obj *otto.Object, h hash.Hash) {
 		}
 		return result.Value()
 	})
-	_ = obj.Set("delete", func(call otto.FunctionCall) otto.Value {
+	_ = obj.Set("del", func(call otto.FunctionCall) otto.Value {
 		count := 0
 		for _, arg := range call.ArgumentList {
 			key, _ := arg.ToString()
@@ -468,6 +477,9 @@ func buildSetObject(obj *otto.Object, s *set.Set) {
 	_ = obj.Set("__id", registerObject(s))
 	_ = obj.Set("add", func(call otto.FunctionCall) otto.Value {
 		args := call.Argument(0).Object()
+		if args == nil {
+			panicWithFunctionCall(call, "set add method argument not an object")
+		}
 		var elems []string
 		for _, key := range args.Keys() {
 			value, _ := args.Get(key)
@@ -499,6 +511,9 @@ func buildSetObject(obj *otto.Object, s *set.Set) {
 	})
 	_ = obj.Set("remove", func(call otto.FunctionCall) otto.Value {
 		args := call.Argument(0).Object()
+		if args == nil {
+			panicWithFunctionCall(call, "set remove method argument not an object")
+		}
 		var elems []string
 		for _, key := range args.Keys() {
 			value, _ := args.Get(key)
@@ -519,8 +534,13 @@ func buildSetObject(obj *otto.Object, s *set.Set) {
 	})
 	_ = obj.Set("random", func(call otto.FunctionCall) otto.Value {
 		count, _ := call.Argument(0).ToInteger()
-		result, _ := otto.ToValue(s.GetRandom(int(count)))
-		return result
+		random := s.GetRandom(int(count))
+		result, _ := call.Otto.Object(`([])`)
+		_ = result.Set("length", len(random))
+		for i, r := range random {
+			_ = result.Set(fmt.Sprintf("%d", i), r)
+		}
+		return result.Value()
 	})
 	_ = obj.Set("move", func(call otto.FunctionCall) otto.Value {
 		arg := call.Argument(0).Object()

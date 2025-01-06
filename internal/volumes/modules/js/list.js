@@ -7,7 +7,7 @@ var command = "JS.LIST"
 var categories = ["list", "write", "fast"]
 
 // The description of the command.
-var description = "(JS.LIST key1) This is an example of working with SugarDB lists in js scripts."
+var description = "(JS.LIST key) This is an example of working with SugarDB lists in js scripts."
 
 // Whether the command should be synced across the RAFT cluster.
 var sync = true
@@ -74,17 +74,55 @@ function keyExtractionFunc(command, args) {
  *    handler everytime it's invoked.
  */
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
-  var key1 = command[1]
-
-  var list = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
-  setValues({ key1: list })
-
-  var value = getValues([key1])[key1]
-  if (!Array.isArray(value)){
-    throw key1 + " is not an array"
+  // Helper function to compare lists
+  function compareLists(expected, actual) {
+    if (expected.length !== actual.length) {
+      return {
+        isValid: false,
+        errorMessage: "Length mismatch: expected " + expected.length + ", got " + actual.length
+      };
+    }
+    for (var i = 0; i < expected.length; i++) {
+      if (expected[i] !== actual[i]) {
+        return {
+          isValid: false,
+          errorMessage: "Mismatch at index " + (i + 1) + ": expected " + expected[i] + ", got " + actual[i]
+        };
+      }
+    }
+    return { isValid: true };
   }
-  var str = value.join(",")
-  console.log("VALUE: ", str)
 
-  return "+OK\r\n"
+  var key = command[1]; // Adjusted for JavaScript's 0-based indexing
+
+  // First list to set
+  var initialList = ["apple", "banana", "cherry"];
+  var setVals = {}
+  setVals[key] = initialList
+  setValues(setVals);
+
+  // Retrieve and verify the first list
+  var retrievedValues = getValues([key]);
+  var retrievedList = retrievedValues[key];
+  var result = compareLists(initialList, retrievedList);
+  if (!result.isValid) {
+    throw new Error(result.errorMessage);
+  }
+
+  // Update the list with new values
+  var updatedList = ["orange", "grape", "watermelon"];
+  setVals = {}
+  setVals[key] = updatedList
+  setValues(setVals);
+
+  // Retrieve and verify the updated list
+  retrievedValues = getValues([key]);
+  retrievedList = retrievedValues[key];
+  result = compareLists(updatedList, retrievedList);
+  if (!result.isValid) {
+    throw result.errorMessage;
+  }
+
+  // If all assertions pass
+  return "+OK\r\n";
 }

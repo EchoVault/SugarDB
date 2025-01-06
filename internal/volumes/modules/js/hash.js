@@ -7,7 +7,7 @@ var command = "JS.HASH"
 var categories = ["hash", "write", "fast"]
 
 // The description of the command.
-var description = "(JS.HASH) This is an example of working with SugarDB hashes/maps in js scripts."
+var description = "(JS.HASH key) This is an example of working with SugarDB hashes/maps in js scripts."
 
 // Whether the command should be synced across the RAFT cluster.
 var sync = true
@@ -25,12 +25,12 @@ var sync = true
  *  These args are passed to the key extraction function everytime it's invoked.
  */
 function keyExtractionFunc(command, args) {
-  if (command.length !== 3) {
-    throw "wrong number of args, expected 2."
+  if (command.length !== 2) {
+    throw "wrong number of args, expected 1."
   }
   return {
     "readKeys": [],
-    "writeKeys": [command[1], command[2]]
+    "writeKeys": [command[1]]
   }
 }
 
@@ -74,34 +74,63 @@ function keyExtractionFunc(command, args) {
  *    handler everytime it's invoked.
  */
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
-  var key1 = command[1]
-  var key2 = command[2]
+  // Initialize a new hash
+  var h = new Hash();
 
-  var hash1 = new Hash()
-  var count = hash1.set({"a": "1", "b": "2"})
-  console.log("HASH1 COUNT (SET): " + count)
-  count = hash1.setnx({"b": "3", "c": "3", "d": "4", "e": "5"})
-  console.log("HASH1 COUNT (SETNX): " + count)
-  var values = hash1.get("a", "b", "c")
-  for (var key in values) {
-    console.log("HASH1 (GET): " + key + " " + values[key])
-  }
-  var length = hash1.length()
-  console.log("HASH1 (LENGTH): " + length)
-  count = hash1.delete("a", "b", "x", "y", "z")
-  console.log("HASH1 COUNT (DELETE): " + count)
-  values = hash1.all()
-  for (var key in values) {
-    console.log("HASH1 (ALL): " + key + " " + values[key])
-  }
-  var exists = hash1.exists("a", "b", "c", "d", "e")
-  for (var key in exists) {
-    console.log("HASH1 (EXISTS): " + key + " " + exists[key])
-  }
+  // Set values in the hash
+  h.set({
+    "field1": "value1",
+    "field2": "value2",
+    "field3": "value3",
+    "field4": "value4"
+  });
 
-  var hash2 = new Hash({"a": "1", "b": "2", "c": "3"})
+  // Set hash in the store
+  var setVals = {}
+  setVals[command[1]] = h
+  setValues(setVals);
 
-  setValues({ key1: hash1, key2: hash2, key3: 100, key4: "value4" })
+  // Check that the fields were correctly set in the database
+  var hashValue = getValues([command[1]])[command[1]];
+  console.assert(hashValue.get(["field1"]).field1 === "value1", "field1 not set correctly");
+  console.assert(hashValue.get(["field2"]).field2 === "value2", "field2 not set correctly");
+  console.assert(hashValue.get(["field3"]).field3 === "value3", "field3 not set correctly");
+  console.assert(hashValue.get(["field4"]).field4 === "value4", "field4 not set correctly");
 
-  return "+OK\r\n"
+  // Test get method
+  var retrieved = h.get(["field1", "field2"]);
+  console.assert(retrieved.field1 === "value1", "get method failed for field1");
+  console.assert(retrieved.field2 === "value2", "get method failed for field2");
+
+  // Test exists method
+  var exists = h.exists(["field1", "fieldX"]);
+  console.assert(exists.field1 === true, "exists method failed for field1");
+  console.assert(exists.fieldX === false, "exists method failed for fieldX");
+
+  // Test setnx method
+  var setnxCount = h.setnx([
+    { "field1": "new_value1" }, // Should not overwrite
+    { "field5": "value5" }      // Should set
+  ]);
+  console.assert(setnxCount === 1, "setnx did not set the correct number of fields");
+  console.assert(h.get(["field1"]).field1 === "value1", "setnx overwrote field1");
+  console.assert(h.get(["field5"]).field5 === "value5", "setnx failed to set field5");
+
+  // Test del method
+  var delCount = h.del(["field2", "field3"]);
+  console.assert(delCount === 2, "del did not delete the correct number of fields");
+  console.assert(h.exists(["field2"]).field2 === false, "del failed to delete field2");
+  console.assert(h.exists(["field3"]).field3 === false, "del failed to delete field3");
+
+  // Test len method
+  console.assert(h.len() === 3, "len method returned incorrect value");
+
+  // Retrieve and verify all remaining fields
+  var remainingFields = h.all();
+  console.assert(remainingFields.field1 === "value1", "field1 missing after deletion");
+  console.assert(remainingFields.field4 === "value4", "field4 missing after deletion");
+  console.assert(remainingFields.field5 === "value5", "field5 missing after deletion");
+
+  // Return RESP response
+  return "+OK\r\n";
 }

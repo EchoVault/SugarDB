@@ -7,7 +7,8 @@ var command = "JS.SET"
 var categories = ["set", "write", "fast"]
 
 // The description of the command.
-var description = "(JS.SET key1 key2 key3 key4) This is an example of working with SugarDB sets in js scripts."
+var description = "(JS.SET key member [member ...]]) " +
+  "This is an example of working with SugarDB sets in js scripts."
 
 // Whether the command should be synced across the RAFT cluster.
 var sync = true
@@ -25,13 +26,15 @@ var sync = true
  *  These args are passed to the key extraction function everytime it's invoked.
  */
 function keyExtractionFunc(command, args) {
-  if (command.length !== 5) {
-    throw "wrong number of args, expected 4."
+  // Check the length of the command array
+  if (command.length < 4) {
+    throw new Error("wrong number of args, expected 3");
   }
+  // Return the result object
   return {
-    "readKeys": [],
-    "writeKeys": [command[1], command[2], command[3], command[4]]
-  }
+    readKeys: [],
+    writeKeys: [command[1], command[2], command[3]]
+  };
 }
 
 /**
@@ -74,27 +77,110 @@ function keyExtractionFunc(command, args) {
  *    handler everytime it's invoked.
  */
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
-  var key1 = command[1]
-  var key2 = command[2]
-  var key3 = command[3]
-  var key4 = command[4]
+  // Ensure there are enough arguments
+  if (command.length < 4) {
+    throw new Error("wrong number of arguments, expected at least 3");
+  }
 
-  var set1 = new Set(["a", "b", "c", "d"])
-  var count = set1.add(["d", "e", "f", "g"])
-  console.log("SET1 COUNT (ADD): " + count)
-  var contained = set1.contains("a")
-  console.log("SET1 CONTAINS 'a': " + contained)
-  contained = set1.contains("x")
-  console.log("SET1 CONTAINS 'x': " + contained)
-  var cardinality = set1.cardinality()
-  console.log("SET1 CARDINALITY: " + cardinality)
-  var removed = set1.remove(["a", "b", "z", "x"])
-  console.log("SET1 REMOVED: " + removed)
-  console.log("SET1 ALL: " + JSON.stringify(set1.all()))
-  var popped = set1.pop(3)
-  console.log("SET1 POPPED (POP): " + JSON.stringify(popped))
+  // Extract the keys
+  var key1 = command[1];
+  var key2 = command[2];
+  var key3 = command[3];
 
-  setValues({ key1: set1 })
+  // Create two sets for testing `move` and `subtract`
+  var set1 = new Set(["elem1", "elem2", "elem3"]);
+  var set2 = new Set(["elem4", "elem5"]);
 
-  return "+OK\r\n"
+  // Add elements to set1
+  set1.add(["elem6", "elem7"]);
+
+  // Check if an element exists in set1
+  var containsElem1 = set1.contains("elem1");
+  console.assert(containsElem1, "set1 does not contain expected element elem1")
+  var containsElemUnknown = set1.contains("unknown");
+  console.assert(!containsElemUnknown, "set1 contains unknown element")
+
+  // Get the size of set1
+  var set1Cardinality = set1.cardinality();
+  console.assert(set1Cardinality, "set1 cardinality expected 3, got " + set1Cardinality)
+
+  // Remove elements from set1
+  set1.remove(["elem1", "elem2"]);
+  var removedCount = 2; // Manually track removed count
+
+  // Pop elements from set1
+  set1.add(["elem1", "elem2"]);
+  var poppedElements = set1.pop(2);
+  console.assert(
+    poppedElements.length === 2,
+    "popped elements length must be 2, got " + poppedElements.length
+  )
+
+  // Get random elements from set1
+  var randomElements = set1.random(2);
+  console.assert(
+    randomElements.length === 2,
+    "random elements length must be 2, got " + randomElements.length
+  )
+
+
+  // Retrieve all elements from set1
+  var allElements = set1.all();
+  console.assert(
+    allElements.length === set1.cardinality(),
+    "all elements length must be " + set1.cardinality() + ", got " + allElements.length
+  )
+
+  // Move an element from set1 to set2
+  set1.add(["elem3"])
+  var moveSuccess = false;
+  if (set1.contains("elem3")) {
+    moveSuccess = set1.move(set2, "elem3");
+  }
+  console.assert(moveSuccess, "element not moved from set1 to set2")
+
+  // Verify that the element was moved
+  var set2ContainsMoved = set2.contains("elem3");
+  console.assert(set2ContainsMoved, "set2 does not contain expected element after move")
+  var set1NoLongerContainsMoved = !set1.contains("elem3");
+  console.assert(set1NoLongerContainsMoved, "set1 still contains unexpected element after move")
+
+  // Subtract set2 from set1
+  function subtractSets(setA, setB) {
+    var resultSet = new Set();
+    setA.all().forEach(function (elem) {
+      if (!setB.contains(elem)) {
+        resultSet.add([elem]);
+      }
+    });
+    return resultSet;
+  }
+  var resultSet = subtractSets(set1, set2);
+
+  // Store the modified sets
+  var setVals = {}
+  setVals[key1] = set1
+  setVals[key2] = set2
+  setVals[key3] = resultSet
+  setValues(setVals);
+
+  // Retrieve the sets back to verify storage
+  var storedValues = getValues([key1, key2, key3]);
+  var storedSet1 = storedValues[key1];
+  var storedSet2 = storedValues[key2];
+  var storedResultSet = storedValues[key3];
+
+  // Perform additional checks to ensure consistency
+  if (!storedSet1 || storedSet1.size !== set1.size) {
+    throw "Stored set1 does not match the modified set1";
+  }
+  if (!storedSet2 || storedSet2.size !== set2.size) {
+    throw "Stored set2 does not match the modified set2";
+  }
+  if (!storedResultSet || storedResultSet.size !== resultSet.size) {
+    throw "Stored result set does not match the computed result set";
+  }
+
+  // If all operations succeed, return "OK"
+  return "+OK\r\n";
 }

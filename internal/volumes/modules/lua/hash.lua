@@ -28,9 +28,6 @@ Example return: {["readKeys"] = {"key1", "key2"}, ["writeKeys"] = {"key3", "key4
    These args are passed to the key extraction function everytime it's invoked.
 ]]
 function keyExtractionFunc (command, args)
-  for k,v in pairs(args) do
-    print(k, v)
-  end
   if (#command < 2) then
     error("wrong number of args, expected 1")
   end

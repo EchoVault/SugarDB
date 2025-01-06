@@ -29,7 +29,7 @@ function keyExtractionFunc(command, args) {
     throw "wrong number of args, expected 0"
   }
   return {
-    readKeys: ["key1", "key2"],
+    readKeys: [],
     writeKeys: []
   }
 }
@@ -74,26 +74,40 @@ function keyExtractionFunc(command, args) {
  *    handler everytime it's invoked.
  */
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
-  console.log(ctx["protocol"], ctx["database"])
-  console.log(command, typeof command)
-  console.log(keysExist)
-  console.log(getValues)
-  console.log(setValues)
-  console.log(args)
-
-  var exists = keysExist(["key1", "key2", "key3"])
-  console.log(exists["key1"], exists["key2"], exists["key3"])
-
-  var values = getValues(["key1", "key2", "key3"])
-  for (var key in values) {
-    console.log("getValues,", key, values[key])
+  // Set various data types to keys
+  var keyValues = {
+    "numberKey": 42,
+    "stringKey": "Hello, SugarDB!",
+    "floatKey": 3.142,
+    "nilKey": null,
   }
 
-  setValues({
-    "key1": 100,
-    "key2": 3.142,
-    "key3": "value2"
-  })
+  // Store the values in the database
+  setValues(keyValues)
 
+  // Verify the values have been set correctly
+  var keysToGet = ["numberKey", "stringKey", "floatKey", "nilKey"]
+  var retrievedValues = getValues(keysToGet)
+
+  // Create an array to track mismatches
+  var mismatches = [];
+  for (var key in keyValues) {
+    if (Object.prototype.hasOwnProperty.call(keyValues, key)) {
+      var expectedValue = keyValues[key];
+      var retrievedValue = retrievedValues[key];
+      if (retrievedValue !== expectedValue) {
+        var msg = "Key " + key + ": expected " + expectedValue + ", got " + retrievedValue
+        mismatches.push(msg);
+        console.log(msg)
+      }
+    }
+  }
+
+  // If mismatches exist, return an error
+  if (mismatches.length > 0) {
+    throw "values mismatch"
+  }
+
+  // If all values match, return OK
   return "+OK\r\n"
 }

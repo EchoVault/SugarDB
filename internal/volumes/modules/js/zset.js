@@ -7,7 +7,7 @@ var command = "JS.ZSET"
 var categories = ["sortedset", "write", "fast"]
 
 // The description of the command.
-var description = "(JS.ZSET key1 key2 key3 key4) " +
+var description = "(JS.ZSET key member score [member score ...]) " +
   "This is an example of working with SugarDB sorted sets in js scripts."
 
 // Whether the command should be synced across the RAFT cluster.
@@ -26,13 +26,13 @@ var sync = true
  *  These args are passed to the key extraction function everytime it's invoked.
  */
 function keyExtractionFunc(command, args) {
-  if (command.length !== 5) {
-    throw "wrong number of args, expected 4."
+  if (command.length < 4) {
+    throw "wrong number of args, expected 3 or more";
   }
   return {
-    "readKeys": [],
-    "writeKeys": [command[1], command[2], command[3], command[4]]
-  }
+    readKeys: [],
+    writeKeys: [command[1], command[2], command[3]]
+  };
 }
 
 /**
@@ -75,41 +75,76 @@ function keyExtractionFunc(command, args) {
  *    handler everytime it's invoked.
  */
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
-  var key1 = command[1]
-  var key2 = command[2]
-  var key3 = command[3]
-  var key4 = command[4]
-
-  var m1 = new ZMember({ value: "value1", score: "1.34" })
-  m1.value("updated-value")
-  m1.score(34.783)
-
-  var zset = new ZSet(
-    m1,
-    new ZMember({ value: "value2", score: 2 }),
-    new ZMember({ value: "value3", score: 3.142 }),
-  )
-
-  var all = zset.all()
-  for (var i = 0; i < all.length; i++) {
-    console.log("(ALL) VALUE: " + all[i].value() + ", SCORE: " + all[i].score())
+  // Ensure there are enough arguments
+  if (command.length < 4) {
+    throw new Error("wrong number of arguments, expected at least 3");
   }
 
-  var random = zset.random(-2)
-  for (var j = 0; j < random.length; j++) {
-    console.log("(RANDOM) VALUE: " + random[j].value() + ", SCORE: " + random[j].score())
+  var key1 = command[1];
+  var key2 = command[2];
+  var key3 = command[3];
+
+  // Create `ZMember` instances
+  var member1 = new ZMember({ value: "member1", score: 10 });
+  var member2 = new ZMember({ value: "member2", score: 20 });
+  var member3 = new ZMember({ value: "member3", score: 30 });
+
+  // Create a `ZSet` and add initial members
+  var zset1 = new ZSet(member1, member2);
+
+  // Test `add` method with a new member
+  zset1.add([member3]);
+
+  // Test `update` method by modifying an existing member
+  zset1.update([new ZMember({ value: "member1", score: 15 })]);
+
+  // Test `remove` method
+  zset1.remove("member2");
+
+  // Test `cardinality` method
+  var zset1Cardinality = zset1.cardinality();
+
+  // Test `contains` method
+  var containsMember3 = zset1.contains("member3");
+  var containsNonExistent = zset1.contains("nonexistent");
+
+  // Test `random` method
+  var randomMembers = zset1.random(2);
+
+  // Test `all` method
+  var allMembers = zset1.all();
+
+  // Create another `ZSet` to test `subtract` manually
+  var zset2 = new ZSet(new ZMember({ value: "member3", score: 30 }));
+
+  // Store the `ZSet` objects in SugarDB
+  var setVals = {}
+  setVals[key1] = zset1
+  setVals[key2] = zset2
+  setValues(setVals);
+
+  // Retrieve the stored `ZSet` objects to verify storage
+  var storedValues = getValues([key1, key2, key3]);
+  var storedZset1 = storedValues[key1];
+  var storedZset2 = storedValues[key2];
+
+  // Perform consistency checks
+  if (!storedZset1 || storedZset1.cardinality() !== zset1.cardinality()) {
+    throw "Stored zset1 does not match the modified zset1";
+  }
+  if (!storedZset2 || storedZset2.cardinality() !== zset2.cardinality()) {
+    throw "Stored zset2 does not match the modified zset2";
   }
 
-  var m2 = new ZMember({ value: "value4", score: 56.12 })
-  zset.add([m2])
+  // Test `ZMember` methods
+  var memberValue = member1.value();
+  member1.value("updated_member1");
+  var updatedValue = member1.value();
 
-  setValues({ key1: zset })
+  var memberScore = member1.score();
+  member1.score(50);
+  var updatedScore = member1.score();
 
-  var zsetVal = getValues([key1])[key1]
-  console.log(zsetVal["__type"])
-
-  var obj = {"msg": "This is a message"}
-  setValues({ key1: obj })
-
-  return "+OK\r\n"
+  // Return an "OK" response
+  return "+OK\r\n";
 }
