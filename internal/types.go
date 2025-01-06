@@ -196,6 +196,8 @@ type HandlerFuncParams struct {
 	Flush func(database int)
 	// RandomKey returns a random key
 	RandomKey func(ctx context.Context) string
+	// DBSize returns the number of keys in the currently selected database.
+	DBSize func(ctx context.Context) int
 	// (TOUCH key [key ...]) Alters the last access time or access count of the key(s)
 	// depending on whether LFU or LRU strategy was used.
 	// A key is ignored if it does not exist.

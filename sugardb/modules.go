@@ -18,12 +18,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/clock"
-	"github.com/echovault/sugardb/internal/constants"
 	"io"
 	"net"
 	"strings"
+
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/clock"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 func (server *SugarDB) getCommand(cmd string) (internal.Command, error) {
@@ -61,6 +62,7 @@ func (server *SugarDB) getHandlerFuncParams(ctx context.Context, cmd []string, c
 		GetClock:              server.getClock,
 		Flush:                 server.Flush,
 		RandomKey:             server.randomKey,
+		DBSize:                server.dbSize,
 		TouchKey:              server.updateKeysInCache,
 		GetObjectFrequency:    server.getObjectFreq,
 		GetObjectIdleTime:     server.getObjectIdleTime,

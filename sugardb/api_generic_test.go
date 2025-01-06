@@ -1410,6 +1410,37 @@ func TestSugarDB_RANDOMKEY(t *testing.T) {
 
 }
 
+func TestSugarDB_DBSize(t *testing.T) {
+	server := createSugarDB()
+	got, err := server.DBSize()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if got != 0 {
+		t.Errorf("DBSIZE error, expected 0, got %d", got)
+	}
+
+	// test with keys
+	testkeys := []string{"1", "2", "3"}
+	for _, k := range testkeys {
+		err := presetValue(server, context.Background(), k, "")
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	}
+
+	got, err = server.DBSize()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if got != len(testkeys) {
+		t.Errorf("DBSIZE error, expected %d, got %d", len(testkeys), got)
+	}
+}
+
 func TestSugarDB_GETDEL(t *testing.T) {
 	server := createSugarDB()
 
