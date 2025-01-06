@@ -209,6 +209,7 @@ Benchmark script options:
 * [DECR](https://sugardb.io/docs/commands/generic/decr)
 * [DECRBY](https://sugardb.io/docs/commands/generic/decrby)
 * [DEL](https://sugardb.io/docs/commands/generic/del)
+* [EXISTS](https://sugardb.io/docs/commands/generic/exists)
 * [EXPIRE](https://sugardb.io/docs/commands/generic/expire)
 * [EXPIRETIME](https://sugardb.io/docs/commands/generic/expiretime)
 * [FLUSHALL](https://sugardb.io/docs/commands/generic/flushall)

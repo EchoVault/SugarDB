@@ -2391,6 +2391,118 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
+	t.Run("Test_HandleEXISTS", func(t *testing.T) {
+		t.Parallel()
+
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			presetKeys       map[string]string
+			checkKeys        []string
+			expectedResponse int
+		}{
+			{
+				name:             "1. Key doesn't exist",
+				presetKeys:       map[string]string{},
+				checkKeys:        []string{"nonExistentKey"},
+				expectedResponse: 0,
+			},
+			{
+				name:             "2. Key exists",
+				presetKeys:       map[string]string{"existentKey": "value"},
+				checkKeys:        []string{"existentKey"},
+				expectedResponse: 1,
+			},
+			{
+				name: "3. All keys exist",
+				presetKeys: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
+				},
+				checkKeys:        []string{"key1", "key2", "key3"},
+				expectedResponse: 3,
+			},
+			{
+				name: "4. Only some keys exist",
+				presetKeys: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				},
+				checkKeys:        []string{"key1", "key2", "nonExistentKey"},
+				expectedResponse: 2,
+			},
+			{
+				name: "5. All keys exist with duplicates",
+				presetKeys: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
+				},
+				checkKeys:        []string{"key1", "key2", "key3", "key1", "key2"},
+				expectedResponse: 3,
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				// Preset keys
+				for key, value := range test.presetKeys {
+					command := []resp.Value{resp.StringValue("SET"), resp.StringValue(key), resp.StringValue(value)}
+					if err = client.WriteArray(command); err != nil {
+						t.Error(err)
+						return
+					}
+					res, _, err := client.ReadValue()
+					if err != nil {
+						t.Error(err)
+						return
+					}
+					if !strings.EqualFold(res.String(), "OK") {
+						t.Errorf("expected preset response to be OK, got %s", res.String())
+						return
+					}
+				}
+
+				// Check EXISTS command
+				existsCommand := []resp.Value{resp.StringValue("EXISTS")}
+				for _, key := range test.checkKeys {
+					existsCommand = append(existsCommand, resp.StringValue(key))
+				}
+
+				if err = client.WriteArray(existsCommand); err != nil {
+					t.Error(err)
+					return
+				}
+
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+
+				actualCount, err := strconv.Atoi(res.String())
+				if err != nil {
+					t.Errorf("error parsing response to int: %s", err)
+					return
+				}
+
+				if actualCount != test.expectedResponse {
+					t.Errorf("expected %d existing keys, got %d", test.expectedResponse, actualCount)
+				}
+			})
+		}
+	})
+
 	t.Run("Test_HandlerDECRBY", func(t *testing.T) {
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
