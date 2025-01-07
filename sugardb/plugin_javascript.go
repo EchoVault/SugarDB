@@ -563,7 +563,32 @@ func buildSetObject(obj *otto.Object, s *set.Set) {
 	_ = obj.Set("subtract", func(call otto.FunctionCall) otto.Value {
 		extractSets := func(call otto.FunctionCall) ([]*set.Set, error) {
 			var sets []*set.Set
-			// TODO: Extract sets from the arguments
+			if len(call.ArgumentList) > 1 {
+				return sets, fmt.Errorf("set subtract method expects 1 arg, got %d", len(call.ArgumentList))
+			}
+			arg1 := call.Argument(0).Object()
+			if arg1.Class() != "Array" {
+				return sets, errors.New("set subtract method expects the first argument to be an array")
+			}
+			for _, key := range arg1.Keys() {
+				// Check if the array element is a valid MemberParam type.
+				argMember, _ := arg1.Get(key)
+				if !argMember.IsObject() {
+					panicWithFunctionCall(call, "set subtract method first arg must be an array of valid sets")
+				}
+				// Get the member param from the object registry
+				argMemberObj := argMember.Object()
+				id, _ := argMemberObj.Get("__id")
+				o, exists := getObjectById(id.String())
+				if !exists {
+					panicWithFunctionCall(call, "set subtract method first arg must be an array of valid sets")
+				}
+				m, ok := o.(*set.Set)
+				if !ok {
+					panicWithFunctionCall(call, "set subtract method first arg must be an array of valid sets")
+				}
+				sets = append(sets, m)
+			}
 			return sets, nil
 		}
 		sets, err := extractSets(call)
@@ -833,7 +858,32 @@ func buildSortedSetObject(obj *otto.Object, ss *sorted_set.SortedSet) {
 	_ = obj.Set("subtract", func(call otto.FunctionCall) otto.Value {
 		extractZSets := func(call otto.FunctionCall) ([]*sorted_set.SortedSet, error) {
 			var zsets []*sorted_set.SortedSet
-			// TODO: Extract zsets from function args
+			if len(call.ArgumentList) > 1 {
+				return zsets, fmt.Errorf("zset subtract method expects 1 arg, got %d", len(call.ArgumentList))
+			}
+			arg1 := call.Argument(0).Object()
+			if arg1.Class() != "Array" {
+				return zsets, errors.New("zset subtract method expects the first argument to be an array")
+			}
+			for _, key := range arg1.Keys() {
+				// Check if the array element is a valid MemberParam type.
+				argMember, _ := arg1.Get(key)
+				if !argMember.IsObject() {
+					panicWithFunctionCall(call, "zset subtract method first arg must be an array of valid zsets")
+				}
+				// Get the member param from the object registry
+				argMemberObj := argMember.Object()
+				id, _ := argMemberObj.Get("__id")
+				o, exists := getObjectById(id.String())
+				if !exists {
+					panicWithFunctionCall(call, "zset subtract method first arg must be an array of valid zsets")
+				}
+				m, ok := o.(*sorted_set.SortedSet)
+				if !ok {
+					panicWithFunctionCall(call, "zset subtract method first arg must be an array of valid zsets")
+				}
+				zsets = append(zsets, m)
+			}
 			return zsets, nil
 		}
 		zsets, err := extractZSets(call)

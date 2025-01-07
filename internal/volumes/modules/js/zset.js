@@ -81,8 +81,8 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   }
 
   var key1 = command[1];
-  var key2 = command[2];
-  var key3 = command[3];
+  var key2 = "key2";
+  var key3 = "key3";
 
   // Create `ZMember` instances
   var member1 = new ZMember({ value: "member1", score: 10 });
@@ -103,30 +103,45 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
 
   // Test `cardinality` method
   var zset1Cardinality = zset1.cardinality();
+  console.assert(zset1Cardinality === 2, "zset1 expected cardinality is 2, got " + zset1Cardinality)
 
   // Test `contains` method
   var containsMember3 = zset1.contains("member3");
+  console.assert(containsMember3, "zset1 does not contain expected member member3")
   var containsNonExistent = zset1.contains("nonexistent");
+  console.assert(!containsNonExistent, "zset1 contains unexpected element 'nonexistent'")
 
   // Test `random` method
   var randomMembers = zset1.random(2);
+  console.assert(
+    randomMembers.length === 2,
+    "zset1 random members result should be length 2, got " + randomMembers.length
+  )
 
   // Test `all` method
   var allMembers = zset1.all();
+  console.assert(
+    allMembers.length === zset1.cardinality(),
+    "zset1 'all' did not return expected cardinality of " + zset1.cardinality + ", got " + allMembers.length
+  )
 
   // Create another `ZSet` to test `subtract` manually
   var zset2 = new ZSet(new ZMember({ value: "member3", score: 30 }));
+  // Subtract the zset2 from zset1
+  var resultZSet = zset1.subtract([zset2])
 
   // Store the `ZSet` objects in SugarDB
   var setVals = {}
   setVals[key1] = zset1
   setVals[key2] = zset2
+  setVals[key3] = resultZSet
   setValues(setVals);
 
   // Retrieve the stored `ZSet` objects to verify storage
   var storedValues = getValues([key1, key2, key3]);
   var storedZset1 = storedValues[key1];
   var storedZset2 = storedValues[key2];
+  var storedZset3 = storedValues[key3];
 
   // Perform consistency checks
   if (!storedZset1 || storedZset1.cardinality() !== zset1.cardinality()) {
@@ -135,15 +150,20 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   if (!storedZset2 || storedZset2.cardinality() !== zset2.cardinality()) {
     throw "Stored zset2 does not match the modified zset2";
   }
+  if (!storedZset3 || storedZset3.cardinality() !== resultZSet.cardinality()) {
+    throw "Stored result zset does not match the computed result zset"
+  }
 
   // Test `ZMember` methods
   var memberValue = member1.value();
   member1.value("updated_member1");
   var updatedValue = member1.value();
+  console.assert(updatedValue !== memberValue, "updated member value still the same as old value")
 
   var memberScore = member1.score();
   member1.score(50);
   var updatedScore = member1.score();
+  console.assert(updatedScore !== memberScore, "updated member score still the same as old score")
 
   // Return an "OK" response
   return "+OK\r\n";

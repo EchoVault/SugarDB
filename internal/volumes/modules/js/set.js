@@ -146,16 +146,7 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   console.assert(set1NoLongerContainsMoved, "set1 still contains unexpected element after move")
 
   // Subtract set2 from set1
-  function subtractSets(setA, setB) {
-    var resultSet = new Set();
-    setA.all().forEach(function (elem) {
-      if (!setB.contains(elem)) {
-        resultSet.add([elem]);
-      }
-    });
-    return resultSet;
-  }
-  var resultSet = subtractSets(set1, set2);
+  var resultSet = set1.subtract([set2]);
 
   // Store the modified sets
   var setVals = {}
