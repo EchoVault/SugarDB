@@ -560,8 +560,21 @@ func buildSetObject(obj *otto.Object, s *set.Set) {
 		}
 		return otto.NullValue()
 	})
-	// TODO: Implement set subtraction feature
-	// _ = obj.Set("subtract", func(call otto.FunctionCall) otto.Value {})
+	_ = obj.Set("subtract", func(call otto.FunctionCall) otto.Value {
+		extractSets := func(call otto.FunctionCall) ([]*set.Set, error) {
+			var sets []*set.Set
+			// TODO: Extract sets from the arguments
+			return sets, nil
+		}
+		sets, err := extractSets(call)
+		if err != nil {
+			panicWithFunctionCall(call, err.Error())
+		}
+		diff := s.Subtract(sets)
+		result, _ := call.Otto.Object(`({})`)
+		buildSetObject(result, diff)
+		return result.Value()
+	})
 }
 
 func buildMemberParamObject(obj *otto.Object, m *sorted_set.MemberParam) {
@@ -817,8 +830,21 @@ func buildSortedSetObject(obj *otto.Object, ss *sorted_set.SortedSet) {
 		p, _ := call.Otto.ToValue(paramValues)
 		return p
 	})
-	// TODO: Implement subtract method for sorted set
-	// _ = obj.Set("subtract", func(call otto.FunctionCall) otto.Value {})
+	_ = obj.Set("subtract", func(call otto.FunctionCall) otto.Value {
+		extractZSets := func(call otto.FunctionCall) ([]*sorted_set.SortedSet, error) {
+			var zsets []*sorted_set.SortedSet
+			// TODO: Extract zsets from function args
+			return zsets, nil
+		}
+		zsets, err := extractZSets(call)
+		if err != nil {
+			panicWithFunctionCall(call, err.Error())
+		}
+		diff := ss.Subtract(zsets)
+		result, _ := call.Otto.Object(`({})`)
+		buildSortedSetObject(result, diff)
+		return result.Value()
+	})
 }
 
 func panicWithFunctionCall(call otto.FunctionCall, message string) {
