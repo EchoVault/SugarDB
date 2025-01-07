@@ -206,6 +206,7 @@ Benchmark script options:
 <a name="commands-generic"></a>
 ## GENERIC
 * [COPY](https://sugardb.io/docs/commands/generic/copy)
+* [DBSIZE](https://sugardb.io/docs/commands/generic/dbsize)
 * [DECR](https://sugardb.io/docs/commands/generic/decr)
 * [DECRBY](https://sugardb.io/docs/commands/generic/decrby)
 * [DEL](https://sugardb.io/docs/commands/generic/del)

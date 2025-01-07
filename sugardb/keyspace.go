@@ -771,6 +771,14 @@ func (server *SugarDB) randomKey(ctx context.Context) string {
 	return randkey
 }
 
+func (server *SugarDB) dbSize(ctx context.Context) int {
+	server.storeLock.RLock()
+	defer server.storeLock.RUnlock()
+
+	database := ctx.Value("Database").(int)
+	return len(server.store[database])
+}
+
 func (server *SugarDB) getObjectFreq(ctx context.Context, key string) (int, error) {
 	database := ctx.Value("Database").(int)
 

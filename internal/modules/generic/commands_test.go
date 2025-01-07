@@ -3021,6 +3021,45 @@ func Test_Generic(t *testing.T) {
 		}
 	})
 
+	t.Run("Test_HandleDBSIZE", func(t *testing.T) {
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		// Populate the store with a few keys
+		expectedSize := 5
+		for i := 0; i < expectedSize; i++ {
+			_, _, err := mockServer.Set(
+				fmt.Sprintf("DBSizeKey%d", i),
+				fmt.Sprintf("Value%d", i),
+				sugardb.SETOptions{},
+			)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+		}
+
+		if err = client.WriteArray([]resp.Value{resp.StringValue("DBSIZE")}); err != nil {
+			t.Error(err)
+		}
+
+		res, _, err := client.ReadValue()
+		if err != nil {
+			t.Error(err)
+		}
+
+		if res.Integer() != int(expectedSize) {
+			t.Errorf("expected dbsize %d, got %d", expectedSize, res.Integer())
+		}
+	})
+
 	t.Run("Test_HandleGETDEL", func(t *testing.T) {
 		t.Parallel()
 		conn, err := internal.GetConnection("localhost", port)
