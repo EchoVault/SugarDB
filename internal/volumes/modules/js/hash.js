@@ -108,10 +108,10 @@ function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   console.assert(exists.fieldX === false, "exists method failed for fieldX");
 
   // Test setnx method
-  var setnxCount = h.setnx([
-    { "field1": "new_value1" }, // Should not overwrite
-    { "field5": "value5" }      // Should set
-  ]);
+  var setnxCount = h.setnx({
+    "field1": "new_value1", // Should not overwrite
+    "field5": "value5" // Should set
+  });
   console.assert(setnxCount === 1, "setnx did not set the correct number of fields");
   console.assert(h.get(["field1"]).field1 === "value1", "setnx overwrote field1");
   console.assert(h.get(["field5"]).field5 === "value5", "setnx failed to set field5");

@@ -1,9 +1,13 @@
 import React from "react";
 import CodeBlock from "@theme/CodeBlock";
 
-const LoadModuleDocs = ({ module }: { module: "lua" | "go" }) => {
+const LoadModuleDocs = ({ module }: { module: "go" | "lua" | "js" }) => {
   const module_path =
-    module === "lua" ? "path/to/module/module.lua" : "path/to/module/module.so";
+    module === "go"
+      ? "path/to/module/module.so"
+      : module === "lua"
+      ? "path/to/module/module.lua"
+      : "path/to/module/module.js";
 
   return (
     <div>
