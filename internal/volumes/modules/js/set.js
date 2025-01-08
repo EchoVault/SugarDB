@@ -27,8 +27,8 @@ var sync = true
  */
 function keyExtractionFunc(command, args) {
   // Check the length of the command array
-  if (command.length < 4) {
-    throw new Error("wrong number of args, expected 3");
+  if (command.length < 3) {
+    throw new Error("wrong number of args, expected 2 or more");
   }
   // Return the result object
   return {
@@ -78,8 +78,8 @@ function keyExtractionFunc(command, args) {
  */
 function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
   // Ensure there are enough arguments
-  if (command.length < 4) {
-    throw new Error("wrong number of arguments, expected at least 3");
+  if (command.length < 3) {
+    throw "wrong number of arguments, expected at least 3";
   }
 
   // Extract the keys
