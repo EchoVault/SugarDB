@@ -632,6 +632,16 @@ func (server *SugarDB) RandomKey() (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
+// DBSize returns the number of keys in the currently-selected database.
+// Returns: An integer number of keys
+func (server *SugarDB) DBSize() (int, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"DBSIZE"}), nil, false, true)
+	if err != nil {
+		return 0, err
+	}
+	return internal.ParseIntegerResponse(b)
+}
+
 // GetDel retrieves the value at the provided key and deletes that key.
 //
 // Parameters:
