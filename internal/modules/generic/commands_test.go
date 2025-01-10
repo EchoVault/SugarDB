@@ -2449,7 +2449,7 @@ func Test_Generic(t *testing.T) {
 					"key3": "value3",
 				},
 				checkKeys:        []string{"key1", "key2", "key3", "key1", "key2"},
-				expectedResponse: 3,
+				expectedResponse: 5,
 			},
 		}
 

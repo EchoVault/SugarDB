@@ -808,7 +808,7 @@ func (server *SugarDB) Move(key string, destinationDB int) (int, error) {
 }
 
 // Exists returns the number of keys that exist from the provided list of keys.
-// Note: Duplicate keys in the argument list are only counted once.
+// Note: Duplicate keys in the argument list are each counted separately.
 //
 // Parameters:
 //

@@ -701,8 +701,8 @@ func handleExists(params internal.HandlerFuncParams) ([]byte, error) {
 	// check if key exists and count
 	existingKeys := params.KeysExist(params.Context, keys.ReadKeys)
 	keyCount := 0
-	for _, exists := range existingKeys {
-		if exists {
+	for _, key := range keys.ReadKeys {
+		if existingKeys[key] {
 			keyCount++
 		}
 	}
