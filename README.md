@@ -71,7 +71,9 @@ Features offered by SugarDB include:
 7) Key Eviction Policies.
 8) Command extension via shared object files.
 9) Command extension via embedded API.
-10) Multi-database support for key namespacing.
+10) Command extension via Lua Modules.
+11) Command extension via JavaScript Modules.
+12) Multi-database support for key namespacing.
 
 We are working hard to add more features to SugarDB to make it
 much more powerful. Features in the roadmap include:
@@ -81,9 +83,8 @@ much more powerful. Features in the roadmap include:
 3) Transactions
 4) Bitmap
 5) HyperLogLog
-6) Lua Modules
-7) JSON
-8) Improved Observability
+6) JSON
+7) Improved Observability
    
 
 <a name="usage-embedded"></a>
