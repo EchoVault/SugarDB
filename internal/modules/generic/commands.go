@@ -692,6 +692,24 @@ func handleRenamenx(params internal.HandlerFuncParams) ([]byte, error) {
 	return handleRename(params)
 }
 
+func handleExists(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := existsKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	// check if key exists and count
+	existingKeys := params.KeysExist(params.Context, keys.ReadKeys)
+	keyCount := 0
+	for _, key := range keys.ReadKeys {
+		if existingKeys[key] {
+			keyCount++
+		}
+	}
+
+	return []byte(fmt.Sprintf(":%d\r\n", keyCount)), nil
+}
+
 func handleFlush(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) != 1 {
 		return nil, errors.New(constants.WrongArgsResponse)
@@ -1392,6 +1410,16 @@ The REPLACE option removes the destination key before copying the value to it.`,
 			Sync:              true,
 			KeyExtractionFunc: renamenxKeyFunc,
 			HandlerFunc:       handleRenamenx,
+		},
+		{
+			Command:           "exists",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.KeyspaceCategory, constants.ReadCategory, constants.FastCategory},
+			Description:       "(EXISTS key [key ...]) Returns the number of keys that exist from the provided list of keys.",
+			Sync:              false,
+			Type:              "BUILT_IN",
+			KeyExtractionFunc: existsKeyFunc,
+			HandlerFunc:       handleExists,
 		},
 	}
 }

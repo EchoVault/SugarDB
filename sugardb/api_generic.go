@@ -806,3 +806,19 @@ func (server *SugarDB) Move(key string, destinationDB int) (int, error) {
 	}
 	return internal.ParseIntegerResponse(b)
 }
+
+// Exists returns the number of keys that exist from the provided list of keys.
+// Note: Duplicate keys in the argument list are each counted separately.
+//
+// Parameters:
+//
+// `keys` - ...string - the keys whose existence should be checked.
+//
+// Returns: An integer representing the number of keys that exist.
+func (server *SugarDB) Exists(keys ...string) (int, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(append([]string{"EXISTS"}, keys...)), nil, false, true)
+	if err != nil {
+		return 0, err
+	}
+	return internal.ParseIntegerResponse(b)
+}
