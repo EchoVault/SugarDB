@@ -1410,6 +1410,39 @@ func TestSugarDB_RANDOMKEY(t *testing.T) {
 
 }
 
+func TestSugarDB_Exists(t *testing.T) {
+	server := createSugarDB()
+
+	// Test with no keys
+	keys := []string{"key1", "key2", "key3"}
+	existsCount, err := server.Exists(keys...)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if existsCount != 0 {
+		t.Errorf("EXISTS error, expected 0, got %d", existsCount)
+	}
+
+	// Test with some keys
+	for _, k := range keys {
+		err := presetValue(server, context.Background(), k, "")
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	}
+
+	existsCount, err = server.Exists(keys...)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if existsCount != len(keys) {
+		t.Errorf("EXISTS error, expected %d, got %d", len(keys), existsCount)
+	}
+}
+
 func TestSugarDB_DBSize(t *testing.T) {
 	server := createSugarDB()
 	got, err := server.DBSize()

@@ -310,3 +310,14 @@ func moveKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 		WriteKeys: []string{cmd[1]},
 	}, nil
 }
+
+func existsKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) < 2 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
+}
