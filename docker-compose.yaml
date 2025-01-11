@@ -46,6 +46,7 @@ services:
       - ./internal/volumes/config:/etc/sugardb/config
       - ./internal/volumes/nodes/standalone_node:/var/lib/sugardb
       - ./internal/volumes/modules/lua:/var/lib/sugardb/scripts/lua
+      - ./internal/volumes/modules/js:/var/lib/sugardb/scripts/js
     networks:
       - testnet
 
@@ -90,6 +91,8 @@ services:
     volumes:
       - ./internal/volumes/config:/etc/sugardb/config
       - ./internal/volumes/nodes/cluster_node_1:/var/lib/sugardb
+      - ./internal/volumes/modules/lua:/var/lib/sugardb/scripts/lua
+      - ./internal/volumes/modules/js:/var/lib/sugardb/scripts/js
     networks:
       - testnet
 
@@ -134,6 +137,8 @@ services:
     volumes:
       - ./internal/volumes/config:/etc/sugardb/config
       - ./internal/volumes/nodes/cluster_node_2:/var/lib/sugardb
+      - ./internal/volumes/modules/lua:/var/lib/sugardb/scripts/lua
+      - ./internal/volumes/modules/js:/var/lib/sugardb/scripts/js
     networks:
       - testnet
 
@@ -178,6 +183,8 @@ services:
     volumes:
       - ./internal/volumes/config:/etc/sugardb/config
       - ./internal/volumes/nodes/cluster_node_3:/var/lib/sugardb
+      - ./internal/volumes/modules/lua:/var/lib/sugardb/scripts/lua
+      - ./internal/volumes/modules/js:/var/lib/sugardb/scripts/js
     networks:
       - testnet
 
@@ -222,6 +229,8 @@ services:
     volumes:
       - ./internal/volumes/config:/etc/sugardb/config
       - ./internal/volumes/nodes/cluster_node_4:/var/lib/sugardb
+      - ./internal/volumes/modules/lua:/var/lib/sugardb/scripts/lua
+      - ./internal/volumes/modules/js:/var/lib/sugardb/scripts/js
     networks:
       - testnet
 
@@ -266,5 +275,7 @@ services:
     volumes:
       - ./internal/volumes/config:/etc/sugardb/config
       - ./internal/volumes/nodes/cluster_node_5:/var/lib/sugardb
+      - ./internal/volumes/modules/lua:/var/lib/sugardb/scripts/lua
+      - ./internal/volumes/modules/js:/var/lib/sugardb/scripts/js
     networks:
       - testnet

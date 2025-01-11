@@ -105,7 +105,7 @@ type SugarDB struct {
 
 	commandsRWMut sync.RWMutex       // Mutex used for modifying/reading the list of commands in the instance.
 	commands      []internal.Command // Holds the list of all commands supported by SugarDB.
-	// Each commands that's added using a script (e.g. lua), will have a lock associated with the command.
+	// Each commands that's added using a script (lua,js), will have a lock associated with the command.
 	// Only one goroutine will be able to trigger a script-associated command at a time. This is because the VM state
 	// for each of the commands is not thread safe.
 	// This map's shape is map[string]struct{vm: any, lock: sync.Mutex} with the string key being the command name.
@@ -639,7 +639,7 @@ func (server *SugarDB) ShutDown() {
 	log.Println("shutting down script vms...")
 	server.commandsRWMut.Lock()
 	for _, command := range server.commands {
-		if slices.Contains([]string{"LUA_SCRIPT"}, command.Type) {
+		if slices.Contains([]string{"LUA_SCRIPT", "JS_SCRIPT"}, command.Type) {
 			v, ok := server.scriptVMs.Load(command.Command)
 			if !ok {
 				continue

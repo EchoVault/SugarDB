@@ -69,7 +69,6 @@ func (server *SugarDB) getHandlerFuncParams(ctx context.Context, cmd []string, c
 		SwapDBs:               server.SwapDBs,
 		GetServerInfo:         server.GetServerInfo,
 		AddScript:             server.AddScript,
-		AddScriptCommand:      server.AddScriptCommand,
 		DeleteKey: func(ctx context.Context, key string) error {
 			server.storeLock.Lock()
 			defer server.storeLock.Unlock()
@@ -160,8 +159,8 @@ func (server *SugarDB) handleCommand(ctx context.Context, message []byte, conn *
 	}
 
 	if conn != nil && server.acl != nil && !embedded {
-		// Authorize connection if it's provided and if ACL module is present
-		// and the embedded parameter is false.
+		// Authorize connection if it's provided and if ACL module is present and the embedded parameter is false.
+		// Skip the authorization if the command is being executed from embedded mode.
 		if err = server.acl.AuthorizeConnection(conn, cmd, command, subCommand); err != nil {
 			return nil, err
 		}

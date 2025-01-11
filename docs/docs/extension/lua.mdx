@@ -44,9 +44,6 @@ Example return: {["readKeys"] = {"key1", "key2"}, ["writeKeys"] = {"key3", "key4
    These args are passed to the key extraction function everytime it's invoked.
 ]]
 function keyExtractionFunc (command, args)
-  for k,v in pairs(args) do
-    print(k, v)
-  end
   if (#command ~= 1) then
     error("wrong number of args, expected 0")
   end
@@ -138,8 +135,7 @@ Sugar DB supports the following standard data types in Lua scripts:
 - nil
 - arrays (tables with integer keys)
 
-These data types can be used to stored using the setValues function and 
-retrieved using the getValues function.
+These data types can be stored using the setValues function and retrieved using the getValues function.
 
 ## Custom Data Types
 
@@ -439,13 +435,7 @@ local options = {
   changed = true,       -- Return the count of changed elements
 }
 local changed_count = zset:add(new_members, options)
-
--- Display results
 print("Changed count:", changed_count) -- Outputs: 1 (only "a" is updated)
-print("Updated zset:")
-for _, member in ipairs(zset:all()) do
-  print(member:value(), member:score())
-end
 
 -- Adding with different policies
 local incr_options = {
@@ -453,12 +443,6 @@ local incr_options = {
   incr = true,          -- Increment the score of the added members
 }
 zset:add({zmember.new({value = "d", score = 10})}, incr_options)
-
--- Display updated zset
-print("After adding with increment:")
-for _, member in ipairs(zset:all()) do
-  print(member:value(), member:score())
-end
 ```
 
 `update` - Updates one or more zmember elements in the zset. 

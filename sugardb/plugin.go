@@ -39,10 +39,12 @@ func (server *SugarDB) AddScriptCommand(
 	var engine string
 	if strings.HasSuffix(path, ".lua") {
 		engine = "lua"
+	} else if strings.HasSuffix(path, ".js") {
+		engine = "js"
 	}
 
 	// Check if the engine is supported
-	supportedEngines := []string{"lua"}
+	supportedEngines := []string{"lua", "js"}
 	if !slices.Contains(supportedEngines, strings.ToLower(engine)) {
 		return fmt.Errorf("engine %s not supported, only %v engines are supported", engine, supportedEngines)
 	}
@@ -59,6 +61,8 @@ func (server *SugarDB) AddScriptCommand(
 	switch strings.ToLower(engine) {
 	case "lua":
 		vm, commandName, categories, description, synchronize, commandType, err = generateLuaCommandInfo(path)
+	case "js":
+		vm, commandName, categories, description, synchronize, commandType, err = generateJSCommandInfo(path)
 	}
 
 	if err != nil {
@@ -85,7 +89,7 @@ func (server *SugarDB) AddScriptCommand(
 		Description: description,
 		Sync:        synchronize,
 		Type:        commandType,
-		KeyExtractionFunc: func(engine string, vm any, args []string) internal.KeyExtractionFunc {
+		KeyExtractionFunc: func(engine string, args []string) internal.KeyExtractionFunc {
 			// Wrapper for the key function
 			return func(cmd []string) (internal.KeyExtractionFuncResult, error) {
 				switch strings.ToLower(engine) {
@@ -96,21 +100,25 @@ func (server *SugarDB) AddScriptCommand(
 						WriteKeys: make([]string, 0),
 					}, nil
 				case "lua":
-					return server.buildLuaKeyExtractionFunc(vm, cmd, args)
+					return server.luaKeyExtractionFunc(cmd, args)
+				case "js":
+					return server.jsKeyExtractionFunc(cmd, args)
 				}
 			}
-		}(engine, vm, args),
-		HandlerFunc: func(engine string, vm any, args []string) internal.HandlerFunc {
+		}(engine, args),
+		HandlerFunc: func(engine string, args []string) internal.HandlerFunc {
 			// Wrapper that generates handler function
 			return func(params internal.HandlerFuncParams) ([]byte, error) {
 				switch strings.ToLower(engine) {
 				default:
 					return nil, fmt.Errorf("command %s handler not implemented", commandName)
 				case "lua":
-					return server.buildLuaHandlerFunc(vm, commandName, args, params)
+					return server.luaHandlerFunc(commandName, args, params)
+				case "js":
+					return server.jsHandlerFunc(commandName, args, params)
 				}
 			}
-		}(engine, vm, args),
+		}(engine, args),
 	}
 
 	// Add the commands to the list of commands.
@@ -131,7 +139,7 @@ func (server *SugarDB) LoadModule(path string, args ...string) error {
 	server.commandsRWMut.Lock()
 	defer server.commandsRWMut.Unlock()
 
-	for _, suffix := range []string{".lua"} {
+	for _, suffix := range []string{".lua", ".js"} {
 		if strings.HasSuffix(path, suffix) {
 			return server.AddScriptCommand(path, args)
 		}

@@ -213,11 +213,6 @@ type HandlerFuncParams struct {
 	// scriptType is either "FILE" or "RAW".
 	// content contains the file path if scriptType is "FILE" and the raw script if scriptType is "RAW"
 	AddScript func(engine string, scriptType string, content string, args []string) error
-	// AddScriptCommand adds a commands to SugarDB that is defined by a scripting language.
-	// engine defines the interpreter to be used. Possible values: "LUA"
-	// scriptType is either "FILE" or "RAW".
-	// content contains the file path if scriptType is "FILE" and the raw script if scriptType is "RAW".
-	AddScriptCommand func(content string, args []string) error
 }
 
 // HandlerFunc is a functions described by a command where the bulk of the command handling is done.
