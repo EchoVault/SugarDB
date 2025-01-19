@@ -16,10 +16,11 @@ package sugardb
 
 import (
 	"context"
+	"time"
+
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/config"
 	"github.com/echovault/sugardb/internal/constants"
-	"time"
 )
 
 // DefaultConfig returns the default configuration.
@@ -312,6 +313,15 @@ func WithEvictionSample(evictionSample uint) func(sugardb *SugarDB) {
 func WithEvictionInterval(evictionInterval time.Duration) func(sugardb *SugarDB) {
 	return func(sugardb *SugarDB) {
 		sugardb.config.EvictionInterval = evictionInterval
+	}
+}
+
+// WithElectionTimeout is an option to the NewSugarDB function that allows you to pass a
+// custom ElectionTimeout to SugarDB.
+// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
+func WithElectionTimeout(electionTimeout time.Duration) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.ElectionTimeout = electionTimeout
 	}
 }
 

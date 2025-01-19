@@ -1,9 +1,10 @@
 package config
 
 import (
+	"time"
+
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/constants"
-	"time"
 )
 
 func DefaultConfig() Config {
@@ -37,6 +38,7 @@ func DefaultConfig() Config {
 		EvictionPolicy:    constants.NoEviction,
 		EvictionSample:    20,
 		EvictionInterval:  100 * time.Millisecond,
+		ElectionTimeout:   1000 * time.Millisecond,
 		Modules:           make([]string, 0),
 	}
 }
