@@ -90,7 +90,7 @@ much more powerful. Features in the roadmap include:
 <a name="usage-embedded"></a>
 # Usage (Embedded)
 
-Install SugarDB with: `go get github.com/echovault/sugardb`.
+Install SugarDB with: `go get github.com/echovault/sugardb/sugardb`.
 
 Here's an example of using SugarDB as an embedded library.
 You can access all of SugarDB's commands using an ergonomic API.
