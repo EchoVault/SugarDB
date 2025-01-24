@@ -325,6 +325,24 @@ func WithElectionTimeout(electionTimeout time.Duration) func(sugardb *SugarDB) {
 	}
 }
 
+// WithHeartbeatTimeout is an option to the NewSugarDB function that allows you to pass a
+// custom HeartbeatTimeout to SugarDB.
+// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
+func WithHeartbeatTimeout(heartbeatTimeout time.Duration) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.HeartbeatTimeout = heartbeatTimeout
+	}
+}
+
+// WithHeartbeatTimeout is an option to the NewSugarDB function that allows you to pass a
+// custom HeartbeatTimeout to SugarDB.
+// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
+func WithCommitTimeout(commitTimeout time.Duration) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.CommitTimeout = commitTimeout
+	}
+}
+
 // WithModules is an option to the NewSugarDB function that allows you to pass a
 // custom Modules to SugarDB.
 // If not specified, SugarDB will use the default configuration from config.DefaultConfig().

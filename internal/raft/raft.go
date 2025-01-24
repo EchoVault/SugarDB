@@ -64,6 +64,8 @@ func (r *Raft) RaftInit(ctx context.Context) {
 	raftConfig.SnapshotThreshold = conf.SnapShotThreshold
 	raftConfig.SnapshotInterval = conf.SnapshotInterval
 	raftConfig.ElectionTimeout = conf.ElectionTimeout
+	raftConfig.HeartbeatTimeout = conf.HeartbeatTimeout
+	raftConfig.CommitTimeout = conf.CommitTimeout
 
 	var logStore raft.LogStore
 	var stableStore raft.StableStore
