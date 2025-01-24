@@ -18,14 +18,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/config"
-	"github.com/echovault/sugardb/internal/memberlist"
 	"log"
 	"net"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/internal/memberlist"
 
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
@@ -62,6 +63,9 @@ func (r *Raft) RaftInit(ctx context.Context) {
 	raftConfig.LocalID = raft.ServerID(conf.ServerID)
 	raftConfig.SnapshotThreshold = conf.SnapShotThreshold
 	raftConfig.SnapshotInterval = conf.SnapshotInterval
+	raftConfig.ElectionTimeout = conf.ElectionTimeout
+	raftConfig.HeartbeatTimeout = conf.HeartbeatTimeout
+	raftConfig.CommitTimeout = conf.CommitTimeout
 
 	var logStore raft.LogStore
 	var stableStore raft.StableStore

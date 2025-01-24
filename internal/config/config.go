@@ -19,14 +19,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/constants"
 	"log"
 	"os"
 	"path"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/constants"
 
 	"gopkg.in/yaml.v3"
 )
@@ -55,6 +56,9 @@ type Config struct {
 	EvictionPolicy    string        `json:"EvictionPolicy" yaml:"EvictionPolicy"`
 	EvictionSample    uint          `json:"EvictionSample" yaml:"EvictionSample"`
 	EvictionInterval  time.Duration `json:"EvictionInterval" yaml:"EvictionInterval"`
+	ElectionTimeout   time.Duration `json:"ElectionTimeout" yaml:"ElectionTimeout"`
+	HeartbeatTimeout  time.Duration `json:"HeartbeatTimeout" yaml:"HeartbeatTimeout"`
+	CommitTimeout     time.Duration `json:"CommitTimeout" yaml:"CommitTimeout"`
 	Modules           []string      `json:"Plugins" yaml:"Plugins"`
 	DiscoveryPort     uint16        `json:"DiscoveryPort" yaml:"DiscoveryPort"`
 	RaftBindAddr      string
@@ -160,6 +164,9 @@ There is no limit by default.`, func(memory string) error {
 	restoreAOF := flag.Bool("restore-aof", false, "This flag prompts the echovault to restore state from append-only logs. Only works in standalone mode. Lower priority than restoreSnapshot.")
 	evictionSample := flag.Uint("eviction-sample", 20, "An integer specifying the number of keys to sample when checking for expired keys.")
 	evictionInterval := flag.Duration("eviction-interval", 100*time.Millisecond, "The interval between each sampling of keys to evict.")
+	electionTimeout := flag.Duration("election-timeout", 1000*time.Millisecond, "The maximum duration the leader will wait for followers to reach consensus on an election before starting a new election")
+	heartbeatTimeout := flag.Duration("heartbeat-timeout", 1000*time.Millisecond, "The interval between heartbeats sent by the leader to followers. In other words, the time in candidate state without leader contact.")
+	commitTimeout := flag.Duration("commit-timeout", 50*time.Millisecond, "The time the leader waits before sending a message to followers to confirm log entries are committed. May be delayed by up to 2x this value due to random staggering.")
 	forwardCommand := flag.Bool(
 		"forward-commands",
 		false,
@@ -217,6 +224,9 @@ It is a plain text value by default but you can provide a SHA256 hash by adding 
 		EvictionPolicy:    evictionPolicy,
 		EvictionSample:    *evictionSample,
 		EvictionInterval:  *evictionInterval,
+		ElectionTimeout:   *electionTimeout,
+		HeartbeatTimeout:  *heartbeatTimeout,
+		CommitTimeout:     *commitTimeout,
 		Modules:           modules,
 		DiscoveryPort:     uint16(*discoveryPort),
 		RaftBindAddr:      raftBindAddr,
