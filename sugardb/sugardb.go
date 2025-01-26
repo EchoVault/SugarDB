@@ -204,7 +204,7 @@ func NewSugarDB(options ...func(sugarDB *SugarDB)) (*SugarDB, error) {
 	sugarDB.acl = acl.NewACL(sugarDB.config)
 
 	// Set up Pub/Sub module
-	sugarDB.pubSub = pubsub.NewPubSub()
+	sugarDB.pubSub = pubsub.NewPubSub(sugarDB.context)
 
 	if sugarDB.isInCluster() {
 		sugarDB.raft = raft.NewRaft(raft.Opts{

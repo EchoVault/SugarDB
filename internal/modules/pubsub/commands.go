@@ -35,7 +35,8 @@ func handleSubscribe(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	withPattern := strings.EqualFold(params.Command[0], "psubscribe")
-	pubsub.Subscribe(params.Context, params.Connection, channels, withPattern)
+
+	pubsub.Subscribe(params.Connection, channels, withPattern)
 
 	return nil, nil
 }
@@ -50,7 +51,7 @@ func handleUnsubscribe(params internal.HandlerFuncParams) ([]byte, error) {
 
 	withPattern := strings.EqualFold(params.Command[0], "punsubscribe")
 
-	return pubsub.Unsubscribe(params.Context, params.Connection, channels, withPattern), nil
+	return pubsub.Unsubscribe(params.Connection, channels, withPattern), nil
 }
 
 func handlePublish(params internal.HandlerFuncParams) ([]byte, error) {
@@ -61,7 +62,7 @@ func handlePublish(params internal.HandlerFuncParams) ([]byte, error) {
 	if len(params.Command) != 3 {
 		return nil, errors.New(constants.WrongArgsResponse)
 	}
-	pubsub.Publish(params.Context, params.Command[2], params.Command[1])
+	pubsub.Publish(params.Command[2], params.Command[1])
 	return []byte(constants.OkResponse), nil
 }
 
