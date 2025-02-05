@@ -19,13 +19,15 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/constants"
+	"github.com/echovault/sugardb/internal/modules/hash"
+	"github.com/echovault/sugardb/internal/modules/set"
+	"github.com/echovault/sugardb/internal/modules/sorted_set"
 )
 
 type KeyObject struct {
@@ -839,31 +841,22 @@ func handleType(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	value := params.GetValues(params.Context, []string{key})[key]
-	t := reflect.TypeOf(value)
 	type_string := ""
-	switch t.Kind() {
-	case reflect.String:
+	switch value.(type) {
+	case string:
 		type_string = "string"
-	case reflect.Int:
+	case int:
 		type_string = "integer"
-	case reflect.Float64:
+	case float64:
 		type_string = "float"
-	case reflect.Slice:
+	case []string:
 		type_string = "list"
-	case reflect.Map:
-		if t.Elem().Name() == "HashValue" {
-			type_string = "hash"
-		} else {
-			type_string = t.Elem().Name()
-		}
-	case reflect.Pointer:
-		if t.Elem().Name() == "Set" {
-			type_string = "set"
-		} else if t.Elem().Name() == "SortedSet" {
-			type_string = "zset"
-		} else {
-			type_string = t.Elem().Name()
-		}
+	case hash.Hash:
+		type_string = "hash"
+	case *set.Set:
+		type_string = "set"
+	case *sorted_set.SortedSet:
+		type_string = "zset"
 	default:
 		type_string = fmt.Sprintf("%T", value)
 	}
