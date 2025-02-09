@@ -29,23 +29,32 @@ Subscribe to one or more channels.
   ]}
 >
   <TabItem value="go">
-    The Subscribe method returns a readMessage function.
-    This method is lazy so it must be invoked each time the you want to read the next message from
-    the channel.
+    The Subscribe method returns a MessageReader type which implements the `io.Reader` interface.
     When subscribing to an'N' number of channels, the first N messages will be
     the subscription confimations.
-    The readMessage functions returns a message object when called. The message
-    object is a string slice with the following inforamtion: 
+    
+    The message read is a series of bytes resulting from JSON marshalling an array. You will need to
+    unmarshal it back into a string array in order to read it. Here's the anatomy of a pubsub message: 
     event type at index 0 (e.g. subscribe, message), channel name at index 1,
     message/subscription index at index 2.
+    
     ```go
     db, err := sugardb.NewSugarDB()
     if err != nil {
       log.Fatal(err)
     }
-    readMessage := db.Subscribe("subscribe_tag_1", "channel1", "channel2") // Return lazy readMessage function
-    for i := 0; i < 2; i++ {
-      message := readMessage() // Call the readMessage function for each channel subscription.
+
+    // Subscribe to multiple channel patterns, returs MessageReader.
+    msgReader := db.Subscribe("subscribe_tag_1", "channel1", "channel2")
+    
+    // Read message into pre-defined buffer.
+    msg := make([]byte, 1024)
+    _, err := msgReader.Read(msg)
+    
+    // Trim all null bytes at the end of the message before unmarshalling.
+    var message []string
+    if err = json.Unmarshal(bytes.TrimRight(p, "\x00"), &message); err != nil {
+      log.Fatalf("json unmarshal error: %+v", err)
     }
     ```
   </TabItem>

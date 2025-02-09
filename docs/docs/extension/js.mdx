@@ -1,0 +1,548 @@
+---
+title: JavaScript Modules
+toc_min_heading_level: 2
+toc_max_heading_level: 4
+---
+
+import LoadModuleDocs from "@site/src/components/load_module"
+import CodeBlock from "@theme/CodeBlock"
+
+# JavaScript Modules
+
+SugarDB allows you to create new command modules using JavaScript. 
+These scripts are loaded into SugarDB at runtime and can be triggered by both embedded clients and 
+TCP clients just like native commands.
+
+SugarDB uses the [Otto engine (v0.5.1)](https://github.com/robertkrimen/otto) which targets ES5. 
+ES6 and later features will not be avaliable so you should refrain from using them.
+
+## Creating a JavaScript Module
+
+A JavaScript module has the following anatomy:
+
+```js
+
+// The keyword to trigger the command
+var command = "JS.EXAMPLE"
+
+// The string array of categories this command belongs to.
+// This array can contain both built-in categories and new custom categories.
+var categories = ["generic", "write", "fast"]
+
+// The description of the command.
+var description = "(JS.EXAMPLE) Example JS command that sets various data types to keys"
+
+// Whether the command should be synced across the RAFT cluster.
+var sync = true
+
+/**
+ *  keyExtractionFunc is a function that extracts the keys from the command and returns them to SugarDB.keyExtractionFunc
+ *  The returned data from this function is used in the Access Control Layer to determine if the current connection is
+ *  authorized to execute this command. The function must return a table that specifies which keys in this command
+ *  are read keys and which ones are write keys.
+ *  Example return: {readKeys: ["key1", "key2"], writeKeys: ["key3", "key4", "key5"]}
+ *
+ *  1. "command" is a string array representing the command that triggered this key extraction function.
+ *
+ *  2. "args" is a string array of the modifier args that were passed when loading the module into SugarDB.
+ *  These args are passed to the key extraction function everytime it's invoked.
+*/
+function keyExtractionFunc(command, args) {
+  if (command.length > 1) {
+    throw "wrong number of args, expected 0"
+  }
+  return {
+    readKeys: [],
+    writeKeys: []
+  }
+}
+
+/**
+ * handlerFunc is the command's handler function. The function is passed some arguments that allow it to interact with
+ * SugarDB. The function must return a valid RESP response or throw an error.
+ * The handler function accepts the following args:
+ *
+ * 1. "context" is a table that contains some information about the environment this command has been executed in.
+ *     Example: {protocol: 2, database: 0}
+ *     This object contains the following properties:
+ *     i) protocol - the protocol version of the client that executed the command (either 2 or 3).
+ *     ii) database - the active database index of the client that executed the command.
+ *
+ * 2. "command" is the string array representing the command that triggered this handler function.
+ *
+ * 3. "keyExists" is a function that can be called to check if a list of keys exists in the SugarDB store database.
+ *     This function accepts a string array of keys to check and returns a table with each key having a corresponding
+ *     boolean value indicating whether it exists.
+ *     Examples:
+ *     i) Example invocation: keyExists(["key1", "key2", "key3"])
+ *     ii) Example return: {key1: true, key2: false, key3: true}
+ *
+ * 4. "getValues" is a function that can be called to retrieve values from the SugarDB store database.
+ *     The function accepts a string array of keys whose values we would like to fetch, and returns a table with each key
+ *     containing the corresponding value from the store.
+ *     The possible data types for the values are: number, string, nil, hash, set, zset
+ *     Examples:
+ *     i) Example invocation: getValues(["key1", "key2", "key3"])
+ *     ii) Example return: {key1: 3.142, key2: nil, key3: "Pi"}
+ *
+ * 5. "setValues" is a function that can be called to set values in the active database in the SugarDB store.
+ *     This function accepts a table with keys and the corresponding values to set for each key in the active database
+ *     in the store.
+ *     The accepted data types for the values are: number, string, nil, hash, set, zset.
+ *     The setValues function does not return anything.
+ *     Examples:
+ *     i) Example invocation: setValues({key1: 3.142, key2: nil, key3: "Pi"})
+ *
+ * 6. "args" is a string array of the modifier args passed to the module at load time. These args are passed to the
+ *    handler everytime it's invoked.
+ */
+function handlerFunc(ctx, command, keysExist, getValues, setValues, args) {
+  // Set various data types to keys
+  var keyValues = {
+    "numberKey": 42,
+    "stringKey": "Hello, SugarDB!",
+    "floatKey": 3.142,
+    "nilKey": null,
+  }
+
+  // Store the values in the database
+  setValues(keyValues)
+
+  // Verify the values have been set correctly
+  var keysToGet = ["numberKey", "stringKey", "floatKey", "nilKey"]
+  var retrievedValues = getValues(keysToGet)
+
+  // Create an array to track mismatches
+  var mismatches = [];
+  for (var key in keyValues) {
+    if (Object.prototype.hasOwnProperty.call(keyValues, key)) {
+      var expectedValue = keyValues[key];
+      var retrievedValue = retrievedValues[key];
+      if (retrievedValue !== expectedValue) {
+        var msg = "Key " + key + ": expected " + expectedValue + ", got " + retrievedValue
+        mismatches.push(msg);
+        console.log(msg)
+      }
+    }
+  }
+
+  // If mismatches exist, return an error
+  if (mismatches.length > 0) {
+    throw "values mismatch"
+  }
+
+  // If all values match, return OK
+  return "+OK\r\n"
+}
+```
+
+## Loading JavaScript Modules
+<LoadModuleDocs module="js" />
+
+## Standard Data Types
+
+Sugar DB supports the following standard data types in JavaScript modules:
+
+- string
+- number (integers and floating-point numbers)
+- null
+- arrays (tables with integer keys)
+
+These data types can be stored using the setValues function and retrieved using the getValues function.
+
+## Custom Data Types
+
+In addition to the standard data types, SugarDB also supports custom data types in JavaScript modules. 
+These custom data types include:
+
+- Hashes
+- Sets
+- Sorted Sets
+
+Just like the standard types, these custom data types can be stored and retrieved using the setValues 
+and getValues functions respectively.
+
+### Hashes
+
+The hash data type is a custom data type in SugarDB designed for storing and managing key-value pairs. 
+It supports several methods for interacting with the hash, including adding, updating, retrieving, deleting, 
+and checking values.This section explains how to make use of the hash data type in your JavaScript modules.
+
+#### Creating a Hash
+
+```js
+var myHash = new Hash();
+```
+
+#### Hash methods
+
+`set` - Adds or updates key-value pairs in the hash. If the key exists, 
+the value is updated; otherwise, it is added.
+
+```js
+var myHash = new Hash();
+var numUpdated = myHash.set({
+  "field1": "value1",
+  "field2": "value2",
+  "field3": "value3",
+  "field4": "value4"
+});
+console.log(numUpdated) // Output: 4
+```
+
+`setnx` - Adds key-value pairs to the hash only if the key does not already exist.
+
+```js
+var myHash = new Hash();
+myHash.set({"field1": "value1"});
+var numAdded = myHash.setnx({
+  "field1": "newValue", // Will not overwrite because field1 exists
+  "field2": "value2" // Will be added
+})
+console.log(numAdded) // Output: 1
+```
+
+`get` - Retrieves the values for the specified keys. Returns nil for keys that do not exist.
+
+```js
+var myHash = new Hash();
+myHash.set({ 
+  key1: "value1" ,
+  key2: "value2" 
+});
+// Get values from the hash
+var values = myHash.get(["key1", "key2", "key3"]);
+// Iterate over the values and log them
+for (var key in values) {
+  if (values.hasOwnProperty(key)) {
+    console.log(key, values[key]); // Output: key1 value1, key2 value2, key3 undefined
+  }
+}
+```
+
+`len` - Returns the number of key-value pairs in the hash.
+
+```js
+var myHash = new Hash();
+myHash.set({
+  "key1": "value1",
+  "key2": "value2"
+});
+console.log(myHash:len()) // Output: 2
+```
+
+`all` - Returns a table containing all key-value pairs in the hash.
+
+```js
+var myHash = new Hash();
+myHash.set({
+  "key1": "value1",
+  "key2": "value2"
+});
+var allKVPairs = myHash:all()
+for (var key in allKVPairs) {
+  if (allKVPairs.hasOwnProperty(key)) {
+    console.log(key, allKVPairs[key]); // Output: key1 value1, key2 value2
+  }
+}
+```
+
+`exists` - Checks if specified keys exist in the hash.
+
+```js
+var myHash = new Hash();
+myHash.set({
+  "key1": "value1"
+});
+var existence = myHash.exists(["key1", "key2"])
+for (var key in existence) {
+  if (existence.hasOwnProperty(key)) {
+    console.log(key, existence[key]); // Output: key1 true, key2 false
+  }
+}
+```
+
+`del` - Deletes the specified keys from the hash. Returns the number of keys deleted.
+
+```js
+var myHash = new Hash();
+myHash.set({
+  "key1": "value1", 
+  "key2": "value2"
+});
+var numDeleted = myHash.del(["key1", "key3"])
+console.log(numDeleted) // Output: 1
+```
+
+### Sets
+
+The `set` data type is a custom data type in SugarDB designed for managing unique elements. 
+It supports operations like adding, removing, checking for membership, 
+and performing set operations such as subtraction.
+This section explains how to use the `set` data type in your JavaScript modules.
+
+#### Creating a Set
+
+```js
+var mySet1 = new Set(); // Create new empty set
+var mySet2 = new Set(["apple", "banana", "cherry"]) // Create new set with elements
+```
+
+#### Set methods
+
+`add` - Adds one or more elements to the set. Returns the number of elements added.
+
+```js
+var mySet = new Set();
+var addedCount = mySet.add(["apple", "banana"])
+console.log(addedCount) // Output: 2
+```
+
+`pop` - Removes and returns a specified number of random elements from the set.
+
+```js
+var mySet = new Set(["apple", "banana", "cherry"])
+var popped = mySet.pop(2)
+console.log(popped) // Outputs an array of 2 random elements from the set
+```
+
+`contains` - Checks if a specific element exists in the set.
+
+```js
+var mySet = new Set(["apple", "banana"])
+console.log(mySet.contains("apple")) // Output: true
+console.log(mySet.contains("cherry")) // Output: false
+```
+
+`cardinality` - Returns the number of elements in the set.
+
+```js
+var mySet = new Set(["apple", "banana"])
+console.log(mySet.cardinality()) // Output: 2
+```
+
+`remove` -  Removes one or more specified elements from the set. Returns the number of elements removed.
+
+```js
+var mySet = new Set(["apple", "banana", "cherry"])
+var removedCount = mySet.remove(["banana", "cherry"])
+console.log(removedCount) // Output: 2
+```
+
+`move` - Moves an element from one set to another. Returns true if the element was successfully moved.
+
+```js
+var set1 = new Set(["apple", "banana"])
+var set2 = new Set(["cherry"])
+var success = set1.move(set2, "banana")
+console.log(success) // Output: true
+```
+
+`subtract` - Returns a new set that is the result of subtracting other sets from the current set.
+
+```js
+var set1 = new Set(["apple", "banana", "cherry"])
+var set2 = new Set(["banana"])
+var resultSet = set1.subtract([set2])
+var allElems = resultSet.all()
+for (var i = 0; i < allElems.length; i++) {
+  console.log(allElems[i]); // Output: "apple", "cherry"
+}
+```
+
+`all` - Returns a table containing all elements in the set.
+
+```js
+var mySet = new Set(["apple", "banana", "cherry"])
+var allElems = mySet.all()
+for (var i = 0; i < allElems.length; i++) {
+  console.log(allElems[i]); // Output: "apple", "banana", "cherry"
+}
+```
+
+`random` - Returns a table of randomly selected elements from the set. The number of elements to return is specified as an argument.
+
+```js
+var mySet = new Set(["apple", "banana", "cherry", "date"])
+var randomElems = mySet.random(2)
+console.log(randomElems) // Outputs an array of 2 random elements from the set
+```
+
+### Sorted Sets
+
+A zset is a sorted set that stores zmember elements, ordered by their score. 
+The zset type provides methods to manipulate and query the set. A zset is made up of
+zmember elements, each of which has a value and a score.
+
+#### zmember
+
+A zmember represents an element in a zset (sorted set). Each zmember consists of:
+- value: A unique identifier for the member (e.g., a string).
+- score: A numeric value used to sort the member in the sorted set.
+
+You can create a zmember as follows:
+
+```js
+var m = new ZMember({value: "example", score: 42})
+```
+
+The zmember type provides methods to retrieve or modify these properties.
+
+To set/get the value of a zmember, use the `value` method:
+
+```js
+// Get the value
+var value = m.value()
+
+// Set the value
+m.value("new_value")
+```
+
+To set/get the score, use the `score` method:
+
+```js
+// Get the score
+var score = m.score()
+
+// Set the score
+m.score(99.5)
+```
+
+#### Creating a Sorted Set
+
+```js
+// Create a new zset with no zmembers
+var zset1 = new ZSet()
+
+// Create a new zset with two zmembers
+var zset2 = new ZSet([
+  new ZMember({value: "a", score: 10}),
+  new ZMember({value: "b", score: 20}),
+])
+```
+
+#### Sorted Set Methods
+
+`add` - Adds one or more zmember elements to the zset. 
+Optionally, you can specify update policies using the optional modifiers.
+
+Optional Modifiers:
+- "exists": Specifies whether to only update existing members ("xx") or only add new members ("nx"). Defaults to no restriction.
+- "comparison": Specifies a comparison method for updating scores (e.g., "min", "max").
+- "changed": If true, returns the count of changed elements.
+- "incr": If true, increments the score of the specified member by the given score instead of replacing it.
+
+Basic usage:
+
+```js
+// Create members
+var m1 = new ZMember({value: "item1", score: 10})
+var m2 = new ZMember({value: "item2", score: 20})
+
+// Create zset and add members
+var zset = new ZSet()
+zset.add([m1, m2])
+
+// Check cardinality
+console.log(zset.cardinality()) // Outputs: 2
+```
+
+Usage with optional modifiers:
+
+```js
+// Create zset
+var zset = new ZSet([
+  new ZMember({value: "a", score: 10}),
+  new ZMember({value: "b", score: 20}),
+])
+
+// Attempt to add members with different policies
+var new_members = {
+  new ZMember({value: "a", score: 5}), // Existing member
+  new ZMember({value: "c", score: 15}), // New member
+}
+
+// Use policies to update and add
+var options = {
+  exists = "xx",        // Only update existing members
+  comparison = "max",   // Keep the maximum score for existing members
+  changed = true,       // Return the count of changed elements
+}
+var changed_count = zset.add(new_members, options)
+
+// Display results
+console.log("Changed count:", changed_count) // Outputs: 1 (only "a" is updated)
+
+// Adding with different policies
+var incr_options = {
+  exists = "nx",        // Only add new members
+  incr = true,          // Increment the score of the added members
+}
+zset.add([new ZMember({value: "d", score: 10})], incr_options)
+```
+
+`update` - Updates one or more zmember elements in the zset. 
+If the member doesn’t exist, the behavior depends on the provided update options.
+	
+Optional Modifiers:
+- "exists": Specifies whether to only update existing members ("xx") or only add new members ("nx"). Defaults to no restriction.
+- "comparison": Specifies a comparison method for updating scores (e.g., "min", "max").
+- "changed": If true, returns the count of changed elements.
+- "incr": If true, increments the score of the specified member by the given score instead of replacing it.
+
+```js
+// Create members
+var m1 = new ZMember({value: "item1", score: 10})
+var m2 = new ZMember({value: "item2", score: 20})
+
+// Create zset and add members
+var zset = new ZSet([m1, m2])
+
+// Update a member
+var m_update = new ZMember({value: "item1", score: 15})
+var changed_count = zset.update([m_update], {exists = true, comparison = "max", changed = true})
+console.log("Changed count:", changed_count) // Outputs the number of elements updated
+```
+
+`remove` - Removes a member from the zset by its value.
+
+```js
+var removed = zset.remove("a") // Returns true if removed
+```
+
+`cardinality` - Returns the number of zmembers in the zset.
+
+```js
+var count = zset.cardinality()
+```
+
+`contains` - Checks if a zmember with the specified value exists in the zset.
+
+```js
+var exists = zset.contains("b") // Returns true if exists
+```
+
+`random` - Returns a random zmember from the zset.
+
+```js
+var members = zset.random(2) // Returns up to 2 random members
+```
+
+`all` - Returns all zmembers in the zset.
+
+```js
+var members = zset.all()
+for (var i = 0; i < members.length; i++) {
+  console.log(members[i].value(), members[i].score())
+}
+```
+
+`subtract` - Returns a new zset that is the result of subtracting other zsets from the current one.
+
+```js
+var other_zset = new ZSet([
+  new ZMember({value: "b", score: 20}),
+])
+var result_zset = zset.subtract([other_zset])
+```
+

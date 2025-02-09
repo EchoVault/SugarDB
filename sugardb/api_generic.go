@@ -163,7 +163,7 @@ type COPYOptions struct {
 //
 // "key <key> does not exist"" - when the XX flag is set to true and the key does not exist.
 //
-// "key <key> does already exists" - when the NX flag is set to true and the key already exists.
+// "key <key> already exists" - when the NX flag is set to true and the key already exists.
 func (server *SugarDB) Set(key, value string, options SETOptions) (string, bool, error) {
 	cmd := []string{"SET", key, value}
 
@@ -632,6 +632,16 @@ func (server *SugarDB) RandomKey() (string, error) {
 	return internal.ParseStringResponse(b)
 }
 
+// DBSize returns the number of keys in the currently-selected database.
+// Returns: An integer number of keys
+func (server *SugarDB) DBSize() (int, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"DBSIZE"}), nil, false, true)
+	if err != nil {
+		return 0, err
+	}
+	return internal.ParseIntegerResponse(b)
+}
+
 // GetDel retrieves the value at the provided key and deletes that key.
 //
 // Parameters:
@@ -791,6 +801,22 @@ func (server *SugarDB) Copy(sourceKey, destinationKey string, options COPYOption
 // Returns: 1 if successful, 0 if unsuccessful.
 func (server *SugarDB) Move(key string, destinationDB int) (int, error) {
 	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"Move", key, strconv.Itoa(destinationDB)}), nil, false, true)
+	if err != nil {
+		return 0, err
+	}
+	return internal.ParseIntegerResponse(b)
+}
+
+// Exists returns the number of keys that exist from the provided list of keys.
+// Note: Duplicate keys in the argument list are each counted separately.
+//
+// Parameters:
+//
+// `keys` - ...string - the keys whose existence should be checked.
+//
+// Returns: An integer representing the number of keys that exist.
+func (server *SugarDB) Exists(keys ...string) (int, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(append([]string{"EXISTS"}, keys...)), nil, false, true)
 	if err != nil {
 		return 0, err
 	}

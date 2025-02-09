@@ -195,15 +195,25 @@ type HandlerFuncParams struct {
 	// FlushDB flushes the specified database keys. It accepts the integer index of the database to be flushed.
 	// If -1 is passed as the index, then all databases will be flushed.
 	Flush func(database int)
-	// Randomkey returns a random key
-	Randomkey func(ctx context.Context) string
-	// (TOUCH key [key ...]) Alters the last access time or access count of the key(s) depending on whether LFU or LRU strategy was used.
+	// RandomKey returns a random key
+	RandomKey func(ctx context.Context) string
+	// DBSize returns the number of keys in the currently selected database.
+	DBSize func(ctx context.Context) int
+	// (TOUCH key [key ...]) Alters the last access time or access count of the key(s)
+	// depending on whether LFU or LRU strategy was used.
 	// A key is ignored if it does not exist.
-	Touchkey func(ctx context.Context, keys []string) (int64, error)
+	TouchKey func(ctx context.Context, keys []string) (int64, error)
 	// GetObjectFrequency retrieves the access frequency count of a key. Can only be used with LFU type eviction policies.
 	GetObjectFrequency func(ctx context.Context, keys string) (int, error)
-	// GetObjectIdleTime retrieves the time in seconds since the last access of a key. Can only be used with LRU type eviction policies.
+	// GetObjectIdleTime retrieves the time in seconds since the last access of a key.
+	// Can only be used with LRU type eviction policies.
 	GetObjectIdleTime func(ctx context.Context, keys string) (float64, error)
+	// AddScript adds a script to SugarDB that isn't associated with a command.
+	// This script is triggered using the EVAL or EVALSHA commands.
+	// engine defines the interpreter to be used. Possible values: "LUA"
+	// scriptType is either "FILE" or "RAW".
+	// content contains the file path if scriptType is "FILE" and the raw script if scriptType is "RAW"
+	AddScript func(engine string, scriptType string, content string, args []string) error
 }
 
 // HandlerFunc is a functions described by a command where the bulk of the command handling is done.
@@ -218,7 +228,8 @@ type Command struct {
 	Categories  []string     // The ACL categories this command belongs to. All the available categories are in the `constants` package.
 	Description string       // The description of the command. Includes the command syntax.
 	SubCommands []SubCommand // The list of subcommands for this command. Empty if the command has no subcommands.
-	Sync        bool         // Specifies if command should be synced across replication cluster
+	Sync        bool         // Specifies if command should be synced across replication cluster.
+	Type        string       // The type of command ("BUILT_IN", "GO_MODULE", "LUA_SCRIPT", "JS_SCRIPT").
 	KeyExtractionFunc
 	HandlerFunc
 }
@@ -228,7 +239,7 @@ type SubCommand struct {
 	Module      string   // The module this subcommand belongs to. Should be the same as the parent command.
 	Categories  []string // The ACL categories the subcommand belongs to.
 	Description string   // The description of the subcommand. Includes syntax.
-	Sync        bool     // Specifies if sub-command should be synced across replication cluster
+	Sync        bool     // Specifies if sub-command should be synced across replication cluster.
 	KeyExtractionFunc
 	HandlerFunc
 }

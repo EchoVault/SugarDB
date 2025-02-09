@@ -71,7 +71,9 @@ Features offered by SugarDB include:
 7) Key Eviction Policies.
 8) Command extension via shared object files.
 9) Command extension via embedded API.
-10) Multi-database support for key namespacing.
+10) Command extension via Lua Modules.
+11) Command extension via JavaScript Modules.
+12) Multi-database support for key namespacing.
 
 We are working hard to add more features to SugarDB to make it
 much more powerful. Features in the roadmap include:
@@ -81,15 +83,14 @@ much more powerful. Features in the roadmap include:
 3) Transactions
 4) Bitmap
 5) HyperLogLog
-6) Lua Modules
-7) JSON
-8) Improved Observability
+6) JSON
+7) Improved Observability
    
 
 <a name="usage-embedded"></a>
 # Usage (Embedded)
 
-Install SugarDB with: `go get github.com/echovault/sugardb`.
+Install SugarDB with: `go get github.com/echovault/sugardb/sugardb`.
 
 Here's an example of using SugarDB as an embedded library.
 You can access all of SugarDB's commands using an ergonomic API.
@@ -206,9 +207,11 @@ Benchmark script options:
 <a name="commands-generic"></a>
 ## GENERIC
 * [COPY](https://sugardb.io/docs/commands/generic/copy)
+* [DBSIZE](https://sugardb.io/docs/commands/generic/dbsize)
 * [DECR](https://sugardb.io/docs/commands/generic/decr)
 * [DECRBY](https://sugardb.io/docs/commands/generic/decrby)
 * [DEL](https://sugardb.io/docs/commands/generic/del)
+* [EXISTS](https://sugardb.io/docs/commands/generic/exists)
 * [EXPIRE](https://sugardb.io/docs/commands/generic/expire)
 * [EXPIRETIME](https://sugardb.io/docs/commands/generic/expiretime)
 * [FLUSHALL](https://sugardb.io/docs/commands/generic/flushall)

@@ -36,6 +36,9 @@ func DefaultConfig() Config {
 		MaxMemory:         0,
 		EvictionPolicy:    constants.NoEviction,
 		EvictionInterval:  100 * time.Millisecond,
+		ElectionTimeout:   1000 * time.Millisecond,
+		HeartbeatTimeout:  1000 * time.Millisecond,
+		CommitTimeout:     50 * time.Millisecond,
 		Modules:           make([]string, 0),
 	}
 }

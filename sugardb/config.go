@@ -15,10 +15,12 @@
 package sugardb
 
 import (
+	"context"
+	"time"
+
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/config"
 	"github.com/echovault/sugardb/internal/constants"
-	"time"
 )
 
 // DefaultConfig returns the default configuration.
@@ -63,6 +65,24 @@ func WithTLS(b ...bool) func(sugardb *SugarDB) {
 		} else {
 			sugardb.config.TLS = true
 		}
+	}
+}
+
+// WithContext is an options that for the NewSugarDB function that allows you to
+// configure a custom context object to be used in SugarDB.
+// If you don't provide this option, SugarDB will create its own internal context object.
+func WithContext(ctx context.Context) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.context = ctx
+	}
+}
+
+// WithConfig is an option for the NewSugarDB function that allows you to pass a
+// custom configuration to SugarDB.
+// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
+func WithConfig(config config.Config) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config = config
 	}
 }
 
@@ -284,6 +304,33 @@ func WithEvictionPolicy(evictionPolicy string) func(sugardb *SugarDB) {
 func WithEvictionInterval(evictionInterval time.Duration) func(sugardb *SugarDB) {
 	return func(sugardb *SugarDB) {
 		sugardb.config.EvictionInterval = evictionInterval
+	}
+}
+
+// WithElectionTimeout is an option to the NewSugarDB function that allows you to pass a
+// custom ElectionTimeout to SugarDB.
+// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
+func WithElectionTimeout(electionTimeout time.Duration) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.ElectionTimeout = electionTimeout
+	}
+}
+
+// WithHeartbeatTimeout is an option to the NewSugarDB function that allows you to pass a
+// custom HeartbeatTimeout to SugarDB.
+// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
+func WithHeartbeatTimeout(heartbeatTimeout time.Duration) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.HeartbeatTimeout = heartbeatTimeout
+	}
+}
+
+// WithHeartbeatTimeout is an option to the NewSugarDB function that allows you to pass a
+// custom HeartbeatTimeout to SugarDB.
+// If not specified, SugarDB will use the default configuration from config.DefaultConfig().
+func WithCommitTimeout(commitTimeout time.Duration) func(sugardb *SugarDB) {
+	return func(sugardb *SugarDB) {
+		sugardb.config.CommitTimeout = commitTimeout
 	}
 }
 

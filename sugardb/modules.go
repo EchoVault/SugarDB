@@ -18,12 +18,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/clock"
-	"github.com/echovault/sugardb/internal/constants"
 	"io"
 	"net"
 	"strings"
+
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/clock"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 func (server *SugarDB) getCommand(cmd string) (internal.Command, error) {
@@ -60,12 +61,14 @@ func (server *SugarDB) getHandlerFuncParams(ctx context.Context, cmd []string, c
 		GetAllCommands:        server.getCommands,
 		GetClock:              server.getClock,
 		Flush:                 server.Flush,
-		Randomkey:             server.randomKey,
-		Touchkey:              server.updateKeysInCache,
+		RandomKey:             server.randomKey,
+		DBSize:                server.dbSize,
+		TouchKey:              server.updateKeysInCache,
 		GetObjectFrequency:    server.getObjectFreq,
 		GetObjectIdleTime:     server.getObjectIdleTime,
 		SwapDBs:               server.SwapDBs,
 		GetServerInfo:         server.GetServerInfo,
+		AddScript:             server.AddScript,
 		DeleteKey: func(ctx context.Context, key string) error {
 			server.storeLock.Lock()
 			server.keysWithExpiry.rwMutex.Lock()
@@ -158,8 +161,8 @@ func (server *SugarDB) handleCommand(ctx context.Context, message []byte, conn *
 	}
 
 	if conn != nil && server.acl != nil && !embedded {
-		// Authorize connection if it's provided and if ACL module is present
-		// and the embedded parameter is false.
+		// Authorize connection if it's provided and if ACL module is present and the embedded parameter is false.
+		// Skip the authorization if the command is being executed from embedded mode.
 		if err = server.acl.AuthorizeConnection(conn, cmd, command, subCommand); err != nil {
 			return nil, err
 		}

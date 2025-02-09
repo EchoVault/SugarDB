@@ -211,6 +211,17 @@ func randomKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	}, nil
 }
 
+func dbSizeKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 1 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: make([]string, 0),
+	}, nil
+}
+
 func getDelKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) != 2 {
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
@@ -297,5 +308,16 @@ func moveKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 		Channels:  make([]string, 0),
 		ReadKeys:  make([]string, 0),
 		WriteKeys: []string{cmd[1]},
+	}, nil
+}
+
+func existsKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) < 2 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
 	}, nil
 }
