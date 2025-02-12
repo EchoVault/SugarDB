@@ -62,6 +62,12 @@ func NewMemberList(opts Opts) *MemberList {
 	}
 }
 
+// !!!!!!!!!!!!
+// delete me probably
+func (m *MemberList) ShowNumNodes() int {
+	return m.noOfNodes
+}
+
 func (m *MemberList) MemberListInit(ctx context.Context) {
 	cfg := memberlist.DefaultWANConfig()
 	cfg.RequireNodeNames = true

@@ -363,7 +363,7 @@ func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
 
 	}
 
-	log.Printf("deleted key %s from server %v, is leader=%v\n", key, ctx.Value(internal.ContextServerID("ServerID")).(string), server.raft.IsRaftLeader())
+	log.Printf("deleted key %s from server %v", key, ctx.Value(internal.ContextServerID("ServerID")))
 
 	return nil
 }
@@ -674,14 +674,16 @@ func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 	database := ctx.Value("Database").(int)
 	server.storeLock.Lock()
 	server.keysWithExpiry.rwMutex.Lock()
-	defer server.keysWithExpiry.rwMutex.Unlock()
 	defer server.storeLock.Unlock()
+	defer server.keysWithExpiry.rwMutex.Unlock()
 
 	// Loop through the keys and delete them if they're expired
 	for server.keysWithExpiry.keys[database].Len() > 0 {
 
 		item := server.keysWithExpiry.keys[database].Peek()
+		fmt.Printf("!!!!!!!!! - evictKeysWithExpiredTTL - 1 - item: %v\n", item)
 		if item.ExpireAt < time.Now().Unix() {
+			fmt.Printf("!!!!!!!!! - evictKeysWithExpiredTTL - 2 - !!!EXPIRED!!! - item: %v\n", item)
 			// Grab key and HashField
 			k := item.Key
 			hashfield := item.HashField
@@ -692,9 +694,11 @@ func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 				if !ok {
 					return fmt.Errorf("Hash value should contain type HashValue, but type %s was found.", reflect.TypeOf(hashkey).Elem().Name())
 				}
+				// TODO !!!!!!
+				//  - verify this logic makes sense for handling a hash data type
+
 				// Pop off the heap
 				heap.Pop(server.keysWithExpiry.keys[database])
-				defer server.keysWithExpiry.rwMutex.RUnlock()
 				// Delete the field from the hash
 				delete(server.store[database][k].Value.(hash.Hash), hashfield)
 				continue
@@ -709,9 +713,11 @@ func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 					return fmt.Errorf("evictKeysWithExpiredTTL -> standalone delete: %+v", err)
 				}
 			} else if server.isInCluster() && server.raft.IsRaftLeader() {
+				fmt.Printf("!!!!!!!!! - evictKeysWithExpiredTTL - 3 - item: %v\n", item)
 				if err := server.raftApplyDeleteKey(ctx, k); err != nil {
 					return fmt.Errorf("evictKeysWithExpiredTTL -> cluster delete: %+v", err)
 				}
+				fmt.Printf("!!!!!!!!! - evictKeysWithExpiredTTL - 4 - item: %v\n", item)
 			}
 		} else {
 			break

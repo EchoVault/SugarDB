@@ -86,7 +86,7 @@ func (fsm *FSM) Apply(log *raft.Log) interface{} {
 					Response: nil,
 				}
 			}
-			fmt.Println("!!!!!!! - delete key - 1")
+			fmt.Printf("!!!!!!! - delete key - 2 - key: %v - ServerID: %v", request.Key, request.ServerID)
 			return internal.ApplyResponse{
 				Error:    nil,
 				Response: []byte("OK"),

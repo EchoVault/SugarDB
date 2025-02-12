@@ -14,7 +14,7 @@ build-modules-test:
 test:
 	env RACE=false OUT=internal/modules/admin/testdata make build-modules-test && \
 	env RACE=false OUT=sugardb/testdata make build-modules-test && \
-	CGO_ENABLED=1 go test ./... -coverprofile coverage/coverage.out && \
+	CGO_ENABLED=1 go test ./... -timeout 1m -coverprofile coverage/coverage.out && \
 	rm -rf ./internal/modules/admin/testdata && \
 	rm -rf ./sugardb/testdata && \
 	rm -rf ./sugardb/aof
@@ -22,7 +22,7 @@ test:
 test-race:
 	env RACE=true OUT=internal/modules/admin/testdata make build-modules-test && \
 	env RACE=true OUT=sugardb/testdata make build-modules-test && \
-	CGO_ENABLED=1 go test ./... --race && \
+	CGO_ENABLED=1 go test ./... -timeout 1m --race && \
 	rm -rf ./internal/modules/admin/testdata && \
 	rm -rf ./sugardb/testdata && \
 	rm -rf ./sugardb/aof
