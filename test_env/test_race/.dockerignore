@@ -1,0 +1,11 @@
+.git
+.github
+.idea
+.DS_Store
+bin
+internal/volumes/nodes
+dist/
+dump.rdb
+**/*/testdata
+sugardb/aof
+aof

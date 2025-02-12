@@ -10,7 +10,6 @@ import (
 func DefaultConfig() Config {
 	raftBindAddr, _ := internal.GetIPAddress()
 	raftBindPort, _ := internal.GetFreePort()
-
 	return Config{
 		TLS:               false,
 		MTLS:              false,
@@ -36,7 +35,6 @@ func DefaultConfig() Config {
 		AOFSyncStrategy:   "everysec",
 		MaxMemory:         0,
 		EvictionPolicy:    constants.NoEviction,
-		EvictionSample:    20,
 		EvictionInterval:  100 * time.Millisecond,
 		ElectionTimeout:   1000 * time.Millisecond,
 		HeartbeatTimeout:  1000 * time.Millisecond,

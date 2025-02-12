@@ -11,10 +11,8 @@ import (
 
 func createSugarDB() *SugarDB {
 	ev, _ := NewSugarDB(
-		WithConfig(config.Config{
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
+		WithDataDir(""),
+		WithEvictionPolicy(constants.NoEviction),
 	)
 	return ev
 }
@@ -40,12 +38,12 @@ func presetKeyData(server *SugarDB, ctx context.Context, key string, data intern
 	server.setExpiry(ctx, key, data.ExpireAt, false)
 }
 
-func getValue (server *SugarDB, ctx context.Context, key string, database string) (interface{}, error) {
+func getValue(server *SugarDB, ctx context.Context, key string, database string) (interface{}, error) {
 	db, err := strconv.Atoi(database)
 	if err != nil {
 		return nil, err
 	}
 	ctx = context.WithValue(ctx, "Database", db)
-	
+
 	return server.getValues(ctx, []string{key})[key], err
 }

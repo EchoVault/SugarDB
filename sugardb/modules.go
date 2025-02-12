@@ -71,6 +71,8 @@ func (server *SugarDB) getHandlerFuncParams(ctx context.Context, cmd []string, c
 		AddScript:             server.AddScript,
 		DeleteKey: func(ctx context.Context, key string) error {
 			server.storeLock.Lock()
+			server.keysWithExpiry.rwMutex.Lock()
+			defer server.keysWithExpiry.rwMutex.Unlock()
 			defer server.storeLock.Unlock()
 			return server.deleteKey(ctx, key)
 		},

@@ -45,13 +45,16 @@ func (server *SugarDB) raftApplyDeleteKey(ctx context.Context, key string) error
 		return fmt.Errorf("could not parse delete key request for key: %s", key)
 	}
 
-	applyFuture := server.raft.Apply(b, 500*time.Millisecond)
+	fmt.Printf("!!!!!!!!! raftApplyDelete - 0 - NODES: %v", server.memberList.ShowNumNodes())
+	applyFuture := server.raft.Apply(b, 1000*time.Millisecond)
+	fmt.Printf("!!!!!!!!! raftApplyDelete - 1 - applyFuture: %+v", applyFuture)
 
 	if err = applyFuture.Error(); err != nil {
 		return err
 	}
 
 	r, ok := applyFuture.Response().(internal.ApplyResponse)
+	fmt.Printf("!!!!!!!!!!!!!! - raftApplyDelete - 2: \n ok: %v\n response: \n%v\n", ok, r)
 
 	if !ok {
 		return fmt.Errorf("unprocessable entity %v", r)

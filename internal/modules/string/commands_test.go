@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/config"
 	"github.com/echovault/sugardb/internal/constants"
 	"github.com/echovault/sugardb/sugardb"
 	"github.com/tidwall/resp"
@@ -35,12 +34,10 @@ func Test_String(t *testing.T) {
 	}
 
 	mockServer, err := sugardb.NewSugarDB(
-		sugardb.WithConfig(config.Config{
-			BindAddr:       "localhost",
-			Port:           uint16(port),
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-		}),
+		sugardb.WithBindAddr("localhost"),
+		sugardb.WithPort(uint16(port)),
+		sugardb.WithDataDir(""),
+		sugardb.WithEvictionPolicy(constants.NoEviction),
 	)
 	if err != nil {
 		t.Error(err)

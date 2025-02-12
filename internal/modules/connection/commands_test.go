@@ -28,22 +28,20 @@ import (
 	"testing"
 
 	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/config"
 	"github.com/echovault/sugardb/internal/constants"
 	"github.com/echovault/sugardb/sugardb"
 	"github.com/tidwall/resp"
 )
 
 func setUpServer(port int, requirePass bool, aclConfig string) (*sugardb.SugarDB, error) {
-	conf := config.Config{
-		BindAddr:       "localhost",
-		Port:           uint16(port),
-		DataDir:        "",
-		EvictionPolicy: constants.NoEviction,
-		RequirePass:    requirePass,
-		Password:       "password1",
-		AclConfig:      aclConfig,
-	}
+	conf := sugardb.DefaultConfig()
+	conf.BindAddr = "localhost"
+	conf.Port = uint16(port)
+	conf.DataDir = ""
+	conf.EvictionPolicy = constants.NoEviction
+	conf.RequirePass = requirePass
+	conf.Password = "password1"
+	conf.AclConfig = aclConfig
 
 	mockServer, err := sugardb.NewSugarDB(
 		sugardb.WithConfig(conf),
