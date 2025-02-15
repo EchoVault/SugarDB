@@ -423,3 +423,26 @@ func (server *SugarDB) HTTL(key string, fields ...string) ([]int, error) {
 	}
 	return internal.ParseIntegerArrayResponse(b)
 }
+
+// HPExpireTime returns the absolute Unix timestamp in milliseconds for the given field(s) expiration time.
+//
+// Parameters:
+//
+// `key` - string - the key to the hash map.
+//
+// `fields` - ...string - a list of fields to check expiration time.
+//
+// Returns: an integer array representing the expiration timestamp in milliseconds for each field.
+// If a field doesn't exist or has no expiry set, -1 is returned.
+//
+// Errors:
+//
+// "value at <key> is not a hash" - when the provided key is not a hash.
+func (server *SugarDB) HPExpireTime(key string, fields ...string) ([]int, error) {
+	cmd := (append([]string{"HPEXPIRETIME", key}, fields...))
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return nil, err
+	}
+	return internal.ParseIntegerArrayResponse(b)
+}
