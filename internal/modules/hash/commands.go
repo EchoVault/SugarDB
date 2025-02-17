@@ -863,14 +863,14 @@ func handleHPEXPIRETIME(params internal.HandlerFuncParams) ([]byte, error) {
 		if !ok {
 			// Field doesn't exist
 			resp += ":-2\r\n"
-            continue
+			continue
 		}
 
 		if f.ExpireAt == (time.Time{}) {
-            // No expiration set
-            resp += "$-1\r\n"
-            continue
-        }
+			// No expiration set
+			resp += "$-1\r\n"
+			continue
+		}
 		// Calculate milliseconds until expiration
 		millisUntilExpire := f.ExpireAt.Sub(params.GetClock().Now()).Milliseconds()
 		resp += fmt.Sprintf(":%d\r\n", millisUntilExpire)
