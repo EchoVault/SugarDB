@@ -830,7 +830,54 @@ func handleHTTL(params internal.HandlerFuncParams) ([]byte, error) {
 }
 
 func handleHPEXPIRETIME(params internal.HandlerFuncParams) ([]byte, error) {
-	return nil, nil
+	keys, err := hpexpiretimeKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdargs := keys.ReadKeys[2:]
+	numfields, err := strconv.ParseInt(cmdargs[0], 10, 64)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("expire time must be integer, was provided %q", cmdargs[0]))
+	}
+
+	fields := cmdargs[1 : numfields+1]
+	// init array response
+	resp := "*" + fmt.Sprintf("%v", len(fields)) + "\r\n"
+
+	// handle bad key
+	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
+	if !keyExists {
+		return []byte("$-1\r\n"), nil
+	}
+
+	// handle not a hash
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(Hash)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	for _, field := range fields {
+		f, ok := hash[field]
+		if !ok {
+			// Field doesn't exist
+			resp += ":-2\r\n"
+            continue
+		}
+
+		if f.ExpireAt == (time.Time{}) {
+            // No expiration set
+            resp += "$-1\r\n"
+            continue
+        }
+		// Calculate milliseconds until expiration
+		millisUntilExpire := f.ExpireAt.Sub(params.GetClock().Now()).Milliseconds()
+		resp += fmt.Sprintf(":%d\r\n", millisUntilExpire)
+	}
+
+	// build out response
+	return []byte(resp), nil
 }
 
 func Commands() []internal.Command {
@@ -877,7 +924,7 @@ Retrieve the value of each of the listed fields from the hash.`,
 			Sync:              false,
 			Type:              "BUILT_IN",
 			KeyExtractionFunc: hmgetKeyFunc,
-			HandlerFunc:       handleHMGET, 
+			HandlerFunc:       handleHMGET,
 		},
 		{
 			Command:    "hstrlen",
@@ -999,13 +1046,13 @@ Return the string length of the values stored at the specified fields. 0 if the 
 			HandlerFunc:       handleHTTL,
 		},
 		{
-			Command: "hpexpireTime",
-			Module: constants.HashModule,
-			Categories: []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
-			Description: `HPEXPIRETIME key field [field ...] Returns the absolute Unix timestamp in milliseconds since Unix epoch at which the given key's field(s) will expire. Returns -1 if field doesn't exist or has no expiry set.`,
-			Sync: true,
+			Command:           "hpexpireTime",
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
+			Description:       `HPEXPIRETIME key field [field ...] Returns the absolute Unix timestamp in milliseconds since Unix epoch at which the given key's field(s) will expire. Returns -1 if field doesn't exist or has no expiry set.`,
+			Sync:              true,
 			KeyExtractionFunc: hpexpiretimeKeyFunc,
-			HandlerFunc: handleHPEXPIRETIME,
+			HandlerFunc:       handleHPEXPIRETIME,
 		},
 	}
 }

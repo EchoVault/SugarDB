@@ -209,8 +209,8 @@ func hpexpiretimeKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error)
 	}
 
 	return internal.KeyExtractionFuncResult{
-		Channels: make([]string, 0),
-		ReadKeys: cmd[1:],
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
 		WriteKeys: make([]string, 0),
 	}, nil
 }
