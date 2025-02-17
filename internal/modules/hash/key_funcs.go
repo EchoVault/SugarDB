@@ -199,13 +199,13 @@ func httlKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	}, nil
 }
 
-func hpexpiretimeKeyFunc(cmd []string) (inetrnal.KeyExtractionFuncResult, error) {
+func hpexpiretimeKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 5 {
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
 	}
 
 	if cmd[2] != "FIELDS" {
-		return internal.KeyExtractionFuncResult{}, error.New(constants.InvalidCmdResponse)
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.InvalidCmdResponse)
 	}
 
 	return internal.KeyExtractionFuncResult{

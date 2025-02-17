@@ -829,8 +829,8 @@ func handleHTTL(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(resp), nil
 }
 
-func handleHPEXPIRETIME(params inetrnal.HandlerFuncParams) ([]byte, error) {
-	
+func handleHPEXPIRETIME(params internal.HandlerFuncParams) ([]byte, error) {
+	return nil, nil
 }
 
 func Commands() []internal.Command {
@@ -999,11 +999,11 @@ Return the string length of the values stored at the specified fields. 0 if the 
 			HandlerFunc:       handleHTTL,
 		},
 		{
-			Command "hpexpireTime",
+			Command: "hpexpireTime",
 			Module: constants.HashModule,
 			Categories: []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
 			Description: `HPEXPIRETIME key field [field ...] Returns the absolute Unix timestamp in milliseconds since Unix epoch at which the given key's field(s) will expire. Returns -1 if field doesn't exist or has no expiry set.`,
-			Sync: ture,
+			Sync: true,
 			KeyExtractionFunc: hpexpiretimeKeyFunc,
 			HandlerFunc: handleHPEXPIRETIME,
 		},
