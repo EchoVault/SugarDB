@@ -439,7 +439,7 @@ func (server *SugarDB) HTTL(key string, fields ...string) ([]int, error) {
 //
 // "value at <key> is not a hash" - when the provided key is not a hash.
 func (server *SugarDB) HPExpireTime(key string, fields ...string) ([]int, error) {
-	cmd := (append([]string{"HPEXPIRETIME", key}, fields...))
+	cmd := append([]string{"HPEXPIRETIME", key}, fields...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err

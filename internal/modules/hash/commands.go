@@ -873,7 +873,7 @@ Retrieve the value of each of the listed fields from the hash.`,
 			Sync:              false,
 			Type:              "BUILT_IN",
 			KeyExtractionFunc: hmgetKeyFunc,
-			HandlerFunc:       handleHMGET,
+			HandlerFunc:       handleHMGET, 
 		},
 		{
 			Command:    "hstrlen",
@@ -993,6 +993,15 @@ Return the string length of the values stored at the specified fields. 0 if the 
 			Sync:              true,
 			KeyExtractionFunc: httlKeyFunc,
 			HandlerFunc:       handleHTTL,
+		},
+		{
+			Command "hpexpireTime",
+			Module: constants.HashModule,
+			Categories: []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
+			Description: `HPEXPIRETIME key field [field ...] Returns the absolute Unix timestamp in milliseconds since Unix epoch at which the given key's field(s) will expire. Returns -1 if field doesn't exist or has no expiry set.`,
+			Sync: ture,
+			KeyExtractionFunc: hpexpiretimeKeyFunc,
+			HandlerFunc: handleHPEXPIRETIME,
 		},
 	}
 }
