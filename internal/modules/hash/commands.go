@@ -829,6 +829,10 @@ func handleHTTL(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(resp), nil
 }
 
+func handleHPEXPIRETIME(params inetrnal.HandlerFuncParams) ([]byte, error) {
+	
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
