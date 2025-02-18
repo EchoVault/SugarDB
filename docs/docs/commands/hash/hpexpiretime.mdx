@@ -1,0 +1,48 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# HPEXPIRETIME
+
+### Syntax
+```
+HPEXPIRETIME key FIELDS numfields field [field...]
+```
+
+### Module
+<span className="acl-category">hash</span>
+
+### Categories
+<span className="acl-category">fast</span>
+<span className="acl-category">hash</span>
+<span className="acl-category">read</span>
+
+### Description
+Returns the remaining TTL (time to live) of a hash key's field(s) that have a set expiration. 
+This introspection capability allows you to check how many milliseconds a given hash field will continue to be part of the hash key.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+    Get the expiration time in milliseconds for fields in the hash:
+    ```go
+    db, err := sugardb.NewSugarDB()
+    if err != nil {
+      log.Fatal(err)
+    }
+    TTLArray, err := db.HPEXPIRETIME("key", field1, field2)
+    ```
+  </TabItem>
+  <TabItem value="cli">
+    Get the expiration time in milliseconds for fields in the hash:
+    ```
+    > HPEXPIRETIME key FIELDS 2 field1 field2
+    ```
+  </TabItem>
+</Tabs>
