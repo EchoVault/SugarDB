@@ -868,7 +868,7 @@ func handleHPEXPIRETIME(params internal.HandlerFuncParams) ([]byte, error) {
 
 		if f.ExpireAt == (time.Time{}) {
 			// No expiration set
-			resp += "$-1\r\n"
+			resp += ":-1\r\n"
 			continue
 		}
 		// Calculate milliseconds until expiration
