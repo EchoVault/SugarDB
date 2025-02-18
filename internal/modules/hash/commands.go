@@ -1046,7 +1046,7 @@ Return the string length of the values stored at the specified fields. 0 if the 
 			HandlerFunc:       handleHTTL,
 		},
 		{
-			Command:           "hpexpireTime",
+			Command:           "hpexpiretime",
 			Module:            constants.HashModule,
 			Categories:        []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
 			Description:       `(HPEXPIRETIME key FIELDS numfields field [field ...]) Returns the absolute Unix timestamp in milliseconds since Unix epoch at which the given key's field(s) will expire.`,
