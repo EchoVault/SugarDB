@@ -17,8 +17,8 @@ HPEXPIRETIME key FIELDS numfields field [field...]
 <span className="acl-category">read</span>
 
 ### Description
-Returns the remaining TTL (time to live) of a hash key's field(s) that have a set expiration. 
-This introspection capability allows you to check how many milliseconds a given hash field will continue to be part of the hash key.
+Returns the absolute Unix expiration timestamp (in milliseconds since epoch) of a hash key's field(s) that have a set expiration. 
+This introspection capability allows you to check at what time a given hash field will expire.
 
 ### Examples
 
