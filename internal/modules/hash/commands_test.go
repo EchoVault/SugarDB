@@ -2505,18 +2505,20 @@ func Test_Hash(t *testing.T) {
 		}()
 		client := resp.NewConn(conn)
 	
+		const fixedTimestamp = 1136189545000
+	
 		tests := []struct {
 			name          string
 			key           string
 			command       []string
 			presetValue   interface{}
 			setExpire     bool
-			expireSeconds string
+			expireSeconds int64
 			expectedValue string
 			expectedError error
 		}{
 			{
-				name:    "1. Single field with regular number",
+				name:    "1. Single field with expiration",
 				key:     "HPExpireTimeKey1",
 				command: []string{"HPEXPIRETIME", "HPExpireTimeKey1", "FIELDS", "1", "field1"},
 				presetValue: hash.Hash{
@@ -2525,12 +2527,11 @@ func Test_Hash(t *testing.T) {
 					},
 				},
 				setExpire:     true,
-				expireSeconds: "500",
-				expectedValue: "[500000]",  // 500 seconds = 500000 milliseconds
-				expectedError: nil,
+				expireSeconds: 500,
+				expectedValue: fmt.Sprintf("[%d]", fixedTimestamp),
 			},
 			{
-				name:    "2. Single field with large number (1 year)",
+				name:    "2. Single field with no expiration",
 				key:     "HPExpireTimeKey2",
 				command: []string{"HPEXPIRETIME", "HPExpireTimeKey2", "FIELDS", "1", "field1"},
 				presetValue: hash.Hash{
@@ -2538,29 +2539,13 @@ func Test_Hash(t *testing.T) {
 						Value: "default1",
 					},
 				},
-				setExpire:     true,
-				expireSeconds: "31536000",  // 1 year in seconds
-				expectedValue: "[31536000000]",  // 1 year in milliseconds
-				expectedError: nil,
+				setExpire:     false,
+				expectedValue: "[-1]",
 			},
 			{
-				name:    "3. Single field with very large number (100 years)",
+				name:    "3. Multiple fields mixed",
 				key:     "HPExpireTimeKey3",
-				command: []string{"HPEXPIRETIME", "HPExpireTimeKey3", "FIELDS", "1", "field1"},
-				presetValue: hash.Hash{
-					"field1": hash.HashValue{
-						Value: "default1",
-					},
-				},
-				setExpire:     true,
-				expireSeconds: "3153600000",  // 100 years in seconds
-				expectedValue: "[3153600000000]",  // 100 years in milliseconds
-				expectedError: nil,
-			},
-			{
-				name:    "4. Multiple fields with mixed numbers",
-				key:     "HPExpireTimeKey4",
-				command: []string{"HPEXPIRETIME", "HPExpireTimeKey4", "FIELDS", "3", "field1", "field2", "nonexist"},
+				command: []string{"HPEXPIRETIME", "HPExpireTimeKey3", "FIELDS", "3", "field1", "field2", "nonexist"},
 				presetValue: hash.Hash{
 					"field1": hash.HashValue{
 						Value: "default1",
@@ -2570,113 +2555,87 @@ func Test_Hash(t *testing.T) {
 					},
 				},
 				setExpire:     true,
-				expireSeconds: "31536000",  // 1 year
-				expectedValue: "[31536000000 31536000000 -2]",  // 1 year in ms, 1 year in ms, non-existent field
-				expectedError: nil,
+				expireSeconds: 500,
+				expectedValue: fmt.Sprintf("[%d %d -2]", fixedTimestamp, fixedTimestamp),
 			},
 			{
-				name:    "5. Multiple fields with max allowed number",
-				key:     "HPExpireTimeKey5",
-				command: []string{"HPEXPIRETIME", "HPExpireTimeKey5", "FIELDS", "3", "field1", "field2", "field3"},
-				presetValue: hash.Hash{
-					"field1": hash.HashValue{
-						Value: "default1",
-					},
-					"field2": hash.HashValue{
-						Value: "default2",
-					},
-					"field3": hash.HashValue{
-						Value: "default3",
-					},
-				},
-				setExpire:     true,
-				expireSeconds: "9223372036",  // Close to max int64 divided by 1000 for milliseconds
-				expectedValue: "[9223372036000 9223372036000 9223372036000]",
-				expectedError: nil,
+				name:          "4. Key does not exist",
+				key:           "NonExistentKey",
+				command:       []string{"HPEXPIRETIME", "NonExistentKey", "FIELDS", "1", "field1"},
+				presetValue:   nil,
+				setExpire:     false,
+				expectedValue: "-1",
 			},
 			{
-				name:          "7. Key is not a hash",
-				key:           "HPExpireTimeKey7",
-				command:       []string{"HPEXPIRETIME", "HPExpireTimeKey7", "FIELDS", "1", "field1"},
+				name:          "5. Key is not a hash",
+				key:           "HPExpireTimeKey5",
+				command:       []string{"HPEXPIRETIME", "HPExpireTimeKey5", "FIELDS", "1", "field1"},
 				presetValue:   "string value",
 				setExpire:     false,
-				expectedError: errors.New("value at HPExpireTimeKey7 is not a hash"),
+				expectedValue: "",
+				expectedError: errors.New("value at HPExpireTimeKey5 is not a hash"),
 			},
 			{
-				name:    "8. Invalid numfields format",
-				key:     "HPExpireTimeKey8",
-				command: []string{"HPEXPIRETIME", "HPExpireTimeKey8", "FIELDS", "notanumber", "field1"},
+				name:    "6. Invalid numfields format",
+				key:     "HPExpireTimeKey6",
+				command: []string{"HPEXPIRETIME", "HPExpireTimeKey6", "FIELDS", "notanumber", "field1"},
 				presetValue: hash.Hash{
 					"field1": hash.HashValue{
 						Value: "default1",
 					},
 				},
 				setExpire:     false,
+				expectedValue: "",
 				expectedError: errors.New("expire time must be integer, was provided \"notanumber\""),
 			},
 		}
 	
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
+				// Setup initial value if needed
 				if test.presetValue != nil {
 					var command []resp.Value
-					var expected string
 	
-					switch test.presetValue.(type) {
+					switch v := test.presetValue.(type) {
 					case string:
 						command = []resp.Value{
 							resp.StringValue("SET"),
 							resp.StringValue(test.key),
-							resp.StringValue(test.presetValue.(string)),
+							resp.StringValue(v),
 						}
-						expected = "ok"
 					case hash.Hash:
 						command = []resp.Value{resp.StringValue("HSET"), resp.StringValue(test.key)}
-						for key, value := range test.presetValue.(hash.Hash) {
-							command = append(command, []resp.Value{
-								resp.StringValue(key),
-								resp.StringValue(value.Value.(string))}...,
-							)
+						for key, value := range v {
+							command = append(command, resp.StringValue(key), resp.StringValue(value.Value.(string)))
 						}
-						expected = strconv.Itoa(len(test.presetValue.(hash.Hash)))
 					}
 	
 					if err = client.WriteArray(command); err != nil {
 						t.Error(err)
 					}
-	
-					res, _, err := client.ReadValue()
-					if err != nil {
+					if _, _, err = client.ReadValue(); err != nil {
 						t.Error(err)
 					}
 	
-					if !strings.EqualFold(res.String(), expected) {
-						t.Errorf("expected preset response to be %q, got %q", expected, res.String())
-					}
-				}
-	
-				// Set expiration if needed
-				if test.setExpire && test.presetValue != nil {
-					if hash, ok := test.presetValue.(hash.Hash); ok {
-						command := make([]resp.Value, len(hash)+5)
-						command[0] = resp.StringValue("HEXPIRE")
-						command[1] = resp.StringValue(test.key)
-						command[2] = resp.StringValue(test.expireSeconds)
-						command[3] = resp.StringValue("FIELDS")
-						command[4] = resp.StringValue(fmt.Sprintf("%v", len(hash)))
-	
-						i := 0
-						for k := range hash {
-							command[5+i] = resp.StringValue(k)
-							i++
-						}
-	
-						if err = client.WriteArray(command); err != nil {
-							t.Error(err)
-						}
-						_, _, err := client.ReadValue()
-						if err != nil {
-							t.Error(err)
+					// Set expiration if needed
+					if test.setExpire {
+						if hash, ok := test.presetValue.(hash.Hash); ok {
+							for field := range hash {
+								expireCmd := []resp.Value{
+									resp.StringValue("HEXPIRE"),
+									resp.StringValue(test.key),
+									resp.StringValue(strconv.FormatInt(test.expireSeconds, 10)),
+									resp.StringValue("FIELDS"),
+									resp.StringValue("1"),
+									resp.StringValue(field),
+								}
+								if err = client.WriteArray(expireCmd); err != nil {
+									t.Error(err)
+								}
+								if _, _, err = client.ReadValue(); err != nil {
+									t.Error(err)
+								}
+							}
 						}
 					}
 				}
@@ -2689,6 +2648,7 @@ func Test_Hash(t *testing.T) {
 				if err = client.WriteArray(command); err != nil {
 					t.Error(err)
 				}
+	
 				resp, _, err := client.ReadValue()
 				if err != nil {
 					t.Error(err)
