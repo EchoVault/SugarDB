@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/clock"
-	"github.com/echovault/sugardb/internal/config"
 	"github.com/echovault/sugardb/internal/constants"
 	"github.com/go-test/deep"
 	"github.com/tidwall/resp"
@@ -197,6 +196,7 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 			wg.Done()
 		}(i)
 	}
+
 	go func() {
 		wg.Wait()
 		doneChan <- struct{}{}
@@ -212,6 +212,7 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 }
 
 func Test_Cluster(t *testing.T) {
+
 	t.Parallel()
 
 	nodes, err := makeCluster(5)
@@ -219,7 +220,6 @@ func Test_Cluster(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
 	t.Cleanup(func() {
 		for i := len(nodes) - 1; i > -1; i-- {
 			_ = nodes[i].raw.Close()
@@ -251,6 +251,12 @@ func Test_Cluster(t *testing.T) {
 			{key: "key10", value: "value10"},
 			{key: "key11", value: "value11"},
 			{key: "key12", value: "value12"},
+		},
+		// !!!!!!!!
+		"TTL": {
+			{key: "key13", value: "value13"},
+			{key: "key14", value: "value14"},
+			{key: "key15", value: "value15"},
 		},
 	}
 
@@ -596,7 +602,77 @@ func Test_Cluster(t *testing.T) {
 	})
 
 	t.Run("Test_EvictExpiredTTL", func(t *testing.T) {
-		// TODO: Implement test for evicting expired keys on the cluster.
+		// !!!!!
+		tests := tests["TTL"]
+		// Write all the data to the cluster leader.
+		for i, test := range tests {
+			node := nodes[0]
+			_, ok, err := node.server.Set(test.key, test.value, SETOptions{})
+			if err != nil {
+				t.Errorf("could not write command to leader node (test %d): %v", i, err)
+				return
+			}
+			if !ok {
+				t.Errorf("expected set for test %d ok = true, got ok = false", i)
+				return
+			}
+		}
+
+		// Give time to replicate
+		time.Sleep(5 * time.Second)
+
+		// Set expiration on the key on the leader node
+		// 1. Prepare expire command.
+
+		for _, test := range tests {
+			command := []resp.Value{resp.StringValue("EXPIRE"), resp.StringValue(test.key), resp.StringValue("1")}
+			// 2. Send expire command.
+			if err := nodes[0].client.WriteArray(command); err != nil {
+				t.Error(err)
+				return
+			}
+			resp, _, err := nodes[0].client.ReadValue()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if resp.Integer() != 1 {
+				t.Errorf("Expire command expected response of 1, got %v", resp.Integer())
+				return
+			}
+		}
+
+		// Ensure enough time has passed for keys to expire
+		time.Sleep(2 * time.Second)
+
+		// 4. Check if the data is absent in quorum (majority of the cluster).
+		quorum := int(math.Ceil(float64(len(nodes))/2)) + 1
+		for i, test := range tests {
+			count := 0
+			for j := 0; j < len(nodes); j++ {
+				node := nodes[j]
+				if err := node.client.WriteArray([]resp.Value{
+					resp.StringValue("GET"),
+					resp.StringValue(test.key),
+				}); err != nil {
+					t.Errorf("could not write command to follower node %d (test %d): %v", j, i, err)
+					return
+				}
+				rd, _, err := node.client.ReadValue()
+				if err != nil {
+					t.Errorf("could not read data from follower node %d (test %d): %v", j, i, err)
+					return
+				}
+				if rd.IsNull() {
+					count += 1 // If the expected value is found, increment the count.
+				}
+			}
+			// 5. Fail if count is less than quorum.
+			if count < quorum {
+				t.Errorf("could not find value %s at key %s in cluster quorum", test.value, test.key)
+			}
+		}
+
 	})
 
 	t.Run("Test_GetServerInfo", func(t *testing.T) {
@@ -669,13 +745,11 @@ func Test_Standalone(t *testing.T) {
 	}
 
 	mockServer, err := NewSugarDB(
-		WithConfig(config.Config{
-			BindAddr:       "localhost",
-			Port:           uint16(port),
-			DataDir:        "",
-			EvictionPolicy: constants.NoEviction,
-			ServerID:       "Server_1",
-		}),
+		WithBindAddr("localhost"),
+		WithPort(uint16(port)),
+		WithDataDir(""),
+		WithEvictionPolicy(constants.NoEviction),
+		WithServerID("Server_1"),
 	)
 	if err != nil {
 		t.Error(err)
@@ -941,6 +1015,10 @@ func Test_Standalone(t *testing.T) {
 		}
 	})
 
+	t.Run("Test_EvictExpiredTTL", func(t *testing.T) {
+		// TODO: Implement test for evicting expired keys in standalone mode.
+	})
+
 	t.Run("Test_SnapshotRestore", func(t *testing.T) {
 		t.Parallel()
 
@@ -1167,10 +1245,6 @@ func Test_Standalone(t *testing.T) {
 				return
 			}
 		}
-	})
-
-	t.Run("Test_EvictExpiredTTL", func(t *testing.T) {
-		// TODO: Implement test for evicting expired keys in standalone mode.
 	})
 
 	t.Run("Test_GetServerInfo", func(t *testing.T) {

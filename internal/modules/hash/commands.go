@@ -723,7 +723,6 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 					continue
 				}
 				currentExpireAt := hash[f].ExpireAt
-				//TODO
 				if currentExpireAt == (time.Time{}) || expireAt.Before(currentExpireAt) {
 					resp = resp + ":0\r\n"
 					continue

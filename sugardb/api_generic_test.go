@@ -16,15 +16,16 @@ package sugardb
 
 import (
 	"context"
-	"github.com/echovault/sugardb/internal"
-	"github.com/echovault/sugardb/internal/clock"
-	"github.com/echovault/sugardb/internal/config"
-	"github.com/echovault/sugardb/internal/constants"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/echovault/sugardb/internal"
+	"github.com/echovault/sugardb/internal/clock"
+	"github.com/echovault/sugardb/internal/config"
+	"github.com/echovault/sugardb/internal/constants"
 )
 
 func TestSugarDB_Generic(t *testing.T) {

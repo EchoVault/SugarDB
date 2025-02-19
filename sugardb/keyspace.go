@@ -91,7 +91,7 @@ func (server *SugarDB) Flush(database int) {
 			// Clear db store.
 			clear(server.store[db])
 			// Clear db volatile key tracker.
-			clear(server.keysWithExpiry.keys[db])
+			server.keysWithExpiry.keys[db].Flush()
 			// Clear db LFU cache.
 			server.lfuCache.cache[db].Mutex.Lock()
 			server.lfuCache.cache[db].Flush()
@@ -107,7 +107,7 @@ func (server *SugarDB) Flush(database int) {
 	// Clear db store.
 	clear(server.store[database])
 	// Clear db volatile key tracker.
-	clear(server.keysWithExpiry.keys[database])
+	server.keysWithExpiry.keys[database].Flush()
 	// Clear db LFU cache.
 	server.lfuCache.cache[database].Mutex.Lock()
 	server.lfuCache.cache[database].Flush()
@@ -166,6 +166,8 @@ func (server *SugarDB) getHashExpiry(ctx context.Context, key string, field stri
 
 func (server *SugarDB) getValues(ctx context.Context, keys []string) map[string]interface{} {
 	server.storeLock.Lock()
+	server.keysWithExpiry.rwMutex.Lock()
+	defer server.keysWithExpiry.rwMutex.Unlock()
 	defer server.storeLock.Unlock()
 
 	database := ctx.Value("Database").(int)
@@ -278,11 +280,15 @@ func (server *SugarDB) setExpiry(ctx context.Context, key string, expireAt time.
 		ExpireAt: expireAt,
 	}
 
-	// If the slice of keys associated with expiry time does not contain the current key, add the key.
+	// Update the TTL Heap.
 	server.keysWithExpiry.rwMutex.Lock()
-	if !slices.Contains(server.keysWithExpiry.keys[database], key) {
-		server.keysWithExpiry.keys[database] = append(server.keysWithExpiry.keys[database], key)
+	h := server.keysWithExpiry.keys[database]
+	item := internal.HeapItem{
+		Key:       key,
+		HashField: "",
+		ExpireAt:  server.store[database][key].ExpireAt.Unix(),
 	}
+	h.Update(item)
 	server.keysWithExpiry.rwMutex.Unlock()
 
 	// If touch is true, update the keys status in the cache.
@@ -312,15 +318,20 @@ func (server *SugarDB) setHashExpiry(ctx context.Context, key string, field stri
 	}
 
 	server.keysWithExpiry.rwMutex.Lock()
-	if !slices.Contains(server.keysWithExpiry.keys[database], key) {
-		server.keysWithExpiry.keys[database] = append(server.keysWithExpiry.keys[database], key)
+	h := server.keysWithExpiry.keys[database]
+	item := internal.HeapItem{
+		Key:       key,
+		HashField: "",
+		ExpireAt:  server.store[database][key].ExpireAt.Unix(),
 	}
+	h.Update(item)
 	server.keysWithExpiry.rwMutex.Unlock()
 
 	return nil
 }
 
 func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
+
 	database := ctx.Value("Database").(int)
 
 	// Deduct memory usage in tracker.
@@ -332,16 +343,15 @@ func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
 	server.memUsed -= mem
 	server.memUsed -= int64(unsafe.Sizeof(key))
 	server.memUsed -= int64(len(key))
-
 	// Delete the key from keyLocks and store.
 	delete(server.store[database], key)
 
-	// Remove key from slice of keys associated with expiry.
-	server.keysWithExpiry.rwMutex.Lock()
-	defer server.keysWithExpiry.rwMutex.Unlock()
-	server.keysWithExpiry.keys[database] = slices.DeleteFunc(server.keysWithExpiry.keys[database], func(k string) bool {
-		return k == key
-	})
+	// Remove key from the TTLHeap.
+	h := server.keysWithExpiry.keys[database]
+	item := internal.HeapItem{
+		Key: key,
+	}
+	h.Remove(item)
 
 	// Remove the key from the cache associated with the database.
 	switch {
@@ -349,9 +359,11 @@ func (server *SugarDB) deleteKey(ctx context.Context, key string) error {
 		server.lfuCache.cache[database].Delete(key)
 	case slices.Contains([]string{constants.AllKeysLRU, constants.VolatileLRU}, server.config.EvictionPolicy):
 		server.lruCache.cache[database].Delete(key)
+	default:
+
 	}
 
-	log.Printf("deleted key %s\n", key)
+	log.Printf("deleted key %s from server %v", key, ctx.Value(internal.ContextServerID("ServerID")))
 
 	return nil
 }
@@ -363,7 +375,7 @@ func (server *SugarDB) createDatabase(database int) {
 	// Set volatile keys tracker for database.
 	server.keysWithExpiry.rwMutex.Lock()
 	defer server.keysWithExpiry.rwMutex.Unlock()
-	server.keysWithExpiry.keys[database] = make([]string, 0)
+	server.keysWithExpiry.keys[database] = &internal.TTLHeap{Keys: map[string]int{}, Heap: []internal.HeapItem{}}
 
 	// Create database LFU cache.
 	server.lfuCache.mutex.Lock()
@@ -515,6 +527,8 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 			key := heap.Pop(server.lfuCache.cache[database]).(string)
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
+				server.keysWithExpiry.rwMutex.Lock()
+				defer server.keysWithExpiry.rwMutex.Unlock()
 				if err := server.deleteKey(ctx, key); err != nil {
 
 					log.Printf("Evicting key %v from database %v \n", key, database)
@@ -548,6 +562,8 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 			key := heap.Pop(server.lruCache.cache[database]).(string)
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key.
+				server.keysWithExpiry.rwMutex.Lock()
+				defer server.keysWithExpiry.rwMutex.Unlock()
 				if err := server.deleteKey(ctx, key); err != nil {
 					log.Printf("Evicting key %v from database %v \n", key, database)
 					return fmt.Errorf("adjustMemoryUsage -> LRU cache eviction: %+v", err)
@@ -584,6 +600,8 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 						if idx == 0 {
 							if !server.isInCluster() {
 								// If in standalone mode, directly delete the key
+								server.keysWithExpiry.rwMutex.Lock()
+								defer server.keysWithExpiry.rwMutex.Unlock()
 								if err := server.deleteKey(ctx, key); err != nil {
 									log.Printf("Evicting key %v from database %v \n", key, db)
 
@@ -613,12 +631,14 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 		for {
 			// Get random volatile key
 			server.keysWithExpiry.rwMutex.RLock()
-			idx := rand.Intn(len(server.keysWithExpiry.keys))
-			key := server.keysWithExpiry.keys[database][idx]
+			idx := rand.Intn(len(server.keysWithExpiry.keys[database].Heap))
+			key := server.keysWithExpiry.keys[database].Heap[idx].Key
 			server.keysWithExpiry.rwMutex.RUnlock()
 
 			if !server.isInCluster() {
 				// If in standalone mode, directly delete the key
+				server.keysWithExpiry.rwMutex.Lock()
+				defer server.keysWithExpiry.rwMutex.Unlock()
 				if err := server.deleteKey(ctx, key); err != nil {
 					log.Printf("Evicting key %v from database %v \n", key, database)
 
@@ -643,101 +663,66 @@ func (server *SugarDB) adjustMemoryUsage(ctx context.Context) error {
 	}
 }
 
-// evictKeysWithExpiredTTL is a function that samples keys with an associated TTL
-// and evicts keys that are currently expired.
-// This function will sample 20 keys from the list of keys with an associated TTL,
-// if the key is expired, it will be evicted.
+// evictKeysWithExpiredTTL is a function that evicts keys that have a TTL and are currently expired.
+// This includes fields in a hash for keys whose data type is Hash.
 // This function is only executed in standalone mode or by the raft cluster leader.
 func (server *SugarDB) evictKeysWithExpiredTTL(ctx context.Context) error {
 	// Only execute this if we're in standalone mode, or raft cluster leader.
 	if server.isInCluster() && !server.raft.IsRaftLeader() {
 		return nil
 	}
-
-	server.keysWithExpiry.rwMutex.RLock()
-
 	database := ctx.Value("Database").(int)
-
-	// Sample size should be the configured sample size, or the size of the keys with expiry,
-	// whichever one is smaller.
-	sampleSize := int(server.config.EvictionSample)
-	if len(server.keysWithExpiry.keys[database]) < sampleSize {
-		sampleSize = len(server.keysWithExpiry.keys)
-	}
-	keys := make([]string, sampleSize)
-
-	deletedCount := 0
-	thresholdPercentage := 20
-
-	var idx int
-	var key string
-	for i := 0; i < len(keys); i++ {
-		for {
-			// Retry retrieval of a random key until we find a key that is not already in the list of sampled keys.
-			idx = rand.Intn(len(server.keysWithExpiry.keys))
-			key = server.keysWithExpiry.keys[database][idx]
-			if !slices.Contains(keys, key) {
-				keys[i] = key
-				break
-			}
-		}
-	}
-	server.keysWithExpiry.rwMutex.RUnlock()
+	server.storeLock.Lock()
+	server.keysWithExpiry.rwMutex.Lock()
+	defer server.storeLock.Unlock()
+	defer server.keysWithExpiry.rwMutex.Unlock()
 
 	// Loop through the keys and delete them if they're expired
-	server.storeLock.Lock()
-	defer server.storeLock.Unlock()
-	for _, k := range keys {
+	for server.keysWithExpiry.keys[database].Len() > 0 {
 
-		// handle keys within a hash type value
-		value := server.store[database][k].Value
-		t := reflect.TypeOf(value)
-		if t.Kind() == reflect.Map {
+		item := server.keysWithExpiry.keys[database].Peek()
+		fmt.Printf("!!!!!!!!! - evictKeysWithExpiredTTL - 1 - item: %v\n", item)
+		if item.ExpireAt < time.Now().Unix() {
+			fmt.Printf("!!!!!!!!! - evictKeysWithExpiredTTL - 2 - !!!EXPIRED!!! - item: %v\n", item)
+			// Grab key and HashField
+			k := item.Key
+			hashfield := item.HashField
 
-			hashkey, ok := server.store[database][k].Value.(hash.Hash)
-			if !ok {
-				return fmt.Errorf("Hash value should contain type HashValue, but type %s was found.", t.Elem().Name())
-			}
-
-			for k, v := range hashkey {
-				if v.ExpireAt.Before(time.Now()) {
-					delete(hashkey, k)
+			// Handle Hash
+			if hashfield != "" {
+				hashkey, ok := server.store[database][k].Value.(hash.Hash)
+				if !ok {
+					return fmt.Errorf("Hash value should contain type HashValue, but type %s was found.", reflect.TypeOf(hashkey).Elem().Name())
 				}
+				// TODO !!!!!!
+				//  - verify this logic makes sense for handling a hash data type
+
+				// Pop off the heap
+				heap.Pop(server.keysWithExpiry.keys[database])
+				// Delete the field from the hash
+				delete(server.store[database][k].Value.(hash.Hash), hashfield)
+				continue
 			}
 
-		}
+			// Pop off the heap
+			heap.Pop(server.keysWithExpiry.keys[database])
 
-		// Check if key is expired, move on if it's not
-		ExpireTime := server.store[database][k].ExpireAt
-		if ExpireTime.Before(time.Now()) {
-			continue
-		}
-
-		// Delete the expired key
-		deletedCount += 1
-		if !server.isInCluster() {
-			if err := server.deleteKey(ctx, k); err != nil {
-				return fmt.Errorf("evictKeysWithExpiredTTL -> standalone delete: %+v", err)
+			// Delete the expired key
+			if !server.isInCluster() {
+				if err := server.deleteKey(ctx, k); err != nil {
+					return fmt.Errorf("evictKeysWithExpiredTTL -> standalone delete: %+v", err)
+				}
+			} else if server.isInCluster() && server.raft.IsRaftLeader() {
+				fmt.Printf("!!!!!!!!! - evictKeysWithExpiredTTL - 3 - item: %v\n", item)
+				if err := server.raftApplyDeleteKey(ctx, k); err != nil {
+					return fmt.Errorf("evictKeysWithExpiredTTL -> cluster delete: %+v", err)
+				}
+				fmt.Printf("!!!!!!!!! - evictKeysWithExpiredTTL - 4 - item: %v\n", item)
 			}
-		} else if server.isInCluster() && server.raft.IsRaftLeader() {
-			if err := server.raftApplyDeleteKey(ctx, k); err != nil {
-				return fmt.Errorf("evictKeysWithExpiredTTL -> cluster delete: %+v", err)
-			}
+		} else {
+			break
 		}
-	}
 
-	// If sampleSize is 0, there's no need to calculate deleted percentage.
-	if sampleSize == 0 {
-		return nil
-	}
-
-	log.Printf("%d keys sampled, %d keys deleted\n", sampleSize, deletedCount)
-
-	// If the deleted percentage is over 20% of the sample size, execute the function again immediately.
-	if (deletedCount/sampleSize)*100 >= thresholdPercentage {
-		log.Printf("deletion ratio (%d percent) reached threshold (%d percent), sampling again\n",
-			(deletedCount/sampleSize)*100, thresholdPercentage)
-		return server.evictKeysWithExpiredTTL(ctx)
 	}
 
 	return nil

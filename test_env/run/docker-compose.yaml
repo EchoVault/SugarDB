@@ -5,6 +5,8 @@ services:
       context: ../..
       dockerfile: test_env/run/Dockerfile
     container_name: sugardb_test_env_run
+    volumes:
+        - ../../:/testspace/
     stdin_open: true
     tty: true
 
