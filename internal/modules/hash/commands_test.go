@@ -2592,7 +2592,6 @@ func Test_Hash(t *testing.T) {
 	
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				// Setup initial value if needed
 				if test.presetValue != nil {
 					var command []resp.Value
 	
@@ -2617,7 +2616,6 @@ func Test_Hash(t *testing.T) {
 						t.Error(err)
 					}
 	
-					// Set expiration if needed
 					if test.setExpire {
 						if hash, ok := test.presetValue.(hash.Hash); ok {
 							for field := range hash {
