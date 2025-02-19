@@ -849,7 +849,7 @@ func handleHPEXPIRETIME(params internal.HandlerFuncParams) ([]byte, error) {
 	key := keys.ReadKeys[0]
 	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
 	if !keyExists {
-		return []byte("$-1\r\n"), nil
+		return []byte(":-1\r\n"), nil
 	}
 
 	// handle not a hash
@@ -871,9 +871,8 @@ func handleHPEXPIRETIME(params internal.HandlerFuncParams) ([]byte, error) {
 			resp += ":-1\r\n"
 			continue
 		}
-		// Calculate milliseconds until expiration
-		millisUntilExpire := f.ExpireAt.Sub(params.GetClock().Now()).Milliseconds()
-		resp += fmt.Sprintf(":%d\r\n", millisUntilExpire)
+		// Calculate milliseconds
+		resp += fmt.Sprintf(":%d\r\n", f.ExpireAt.UnixMilli())
 	}
 
 	// build out response

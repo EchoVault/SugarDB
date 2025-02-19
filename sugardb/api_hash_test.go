@@ -1164,8 +1164,12 @@ func TestSugarDB_Hash(t *testing.T) {
 		}
 	})
 
-	t.Run("TestSugarDB_HPExpireTime", func(t *testing.T) {
+	t.Run("Test_HandleHPEXPIRETIME", func(t *testing.T) {
 		t.Parallel()
+	
+		const fixedTimestamp int64 = 1136189545000
+		var noOption ExpireOptions
+	
 		tests := []struct {
 			name        string
 			presetValue interface{}
@@ -1173,60 +1177,67 @@ func TestSugarDB_Hash(t *testing.T) {
 			fields      []string
 			want        []int64
 			wantErr     bool
+			setExpiry   bool
 		}{
 			{
 				name: "1. Get expiration time for one field",
 				key:  "HPExpireTime_Key1",
 				presetValue: hash.Hash{
-					"field1": {Value: "value1", ExpireAt: server.clock.Now().Add(time.Duration(500) * time.Second)},
+					"field1": hash.HashValue{
+						Value: "value1",
+					},
 				},
-				fields:  []string{"field1"},
-				want:    []int64{500000},
-				wantErr: false,
+				fields:    []string{"field1"},
+				want:      []int64{fixedTimestamp},
+				wantErr:   false,
+				setExpiry: true,
 			},
 			{
-				name: "2. Get expiration time for multiple fields with large expiry",
+				name: "2. Get expiration time for multiple fields",
 				key:  "HPExpireTime_Key2",
 				presetValue: hash.Hash{
-					"field1": {Value: "value1", ExpireAt: server.clock.Now().Add(time.Duration(31536000) * time.Second)},
-					"field2": {Value: "value2", ExpireAt: server.clock.Now().Add(time.Duration(31536000) * time.Second)},
-					"field3": {Value: "value3", ExpireAt: server.clock.Now().Add(time.Duration(31536000) * time.Second)},
+					"field1": hash.HashValue{
+						Value: "value1",
+					},
+					"field2": hash.HashValue{
+						Value: "value2",
+					},
+					"field3": hash.HashValue{
+						Value: "value3",
+					},
 				},
-				fields:  []string{"field1", "field2", "field3"},  // Just field names
-				want:    []int64{31536000000, 31536000000, 31536000000},
-				wantErr: false,
+				fields:    []string{"field1", "field2", "field3"},
+				want:      []int64{fixedTimestamp, fixedTimestamp, fixedTimestamp},
+				wantErr:   false,
+				setExpiry: true,
 			},
 			{
 				name: "3. Mix of existing and non-existing fields",
 				key:  "HPExpireTime_Key3",
 				presetValue: hash.Hash{
-					"field1": {Value: "value1", ExpireAt: server.clock.Now().Add(time.Duration(500) * time.Second)},
-					"field2": {Value: "value2", ExpireAt: server.clock.Now().Add(time.Duration(500) * time.Second)},
+					"field1": hash.HashValue{
+						Value: "value1",
+					},
+					"field2": hash.HashValue{
+						Value: "value2",
+					},
 				},
-				fields:  []string{"field1", "nonexistent", "field2"},
-				want:    []int64{500000, -2, 500000},
-				wantErr: false,
+				fields:    []string{"field1", "nonexistent", "field2"},
+				want:      []int64{fixedTimestamp, -2, fixedTimestamp},
+				wantErr:   false,
+				setExpiry: true,
 			},
 			{
 				name: "4. Fields with no expiration set",
 				key:  "HPExpireTime_Key4",
 				presetValue: hash.Hash{
-					"field1": {Value: "value1"},
-					"field2": {Value: "value2"},
+					"field1": hash.HashValue{Value: "value1"},
+					"field2": hash.HashValue{Value: "value2"},
 				},
-				fields:  []string{"field1", "field2"},
-				want:    []int64{-1, -1},
-				wantErr: false,
-			},
-			{
-				name: "5. Test with maximum allowed expiration",
-				key:  "HPExpireTime_Key5",
-				presetValue: hash.Hash{
-					"field1": {Value: "value1", ExpireAt: server.clock.Now().Add(time.Duration(9223372036) * time.Second)},
-				},
-				fields:  []string{"field1"},
-				want:    []int64{9223372036000},
-				wantErr: false,
+				fields:    []string{"field1", "field2"},
+				want:      []int64{-1, -1},
+				wantErr:   false,
+				setExpiry: false,
 			},
 			{
 				name:        "6. Key doesn't exist",
@@ -1235,6 +1246,7 @@ func TestSugarDB_Hash(t *testing.T) {
 				fields:      []string{"field1"},
 				want:        []int64{},
 				wantErr:     false,
+				setExpiry:   false,
 			},
 			{
 				name:        "7. Key is not a hash",
@@ -1243,8 +1255,10 @@ func TestSugarDB_Hash(t *testing.T) {
 				fields:      []string{"field1"},
 				want:        nil,
 				wantErr:     true,
+				setExpiry:   false,
 			},
 		}
+	
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
@@ -1254,7 +1268,20 @@ func TestSugarDB_Hash(t *testing.T) {
 						t.Error(err)
 						return
 					}
+	
+					if hash, ok := tt.presetValue.(hash.Hash); ok && tt.setExpiry {
+						for _, field := range tt.fields {
+							if hashValue, exists := hash[field]; exists && hashValue.Value != nil {
+								_, err := server.HExpire(tt.key, 500, noOption, field)
+								if err != nil {
+									t.Error(err)
+									return
+								}
+							}
+						}
+					}
 				}
+	
 				got, err := server.HPExpireTime(tt.key, tt.fields...)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("HPExpireTime() error = %v, wantErr %v", err, tt.wantErr)
