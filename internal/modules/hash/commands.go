@@ -879,6 +879,10 @@ func handleHPEXPIRETIME(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(resp), nil
 }
 
+func handleHEXPIRETIME(params internal.HandlerFuncParams) ([]byte, error) {
+	return nil, nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -1052,6 +1056,13 @@ Return the string length of the values stored at the specified fields. 0 if the 
 			Sync:              false,
 			KeyExtractionFunc: hpexpiretimeKeyFunc,
 			HandlerFunc:       handleHPEXPIRETIME,
+		},
+		{	Command: "hexpiretime",
+			Module: constants.HashModule,
+			Categories: []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
+			Sync: false,
+			KeyExtractionFunc: hexpiretimeKeyFunc,
+			HandlerFunc: handleHEXPIRETIME,
 		},
 	}
 }
