@@ -462,12 +462,12 @@ func (server *SugarDB) HPExpireTime(key string, fields ...string) ([]int64, erro
 // Errors:
 //
 // "value at <key> is not a hash" - when the provided key is not a hash.
-func (server *SugarDB) HExpireTime(key string, fields ...string) ([]int, error) {
+func (server *SugarDB) HExpireTime(key string, fields ...string) ([]int64, error) {
 	numFields := fmt.Sprintf("%v", len(fields))
-	cmd := append([]string{"HPEXPIRETIME", key, "FIELDS", numFields}, fields...)
+	cmd := append([]string{"HEXPIRETIME", key, "FIELDS", numFields}, fields...)
 	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
 	if err != nil {
 		return nil, err
 	}
-	return internal.ParseIntegerArrayResponse(b)
+	return internal.ParseInteger64ArrayResponse(b)
 }
