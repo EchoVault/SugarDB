@@ -447,3 +447,27 @@ func (server *SugarDB) HPExpireTime(key string, fields ...string) ([]int64, erro
 	}
 	return internal.ParseInteger64ArrayResponse(b)
 }
+
+// HExpireTime returns the absolute Unix timestamp in seconds for the given field(s) expiration time.
+//
+// Parameters:
+//
+// `key` - string - the key to the hash map.
+//
+// `fields` - ...string - a list of fields to check expiration time.
+//
+// Returns: an integer array representing the expiration timestamp in seconds for each field.
+// If a field doesn't exist or has no expiry set, -1 is returned.
+//
+// Errors:
+//
+// "value at <key> is not a hash" - when the provided key is not a hash.
+func (server *SugarDB) HExpireTime(key string, fields ...string) ([]int64, error) {
+	numFields := fmt.Sprintf("%v", len(fields))
+	cmd := append([]string{"HEXPIRETIME", key, "FIELDS", numFields}, fields...)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return nil, err
+	}
+	return internal.ParseInteger64ArrayResponse(b)
+}
