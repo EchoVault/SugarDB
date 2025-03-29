@@ -879,6 +879,54 @@ func handleHPEXPIRETIME(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(resp), nil
 }
 
+func handleHEXPIRETIME(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := hexpiretimeKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdargs := keys.ReadKeys[2:]
+	numfields, err := strconv.ParseInt(cmdargs[0], 10, 64)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("expire time must be integer, was provided %q", cmdargs[0]))
+	}
+
+	fields := cmdargs[1 : numfields+1]
+	// init array response
+	resp := "*" + fmt.Sprintf("%v", len(fields)) + "\r\n"
+
+	// handle bad key
+	key := keys.ReadKeys[0]
+	keyExists := params.KeysExist(params.Context, keys.ReadKeys)[key]
+	if !keyExists {
+		return []byte(":-1\r\n"), nil
+	}
+
+		// handle not a hash
+	hash, ok := params.GetValues(params.Context, []string{key})[key].(Hash)
+	if !ok {
+		return nil, fmt.Errorf("value at %s is not a hash", key)
+	}
+
+	for _, field := range fields {
+		f, ok := hash[field]
+		if !ok {
+			// Field doesn't exist
+			resp += ":-2\r\n"
+			continue
+		}
+
+		if f.ExpireAt == (time.Time{}) {
+			// No expiration set
+			resp += ":-1\r\n"
+			continue
+		}
+		// Calculate seconds
+		resp += fmt.Sprintf(":%d\r\n", f.ExpireAt.Unix())
+	}
+	return []byte(resp), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -1052,6 +1100,13 @@ Return the string length of the values stored at the specified fields. 0 if the 
 			Sync:              false,
 			KeyExtractionFunc: hpexpiretimeKeyFunc,
 			HandlerFunc:       handleHPEXPIRETIME,
+		},
+		{	Command: "hexpiretime",
+			Module: constants.HashModule,
+			Categories: []string{constants.HashCategory, constants.ReadCategory, constants.FastCategory},
+			Sync: false,
+			KeyExtractionFunc: hexpiretimeKeyFunc,
+			HandlerFunc: handleHEXPIRETIME,
 		},
 	}
 }

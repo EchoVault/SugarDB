@@ -214,3 +214,19 @@ func hpexpiretimeKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error)
 		WriteKeys: make([]string, 0),
 	}, nil
 }
+
+func hexpiretimeKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) < 5 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+
+	if cmd[2] != "FIELDS" {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.InvalidCmdResponse)
+	}
+
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  cmd[1:],
+		WriteKeys: make([]string, 0),
+	}, nil
+}
