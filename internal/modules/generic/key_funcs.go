@@ -321,3 +321,12 @@ func existsKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 		WriteKeys: make([]string, 0),
 	}, nil
 }
+
+func keysKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) != 2 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+	return internal.KeyExtractionFuncResult{
+		ReadKeys: cmd[1:2],
+	}, nil
+}
