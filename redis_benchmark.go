@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -99,7 +100,9 @@ func main() {
 	commands, useLocal := getCommandArgs()
 
 	// Start a local Redis server, wait a few seconds for it to start
-	exec.Command("redis-server", "--port", RedisPort).Start()
+	if err := exec.Command("redis-server", "--port", RedisPort).Start(); err != nil {
+		log.Fatalf("error starting redis instance: %+v\n", err)
+	}
 	time.Sleep(2 * time.Second)
 
 	// Run benchmark on local Redis server
@@ -112,7 +115,9 @@ func main() {
 
 	if !useLocal {
 		// Run the packaged SugarDB server, wait a few seconds for it to start
-		exec.Command("echovault", "--bind-addr=localhost", "--data-dir=persistence").Start()
+		if err := exec.Command("sugardb", "--bind-addr=localhost", "--data-dir=persistence").Start(); err != nil {
+			log.Fatalf("error starting sugardb instance: %+v\n", err)
+		}
 		time.Sleep(5 * time.Second)
 	}
 
@@ -129,11 +134,11 @@ func main() {
 	createDisplayTable(redisResults, sugarDBResults)
 
 	// Kill the local Redis server
-	exec.Command("pkill", "-f", "redis-server").Run()
+	_ = exec.Command("pkill", "-f", "redis-server").Run()
 
 	if !useLocal {
 		// Kill the packaged SugarDB server
-		exec.Command("pkill", "-f", "echovault").Run()
+		_ = exec.Command("pkill", "-f", "echovault").Run()
 		if err := os.RemoveAll("persistence"); err != nil { // Remove persistence directory
 			fmt.Println("Error removing persistence directory:", err)
 		}

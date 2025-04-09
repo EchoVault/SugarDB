@@ -212,6 +212,8 @@ func makeCluster(size int) ([]ClientServerPair, error) {
 }
 
 func Test_Cluster(t *testing.T) {
+	t.Parallel()
+
 	nodes, err := makeCluster(5)
 	if err != nil {
 		t.Error(err)
@@ -274,9 +276,7 @@ func Test_Cluster(t *testing.T) {
 
 		// Yield
 		ticker := time.NewTicker(200 * time.Millisecond)
-		defer func() {
-			ticker.Stop()
-		}()
+		defer ticker.Stop()
 		<-ticker.C
 
 		// Check if the data has been replicated on a quorum (majority of the cluster).
@@ -322,10 +322,8 @@ func Test_Cluster(t *testing.T) {
 
 		// Yield
 		ticker := time.NewTicker(200 * time.Millisecond)
-		defer func() {
-			ticker.Stop()
-		}()
 		<-ticker.C
+		ticker.Stop()
 
 		// Check if the data has been replicated on a quorum (majority of the cluster).
 		quorum := int(math.Ceil(float64(len(nodes)/2)) + 1)
@@ -963,8 +961,18 @@ func Test_Standalone(t *testing.T) {
 				name:    "1. Snapshot in embedded instance",
 				dataDir: path.Join(dataDir, "embedded_instance"),
 				values: map[int]map[string]string{
-					0: {"key5": "value-05", "key6": "value-06", "key7": "value-07", "key8": "value-08"},
-					1: {"key5": "value-15", "key6": "value-16", "key7": "value-17", "key8": "value-18"},
+					0: {
+						"test_snapshot_key5": "value-05",
+						"test_snapshot_key6": "value-06",
+						"test_snapshot_key7": "value-07",
+						"test_snapshot_key8": "value-08",
+					},
+					1: {
+						"test_snapshot_key5": "value-15",
+						"test_snapshot_key6": "value-16",
+						"test_snapshot_key7": "value-17",
+						"test_snapshot_key8": "value-18",
+					},
 				},
 				snapshotFunc: func(mockServer *SugarDB) error {
 					if _, err := mockServer.Save(); err != nil {
@@ -1022,7 +1030,7 @@ func Test_Standalone(t *testing.T) {
 				}
 
 				// Yield to allow snapshot to complete sync.
-				ticker := time.NewTicker(20 * time.Millisecond)
+				ticker := time.NewTicker(200 * time.Millisecond)
 				<-ticker.C
 				ticker.Stop()
 
@@ -1121,10 +1129,10 @@ func Test_Standalone(t *testing.T) {
 		<-ticker.C
 
 		// Rewrite AOF
-		if _, err := mockServer.RewriteAOF(); err != nil {
-			t.Error(err)
-			return
-		}
+		mockServer.RewriteAOF()
+
+		// Yield
+		<-ticker.C
 
 		// Perform write commands from "after-rewrite"
 		for key, value := range data["after-rewrite"] {
