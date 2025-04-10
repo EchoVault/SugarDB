@@ -781,7 +781,24 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 }
 
 func handleHEXPIREAT(params internal.HandlerFuncParams) ([]byte, error) {
-	return []byte(":-1\r\n"), nil
+	keys, err := hexpireatKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+	cmdargs := keys.WriteKeys[1:]
+	epoch, err := strconv.ParseInt(cmdargs[0], 10, 64)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("seconds must be integer, was provided %q", cmdargs[0]))
+	}
+
+	if time.Now().Unix() > epoch {
+		params.Command[2] = "0"
+		return handleHEXPIRE(params)
+	}
+
+	expireAt := time.Now().Unix() - epoch
+	params.Command[2] = strconv.FormatInt(expireAt, 10)
+	return handleHEXPIRE(params)
 }
 
 func handleHTTL(params internal.HandlerFuncParams) ([]byte, error) {
