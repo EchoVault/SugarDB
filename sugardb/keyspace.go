@@ -134,13 +134,15 @@ func (server *SugarDB) keysExist(ctx context.Context, keys []string) map[string]
 	return exists
 }
 
-func (server *EchoVault) getKeys() []string {
+func (server *SugarDB) getKeys(ctx context.Context) []string {
 	server.storeLock.RLock()
 	defer server.storeLock.RUnlock()
 
-	keys := make([]string, len(server.store))
+	database := ctx.Value("Database").(int)
+
+	keys := make([]string, len(server.store[database]))
 	i := 0
-	for key := range server.store {
+	for key := range server.store[database] {
 		keys[i] = key
 		i++
 	}

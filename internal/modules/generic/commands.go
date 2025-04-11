@@ -1002,7 +1002,7 @@ func handleKeys(params internal.HandlerFuncParams) ([]byte, error) {
 	}
 
 	pattern := keys.ReadKeys[0]
-	storeKeys := params.GetKeys()
+	storeKeys := params.GetKeys(params.Context)
 
 	var matchedKeys []string
 
