@@ -180,14 +180,13 @@ func matchPattern(pattern string, key string) bool {
 		case '*': // Match any sequence of characters
 			// If pattern is at the end, return true
 			if patternPos+1 >= patternLen {
-				return true 
+				return true
 			}
 			// Use recursion to match the rest of the pattern at each position
-			for keyPos <= keyLen {
-				if matchPattern(pattern[patternPos+1:], key[keyPos:]) {
+			for i := keyPos; i <= keyLen; i++ {
+				if matchPattern(pattern[patternPos+1:], key[i:]) {
 					return true
 				}
-				keyPos++
 			}
 			return false
 		case '[': // Match any character in the character class brackets []
