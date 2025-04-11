@@ -151,7 +151,7 @@ func getCopyCommandOptions(cmd []string, options CopyOptions) (CopyOptions, erro
 	}
 }
 
-func matchPattern(pattern, key string) bool {
+func matchPattern(pattern string, key string) bool {
 	/*
 		Implementation of Redis-style pattern matching
 		https://redis.io/docs/latest/commands/keys/
