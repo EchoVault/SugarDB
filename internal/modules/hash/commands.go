@@ -791,12 +791,12 @@ func handleHEXPIREAT(params internal.HandlerFuncParams) ([]byte, error) {
 		return nil, errors.New(fmt.Sprintf("seconds must be integer, was provided %q", cmdargs[0]))
 	}
 
-	if time.Now().Unix() > epoch {
+	if params.GetClock().Now().Unix() > epoch {
 		params.Command[2] = "0"
 		return handleHEXPIRE(params)
 	}
 
-	expireAt := time.Now().Unix() - epoch
+	expireAt := epoch - params.GetClock().Now().Unix()
 	params.Command[2] = strconv.FormatInt(expireAt, 10)
 	return handleHEXPIRE(params)
 }
