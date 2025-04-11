@@ -2143,4 +2143,105 @@ func TestSugarDB_Generic(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("TestSugarDB_KEYS", func(t *testing.T) {
+		tests := []struct {
+			name         string
+			presetValues map[string]interface{}
+			pattern      string
+			want         []string
+			wantErr      bool
+		}{
+			{
+				name: "1. Return all keys with * pattern",
+				presetValues: map[string]interface{}{
+					"keys_key1": "value1",
+					"keys_key2": "value2",
+					"keys_key3": "value3",
+				},
+				pattern: "*",
+				want:    []string{"keys_key1", "keys_key2", "keys_key3"},
+				wantErr: false,
+			},
+			{
+				name: "2. Return keys matching specific pattern",
+				presetValues: map[string]interface{}{
+					"keys_key1": "value1",
+					"keys_key2": "value2",
+					"other_key": "value3",
+				},
+				pattern: "keys_*",
+				want:    []string{"keys_key1", "keys_key2"},
+				wantErr: false,
+			},
+			{
+				name: "3. Return keys matching single character pattern",
+				presetValues: map[string]interface{}{
+					"keys_key1": "value1",
+					"keys_key2": "value2",
+					"keys_kex3": "value3",
+				},
+				pattern: "keys_key?",
+				want:    []string{"keys_key1", "keys_key2"},
+				wantErr: false,
+			},
+			{
+				name: "4. Return empty slice when no keys match pattern",
+				presetValues: map[string]interface{}{
+					"keys_key1": "value1",
+					"keys_key2": "value2",
+				},
+				pattern: "nonexistent_*",
+				want:    []string{},
+				wantErr: false,
+			},
+			{
+				name:         "5. Return empty slice when no keys exist",
+				presetValues: nil,
+				pattern:      "*",
+				want:         []string{},
+				wantErr:      false,
+			},
+			{
+				name: "6. Return keys matching character class pattern",
+				presetValues: map[string]interface{}{
+					"keys_key1": "value1",
+					"keys_key2": "value2",
+					"keys_kex3": "value3",
+				},
+				pattern: "keys_key[12]",
+				want:    []string{"keys_key1", "keys_key2"},
+				wantErr: false,
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				// Create a new server instance for each test case
+				server := createSugarDB()
+				t.Cleanup(func() {
+					server.ShutDown()
+				})
+				
+				if tt.presetValues != nil {
+					for k, v := range tt.presetValues {
+						err := presetValue(server, context.Background(), k, v)
+						if err != nil {
+							t.Error(err)
+							return
+						}
+					}
+				}
+				got, err := server.Keys(tt.pattern)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("KEYS() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				slices.Sort(got)
+				slices.Sort(tt.want)
+				if !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("KEYS() got = %v, want %v", got, tt.want)
+				}
+			})
+		}
+	})
 }
