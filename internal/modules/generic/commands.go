@@ -995,6 +995,38 @@ func handleMove(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(fmt.Sprintf("+%v\r\n", 0)), nil
 }
 
+func handleKeys(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := keysKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+
+	pattern := keys.ReadKeys[0]
+	storeKeys := params.GetKeys()
+
+	var matchedKeys []string
+
+	// Special case for * pattern - return all keys
+	if pattern == "*" {
+		matchedKeys = storeKeys
+	} else {
+		// Find all matching keys using direct pattern matching
+		for _, key := range storeKeys {
+			if matchPattern(pattern, key) {
+				matchedKeys = append(matchedKeys, key)
+			}
+		}
+	}
+
+	// Build byte response
+	res := fmt.Sprintf("*%d\r\n", len(matchedKeys))
+	for _, key := range matchedKeys {
+		res += fmt.Sprintf("$%d\r\n%s\r\n", len(key), key)
+	}
+
+	return []byte(res), nil
+}
+
 func Commands() []internal.Command {
 	return []internal.Command{
 		{
@@ -1413,6 +1445,16 @@ The REPLACE option removes the destination key before copying the value to it.`,
 			Type:              "BUILT_IN",
 			KeyExtractionFunc: existsKeyFunc,
 			HandlerFunc:       handleExists,
+		},
+		{
+			Command:           "keys",
+			Module:            constants.GenericModule,
+			Categories:        []string{constants.KeyspaceCategory, constants.ReadCategory, constants.SlowCategory, constants.DangerousCategory},
+			Description:       "(KEYS pattern) Returns an array of keys that match the provided glob pattern.",
+			Sync:              false,
+			Type:              "BUILT_IN",
+			KeyExtractionFunc: keysKeyFunc,
+			HandlerFunc:       handleKeys,
 		},
 	}
 }
