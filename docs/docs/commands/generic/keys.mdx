@@ -1,0 +1,51 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# KEYS
+
+### Syntax
+```
+KEYS
+```
+
+### Module
+<span className="acl-category">generic</span>
+
+### Categories 
+<span className="acl-category">slow</span>
+<span className="acl-category">read</span>
+<span className="acl-category">keyspace</span>
+<span className="acl-category">dangerous</span>
+
+### Description
+Returns an array of keys that match the provided glob pattern. This follows the same pattern matching rules as Redis.
+
+### Examples
+
+<Tabs
+  defaultValue="go"
+  values={[
+    { label: 'Go (Embedded)', value: 'go', },
+    { label: 'CLI', value: 'cli', },
+  ]}
+>
+  <TabItem value="go">
+  Return the keys matching the pattern:
+  ```go
+  db, err := sugardb.NewSugarDB()
+  if err != nil {
+    log.Fatal(err)
+  }
+  key, err := db.Keys("a??")
+  // keys can be eg. age, all
+  ```
+  </TabItem>
+  <TabItem value="cli">
+  Return the keys matching the pattern:
+  ```
+  > KEYS a??
+  age
+  all
+  ```
+  </TabItem>
+</Tabs> 

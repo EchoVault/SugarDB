@@ -21,6 +21,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"sort"
+	"reflect"
 
 	"github.com/echovault/sugardb/internal"
 	"github.com/echovault/sugardb/internal/clock"
@@ -3889,6 +3891,155 @@ func Test_Generic(t *testing.T) {
 
 			}
 
+		}
+	})
+
+	t.Run("Test_handleKeys", func(t *testing.T) {
+		t.Parallel()
+
+		port, err := internal.GetFreePort()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		mockServer, err := sugardb.NewSugarDB(
+			sugardb.WithConfig(config.Config{
+				BindAddr:       "localhost",
+				Port:           uint16(port),
+				DataDir:        "",
+				EvictionPolicy: constants.NoEviction,
+			}),
+		)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		go func() {
+			mockServer.Start()
+		}()
+		t.Cleanup(func() {
+			mockServer.ShutDown()
+		})
+
+		conn, err := internal.GetConnection("localhost", port)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+		client := resp.NewConn(conn)
+
+		tests := []struct {
+			name             string
+			presetValues     map[string]interface{}
+			command          []string
+			expectedResponse []string
+			expectedError    error
+		}{
+			{
+				name: "1. Return all keys with * pattern",
+				presetValues: map[string]interface{}{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
+				},
+				command:          []string{"KEYS", "*"},
+				expectedResponse: []string{"key1", "key2", "key3"},
+				expectedError:    nil,
+			},
+			{
+				name:             "2. Return empty slice when no keys exist",
+				presetValues:     nil,
+				command:          []string{"KEYS", "*"},
+				expectedResponse: []string{},
+				expectedError:    nil,
+			},
+			{
+				name:             "3. Return error when command is invalid",
+				presetValues:     nil,
+				command:          []string{"KEYS"},
+				expectedResponse: nil,
+				expectedError:    errors.New(constants.WrongArgsResponse),
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				// Clear the database before each test
+				flushCommand := []resp.Value{
+					resp.StringValue("FLUSHALL"),
+				}
+				if err = client.WriteArray(flushCommand); err != nil {
+					t.Error(err)
+				}
+				res, _, err := client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+				if !strings.EqualFold(res.String(), "ok") {
+					t.Errorf("expected FLUSHALL response to be \"ok\", got %s", res.String())
+				}
+				
+				// preset values
+				if test.presetValues != nil {
+					for k, v := range test.presetValues {
+						command := []resp.Value{
+							resp.StringValue("SET"),
+							resp.StringValue(k),
+							resp.StringValue(v.(string)),
+						}
+
+						if err = client.WriteArray(command); err != nil {
+							t.Error(err)
+						}
+						res, _, err := client.ReadValue()
+						if err != nil {
+							t.Error(err)
+						}
+
+						if !strings.EqualFold(res.String(), "ok") {
+							t.Errorf("expected preset response to be \"ok\", got %s", res.String())
+						}
+					}
+				}
+
+				command := make([]resp.Value, len(test.command))
+				for i, c := range test.command {
+					command[i] = resp.StringValue(c)
+				}
+
+				if err = client.WriteArray(command); err != nil {
+					t.Error(err)
+				}
+				res, _, err = client.ReadValue()
+				if err != nil {
+					t.Error(err)
+				}
+
+				if test.expectedError != nil {
+					if !strings.Contains(res.Error().Error(), test.expectedError.Error()) {
+						t.Errorf("expected error \"%s\", got \"%s\"", test.expectedError.Error(), err.Error())
+					}
+					return
+				}
+
+				// Convert response array to string slice
+				responseArray := res.Array()
+				responseStrings := make([]string, len(responseArray))
+				for i, item := range responseArray {
+					responseStrings[i] = item.String()
+				}
+
+				// Sort both slices for comparison since KEYS command doesn't guarantee order
+				sort.Strings(responseStrings)
+				sort.Strings(test.expectedResponse)
+
+				if !reflect.DeepEqual(responseStrings, test.expectedResponse) {
+					t.Errorf("expected response %v, got %v", test.expectedResponse, responseStrings)
+				}
+			})
 		}
 	})
 

@@ -134,6 +134,22 @@ func (server *SugarDB) keysExist(ctx context.Context, keys []string) map[string]
 	return exists
 }
 
+func (server *SugarDB) getKeys(ctx context.Context) []string {
+	server.storeLock.RLock()
+	defer server.storeLock.RUnlock()
+
+	database := ctx.Value("Database").(int)
+
+	keys := make([]string, len(server.store[database]))
+	i := 0
+	for key := range server.store[database] {
+		keys[i] = key
+		i++
+	}
+
+	return keys
+}
+
 func (server *SugarDB) getExpiry(ctx context.Context, key string) time.Time {
 	server.storeLock.RLock()
 	defer server.storeLock.RUnlock()

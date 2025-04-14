@@ -150,3 +150,97 @@ func getCopyCommandOptions(cmd []string, options CopyOptions) (CopyOptions, erro
 		return CopyOptions{}, fmt.Errorf("unknown option %s for copy command", strings.ToUpper(cmd[0]))
 	}
 }
+
+func matchPattern(pattern string, key string) bool {
+	/*
+		Implementation of Redis-style pattern matching
+		https://redis.io/docs/latest/commands/keys/
+	*/
+	patternLen := len(pattern)
+	keyLen := len(key) // length of the key to match
+	patternPos := 0 // position in the pattern
+	keyPos := 0 // position in the key
+
+	for patternPos < patternLen {
+		switch pattern[patternPos] {
+		case '\\': // Match characters verbatum after slash
+			if patternPos+1 < patternLen {
+				patternPos++
+				if keyPos >= keyLen || pattern[patternPos] != key[keyPos] {
+					return false
+				}
+				keyPos++
+			}
+		case '?': // Match any single character (skip key position)
+			// key position is at the end, return false
+			if keyPos >= keyLen {
+				return false
+			}
+			keyPos++
+		case '*': // Match any sequence of characters
+			// If pattern is at the end, return true
+			if patternPos+1 >= patternLen {
+				return true
+			}
+			// Use recursion to match the rest of the pattern at each position
+			for i := keyPos; i <= keyLen; i++ {
+				if matchPattern(pattern[patternPos+1:], key[i:]) {
+					return true
+				}
+			}
+			return false
+		case '[': // Match any character in the character class brackets []
+			// key position is at the end, return false
+			if keyPos >= keyLen {
+				return false
+			}
+			patternPos++ // skip the [ character
+			// check if character class is negated (^)
+			negate := false
+			if patternPos < patternLen && pattern[patternPos] == '^' {
+				negate = true
+				patternPos++
+			}
+
+			// look through all characters in the character class
+			matched := false
+			for patternPos < patternLen && pattern[patternPos] != ']' {
+				// if character is escaped, check the next character
+				if pattern[patternPos] == '\\' && patternPos+1 < patternLen {
+					patternPos++
+					if pattern[patternPos] == key[keyPos] {
+						matched = true
+					}
+				// if character is a range, check if the key position is within the range
+				} else if patternPos+2 < patternLen && pattern[patternPos+1] == '-' {
+					// Handle range
+					if key[keyPos] >= pattern[patternPos] && key[keyPos] <= pattern[patternPos+2] {
+						matched = true
+					}
+					patternPos += 2
+				// if character is a match, set matched to true
+				} else if pattern[patternPos] == key[keyPos] {
+					matched = true
+				}
+				patternPos++
+			}
+			// if pattern position is at the end, return false
+			if patternPos >= patternLen {
+				return false
+			}
+			// negate check: if matched is true and negate is true, return false
+			if matched == negate {
+				return false
+			}
+			keyPos++
+		default: // Match literal character (just like slash but on the current key position)
+			if keyPos >= keyLen || pattern[patternPos] != key[keyPos] {
+				return false
+			}
+			keyPos++
+		}
+		patternPos++
+	}
+
+	return keyPos == keyLen
+}
