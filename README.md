@@ -222,6 +222,7 @@ Benchmark script options:
 * [INCR](https://sugardb.io/docs/commands/generic/incr)
 * [INCRBY](https://sugardb.io/docs/commands/generic/incrby)
 * [INCRBYFLOAT](https://sugardb.io/docs/commands/generic/incrbyfloat)
+* [KEYS](https://sugardb.io/docs/commands/generic/keys)
 * [MGET](https://sugardb.io/docs/commands/generic/mget)
 * [MOVE](https://sugardb.io/docs/commands/generic/move)
 * [MSET](https://sugardb.io/docs/commands/generic/mset)

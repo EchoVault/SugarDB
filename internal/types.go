@@ -138,6 +138,8 @@ type HandlerFuncParams struct {
 	Connection *net.Conn
 	// KeysExist returns a map that specifies which keys exist in the keyspace.
 	KeysExist func(ctx context.Context, keys []string) map[string]bool
+	// GetKeys returns all the keys in the keyspace.
+	GetKeys func(ctx context.Context) []string
 	// GetExpiry returns the expiry time of a key.
 	GetExpiry func(ctx context.Context, key string) time.Time
 	// GetHashExpiry returns the expiry time of a field in a key whose value is a hash.

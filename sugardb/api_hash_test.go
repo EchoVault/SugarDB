@@ -1163,4 +1163,265 @@ func TestSugarDB_Hash(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Test_HandleHPEXPIRETIME", func(t *testing.T) {
+		t.Parallel()
+	
+		const fixedTimestamp int64 = 1136189545000
+		var noOption ExpireOptions
+	
+		tests := []struct {
+			name        string
+			presetValue interface{}
+			key         string
+			fields      []string
+			want        []int64
+			wantErr     bool
+			setExpiry   bool
+		}{
+			{
+				name: "1. Get expiration time for one field",
+				key:  "HPExpireTime_Key1",
+				presetValue: hash.Hash{
+					"field1": hash.HashValue{
+						Value: "value1",
+					},
+				},
+				fields:    []string{"field1"},
+				want:      []int64{fixedTimestamp},
+				wantErr:   false,
+				setExpiry: true,
+			},
+			{
+				name: "2. Get expiration time for multiple fields",
+				key:  "HPExpireTime_Key2",
+				presetValue: hash.Hash{
+					"field1": hash.HashValue{
+						Value: "value1",
+					},
+					"field2": hash.HashValue{
+						Value: "value2",
+					},
+					"field3": hash.HashValue{
+						Value: "value3",
+					},
+				},
+				fields:    []string{"field1", "field2", "field3"},
+				want:      []int64{fixedTimestamp, fixedTimestamp, fixedTimestamp},
+				wantErr:   false,
+				setExpiry: true,
+			},
+			{
+				name: "3. Mix of existing and non-existing fields",
+				key:  "HPExpireTime_Key3",
+				presetValue: hash.Hash{
+					"field1": hash.HashValue{
+						Value: "value1",
+					},
+					"field2": hash.HashValue{
+						Value: "value2",
+					},
+				},
+				fields:    []string{"field1", "nonexistent", "field2"},
+				want:      []int64{fixedTimestamp, -2, fixedTimestamp},
+				wantErr:   false,
+				setExpiry: true,
+			},
+			{
+				name: "4. Fields with no expiration set",
+				key:  "HPExpireTime_Key4",
+				presetValue: hash.Hash{
+					"field1": hash.HashValue{Value: "value1"},
+					"field2": hash.HashValue{Value: "value2"},
+				},
+				fields:    []string{"field1", "field2"},
+				want:      []int64{-1, -1},
+				wantErr:   false,
+				setExpiry: false,
+			},
+			{
+				name:        "6. Key doesn't exist",
+				key:         "HPExpireTime_Key6",
+				presetValue: nil,
+				fields:      []string{"field1"},
+				want:        []int64{},
+				wantErr:     false,
+				setExpiry:   false,
+			},
+			{
+				name:        "7. Key is not a hash",
+				key:         "HPExpireTime_Key7",
+				presetValue: "not a hash",
+				fields:      []string{"field1"},
+				want:        nil,
+				wantErr:     true,
+				setExpiry:   false,
+			},
+		}
+	
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				if tt.presetValue != nil {
+					err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+					if err != nil {
+						t.Error(err)
+						return
+					}
+	
+					if hash, ok := tt.presetValue.(hash.Hash); ok && tt.setExpiry {
+						for _, field := range tt.fields {
+							if hashValue, exists := hash[field]; exists && hashValue.Value != nil {
+								_, err := server.HExpire(tt.key, 500, noOption, field)
+								if err != nil {
+									t.Error(err)
+									return
+								}
+							}
+						}
+					}
+				}
+	
+				got, err := server.HPExpireTime(tt.key, tt.fields...)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("HPExpireTime() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("HPExpireTime() got = %v, want %v", got, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("Test_HandleHEXPIRETIME", func(t *testing.T) {
+		t.Parallel()
+	
+		const fixedTimestamp int64 = 1136189545
+		var noOption ExpireOptions
+	
+		tests := []struct {
+			name        string
+			presetValue interface{}
+			key         string
+			fields      []string
+			want        []int64
+			wantErr     bool
+			setExpiry   bool
+		}{
+			{
+				name: "1. Get expiration time for one field",
+				key:  "HExpireTime_Key1",
+				presetValue: hash.Hash{
+					"field1": hash.HashValue{
+						Value: "value1",
+					},
+				},
+				fields:    []string{"field1"},
+				want:      []int64{fixedTimestamp},
+				wantErr:   false,
+				setExpiry: true,
+			},
+			{
+				name: "2. Get expiration time for multiple fields",
+				key:  "HExpireTime_Key2",
+				presetValue: hash.Hash{
+					"field1": hash.HashValue{
+						Value: "value1",
+					},
+					"field2": hash.HashValue{
+						Value: "value2",
+					},
+					"field3": hash.HashValue{
+						Value: "value3",
+					},
+				},
+				fields:    []string{"field1", "field2", "field3"},
+				want:      []int64{fixedTimestamp, fixedTimestamp, fixedTimestamp},
+				wantErr:   false,
+				setExpiry: true,
+			},
+			{
+				name: "3. Mix of existing and non-existing fields",
+				key:  "HExpireTime_Key3",
+				presetValue: hash.Hash{
+					"field1": hash.HashValue{
+						Value: "value1",
+					},
+					"field2": hash.HashValue{
+						Value: "value2",
+					},
+				},
+				fields:    []string{"field1", "nonexistent", "field2"},
+				want:      []int64{fixedTimestamp, -2, fixedTimestamp},
+				wantErr:   false,
+				setExpiry: true,
+			},
+			{
+				name: "4. Fields with no expiration set",
+				key:  "HExpireTime_Key4",
+				presetValue: hash.Hash{
+					"field1": hash.HashValue{Value: "value1"},
+					"field2": hash.HashValue{Value: "value2"},
+				},
+				fields:    []string{"field1", "field2"},
+				want:      []int64{-1, -1},
+				wantErr:   false,
+				setExpiry: false,
+			},
+			{
+				name:        "6. Key doesn't exist",
+				key:         "HExpireTime_Key6",
+				presetValue: nil,
+				fields:      []string{"field1"},
+				want:        []int64{},
+				wantErr:     false,
+				setExpiry:   false,
+			},
+			{
+				name:        "7. Key is not a hash",
+				key:         "HExpireTime_Key7",
+				presetValue: "not a hash",
+				fields:      []string{"field1"},
+				want:        nil,
+				wantErr:     true,
+				setExpiry:   false,
+			},
+		}
+	
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				if tt.presetValue != nil {
+					err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+					if err != nil {
+						t.Error(err)
+						return
+					}
+	
+					if hash, ok := tt.presetValue.(hash.Hash); ok && tt.setExpiry {
+						for _, field := range tt.fields {
+							if hashValue, exists := hash[field]; exists && hashValue.Value != nil {
+								_, err := server.HExpire(tt.key, 500, noOption, field)
+								if err != nil {
+									t.Error(err)
+									return
+								}
+							}
+						}
+					}
+				}
+	
+				got, err := server.HExpireTime(tt.key, tt.fields...)
+				t.Logf("ExpireAt time: %v", got)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("HExpireTime() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("HExpireTime() got = %v, want %v", got, tt.want)
+				}
+			})
+		}
+	})
 }

@@ -822,3 +822,18 @@ func (server *SugarDB) Exists(keys ...string) (int, error) {
 	}
 	return internal.ParseIntegerResponse(b)
 }
+
+// Keys returns all of the keys matching the glob pattern of the given key.
+ // Parameters:
+ //
+ // `pattern` - string - pattern of key to match on
+ //
+ // Returns: A string slice of all the matching keys. If there are no keys matching the pattern, an empty slice is returned.
+ func (server *SugarDB) Keys(pattern string) ([]string, error) {
+	b, err := server.handleCommand(server.context, internal.EncodeCommand([]string{"KEYS", pattern}), nil, false, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return internal.ParseStringArrayResponse(b)
+}
