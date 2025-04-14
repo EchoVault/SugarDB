@@ -16,11 +16,12 @@ package sugardb
 
 import (
 	"context"
-	"github.com/echovault/sugardb/internal/modules/hash"
 	"reflect"
 	"slices"
 	"testing"
 	"time"
+
+	"github.com/echovault/sugardb/internal/modules/hash"
 )
 
 func TestSugarDB_Hash(t *testing.T) {
@@ -1065,6 +1066,121 @@ func TestSugarDB_Hash(t *testing.T) {
 				}
 				if !reflect.DeepEqual(got, tt.want) {
 					t.Errorf("HExpire() got = %v, want %v", got, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("TestSugarDB_HExpireAt", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name         string
+			presetValue  interface{}
+			key          string
+			fields       []string
+			expireOption ExpireOptions
+			want         []int
+			wantErr      bool
+		}{
+			{
+				name: "1. Set Expiration from existing hash.",
+				key:  "HExpireAtKey1",
+				presetValue: hash.Hash{
+					"field1": {Value: "value1"},
+					"field2": {Value: 365},
+					"field3": {Value: 3.142},
+				},
+				fields:  []string{"field1", "field2", "field3"},
+				want:    []int{1, 1, 1},
+				wantErr: false,
+			},
+			{
+				name:        "2. Return -2 when attempting to get from non-existed key",
+				presetValue: nil,
+				key:         "HExpireAtKey2",
+				fields:      []string{"field1"},
+				want:        []int{-2},
+				wantErr:     false,
+			},
+			{
+				name:        "3. Error when trying to get from a value that is not a hash map",
+				presetValue: "Default Value",
+				key:         "HExpireAtKey3",
+				fields:      []string{"field1"},
+				want:        nil,
+				wantErr:     true,
+			},
+			{
+				name: "4. Set Expiration with option NX.",
+				key:  "HExpireAtKey4",
+				presetValue: hash.Hash{
+					"field1": {Value: "value1"},
+					"field2": {Value: 365},
+					"field3": {Value: 3.142},
+				},
+				fields:       []string{"field1", "field2", "field3"},
+				expireOption: NX,
+				want:         []int{1, 1, 1},
+				wantErr:      false,
+			},
+			{
+				name: "5. Set Expiration with option XX.",
+				key:  "HExpireAtKey5",
+				presetValue: hash.Hash{
+					"field1": {Value: "value1"},
+					"field2": {Value: 365},
+					"field3": {Value: 3.142},
+				},
+				fields:       []string{"field1", "field2", "field3"},
+				expireOption: XX,
+				want:         []int{0, 0, 0},
+				wantErr:      false,
+			},
+			{
+				name: "6. Set Expiration with option GT.",
+				key:  "HExpireAtKey6",
+				presetValue: hash.Hash{
+					"field1": {Value: "value1"},
+					"field2": {Value: 365},
+					"field3": {Value: 3.142},
+				},
+				fields:       []string{"field1", "field2", "field3"},
+				expireOption: GT,
+				want:         []int{0, 0, 0},
+				wantErr:      false,
+			},
+			{
+				name: "7. Set Expiration with option LT.",
+				key:  "HExpireAtKey7",
+				presetValue: hash.Hash{
+					"field1": {Value: "value1"},
+					"field2": {Value: 365},
+					"field3": {Value: 3.142},
+				},
+				fields:       []string{"field1", "field2", "field3"},
+				expireOption: LT,
+				want:         []int{1, 1, 1},
+				wantErr:      false,
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				if tt.presetValue != nil {
+					err := presetValue(server, context.Background(), tt.key, tt.presetValue)
+					if err != nil {
+						t.Error(err)
+						return
+					}
+				}
+				got, err := server.HExpireAt(tt.key, int(time.Now().Unix())+5, tt.expireOption, tt.fields...)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("HExpireAt() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("HExpireAt() got = %v, want %v", got, tt.want)
 				}
 			})
 		}
