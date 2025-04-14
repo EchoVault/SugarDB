@@ -780,6 +780,27 @@ func handleHEXPIRE(params internal.HandlerFuncParams) ([]byte, error) {
 	return []byte(resp), nil
 }
 
+func handleHEXPIREAT(params internal.HandlerFuncParams) ([]byte, error) {
+	keys, err := hexpireatKeyFunc(params.Command)
+	if err != nil {
+		return nil, err
+	}
+	cmdargs := keys.WriteKeys[1:]
+	epoch, err := strconv.ParseInt(cmdargs[0], 10, 64)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("seconds must be integer, was provided %q", cmdargs[0]))
+	}
+
+	if params.GetClock().Now().Unix() > epoch {
+		params.Command[2] = "0"
+		return handleHEXPIRE(params)
+	}
+
+	expireAt := epoch - params.GetClock().Now().Unix()
+	params.Command[2] = strconv.FormatInt(expireAt, 10)
+	return handleHEXPIRE(params)
+}
+
 func handleHTTL(params internal.HandlerFuncParams) ([]byte, error) {
 	keys, err := httlKeyFunc(params.Command)
 	if err != nil {
@@ -1082,6 +1103,15 @@ Return the string length of the values stored at the specified fields. 0 if the 
 			Sync:              true,
 			KeyExtractionFunc: hexpireKeyFunc,
 			HandlerFunc:       handleHEXPIRE,
+		},
+		{
+			Command:           "hexpireat",
+			Module:            constants.HashModule,
+			Categories:        []string{constants.HashCategory, constants.WriteCategory, constants.FastCategory},
+			Description:       `(HEXPIREAT key unix-time-seconds [NX | XX | GT | LT] FIELDS numfields field [field ...]) Sets the exact expiration time from now of a field in a hash.`,
+			Sync:              true,
+			KeyExtractionFunc: hexpireatKeyFunc,
+			HandlerFunc:       handleHEXPIREAT,
 		},
 		{
 			Command:           "httl",

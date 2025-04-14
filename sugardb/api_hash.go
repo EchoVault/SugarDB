@@ -397,6 +397,45 @@ func (server *SugarDB) HExpire(key string, seconds int, ExOpt ExpireOptions, fie
 	return internal.ParseIntegerArrayResponse(b)
 }
 
+// HExpireAt sets the expiration for the provided field(s) in a hash map to a specific epoch time.
+//
+// Parameters:
+//
+// `key` - string - the key to the hash map.
+//
+// `epoch` - int - Unix timestamp in seconds when the key should expire.
+//
+// `ExOpt` - ExpireOptions - One of NX, XX, GT, LT.
+//
+// `fields` - ...string - a list of fields to set expiration of.
+//
+// Returns: an integer array representing the outcome of the commmand for each field.
+//   - Integer reply: -2 if no such field exists in the provided hash key, or the provided key does not exist.
+//   - Integer reply: 0 if the specified NX | XX | GT | LT condition has not been met.
+//   - Integer reply: 1 if the expiration time was set/updated.
+//   - Integer reply: 2 when HEXPIRE/HPEXPIRE is called with 0 seconds
+//
+// Errors:
+//
+// "value of key <key> is not a hash" - when the provided key is not a hash.
+func (server *SugarDB) HExpireAt(key string, epoch int, ExOpt ExpireOptions, fields ...string) ([]int, error) {
+	cmd := []string{"HEXPIREAT", key, fmt.Sprintf("%v", epoch)}
+	if ExOpt != nil {
+		ExpireOption := fmt.Sprintf("%v", ExOpt)
+		cmd = append(cmd, ExpireOption)
+	}
+
+	numFields := fmt.Sprintf("%v", len(fields))
+	fieldsArray := append([]string{"FIELDS", numFields}, fields...)
+
+	cmd = append(cmd, fieldsArray...)
+	b, err := server.handleCommand(server.context, internal.EncodeCommand(cmd), nil, false, true)
+	if err != nil {
+		return nil, err
+	}
+	return internal.ParseIntegerArrayResponse(b)
+}
+
 // HTTL gets the expiration for the provided field(s) in a hash map.
 //
 // Parameters:
