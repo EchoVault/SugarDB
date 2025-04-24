@@ -183,6 +183,18 @@ func hexpireKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	}, nil
 }
 
+func hexpireatKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
+	if len(cmd) < 6 {
+		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
+	}
+
+	return internal.KeyExtractionFuncResult{
+		Channels:  make([]string, 0),
+		ReadKeys:  make([]string, 0),
+		WriteKeys: cmd[1:],
+	}, nil
+}
+
 func httlKeyFunc(cmd []string) (internal.KeyExtractionFuncResult, error) {
 	if len(cmd) < 5 {
 		return internal.KeyExtractionFuncResult{}, errors.New(constants.WrongArgsResponse)
