@@ -79,7 +79,7 @@ func handleHSET(params internal.HandlerFuncParams) ([]byte, error) {
 		// Handle HSET
 		for field, value := range hash {
 			if entries[field].Value == nil {
-				entries[field] = HashValue{Value: value}
+				entries[field] = value
 			}
 		}
 		count = len(entries)
